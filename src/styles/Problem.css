@@ -1,0 +1,132 @@
+.problem {
+  width: 100%;
+  padding: 10rem clamp(1.5rem, 6vw, 7rem);
+  background: #080808;
+}
+
+.problem__header {
+  max-width: 850px;
+}
+
+.problem__eyebrow {
+  margin-bottom: 1.5rem;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+
+  color: #8d8d8d;
+}
+
+.problem__title {
+  max-width: 850px;
+
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 600;
+}
+
+.problem__title span {
+  color: #777;
+}
+
+.problem__description {
+  max-width: 650px;
+  margin-top: 2rem;
+
+  color: #999;
+
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.7;
+}
+
+.problem__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 1px;
+
+  margin-top: 7rem;
+
+  border-top: 1px solid #292929;
+  border-bottom: 1px solid #292929;
+}
+
+.problem__card {
+  min-height: 300px;
+
+  padding: 2rem;
+
+  border-right: 1px solid #292929;
+}
+
+.problem__card:last-child {
+  border-right: none;
+}
+
+.problem__number {
+  display: block;
+
+  margin-bottom: 5rem;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+
+  color: #666;
+}
+
+.problem__card h3 {
+  max-width: 250px;
+
+  font-size: 1.15rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.problem__card p {
+  max-width: 300px;
+
+  margin-top: 1rem;
+
+  color: #777;
+
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .problem {
+    padding: 7rem 1.25rem;
+  }
+
+  .problem__title {
+    font-size: clamp(2.4rem, 11vw, 4rem);
+  }
+
+  .problem__description {
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .problem__grid {
+    grid-template-columns: 1fr;
+    margin-top: 4rem;
+  }
+
+  .problem__card {
+    min-height: auto;
+    padding: 2rem 0;
+    border-right: none;
+    border-bottom: 1px solid #292929;
+  }
+
+  .problem__card:last-child {
+    border-bottom: none;
+  }
+
+  .problem__number {
+    margin-bottom: 3rem;
+  }
+}

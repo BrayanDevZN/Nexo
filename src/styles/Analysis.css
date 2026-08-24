@@ -1,0 +1,698 @@
+.analysis {
+  width: 100%;
+  padding: 10rem clamp(1.25rem, 6vw, 7rem);
+  background: #080808;
+}
+
+.analysis__header {
+  max-width: 850px;
+}
+
+.analysis__eyebrow {
+  margin-bottom: 1.5rem;
+
+  color: #8d8d8d;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.analysis__title {
+  font-size: clamp(2.8rem, 5vw, 5rem);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+.analysis__title span {
+  color: #777;
+}
+
+.analysis__description {
+  max-width: 650px;
+  margin-top: 2rem;
+
+  color: #999;
+
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.7;
+}
+
+
+/* ==================================================
+   COMPARAÇÃO — DESKTOP
+================================================== */
+
+.comparison {
+  width: 100%;
+  max-width: 1100px;
+
+  margin: 6rem auto 0;
+
+  border-top: 1px solid #292929;
+  border-left: 1px solid #292929;
+}
+
+.comparison__head,
+.comparison__row,
+.comparison__footer {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+}
+
+.comparison__head {
+  border-bottom: 1px solid #292929;
+}
+
+.comparison__head-title,
+.comparison__plan,
+.comparison__feature,
+.comparison__value,
+.comparison__footer > div,
+.comparison__button {
+  border-right: 1px solid #292929;
+}
+
+
+/* Cabeçalho */
+
+.comparison__head-title {
+  display: flex;
+  align-items: center;
+
+  padding: 2rem;
+
+  color: #666;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.comparison__plan {
+  padding: 2rem;
+}
+
+.comparison__plan--featured {
+  background: #0d0d0d;
+}
+
+.comparison__plan span {
+  display: block;
+
+  margin-bottom: 1rem;
+
+  color: #888;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.comparison__plan strong {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.comparison__plan small {
+  margin-left: 0.3rem;
+
+  color: #666;
+
+  font-size: 0.75rem;
+}
+
+
+/* Linhas */
+
+.comparison__row {
+  min-height: 75px;
+
+  border-bottom: 1px solid #292929;
+}
+
+.comparison__feature {
+  display: flex;
+  align-items: center;
+
+  padding: 1.25rem 2rem;
+
+  color: #aaa;
+
+  font-size: 0.85rem;
+}
+
+.comparison__value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comparison__value--featured {
+  background: #0d0d0d;
+}
+
+.comparison__check {
+  color: #444;
+
+  font-size: 1rem;
+}
+
+.comparison__check--active {
+  color: #f5f5f5;
+}
+
+
+/* Botões */
+
+.comparison__footer {
+  min-height: 90px;
+
+  border-bottom: 1px solid #292929;
+}
+
+.comparison__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 1rem;
+  padding: 0.9rem 1rem;
+
+  border: 1px solid #333;
+  border-radius: 999px;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  transition:
+    background 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+.comparison__button:hover {
+  background: #f5f5f5;
+  color: #080808;
+
+  transform: translateY(-2px);
+}
+
+.comparison__button--featured {
+  background: #f5f5f5;
+  color: #080808;
+}
+
+.comparison__button--featured:hover {
+  background: #ddd;
+}
+
+
+/* ==================================================
+   CARROSSEL — MOBILE
+================================================== */
+
+.plans-mobile {
+  display: none;
+}
+
+
+/* ==================================================
+   OBSERVAÇÃO
+================================================== */
+
+.analysis__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+
+  max-width: 700px;
+
+  margin: 3rem auto 0;
+
+  color: #777;
+
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.analysis__note > span {
+  flex-shrink: 0;
+
+  color: #aaa;
+}
+
+
+/* ==================================================
+   MOBILE
+================================================== */
+
+@media (max-width: 768px) {
+
+  .analysis {
+    padding: 7rem 1.25rem;
+  }
+
+  .analysis__title {
+    font-size: clamp(2.5rem, 11vw, 4rem);
+  }
+
+  .analysis__description {
+    font-size: 0.95rem;
+  }
+
+
+  /* ------------------------------
+     Esconde tabela
+  ------------------------------ */
+
+  .comparison--desktop {
+    display: none;
+  }
+
+
+  /* ------------------------------
+     Carrossel
+  ------------------------------ */
+
+  .plans-mobile {
+    display: block;
+
+    position: relative;
+
+    width: 100%;
+
+    margin-top: 4rem;
+
+    overflow: hidden;
+  }
+
+  .plans-mobile__track {
+    display: flex;
+
+    width: 100%;
+
+    transition:
+      transform 450ms cubic-bezier(
+        0.22,
+        1,
+        0.36,
+        1
+      );
+  }
+
+  .plans-mobile__card {
+    flex: 0 0 100%;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 2rem 1.5rem;
+
+    border: 1px solid #292929;
+    border-radius: 6px;
+
+    background: #0b0b0b;
+  }
+
+
+  /* ------------------------------
+     Recomendado
+  ------------------------------ */
+
+  .plans-mobile__recommended {
+    display: inline-block;
+
+    margin-bottom: 1.5rem;
+    padding: 0.4rem 0.7rem;
+
+    border: 1px solid #444;
+    border-radius: 999px;
+
+    color: #bbb;
+
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+
+  /* ------------------------------
+     Nome do plano
+  ------------------------------ */
+
+  .plans-mobile__label {
+    display: block;
+
+    color: #888;
+
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+
+  /* ------------------------------
+     Preço
+  ------------------------------ */
+
+  .plans-mobile__price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+
+    margin-top: 1rem;
+  }
+
+  .plans-mobile__price strong {
+    font-size: 2.7rem;
+    line-height: 1;
+
+    letter-spacing: -0.05em;
+  }
+
+  .plans-mobile__price small {
+    color: #666;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* ------------------------------
+     Descrição
+  ------------------------------ */
+
+  .plans-mobile__description {
+    margin-top: 1.5rem;
+
+    color: #888;
+
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+
+
+  /* ------------------------------
+     Recursos
+  ------------------------------ */
+
+  .plans-mobile__features {
+    margin-top: 2.5rem;
+
+    border-top: 1px solid #292929;
+  }
+
+  .plans-mobile__feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+
+    padding: 0.9rem 0;
+
+    border-bottom: 1px solid #202020;
+  }
+
+  .plans-mobile__feature > span {
+    width: 16px;
+    flex-shrink: 0;
+
+    color: #444;
+
+    font-size: 0.9rem;
+  }
+
+  .plans-mobile__feature > span.active {
+    color: #f5f5f5;
+  }
+
+  .plans-mobile__feature p {
+    min-width: 0;
+
+    color: #aaa;
+
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+
+  /* ------------------------------
+     Botão
+  ------------------------------ */
+
+  .plans-mobile__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+
+    margin-top: 2rem;
+    padding: 1rem;
+
+    border: 1px solid #444;
+    border-radius: 999px;
+
+    color: #f5f5f5;
+
+    font-size: 0.8rem;
+    font-weight: 600;
+
+    transition:
+      background 200ms ease,
+      color 200ms ease,
+      transform 200ms ease;
+  }
+
+  .plans-mobile__button:active {
+    transform: scale(0.98);
+  }
+
+
+  /* ------------------------------
+     Indicadores
+  ------------------------------ */
+
+  .plans-mobile__navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    margin-top: 1.5rem;
+  }
+
+  .plans-mobile__navigation button {
+    width: 7px;
+    height: 7px;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 50%;
+
+    background: #444;
+
+    cursor: pointer;
+
+    transition:
+      width 200ms ease,
+      background 200ms ease;
+  }
+
+  .plans-mobile__navigation button.active {
+    width: 20px;
+
+    border-radius: 999px;
+
+    background: #f5f5f5;
+  }
+
+
+  /* ------------------------------
+     Contador
+  ------------------------------ */
+
+  .plans-mobile__counter {
+    display: block;
+
+    margin-top: 0.75rem;
+
+    color: #555;
+
+    font-size: 0.65rem;
+    text-align: center;
+  }
+
+
+  /* ------------------------------
+     Observação
+  ------------------------------ */
+
+  .analysis__note {
+    margin-top: 2.5rem;
+
+    font-size: 0.8rem;
+  }
+}
+.analysis__intro {
+  max-width: 1100px;
+  margin: 6rem auto 0;
+  padding: 3rem 0;
+  border-top: 1px solid #292929;
+  border-bottom: 1px solid #292929;
+
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 5rem;
+}
+
+.analysis__intro-label,
+.analysis__plans-intro > span,
+.analysis__value-label {
+  display: block;
+  margin-bottom: 1.25rem;
+
+  color: #666;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.analysis__intro h3,
+.analysis__value h3 {
+  max-width: 600px;
+
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+}
+
+.analysis__intro h3 span,
+.analysis__value h3 span {
+  color: #777;
+}
+
+.analysis__intro-content > p {
+  max-width: 560px;
+  margin-top: 1.5rem;
+
+  color: #999;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.analysis__intro-points {
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis__intro-points > div {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 1rem;
+
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #292929;
+}
+
+.analysis__intro-points > div:first-child {
+  padding-top: 0;
+}
+
+.analysis__intro-points span {
+  color: #555;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.analysis__intro-points p {
+  color: #888;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.analysis__intro-points strong {
+  color: #ddd;
+  font-weight: 600;
+}
+
+.analysis__plans-intro {
+  max-width: 1100px;
+  margin: 6rem auto 0;
+}
+
+.analysis__plans-intro p {
+  max-width: 500px;
+  margin-top: 0.75rem;
+
+  color: #888;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.comparison__plan-description {
+  max-width: 280px;
+  margin-top: 1rem;
+
+  color: #777;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.comparison__recommended {
+  display: block;
+  margin-bottom: 0.75rem;
+
+  color: #aaa !important;
+  font-size: 0.6rem !important;
+  letter-spacing: 0.12em;
+}
+
+.analysis__value {
+  max-width: 1100px;
+  margin: 6rem auto 0;
+  padding-top: 3rem;
+
+  border-top: 1px solid #292929;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+}
+
+.analysis__value-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis__value-list > div {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 1rem;
+
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #292929;
+}
+
+.analysis__value-list span {
+  color: #555;
+  font-size: 0.7rem;
+}
+
+.analysis__value-list p {
+  color: #888;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.analysis__value-list strong {
+  color: #ddd;
+  font-weight: 600;
+}
