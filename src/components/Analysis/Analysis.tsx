@@ -71,7 +71,7 @@ function Analysis() {
   const handlePointerDown = (
     event: React.PointerEvent<HTMLDivElement>
   ) => {
-    if (!trackRef.current || (event.pointerType === "mouse" && event.button !== 0)) {
+    if (!trackRef.current || event.pointerType !== "mouse" || event.button !== 0) {
       return;
     }
 

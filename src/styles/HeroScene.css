@@ -22,6 +22,8 @@
 
 @media (max-width: 768px) {
   .hero-scene {
-    min-height: 280px;
+    min-height: 330px;
+    cursor: default;
+    touch-action: pan-y;
   }
 }

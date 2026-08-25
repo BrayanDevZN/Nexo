@@ -283,7 +283,7 @@ function HeroScene() {
   });
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
 
     dragState.current = {
       pointerId: event.pointerId,

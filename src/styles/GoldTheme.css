@@ -19,6 +19,69 @@ body {
     #070603;
 }
 
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Halos dourados que atravessam suavemente toda a página. */
+body::before {
+  z-index: 90;
+  inset: -24%;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(245, 207, 111, 0.16), transparent 16%),
+    radial-gradient(circle at 78% 34%, rgba(193, 132, 24, 0.14), transparent 19%),
+    radial-gradient(circle at 48% 82%, rgba(229, 181, 66, 0.1), transparent 18%);
+  filter: blur(46px);
+  mix-blend-mode: screen;
+  opacity: 0.52;
+  transform-origin: center;
+  animation: nexo-gold-aurora 20s ease-in-out infinite alternate;
+}
+
+/* Pontos de luz discretos dão profundidade sem competir com o conteúdo. */
+body::after {
+  z-index: 91;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 229, 157, 0.72) 0 1px, transparent 1.25px),
+    radial-gradient(circle, rgba(215, 159, 49, 0.58) 0 0.85px, transparent 1.1px);
+  background-position: 0 0, 34px 42px;
+  background-size: 68px 68px, 94px 94px;
+  mask-image: linear-gradient(to bottom, transparent 1%, #000 14%, #000 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 1%, #000 14%, #000 88%, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0.22;
+  animation: nexo-gold-particles 30s linear infinite;
+}
+
+@keyframes nexo-gold-aurora {
+  0% {
+    transform: translate3d(-3%, -2%, 0) rotate(-3deg) scale(0.98);
+  }
+
+  45% {
+    transform: translate3d(4%, 3%, 0) rotate(2deg) scale(1.04);
+  }
+
+  100% {
+    transform: translate3d(-1%, 7%, 0) rotate(5deg) scale(1.08);
+  }
+}
+
+@keyframes nexo-gold-particles {
+  from {
+    background-position: 0 0, 34px 42px;
+  }
+
+  to {
+    background-position: 26px -156px, -18px -166px;
+  }
+}
+
 ::selection {
   color: #100b02;
   background: var(--gold-300);
@@ -230,6 +293,16 @@ body :focus-visible {
 }
 
 @media (max-width: 768px) {
+  body::before {
+    opacity: 0.42;
+    filter: blur(38px);
+  }
+
+  body::after {
+    background-size: 78px 78px, 104px 104px;
+    opacity: 0.17;
+  }
+
   body .navbar {
     height: 112px;
     display: grid;
@@ -267,6 +340,17 @@ body :focus-visible {
       radial-gradient(circle at 50% 31%, rgba(205, 151, 36, 0.11), transparent 18rem),
       #080704;
   }
+
+  body .hero__visual {
+    min-height: 330px;
+    height: 330px;
+  }
+
+  body .plans-mobile,
+  body .plans-mobile__track,
+  body .development__services {
+    touch-action: pan-x pan-y;
+  }
 }
 
 @media (max-width: 360px) {
@@ -295,5 +379,12 @@ body :focus-visible {
 
   body .hero__title span {
     white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
   }
 }
