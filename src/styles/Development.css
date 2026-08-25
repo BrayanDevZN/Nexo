@@ -48,36 +48,56 @@
 ================================================== */
 
 .development__services {
-  display: grid;
-
-  grid-template-columns: repeat(2, 1fr);
-
-  gap: 1px;
-
-  max-width: 1100px;
+  display: flex;
+  width: 100%;
+  max-width: 920px;
 
   margin: 6rem auto 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(225, 182, 79, 0.24);
+  border-radius: 8px;
+  background: rgba(117, 76, 8, 0.08);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
-  background: #292929;
+.development__services::-webkit-scrollbar {
+  display: none;
+}
 
-  border: 1px solid #292929;
+.development__services.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .development__card {
   position: relative;
-
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
   min-height: 480px;
-
   padding: 2.5rem;
-
-  background: #080808;
+  border-right: 1px solid rgba(225, 182, 79, 0.2);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(220, 169, 53, 0.09), transparent 18rem),
+    #080704;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 
   transition:
     background 300ms ease;
 }
 
 .development__card:hover {
-  background: #0d0d0d;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(225, 175, 61, 0.14), transparent 20rem),
+    #0b0904;
 }
 
 .development__card-top {
@@ -88,7 +108,7 @@
 }
 
 .development__number {
-  color: #555;
+  color: #c9962d;
 
   font-size: 0.7rem;
   font-weight: 600;
@@ -104,10 +124,10 @@
   width: 40px;
   height: 40px;
 
-  border: 1px solid #292929;
+  border: 1px solid rgba(225, 182, 79, 0.34);
   border-radius: 50%;
 
-  color: #888;
+  color: #e5c36e;
 
   transition:
     background 200ms ease,
@@ -116,7 +136,7 @@
 }
 
 .development__card:hover .development__arrow {
-  background: #f5f5f5;
+  background: linear-gradient(135deg, #fff4c5, #dba83d);
 
   color: #080808;
 
@@ -168,7 +188,7 @@
 
   padding: 0.55rem 0.8rem;
 
-  border: 1px solid #252525;
+  border: 1px solid rgba(225, 182, 79, 0.2);
   border-radius: 999px;
 
   color: #777;
@@ -177,7 +197,43 @@
 }
 
 .development__list li span {
-  color: #aaa;
+  color: #d6a53b;
+}
+
+.development__carousel-navigation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.development__carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.development__carousel-dots button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #5a451c;
+  cursor: pointer;
+  transition: width 200ms ease, background 200ms ease;
+}
+
+.development__carousel-dots button.active {
+  width: 22px;
+  background: #e9c568;
+  box-shadow: 0 0 14px rgba(215, 167, 54, 0.25);
+}
+
+.development__carousel-counter {
+  color: #856b35;
+  font-size: 0.65rem;
 }
 
 
@@ -340,8 +396,6 @@
   }
 
   .development__services {
-    grid-template-columns: 1fr;
-
     margin-top: 4rem;
   }
 

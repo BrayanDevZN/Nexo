@@ -299,7 +299,7 @@ function Analysis() {
                   >
                     {plan.features[featureIndex]
                       ? "✓"
-                      : "—"}
+                      : "✕"}
                   </span>
                 </div>
               ))}
@@ -381,7 +381,7 @@ function Analysis() {
                     >
                       {plan.features[featureIndex]
                         ? "✓"
-                        : "—"}
+                        : "✕"}
                     </span>
 
                     <p>{feature}</p>

@@ -1,0 +1,299 @@
+:root {
+  --gold-50: #fff8dc;
+  --gold-100: #f9e7a6;
+  --gold-300: #e9c568;
+  --gold-500: #c9972e;
+  --gold-700: #76500d;
+  --gold-line: rgba(221, 178, 76, 0.22);
+  --gold-glow: rgba(215, 167, 54, 0.18);
+}
+
+html {
+  background: #070603;
+}
+
+body {
+  color: #f7f3e8;
+  background:
+    radial-gradient(circle at 78% 4%, rgba(181, 126, 24, 0.1), transparent 24rem),
+    #070603;
+}
+
+::selection {
+  color: #100b02;
+  background: var(--gold-300);
+}
+
+body .navbar {
+  background: rgba(8, 7, 4, 0.76);
+  border-bottom: 1px solid rgba(229, 190, 94, 0.09);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+}
+
+body .navbar__links a {
+  color: #aaa392;
+}
+
+body .navbar__links a:hover {
+  color: var(--gold-100);
+}
+
+body .navbar__links a.active {
+  color: #171004;
+}
+
+body .navbar__cta {
+  color: var(--gold-100);
+  border-color: rgba(231, 194, 102, 0.38);
+  background: rgba(202, 151, 46, 0.05);
+  box-shadow: inset 0 0 18px rgba(226, 177, 67, 0.04);
+}
+
+body .navbar__cta:hover {
+  color: #171004;
+  background: linear-gradient(135deg, var(--gold-50), var(--gold-300));
+  box-shadow: 0 8px 28px rgba(208, 157, 48, 0.24);
+}
+
+body .hero,
+body .problem,
+body .analysis,
+body .development,
+body .about,
+body .cta {
+  background-color: #080704;
+  border-top: 1px solid rgba(226, 183, 81, 0.06);
+}
+
+body .hero {
+  background:
+    radial-gradient(circle at 79% 42%, rgba(205, 151, 36, 0.12), transparent 25rem),
+    linear-gradient(180deg, #080704 0%, #070603 100%);
+  border-top: 0;
+}
+
+body .problem,
+body .development,
+body .cta {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(147, 97, 12, 0.055), transparent 28rem),
+    #080704;
+}
+
+body .analysis,
+body .about {
+  background:
+    radial-gradient(circle at 88% 35%, rgba(174, 119, 16, 0.06), transparent 30rem),
+    #070603;
+}
+
+body .hero__eyebrow,
+body .problem__eyebrow,
+body .analysis__eyebrow,
+body .development__eyebrow,
+body .about__eyebrow,
+body .cta__eyebrow,
+body .analysis__intro-label,
+body .analysis__value-label,
+body .analysis__plans-intro > span,
+body .development__custom-label {
+  color: var(--gold-300);
+  text-shadow: 0 0 18px rgba(231, 191, 91, 0.16);
+}
+
+body .hero__title span,
+body .problem__title span,
+body .analysis__title span,
+body .development__title span,
+body .about__title span,
+body .cta__title span,
+body .analysis__intro h3 span,
+body .analysis__value h3 span {
+  color: transparent;
+  background: linear-gradient(115deg, #8d641a 0%, #e5bf5e 52%, #fff0b2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 5px 18px rgba(191, 137, 28, 0.1));
+}
+
+body .hero__description,
+body .problem__description,
+body .analysis__description,
+body .development__description,
+body .about__description,
+body .cta__description {
+  color: #b6ad98;
+}
+
+body .hero__button--primary,
+body .comparison__button--featured,
+body .cta__button {
+  color: #151004;
+  border-color: #e1bb5b;
+  background: linear-gradient(135deg, #fff4c5 0%, #e7bf5d 48%, #bd8521 100%);
+  box-shadow:
+    0 10px 34px rgba(192, 136, 29, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+body .hero__button--primary:hover,
+body .comparison__button--featured:hover,
+body .cta__button:hover {
+  color: #100b02;
+  background: linear-gradient(135deg, #fff9df, #efce79 52%, #ca9431);
+  box-shadow: 0 14px 40px rgba(207, 155, 46, 0.3);
+}
+
+body .hero__button--secondary,
+body .comparison__button,
+body .development__button {
+  color: #c6bfae;
+  border-color: rgba(224, 184, 88, 0.28);
+}
+
+body .hero__button--secondary:hover,
+body .comparison__button:hover,
+body .development__button:hover {
+  color: var(--gold-50);
+  border-color: rgba(236, 198, 105, 0.62);
+  background: rgba(205, 153, 43, 0.09);
+  box-shadow: 0 8px 30px rgba(171, 116, 18, 0.12);
+}
+
+body .problem__grid,
+body .problem__card,
+body .about__principles,
+body .about__principle,
+body .analysis__intro,
+body .analysis__value,
+body .analysis__value-list > div,
+body .analysis__intro-points > div,
+body .cta__bottom {
+  border-color: var(--gold-line);
+}
+
+body .problem__number,
+body .about__principle > span,
+body .analysis__intro-points > div > span,
+body .analysis__value-list > div > span,
+body .development__card-number {
+  color: var(--gold-500);
+}
+
+body .problem__card,
+body .development__card,
+body .plans-mobile__card {
+  transition:
+    border-color 240ms ease,
+    background 240ms ease,
+    box-shadow 240ms ease,
+    transform 240ms ease;
+}
+
+body .problem__card:hover,
+body .development__card:hover,
+body .plans-mobile__card:hover {
+  border-color: rgba(224, 180, 77, 0.34);
+  background: linear-gradient(145deg, rgba(205, 151, 38, 0.075), rgba(10, 8, 4, 0.2));
+  box-shadow: inset 0 1px 0 rgba(255, 226, 151, 0.06);
+}
+
+body .comparison,
+body .comparison__row,
+body .comparison__cell,
+body .plans-mobile__card {
+  border-color: var(--gold-line);
+}
+
+body .comparison__head,
+body .comparison__cell--highlight {
+  background: rgba(128, 83, 8, 0.08);
+}
+
+body .plans-mobile__navigation button {
+  background: #5a451c;
+}
+
+body .plans-mobile__navigation button.active {
+  background: var(--gold-300);
+  box-shadow: 0 0 14px var(--gold-glow);
+}
+
+body .cta__bottom span {
+  color: var(--gold-100);
+}
+
+body :focus-visible {
+  outline: 2px solid var(--gold-300);
+  outline-offset: 4px;
+}
+
+@media (max-width: 768px) {
+  body .navbar {
+    height: 112px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 42px 38px;
+    align-content: center;
+    gap: 0.35rem 0.75rem;
+    padding: 0.55rem 1rem 0.6rem;
+  }
+
+  body .navbar__links {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  body .navbar__logo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body .navbar__cta {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0.62rem 0.82rem;
+    font-size: 0.68rem;
+  }
+
+  body .hero {
+    padding-top: 9.5rem;
+    background:
+      radial-gradient(circle at 50% 31%, rgba(205, 151, 36, 0.11), transparent 18rem),
+      #080704;
+  }
+}
+
+@media (max-width: 360px) {
+  body .navbar {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  body .navbar__links {
+    gap: 0.1rem;
+  }
+
+  body .navbar__links a {
+    padding: 0.42rem 0.48rem;
+    font-size: 0.58rem;
+  }
+
+  body .navbar__cta {
+    padding: 0.55rem 0.66rem;
+    font-size: 0.61rem;
+  }
+
+  body .hero__title {
+    font-size: 2.4rem;
+  }
+
+  body .hero__title span {
+    white-space: nowrap;
+  }
+}

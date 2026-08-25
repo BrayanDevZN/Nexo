@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import "../../styles/Development.css";
 
 const services = [
@@ -30,6 +31,92 @@ const services = [
 ];
 
 function Development() {
+  const [activeService, setActiveService] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    moved: false,
+    horizontal: false,
+  });
+
+  const scrollToService = (index: number) => {
+    if (!trackRef.current) return;
+
+    trackRef.current.scrollTo({
+      left: index * trackRef.current.clientWidth,
+      behavior: "smooth",
+    });
+    setActiveService(index);
+  };
+
+  const handleServiceScroll = () => {
+    if (!trackRef.current?.clientWidth) return;
+
+    const index = Math.round(
+      trackRef.current.scrollLeft / trackRef.current.clientWidth
+    );
+    setActiveService(
+      Math.max(0, Math.min(index, services.length - 1))
+    );
+  };
+
+  const handlePointerDown = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (!trackRef.current || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: trackRef.current.scrollLeft,
+      moved: false,
+      horizontal: false,
+    };
+    trackRef.current.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    const track = trackRef.current;
+    const drag = dragRef.current;
+    if (!track || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+
+    if (!drag.horizontal && Math.abs(deltaX) > 6) {
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      drag.horizontal = true;
+      setIsDragging(true);
+    }
+
+    if (!drag.horizontal) return;
+
+    event.preventDefault();
+    drag.moved = true;
+    track.scrollLeft = drag.scrollLeft - deltaX;
+  };
+
+  const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+    if (!track || dragRef.current.pointerId !== event.pointerId) return;
+
+    if (track.hasPointerCapture(event.pointerId)) {
+      track.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current.pointerId = -1;
+    dragRef.current.horizontal = false;
+    setIsDragging(false);
+  };
+
   return (
     <section
       className="development"
@@ -60,8 +147,14 @@ function Development() {
       {/* SERVIÇOS */}
 
       <div
-        className="development__services"
+        ref={trackRef}
+        className={`development__services ${isDragging ? "is-dragging" : ""}`}
         data-development-services
+        onScroll={handleServiceScroll}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
       >
         {services.map((service) => (
           <article
@@ -97,6 +190,24 @@ function Development() {
             </ul>
           </article>
         ))}
+      </div>
+
+      <div className="development__carousel-navigation">
+        <div className="development__carousel-dots">
+          {services.map((service, index) => (
+            <button
+              key={service.title}
+              type="button"
+              className={activeService === index ? "active" : ""}
+              onClick={() => scrollToService(index)}
+              aria-label={`Ver serviço ${service.title}`}
+            />
+          ))}
+        </div>
+
+        <span className="development__carousel-counter">
+          {activeService + 1} / {services.length}
+        </span>
       </div>
 
       {/* SOB MEDIDA */}

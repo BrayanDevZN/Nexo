@@ -12,7 +12,8 @@
   --color-border-light: #3a3a3a;
 
   /* Tipografia */
-  --font-primary: "Manrope", sans-serif;
+  --font-primary: "Inter", system-ui, sans-serif;
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
 
   /* Espaçamento */
   --space-xs: 0.5rem;

@@ -1,182 +1,342 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
 
 import "../../styles/HeroScene.css";
 
-const nodes: [number, number, number][] = [
-  [-1.8, 1.2, 0.2],
-  [-0.8, 1.8, -0.4],
-  [0.4, 1.5, 0.3],
-  [1.5, 1.8, -0.2],
+const GOLD = "#e3b951";
+const GOLD_LIGHT = "#fff5c7";
+const GOLD_DARK = "#68420a";
 
-  [-1.5, 0.2, -0.5],
-  [-0.5, 0.5, 0.4],
-  [0.7, 0.3, -0.3],
-  [1.7, 0.5, 0.5],
-
-  [-1.2, -1, 0.2],
-  [0, -0.8, -0.4],
-  [1.2, -1, 0.3],
+const surfacePoints: [number, number][] = [
+  [0.72, 0.35],
+  [1.2, -0.15],
+  [2.05, 0.5],
+  [2.75, -0.42],
+  [3.55, 0.15],
+  [4.25, -0.55],
+  [5.1, 0.62],
+  [5.75, -0.08],
 ];
 
-const connections: [number, number][] = [
-  [0, 1],
-  [1, 2],
-  [2, 3],
+function Globe() {
+  const globeRef = useRef<THREE.Group>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
-  [0, 4],
-  [1, 5],
-  [2, 6],
-  [3, 7],
+  const latitudeLines = useMemo(
+    () =>
+      [-0.72, -0.38, 0, 0.38, 0.72].map((y) => {
+        const radius = Math.sqrt(1 - y * y);
+        return Array.from({ length: 65 }, (_, index) => {
+          const angle = (index / 64) * Math.PI * 2;
+          return new THREE.Vector3(
+            Math.cos(angle) * radius,
+            y,
+            Math.sin(angle) * radius
+          );
+        });
+      }),
+    []
+  );
 
-  [4, 5],
-  [5, 6],
-  [6, 7],
-
-  [4, 8],
-  [5, 9],
-  [6, 10],
-
-  [8, 9],
-  [9, 10],
-
-  [1, 5],
-  [5, 9],
-  [2, 6],
-];
-
-function Network() {
-  const groupRef = useRef<THREE.Group>(null);
-
-  const linePositions = useMemo(() => {
-    return connections.map(([from, to]) => [
-      nodes[from],
-      nodes[to],
-    ]);
-  }, []);
+  const longitudeLines = useMemo(
+    () =>
+      [0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4].map((rotation) =>
+        Array.from({ length: 65 }, (_, index) => {
+          const angle = (index / 64) * Math.PI * 2;
+          const x = Math.cos(angle);
+          const y = Math.sin(angle);
+          return new THREE.Vector3(
+            x * Math.cos(rotation),
+            y,
+            x * Math.sin(rotation)
+          );
+        })
+      ),
+    []
+  );
 
   useFrame((state) => {
-    if (!groupRef.current) return;
-
     const time = state.clock.getElapsedTime();
 
-    // =========================
-    // MOUSE
-    // =========================
+    if (globeRef.current) {
+      globeRef.current.rotation.y = time * 0.12;
+      globeRef.current.rotation.x =
+        -0.12 + Math.sin(time * 0.38) * 0.035;
+    }
 
-    const mouseX = state.pointer.x;
-    const mouseY = state.pointer.y;
-
-    // =========================
-    // ROTAÇÃO AUTOMÁTICA
-    // =========================
-
-    const autoRotationY = time * 0.08;
-
-    const autoRotationX =
-      Math.sin(time * 0.35) * 0.08;
-
-    // =========================
-    // INFLUÊNCIA DO MOUSE
-    // =========================
-
-    const mouseRotationY = mouseX * 0.35;
-    const mouseRotationX = -mouseY * 0.25;
-
-    // =========================
-    // ROTAÇÃO FINAL
-    // =========================
-
-    const targetRotationY =
-      autoRotationY + mouseRotationY;
-
-    const targetRotationX =
-      autoRotationX + mouseRotationX;
-
-    // =========================
-    // MOVIMENTO SUAVE
-    // =========================
-
-    groupRef.current.rotation.y =
-      THREE.MathUtils.lerp(
-        groupRef.current.rotation.y,
-        targetRotationY,
-        0.05
-      );
-
-    groupRef.current.rotation.x =
-      THREE.MathUtils.lerp(
-        groupRef.current.rotation.x,
-        targetRotationX,
-        0.05
-      );
-
-    // =========================
-    // FLUTUAÇÃO
-    // =========================
-
-    groupRef.current.position.y =
-      Math.sin(time * 0.6) * 0.08;
+    if (glowRef.current) {
+      const pulse = 1 + Math.sin(time * 1.35) * 0.035;
+      glowRef.current.scale.setScalar(pulse);
+    }
   });
 
   return (
-    <group
-      ref={groupRef}
-      scale={1.2}
-    >
-      {/* NÓS */}
+    <group ref={globeRef}>
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.92, 48, 32]} />
+        <meshPhysicalMaterial
+          color="#8f6418"
+          metalness={0.88}
+          roughness={0.2}
+          clearcoat={1}
+          clearcoatRoughness={0.06}
+          emissive={GOLD_DARK}
+          emissiveIntensity={0.2}
+          transparent
+          opacity={0.28}
+        />
+      </mesh>
 
-      {nodes.map((position, index) => (
-        <mesh
-          key={index}
-          position={position}
-        >
-          <sphereGeometry
-            args={[0.08, 16, 16]}
-          />
-
-          <meshBasicMaterial
-            color="#ffffff"
-            toneMapped={false}
-          />
-        </mesh>
+      {[...latitudeLines, ...longitudeLines].map((points, index) => (
+        <Line
+          key={`grid-${index}`}
+          points={points}
+          color={index === 2 ? GOLD_LIGHT : GOLD}
+          lineWidth={index === 2 ? 1.15 : 0.65}
+          transparent
+          opacity={index === 2 ? 0.72 : 0.38}
+        />
       ))}
 
-      {/* CONEXÕES */}
+      {surfacePoints.map(([longitude, latitude], index) => {
+        const radius = 1.015;
+        const horizontalRadius = Math.cos(latitude) * radius;
+        const position: [number, number, number] = [
+          Math.cos(longitude) * horizontalRadius,
+          Math.sin(latitude) * radius,
+          Math.sin(longitude) * horizontalRadius,
+        ];
 
-      {linePositions.map(
-        ([start, end], index) => (
-          <Line
-            key={index}
-            points={[start, end]}
-            color="#666666"
-            lineWidth={1}
-            transparent
-            opacity={0.7}
-          />
-        )
-      )}
+        return (
+          <mesh key={`location-${index}`} position={position}>
+            <sphereGeometry args={[index % 3 === 0 ? 0.035 : 0.022, 14, 14]} />
+            <meshBasicMaterial color={GOLD_LIGHT} toneMapped={false} />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
 
-function Scene() {
-  return <Network />;
+type OrbitProps = {
+  radius: number;
+  rotation: [number, number, number];
+  speed: number;
+  phase: number;
+  opacity: number;
+};
+
+function Orbit({ radius, rotation, speed, phase, opacity }: OrbitProps) {
+  const orbitRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!orbitRef.current) return;
+    orbitRef.current.rotation.z = phase + state.clock.getElapsedTime() * speed;
+  });
+
+  return (
+    <group rotation={rotation}>
+      <group ref={orbitRef}>
+        <mesh>
+          <torusGeometry args={[radius, 0.009, 10, 160]} />
+          <meshBasicMaterial
+            color={GOLD}
+            transparent
+            opacity={opacity}
+            toneMapped={false}
+          />
+        </mesh>
+
+        <mesh position={[radius, 0, 0]}>
+          <sphereGeometry args={[0.055, 18, 18]} />
+          <meshPhysicalMaterial
+            color={GOLD_LIGHT}
+            metalness={0.8}
+            roughness={0.08}
+            clearcoat={1}
+            emissive={GOLD}
+            emissiveIntensity={0.5}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+type DragRotation = {
+  current: { x: number; y: number };
+};
+
+function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
+  const systemRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!systemRef.current) return;
+
+    systemRef.current.rotation.y = THREE.MathUtils.lerp(
+      systemRef.current.rotation.y,
+      dragRotation.current.y,
+      0.08
+    );
+    systemRef.current.rotation.x = THREE.MathUtils.lerp(
+      systemRef.current.rotation.x,
+      dragRotation.current.x,
+      0.08
+    );
+    systemRef.current.position.y =
+      Math.sin(state.clock.getElapsedTime() * 0.55) * 0.055;
+  });
+
+  return (
+    <group scale={1.22}>
+      <group ref={systemRef}>
+        <Globe />
+        <Orbit radius={1.42} rotation={[0.92, 0.18, 0.12]} speed={0.18} phase={0.2} opacity={0.5} />
+        <Orbit radius={1.68} rotation={[1.25, -0.42, 0.74]} speed={-0.11} phase={1.7} opacity={0.36} />
+        <Orbit radius={1.9} rotation={[0.48, 0.7, -0.45]} speed={0.075} phase={3.1} opacity={0.24} />
+      </group>
+
+      <group position={[0, -1.42, 0]}>
+        <pointLight
+          color={GOLD_LIGHT}
+          intensity={8}
+          distance={3.2}
+          decay={2}
+          position={[0, 0.25, 0]}
+        />
+
+        <mesh position={[0, 0.34, 0]}>
+          <cylinderGeometry args={[0.24, 0.52, 0.7, 64, 1, true]} />
+          <meshBasicMaterial
+            color={GOLD}
+            transparent
+            opacity={0.07}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+
+        <mesh>
+          <cylinderGeometry args={[0.68, 0.76, 0.13, 64]} />
+          <meshPhysicalMaterial
+            color="#4e3107"
+            metalness={1}
+            roughness={0.2}
+            clearcoat={1}
+            clearcoatRoughness={0.08}
+            emissive={GOLD_DARK}
+            emissiveIntensity={0.18}
+          />
+        </mesh>
+
+        <mesh position={[0, 0.071, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.57, 0.035, 16, 96]} />
+          <meshBasicMaterial
+            color={GOLD_LIGHT}
+            transparent
+            opacity={0.92}
+            toneMapped={false}
+          />
+        </mesh>
+
+        <mesh position={[0, 0.078, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.53, 64]} />
+          <meshBasicMaterial
+            color={GOLD}
+            transparent
+            opacity={0.14}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function Scene({ dragRotation }: { dragRotation: DragRotation }) {
+  return (
+    <>
+      <ambientLight intensity={0.38} />
+      <directionalLight color="#fff3bf" intensity={3} position={[3, 4, 5]} />
+      <pointLight color="#e8ad2f" intensity={18} distance={8} decay={2} position={[-2, -1, 3]} />
+      <pointLight color="#fff0a6" intensity={12} distance={7} decay={2} position={[2.5, 2, 2]} />
+      <WorldSystem dragRotation={dragRotation} />
+    </>
+  );
 }
 
 function HeroScene() {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRotation = useRef({ x: 0, y: 0 });
+  const dragState = useRef({
+    pointerId: -1,
+    lastX: 0,
+    lastY: 0,
+  });
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    dragState.current = {
+      pointerId: event.pointerId,
+      lastX: event.clientX,
+      lastY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragState.current.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - dragState.current.lastX;
+    const deltaY = event.clientY - dragState.current.lastY;
+
+    dragRotation.current.y += deltaX * 0.009;
+    dragRotation.current.x = THREE.MathUtils.clamp(
+      dragRotation.current.x + deltaY * 0.009,
+      -1.15,
+      1.15
+    );
+
+    dragState.current.lastX = event.clientX;
+    dragState.current.lastY = event.clientY;
+    event.preventDefault();
+  };
+
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragState.current.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragState.current.pointerId = -1;
+    setIsDragging(false);
+  };
+
   return (
-    <div className="hero-scene">
+    <div
+      className={`hero-scene ${isDragging ? "is-dragging" : ""}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      aria-label="Globo interativo da Nexo. Arraste para girar."
+    >
       <Canvas
-        camera={{
-          position: [0, 0, 6],
-          fov: 45,
-        }}
+        camera={{ position: [0, 0, 6], fov: 45 }}
         dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true }}
       >
-        <Scene />
+        <Scene dragRotation={dragRotation} />
       </Canvas>
     </div>
   );

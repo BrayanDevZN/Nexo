@@ -8,7 +8,7 @@ function Hero() {
           className="hero__eyebrow"
           data-hero-reveal
         >
-          NEXO — ANÁLISE, ESTRATÉGIA E DESENVOLVIMENTO
+          ANÁLISE, ESTRATÉGIA E DESENVOLVIMENTO
         </p>
 
         <h1
