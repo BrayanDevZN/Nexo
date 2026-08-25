@@ -4,7 +4,7 @@
   --gold-300: #e9c568;
   --gold-500: #c9972e;
   --gold-700: #76500d;
-  --gold-line: rgba(221, 178, 76, 0.22);
+  --gold-line: rgba(231, 190, 94, 0.32);
   --gold-glow: rgba(215, 167, 54, 0.18);
 }
 
@@ -186,7 +186,61 @@ body .analysis__description,
 body .development__description,
 body .about__description,
 body .cta__description {
-  color: #b6ad98;
+  color: #d1c8b7;
+}
+
+/* Contraste reforçado para leitura em fundos escuros. */
+body .problem__card p,
+body .analysis__intro-content > p,
+body .analysis__intro-points p,
+body .analysis__value-list p,
+body .analysis__plans-intro p,
+body .analysis__note,
+body .comparison__feature,
+body .comparison__plan-description,
+body .plans-mobile__description,
+body .plans-mobile__feature p,
+body .development__card-description,
+body .development__custom p,
+body .development__maintenance p,
+body .about__text p,
+body .about__principle p,
+body .cta__bottom p {
+  color: #bdb5a5;
+}
+
+body .development__list li,
+body .development__maintenance h4,
+body .plans-mobile__counter,
+body .development__carousel-counter {
+  color: #aa9f8a;
+}
+
+body .problem__card h3,
+body .analysis__intro-points strong,
+body .analysis__value-list strong,
+body .development__card-title,
+body .about__principle h3 {
+  color: #f4efe3;
+}
+
+body .navbar__links a {
+  color: #c1b8a5;
+}
+
+body .hero__button--secondary,
+body .comparison__button,
+body .development__button {
+  color: #ded6c5;
+}
+
+body .comparison__check {
+  color: #f06b61;
+}
+
+body .comparison__check--active,
+body .plans-mobile__feature > span.active {
+  color: #67dc93;
 }
 
 body .hero__button--primary,
