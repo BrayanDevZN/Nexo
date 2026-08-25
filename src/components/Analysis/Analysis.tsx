@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "../../styles/Analysis.css";
 
 const features = [
@@ -30,9 +30,114 @@ const plans = [
 
 function Analysis() {
   const [activePlan, setActivePlan] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    moved: false,
+    horizontal: false,
+  });
+
+  const scrollToPlan = (index: number) => {
+    if (!trackRef.current) return;
+
+    trackRef.current.scrollTo({
+      left: index * trackRef.current.clientWidth,
+      behavior: "smooth",
+    });
+
+    setActivePlan(index);
+  };
+
+  const handlePlanScroll = () => {
+    if (!trackRef.current) return;
+
+    const width = trackRef.current.clientWidth;
+
+    if (!width) return;
+
+    const index = Math.round(
+      trackRef.current.scrollLeft / width
+    );
+
+    setActivePlan(
+      Math.max(0, Math.min(index, plans.length - 1))
+    );
+  };
+
+  const handlePointerDown = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (!trackRef.current || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: trackRef.current.scrollLeft,
+      moved: false,
+      horizontal: false,
+    };
+
+    trackRef.current.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    const track = trackRef.current;
+    const drag = dragRef.current;
+
+    if (!track || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+
+    if (!drag.horizontal && Math.abs(deltaX) > 6) {
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      drag.horizontal = true;
+      setIsDragging(true);
+    }
+
+    if (!drag.horizontal) return;
+
+    event.preventDefault();
+    drag.moved = true;
+    track.scrollLeft = drag.scrollLeft - deltaX;
+  };
+
+  const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+
+    if (!track || dragRef.current.pointerId !== event.pointerId) return;
+
+    if (track.hasPointerCapture(event.pointerId)) {
+      track.releasePointerCapture(event.pointerId);
+    }
+
+    dragRef.current.pointerId = -1;
+    dragRef.current.horizontal = false;
+    setIsDragging(false);
+  };
+
+  const preventClickAfterDrag = (
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    if (!dragRef.current.moved) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current.moved = false;
+  };
 
   return (
     <section className="analysis" id="analise">
+
       {/* HEADER */}
 
       <div
@@ -228,10 +333,14 @@ function Analysis() {
         data-scroll-reveal
       >
         <div
-          className="plans-mobile__track"
-          style={{
-            transform: `translateX(-${activePlan * 100}%)`,
-          }}
+          ref={trackRef}
+          className={`plans-mobile__track ${isDragging ? "is-dragging" : ""}`}
+          onScroll={handlePlanScroll}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+          onClickCapture={preventClickAfterDrag}
         >
           {plans.map((plan, planIndex) => (
             <article
@@ -293,18 +402,22 @@ function Analysis() {
         <div className="plans-mobile__navigation">
           <button
             type="button"
-            onClick={() => setActivePlan(0)}
+            onClick={() => scrollToPlan(0)}
             className={
-              activePlan === 0 ? "active" : ""
+              activePlan === 0
+                ? "active"
+                : ""
             }
             aria-label="Plano Diagnóstico"
           />
 
           <button
             type="button"
-            onClick={() => setActivePlan(1)}
+            onClick={() => scrollToPlan(1)}
             className={
-              activePlan === 1 ? "active" : ""
+              activePlan === 1
+                ? "active"
+                : ""
             }
             aria-label="Plano Estratégia"
           />
@@ -335,6 +448,7 @@ function Analysis() {
         <div className="analysis__value-list">
           <div>
             <span>01</span>
+
             <p>
               <strong>Visão do negócio</strong>
               <br />
@@ -344,6 +458,7 @@ function Analysis() {
 
           <div>
             <span>02</span>
+
             <p>
               <strong>Identificação de problemas</strong>
               <br />
@@ -354,6 +469,7 @@ function Analysis() {
 
           <div>
             <span>03</span>
+
             <p>
               <strong>Priorização</strong>
               <br />
@@ -363,6 +479,7 @@ function Analysis() {
 
           <div>
             <span>04</span>
+
             <p>
               <strong>Direcionamento</strong>
               <br />

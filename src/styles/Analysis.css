@@ -696,3 +696,419 @@
   color: #ddd;
   font-weight: 600;
 }
+/* =========================
+   MOBILE — BLOCOS DE PROCESSO
+========================= */
+
+@media (max-width: 768px) {
+  .analysis__step,
+  .analysis__item,
+  .analysis__process-item {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .analysis__step,
+  .analysis__item,
+  .analysis__process-item {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: start;
+  }
+
+  .analysis__step > *,
+  .analysis__item > *,
+  .analysis__process-item > * {
+    min-width: 0;
+  }
+
+  .analysis__step p,
+  .analysis__item p,
+  .analysis__process-item p,
+  .analysis__step h3,
+  .analysis__item h3,
+  .analysis__process-item h3 {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+}
+
+/* ==================================================
+   AJUSTES FINAIS — RESPONSIVIDADE E CARROSSEL
+   ================================================== */
+
+/* Evita que qualquer conteúdo dos blocos de processo
+   estoure horizontalmente em telas pequenas. */
+.analysis__intro,
+.analysis__value,
+.analysis__intro-content,
+.analysis__intro-points,
+.analysis__value-list,
+.analysis__intro-points > div,
+.analysis__value-list > div,
+.analysis__step,
+.analysis__item,
+.analysis__process-item {
+  min-width: 0;
+}
+
+.analysis__intro-points p,
+.analysis__value-list p,
+.analysis__intro-content p,
+.analysis__step p,
+.analysis__item p,
+.analysis__process-item p,
+.analysis__step h3,
+.analysis__item h3,
+.analysis__process-item h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ==================================================
+   MOBILE — ESTRUTURA DA ANÁLISE
+   ================================================== */
+
+@media (max-width: 768px) {
+  .analysis {
+    width: 100%;
+    padding: 6rem 1rem 5rem;
+    overflow: hidden;
+  }
+
+  .analysis__header,
+  .analysis__intro,
+  .analysis__plans-intro,
+  .analysis__value {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .analysis__eyebrow {
+    margin-bottom: 1rem;
+    font-size: 0.65rem;
+    line-height: 1.5;
+  }
+
+  .analysis__title {
+    max-width: 100%;
+    font-size: clamp(2.25rem, 11vw, 3.5rem);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    overflow-wrap: anywhere;
+  }
+
+  .analysis__description {
+    max-width: 100%;
+    margin-top: 1.5rem;
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  /* Bloco "Entender / Identificar / Agir" */
+  .analysis__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    margin-top: 4rem;
+    padding: 2.5rem 0;
+  }
+
+  .analysis__intro-content {
+    width: 100%;
+  }
+
+  .analysis__intro h3,
+  .analysis__value h3 {
+    max-width: 100%;
+    font-size: clamp(1.65rem, 7vw, 2.35rem);
+    line-height: 1.08;
+  }
+
+  .analysis__intro-content > p {
+    max-width: 100%;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  .analysis__intro-points {
+    width: 100%;
+  }
+
+  .analysis__intro-points > div {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1rem 0;
+  }
+
+  .analysis__intro-points span {
+    font-size: 0.65rem;
+    line-height: 1.5;
+  }
+
+  .analysis__intro-points p {
+    width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  /* ==================================================
+     BLOCO DE VALOR — 01 / 02 / 03 / 04
+     ================================================== */
+
+  .analysis__value {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 4rem;
+    padding-top: 2.5rem;
+  }
+
+  .analysis__value-list {
+    width: 100%;
+  }
+
+  .analysis__value-list > div {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1rem 0;
+  }
+
+  .analysis__value-list span {
+    font-size: 0.65rem;
+    line-height: 1.5;
+  }
+
+  .analysis__value-list p {
+    width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  /* ==================================================
+     INTRODUÇÃO DOS PLANOS
+     ================================================== */
+
+  .analysis__plans-intro {
+    margin-top: 4rem;
+  }
+
+  .analysis__plans-intro > span {
+    margin-bottom: 0.8rem;
+    font-size: 0.65rem;
+  }
+
+  .analysis__plans-intro p {
+    max-width: 100%;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  /* ==================================================
+     CARROSSEL MOBILE
+     ================================================== */
+
+  .plans-mobile {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2.5rem;
+    overflow: hidden;
+    touch-action: pan-y;
+    overscroll-behavior-x: contain;
+  }
+
+  .plans-mobile__track {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    touch-action: pan-y;
+    overscroll-behavior-x: contain;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+  }
+
+  .plans-mobile__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .plans-mobile__track.is-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+  }
+
+  .plans-mobile__card {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    padding: 1.75rem 1.25rem;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .plans-mobile__recommended {
+    margin-bottom: 1.25rem;
+    font-size: 0.55rem;
+  }
+
+  .plans-mobile__label {
+    font-size: 0.65rem;
+  }
+
+  .plans-mobile__price {
+    margin-top: 0.8rem;
+  }
+
+  .plans-mobile__price strong {
+    font-size: clamp(2.3rem, 11vw, 2.7rem);
+  }
+
+  .plans-mobile__description {
+    max-width: 100%;
+    margin-top: 1.25rem;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .plans-mobile__features {
+    width: 100%;
+    margin-top: 2rem;
+  }
+
+  .plans-mobile__feature {
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.7rem;
+    padding: 0.8rem 0;
+  }
+
+  .plans-mobile__feature > span {
+    width: 15px;
+    flex: 0 0 15px;
+    font-size: 0.8rem;
+  }
+
+  .plans-mobile__feature p {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .plans-mobile__button {
+    margin-top: 1.75rem;
+    padding: 0.9rem 1rem;
+    font-size: 0.78rem;
+  }
+
+  .plans-mobile__navigation {
+    margin-top: 1.25rem;
+  }
+
+  .plans-mobile__counter {
+    margin-top: 0.6rem;
+    font-size: 0.6rem;
+  }
+
+  .analysis__note {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2rem;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .analysis__note p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ==================================================
+   CELULARES PEQUENOS
+   ================================================== */
+
+@media (max-width: 430px) {
+  .analysis {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .analysis__title {
+    font-size: clamp(2.1rem, 11.5vw, 3rem);
+  }
+
+  .analysis__description {
+    font-size: 0.88rem;
+  }
+
+  .analysis__intro {
+    margin-top: 3rem;
+    padding: 2rem 0;
+  }
+
+  .analysis__intro h3,
+  .analysis__value h3 {
+    font-size: 1.65rem;
+  }
+
+  .analysis__intro-points > div,
+  .analysis__value-list > div {
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .analysis__intro-points p,
+  .analysis__value-list p {
+    font-size: 0.77rem;
+  }
+
+  .plans-mobile {
+    margin-top: 2rem;
+  }
+
+  .plans-mobile__card {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* ==================================================
+   TELAS MUITO ESTREITAS
+   ================================================== */
+
+@media (max-width: 360px) {
+  .analysis {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .analysis__title {
+    font-size: 2rem;
+  }
+
+  .analysis__intro-points > div,
+  .analysis__value-list > div {
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .analysis__intro-points p,
+  .analysis__value-list p,
+  .plans-mobile__feature p {
+    font-size: 0.74rem;
+  }
+}
