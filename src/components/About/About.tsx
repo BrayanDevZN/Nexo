@@ -3,7 +3,7 @@ import "../../styles/About.css";
 function About() {
   return (
     <section className="about" id="sobre">
-      <div className="about__header">
+      <div className="about__header" data-scroll-reveal>
         <p className="about__eyebrow">
           SOBRE A NEXO
         </p>
@@ -20,7 +20,7 @@ function About() {
         </p>
       </div>
 
-      <div className="about__content">
+      <div className="about__content" data-scroll-reveal>
         <div className="about__text">
           <p>
             Antes de desenvolver ou recomendar qualquer solução,

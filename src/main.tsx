@@ -7,7 +7,7 @@ import { initScrollAnimations } from "./utils/animations/scrollAnimations";
 
 function Root() {
   useEffect(() => {
-    initScrollAnimations();
+    return initScrollAnimations();
   }, []);
 
   return <App />;

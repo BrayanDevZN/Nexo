@@ -217,7 +217,9 @@ function Development() {
               : "Avançar para o próximo serviço"
           }
         >
-          {activeService === services.length - 1 ? "←" : "→"}
+          <span aria-hidden="true">
+            {activeService === services.length - 1 ? "←" : "→"}
+          </span>
         </button>
       </div>
 

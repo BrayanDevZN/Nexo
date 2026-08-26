@@ -419,7 +419,9 @@ function Analysis() {
               : "Avançar para o próximo plano"
           }
         >
-          {activePlan === plans.length - 1 ? "←" : "→"}
+          <span aria-hidden="true">
+            {activePlan === plans.length - 1 ? "←" : "→"}
+          </span>
         </button>
 
         <div className="plans-mobile__navigation">

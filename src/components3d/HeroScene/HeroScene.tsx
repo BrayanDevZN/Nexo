@@ -76,7 +76,7 @@ function Globe() {
   return (
     <group ref={globeRef}>
       <mesh ref={glowRef}>
-        <sphereGeometry args={[0.92, 48, 32]} />
+        <sphereGeometry args={[0.92, 96, 64]} />
         <meshPhysicalMaterial
           color="#8f6418"
           metalness={0.88}
@@ -85,6 +85,7 @@ function Globe() {
           clearcoatRoughness={0.06}
           emissive={GOLD_DARK}
           emissiveIntensity={0.2}
+          dithering
           transparent
           opacity={0.28}
         />
@@ -112,7 +113,7 @@ function Globe() {
 
         return (
           <mesh key={`location-${index}`} position={position}>
-            <sphereGeometry args={[index % 3 === 0 ? 0.035 : 0.022, 14, 14]} />
+            <sphereGeometry args={[index % 3 === 0 ? 0.035 : 0.022, 24, 24]} />
             <meshBasicMaterial color={GOLD_LIGHT} toneMapped={false} />
           </mesh>
         );
@@ -159,6 +160,7 @@ function Orbit({ radius, rotation, speed, phase, opacity }: OrbitProps) {
             clearcoat={1}
             emissive={GOLD}
             emissiveIntensity={0.5}
+            dithering
             toneMapped={false}
           />
         </mesh>
@@ -232,6 +234,7 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
             clearcoatRoughness={0.08}
             emissive={GOLD_DARK}
             emissiveIntensity={0.18}
+            dithering
           />
         </mesh>
 
@@ -281,6 +284,16 @@ function HeroScene() {
     lastX: 0,
     lastY: 0,
   });
+  const renderDpr = useMemo(() => {
+    const deviceDpr = window.devicePixelRatio || 1;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    if (isMobile) {
+      return Math.min(Math.max(deviceDpr, 1.15), 1.75);
+    }
+
+    return Math.min(Math.max(deviceDpr * 1.2, 1.5), 2.5);
+  }, []);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
@@ -333,8 +346,19 @@ function HeroScene() {
     >
       <Canvas
         camera={{ position: [0, 0, 6], fov: 45 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true }}
+        dpr={renderDpr}
+        gl={{
+          antialias: true,
+          alpha: true,
+          precision: "highp",
+          powerPreference: "high-performance",
+          stencil: false,
+        }}
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.08;
+        }}
       >
         <Scene dragRotation={dragRotation} />
       </Canvas>

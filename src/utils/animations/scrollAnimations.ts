@@ -4,6 +4,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 export function initScrollAnimations() {
+  const context = gsap.context(() => {
   /*
    * =========================
    * HERO
@@ -93,7 +94,7 @@ export function initScrollAnimations() {
    */
 
   const elements = document.querySelectorAll(
-    "[data-scroll-reveal]"
+    "[data-scroll-reveal]:not(.problem__card):not(.analysis__header):not(.comparison):not(.analysis__note):not(.development__header):not(.development__bottom):not(.development__maintenance)"
   );
 
   elements.forEach((element) => {
@@ -101,13 +102,13 @@ export function initScrollAnimations() {
       element,
       {
         opacity: 0,
-        y: 40,
+        y: 24,
       },
       {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        duration: 1,
+        ease: "power2.out",
 
         scrollTrigger: {
           trigger: element,
@@ -133,14 +134,14 @@ export function initScrollAnimations() {
       problemCards,
       {
         opacity: 0,
-        y: 50,
+        y: 30,
       },
       {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        stagger: 0.15,
-        ease: "power3.out",
+        duration: 1,
+        stagger: 0.1,
+        ease: "power2.out",
 
         scrollTrigger: {
           trigger: ".problem__grid",
@@ -171,13 +172,13 @@ export function initScrollAnimations() {
         header,
         {
           opacity: 0,
-          y: 45,
+          y: 28,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.8,
-          ease: "power3.out",
+          duration: 1,
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: analysis,
@@ -197,14 +198,14 @@ export function initScrollAnimations() {
         comparison,
         {
           opacity: 0,
-          y: 60,
+          y: 34,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.9,
+          duration: 1.05,
           delay: 0.1,
-          ease: "power3.out",
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: comparison,
@@ -224,13 +225,13 @@ export function initScrollAnimations() {
         note,
         {
           opacity: 0,
-          y: 30,
+          y: 20,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.7,
-          ease: "power3.out",
+          duration: 0.9,
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: note,
@@ -262,13 +263,13 @@ export function initScrollAnimations() {
         header,
         {
           opacity: 0,
-          y: 45,
+          y: 28,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.8,
-          ease: "power3.out",
+          duration: 1,
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: development,
@@ -295,14 +296,14 @@ export function initScrollAnimations() {
       developmentCards,
       {
         opacity: 0,
-        y: 50,
+        y: 30,
       },
       {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        stagger: 0.18,
-        ease: "power3.out",
+        duration: 1,
+        stagger: 0.12,
+        ease: "power2.out",
 
         scrollTrigger: {
           trigger: ".development__services",
@@ -328,13 +329,13 @@ export function initScrollAnimations() {
       developmentBottom,
       {
         opacity: 0,
-        y: 50,
+        y: 30,
       },
       {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        duration: 1,
+        ease: "power2.out",
 
         scrollTrigger: {
           trigger: developmentBottom,
@@ -360,13 +361,13 @@ export function initScrollAnimations() {
       maintenance,
       {
         opacity: 0,
-        y: 40,
+        y: 24,
       },
       {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        duration: 1,
+        ease: "power2.out",
 
         scrollTrigger: {
           trigger: maintenance,
@@ -384,12 +385,12 @@ export function initScrollAnimations() {
    */
 
   const contact = document.querySelector(
-    ".contact"
+    ".cta"
   );
 
   if (contact) {
     const content = contact.querySelector(
-      ".contact__content"
+      ".cta__content"
     );
 
     if (content) {
@@ -397,13 +398,13 @@ export function initScrollAnimations() {
         content,
         {
           opacity: 0,
-          y: 50,
+          y: 30,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.9,
-          ease: "power3.out",
+          duration: 1.05,
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: contact,
@@ -415,7 +416,7 @@ export function initScrollAnimations() {
     }
 
     const bottom = contact.querySelector(
-      ".contact__bottom"
+      ".cta__bottom"
     );
 
     if (bottom) {
@@ -423,14 +424,14 @@ export function initScrollAnimations() {
         bottom,
         {
           opacity: 0,
-          y: 30,
+          y: 20,
         },
         {
           opacity: 1,
           y: 0,
-          duration: 0.7,
+          duration: 0.9,
           delay: 0.15,
-          ease: "power3.out",
+          ease: "power2.out",
 
           scrollTrigger: {
             trigger: bottom,
@@ -444,4 +445,7 @@ export function initScrollAnimations() {
 
   
   ScrollTrigger.refresh();
+  });
+
+  return () => context.revert();
 }

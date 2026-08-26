@@ -15,9 +15,15 @@
 .hero-scene canvas {
   width: 100% !important;
   height: 100% !important;
+  image-rendering: auto;
   filter:
+    saturate(1.07)
+    contrast(1.045)
     drop-shadow(0 16px 26px rgba(65, 38, 0, 0.58))
     drop-shadow(0 0 20px rgba(238, 195, 86, 0.24));
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @media (max-width: 768px) {
