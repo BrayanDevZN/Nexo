@@ -2,7 +2,7 @@ import HeroScene from "../../components3d/HeroScene/HeroScene";
 
 function Hero() {
   return (
-    <section className="hero">
+    <div className="hero">
       <div className="hero__content">
         <p
           className="hero__eyebrow"
@@ -55,7 +55,7 @@ function Hero() {
       >
         <HeroScene />
       </div>
-    </section>
+    </div>
   );
 }
 

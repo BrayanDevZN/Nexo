@@ -14,7 +14,9 @@ function App() {
       <Navbar />
 
       <main>
-        <Hero />
+        <section className="home-section" id="inicio">
+          <Hero />
+        </section>
         <Problem />
         <Analysis />
         <Development />

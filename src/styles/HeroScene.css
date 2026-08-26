@@ -32,4 +32,9 @@
     cursor: default;
     touch-action: pan-y;
   }
+
+  .hero-scene canvas {
+    filter: none;
+    will-change: auto;
+  }
 }

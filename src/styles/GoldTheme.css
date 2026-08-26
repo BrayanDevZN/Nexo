@@ -12,6 +12,12 @@ html {
   background: #070603;
 }
 
+.home-section {
+  position: relative;
+  min-height: 100svh;
+  scroll-margin-top: 0;
+}
+
 body {
   color: #f7f3e8;
   background:
@@ -61,7 +67,8 @@ body::before {
   z-index: 91;
   inset: 0;
   width: 100%;
-  height: 100svh;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
@@ -540,8 +547,10 @@ body :focus-visible {
 
 @media (max-width: 768px) {
   body::before {
-    opacity: 0.42;
-    filter: blur(38px);
+    inset: -12%;
+    opacity: 0.38;
+    filter: blur(24px);
+    animation-duration: 32s;
   }
 
   .golden-rain {
@@ -566,6 +575,14 @@ body :focus-visible {
     stroke-width: 1;
   }
 
+  .golden-rain__streams {
+    filter: drop-shadow(0 0 2px rgba(239, 182, 54, 0.5));
+  }
+
+  .golden-rain__streams path:nth-child(even) {
+    display: none;
+  }
+
   body .navbar {
     height: 112px;
     display: grid;
@@ -583,6 +600,13 @@ body :focus-visible {
     justify-content: center;
     width: 100%;
     min-width: 0;
+    gap: 0.05rem;
+    padding: 0.18rem;
+  }
+
+  body .navbar__links a {
+    padding: 0.44rem 0.38rem;
+    font-size: clamp(0.56rem, 2.25vw, 0.64rem);
   }
 
   body .navbar__logo {
@@ -666,12 +690,12 @@ body :focus-visible {
   }
 
   body .navbar__links {
-    gap: 0.1rem;
+    gap: 0;
   }
 
   body .navbar__links a {
-    padding: 0.42rem 0.48rem;
-    font-size: 0.58rem;
+    padding: 0.4rem 0.28rem;
+    font-size: 0.54rem;
   }
 
   body .navbar__cta {

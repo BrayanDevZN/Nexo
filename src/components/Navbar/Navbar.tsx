@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "../../styles/navbar.css";
 
 const navigationItems = [
+  { href: "#inicio", label: "Início", sectionId: "inicio" },
   { href: "#analise", label: "Análise", sectionId: "analise" },
   { href: "#desenvolvimento", label: "Desenvolvimento", sectionId: "desenvolvimento" },
   { href: "#sobre", label: "Sobre", sectionId: "sobre" },
@@ -9,31 +10,51 @@ const navigationItems = [
 ];
 
 function Navbar() {
-  const [activeSection, setActiveSection] = useState("");
+  const [activeSection, setActiveSection] = useState("inicio");
 
   useEffect(() => {
     const sections = navigationItems
       .map((item) => document.getElementById(item.sectionId))
       .filter((section): section is HTMLElement => Boolean(section));
+    let animationFrame = 0;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleSection = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    const updateActiveSection = () => {
+      const navbarHeight =
+        document.querySelector<HTMLElement>("[data-navbar]")?.offsetHeight ?? 0;
+      const scrollPosition = window.scrollY + navbarHeight + 2;
+      let currentSection = sections[0];
 
-        if (visibleSection) {
-          setActiveSection(visibleSection.target.id);
+      for (const section of sections) {
+        if (section.offsetTop <= scrollPosition) {
+          currentSection = section;
+        } else {
+          break;
         }
-      },
-      {
-        rootMargin: "-28% 0px -58% 0px",
-        threshold: [0, 0.15, 0.35],
       }
-    );
 
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
+      if (currentSection) {
+        setActiveSection(currentSection.id);
+      }
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrame) return;
+
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        updateActiveSection();
+      });
+    };
+
+    updateActiveSection();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.cancelAnimationFrame(animationFrame);
+    };
   }, []);
 
   return (

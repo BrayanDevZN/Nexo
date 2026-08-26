@@ -9,6 +9,15 @@ import "../../styles/HeroScene.css";
 const GOLD = "#e3b951";
 const GOLD_LIGHT = "#fff5c7";
 const GOLD_DARK = "#68420a";
+const IS_MOBILE_RENDER =
+  typeof window !== "undefined" &&
+  window.matchMedia("(max-width: 768px)").matches;
+const GLOBE_SEGMENTS: [number, number] = IS_MOBILE_RENDER
+  ? [64, 44]
+  : [96, 64];
+const DETAIL_SEGMENTS = IS_MOBILE_RENDER ? 18 : 24;
+const ORBIT_SEGMENTS = IS_MOBILE_RENDER ? 112 : 160;
+const PLATFORM_SEGMENTS = IS_MOBILE_RENDER ? 48 : 64;
 
 const surfacePoints: [number, number][] = [
   [0.72, 0.35],
@@ -76,7 +85,7 @@ function Globe() {
   return (
     <group ref={globeRef}>
       <mesh ref={glowRef}>
-        <sphereGeometry args={[0.92, 96, 64]} />
+        <sphereGeometry args={[0.92, ...GLOBE_SEGMENTS]} />
         <meshPhysicalMaterial
           color="#8f6418"
           metalness={0.88}
@@ -113,7 +122,13 @@ function Globe() {
 
         return (
           <mesh key={`location-${index}`} position={position}>
-            <sphereGeometry args={[index % 3 === 0 ? 0.035 : 0.022, 24, 24]} />
+            <sphereGeometry
+              args={[
+                index % 3 === 0 ? 0.035 : 0.022,
+                DETAIL_SEGMENTS,
+                DETAIL_SEGMENTS,
+              ]}
+            />
             <meshBasicMaterial color={GOLD_LIGHT} toneMapped={false} />
           </mesh>
         );
@@ -142,7 +157,7 @@ function Orbit({ radius, rotation, speed, phase, opacity }: OrbitProps) {
     <group rotation={rotation}>
       <group ref={orbitRef}>
         <mesh>
-          <torusGeometry args={[radius, 0.009, 10, 160]} />
+          <torusGeometry args={[radius, 0.009, 10, ORBIT_SEGMENTS]} />
           <meshBasicMaterial
             color={GOLD}
             transparent
@@ -152,7 +167,9 @@ function Orbit({ radius, rotation, speed, phase, opacity }: OrbitProps) {
         </mesh>
 
         <mesh position={[radius, 0, 0]}>
-          <sphereGeometry args={[0.055, 18, 18]} />
+          <sphereGeometry
+            args={[0.055, DETAIL_SEGMENTS, DETAIL_SEGMENTS]}
+          />
           <meshPhysicalMaterial
             color={GOLD_LIGHT}
             metalness={0.8}
@@ -212,7 +229,9 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
         />
 
         <mesh position={[0, 0.34, 0]}>
-          <cylinderGeometry args={[0.24, 0.52, 0.7, 64, 1, true]} />
+          <cylinderGeometry
+            args={[0.24, 0.52, 0.7, PLATFORM_SEGMENTS, 1, true]}
+          />
           <meshBasicMaterial
             color={GOLD}
             transparent
@@ -225,7 +244,7 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
         </mesh>
 
         <mesh>
-          <cylinderGeometry args={[0.68, 0.76, 0.13, 64]} />
+          <cylinderGeometry args={[0.68, 0.76, 0.13, PLATFORM_SEGMENTS]} />
           <meshPhysicalMaterial
             color="#4e3107"
             metalness={1}
@@ -239,7 +258,9 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
         </mesh>
 
         <mesh position={[0, 0.071, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.57, 0.035, 16, 96]} />
+          <torusGeometry
+            args={[0.57, 0.035, 12, IS_MOBILE_RENDER ? 72 : 96]}
+          />
           <meshBasicMaterial
             color={GOLD_LIGHT}
             transparent
@@ -249,7 +270,7 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
         </mesh>
 
         <mesh position={[0, 0.078, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.53, 64]} />
+          <circleGeometry args={[0.53, PLATFORM_SEGMENTS]} />
           <meshBasicMaterial
             color={GOLD}
             transparent
@@ -286,10 +307,8 @@ function HeroScene() {
   });
   const renderDpr = useMemo(() => {
     const deviceDpr = window.devicePixelRatio || 1;
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    if (isMobile) {
-      return Math.min(Math.max(deviceDpr, 1.15), 1.75);
+    if (IS_MOBILE_RENDER) {
+      return Math.min(Math.max(deviceDpr, 1.05), 1.5);
     }
 
     return Math.min(Math.max(deviceDpr * 1.2, 1.5), 2.5);
