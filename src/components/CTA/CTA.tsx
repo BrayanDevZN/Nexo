@@ -10,7 +10,7 @@ function CTA() {
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
 
   return (
-    <section className="cta" id="contato">
+    <div className="cta">
       <div className="cta__content">
         <p className="cta__eyebrow">
           VAMOS CONVERSAR
@@ -44,7 +44,7 @@ function CTA() {
           Análise, Estratégia e Desenvolvimento
         </p>
       </div>
-    </section>
+    </div>
   );
 }
 

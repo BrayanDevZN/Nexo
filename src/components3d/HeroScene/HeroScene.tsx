@@ -18,6 +18,7 @@ const GLOBE_SEGMENTS: [number, number] = IS_MOBILE_RENDER
 const DETAIL_SEGMENTS = IS_MOBILE_RENDER ? 18 : 24;
 const ORBIT_SEGMENTS = IS_MOBILE_RENDER ? 112 : 160;
 const PLATFORM_SEGMENTS = IS_MOBILE_RENDER ? 48 : 64;
+const TECH_NODE_COUNT = IS_MOBILE_RENDER ? 8 : 14;
 
 const surfacePoints: [number, number][] = [
   [0.72, 0.35],
@@ -33,6 +34,7 @@ const surfacePoints: [number, number][] = [
 function Globe() {
   const globeRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const scanRef = useRef<THREE.Mesh>(null);
 
   const latitudeLines = useMemo(
     () =>
@@ -80,6 +82,16 @@ function Globe() {
       const pulse = 1 + Math.sin(time * 1.35) * 0.035;
       glowRef.current.scale.setScalar(pulse);
     }
+
+    if (scanRef.current) {
+      const scanProgress = (time * 0.2) % 1;
+      const scanHeight = THREE.MathUtils.lerp(-0.84, 0.84, scanProgress);
+      const scanRadius = Math.sqrt(1 - scanHeight * scanHeight);
+
+      scanRef.current.position.y = scanHeight;
+      scanRef.current.scale.setScalar(scanRadius);
+      scanRef.current.rotation.z = time * 0.18;
+    }
   });
 
   return (
@@ -111,6 +123,18 @@ function Globe() {
         />
       ))}
 
+      <mesh ref={scanRef} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.025, 0.012, 8, ORBIT_SEGMENTS]} />
+        <meshBasicMaterial
+          color={GOLD_LIGHT}
+          transparent
+          opacity={0.72}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+
       {surfacePoints.map(([longitude, latitude], index) => {
         const radius = 1.015;
         const horizontalRadius = Math.cos(latitude) * radius;
@@ -133,6 +157,89 @@ function Globe() {
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+function TechHalo() {
+  const haloRef = useRef<THREE.Group>(null);
+  const innerRingRef = useRef<THREE.Group>(null);
+  const techNodes = useMemo(
+    () =>
+      Array.from({ length: TECH_NODE_COUNT }, (_, index) => {
+        const angle = (index / TECH_NODE_COUNT) * Math.PI * 2;
+        return {
+          angle,
+          position: [
+            Math.cos(angle) * 2.16,
+            Math.sin(angle) * 2.16,
+            0,
+          ] as [number, number, number],
+          width: index % 3 === 0 ? 0.2 : 0.11,
+        };
+      }),
+    [],
+  );
+
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+
+    if (haloRef.current) {
+      haloRef.current.rotation.z = time * 0.075;
+      haloRef.current.rotation.y = Math.sin(time * 0.22) * 0.12;
+    }
+
+    if (innerRingRef.current) {
+      innerRingRef.current.rotation.z = -time * 0.14;
+    }
+  });
+
+  return (
+    <group ref={haloRef} rotation={[0.92, 0.18, -0.2]}>
+      <mesh>
+        <torusGeometry args={[2.16, 0.008, 6, ORBIT_SEGMENTS]} />
+        <meshBasicMaterial
+          color={GOLD}
+          transparent
+          opacity={0.28}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {techNodes.map((node, index) => (
+        <group
+          key={`tech-node-${index}`}
+          position={node.position}
+          rotation={[0, 0, node.angle]}
+        >
+          <mesh>
+            <boxGeometry args={[node.width, 0.035, 0.022]} />
+            <meshBasicMaterial
+              color={index % 4 === 0 ? GOLD_LIGHT : GOLD}
+              transparent
+              opacity={index % 4 === 0 ? 0.92 : 0.48}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      <group ref={innerRingRef} rotation={[0.32, 0.7, 0.2]}>
+        <mesh>
+          <torusGeometry args={[1.2, 0.006, 6, ORBIT_SEGMENTS]} />
+          <meshBasicMaterial
+            color={GOLD_LIGHT}
+            transparent
+            opacity={0.3}
+            toneMapped={false}
+          />
+        </mesh>
+
+        <mesh position={[1.2, 0, 0]}>
+          <octahedronGeometry args={[0.055, 0]} />
+          <meshBasicMaterial color={GOLD_LIGHT} toneMapped={false} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -214,6 +321,7 @@ function WorldSystem({ dragRotation }: { dragRotation: DragRotation }) {
     <group scale={1.22}>
       <group ref={systemRef}>
         <Globe />
+        <TechHalo />
         <Orbit radius={1.42} rotation={[0.92, 0.18, 0.12]} speed={0.18} phase={0.2} opacity={0.5} />
         <Orbit radius={1.68} rotation={[1.25, -0.42, 0.74]} speed={-0.11} phase={1.7} opacity={0.36} />
         <Orbit radius={1.9} rotation={[0.48, 0.7, -0.45]} speed={0.075} phase={3.1} opacity={0.24} />

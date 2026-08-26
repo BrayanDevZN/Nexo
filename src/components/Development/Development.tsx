@@ -118,10 +118,7 @@ function Development() {
   };
 
   return (
-    <section
-      className="development"
-      id="desenvolvimento"
-    >
+    <div className="development">
       {/* HEADER */}
 
       <div
@@ -301,7 +298,7 @@ function Development() {
           e orçadas separadamente.
         </p>
       </div>
-    </section>
+    </div>
   );
 }
 

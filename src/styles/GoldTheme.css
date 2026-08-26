@@ -12,10 +12,14 @@ html {
   background: #070603;
 }
 
-.home-section {
+.site-section {
   position: relative;
   min-height: 100svh;
-  scroll-margin-top: 0;
+  scroll-margin-top: 76px;
+}
+
+.contact-section .cta {
+  min-height: 100svh;
 }
 
 body {
@@ -546,6 +550,10 @@ body :focus-visible {
 }
 
 @media (max-width: 768px) {
+  .site-section {
+    scroll-margin-top: 112px;
+  }
+
   body::before {
     inset: -12%;
     opacity: 0.34;

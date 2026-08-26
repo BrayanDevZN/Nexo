@@ -31,6 +31,7 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform;
+  outline: 1px solid transparent;
 }
 
 @media (max-width: 768px) {

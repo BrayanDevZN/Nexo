@@ -2,7 +2,7 @@ import "../../styles/Problem.css";
 
 function Problem() {
   return (
-    <section className="problem" id="problema">
+    <div className="problem">
       <div
         className="problem__header"
         data-scroll-reveal
@@ -79,7 +79,7 @@ function Problem() {
           </p>
         </article>
       </div>
-    </section>
+    </div>
   );
 }
 

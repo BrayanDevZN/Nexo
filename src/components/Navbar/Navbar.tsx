@@ -24,8 +24,19 @@ function Navbar() {
       const scrollPosition = window.scrollY + navbarHeight + 2;
       let currentSection = sections[0];
 
+      if (
+        window.scrollY + window.innerHeight >=
+        document.documentElement.scrollHeight - 2
+      ) {
+        setActiveSection(sections.at(-1)?.id ?? "contato");
+        return;
+      }
+
       for (const section of sections) {
-        if (section.offsetTop <= scrollPosition) {
+        const sectionTop =
+          section.getBoundingClientRect().top + window.scrollY;
+
+        if (sectionTop <= scrollPosition) {
           currentSection = section;
         } else {
           break;
