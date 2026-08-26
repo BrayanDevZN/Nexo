@@ -19,8 +19,7 @@ body {
     #070603;
 }
 
-body::before,
-body::after {
+body::before {
   content: "";
   position: fixed;
   pointer-events: none;
@@ -42,22 +41,6 @@ body::before {
   animation: nexo-gold-aurora 20s ease-in-out infinite alternate;
 }
 
-/* Pontos de luz discretos dão profundidade sem competir com o conteúdo. */
-body::after {
-  z-index: 91;
-  inset: 0;
-  background-image:
-    radial-gradient(circle, rgba(255, 229, 157, 0.72) 0 1px, transparent 1.25px),
-    radial-gradient(circle, rgba(215, 159, 49, 0.58) 0 0.85px, transparent 1.1px);
-  background-position: 0 0, 34px 42px;
-  background-size: 68px 68px, 94px 94px;
-  mask-image: linear-gradient(to bottom, transparent 1%, #000 14%, #000 88%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 1%, #000 14%, #000 88%, transparent 100%);
-  mix-blend-mode: screen;
-  opacity: 0.22;
-  animation: nexo-gold-particles 30s linear infinite;
-}
-
 @keyframes nexo-gold-aurora {
   0% {
     transform: translate3d(-3%, -2%, 0) rotate(-3deg) scale(0.98);
@@ -72,13 +55,86 @@ body::after {
   }
 }
 
-@keyframes nexo-gold-particles {
+/* Linhas curvas e feixes dourados inspirados em uma chuva de luz. */
+.golden-rain {
+  position: fixed;
+  z-index: 91;
+  inset: 0;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at 14% 26%, rgba(229, 178, 62, 0.2), transparent 30rem),
+    radial-gradient(circle at 86% 26%, rgba(229, 178, 62, 0.2), transparent 30rem),
+    radial-gradient(circle at 14% 78%, rgba(178, 116, 16, 0.14), transparent 32rem),
+    radial-gradient(circle at 86% 78%, rgba(178, 116, 16, 0.14), transparent 32rem),
+    radial-gradient(circle at 50% 50%, rgba(216, 157, 38, 0.1), transparent 42rem);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), #000 12%, #000 88%, rgba(0, 0, 0, 0.55));
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), #000 12%, #000 88%, rgba(0, 0, 0, 0.55));
+  contain: strict;
+  transform: translateZ(0);
+}
+
+.golden-rain::after {
+  content: "";
+  position: absolute;
+  inset: -288px 0 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 229, 154, 0.68) 0 1.1px, transparent 1.45px),
+    radial-gradient(circle, rgba(210, 151, 40, 0.52) 0 0.8px, transparent 1.1px);
+  background-position: 10px 18px, 52px 67px;
+  background-size: 96px 96px, 144px 144px;
+  opacity: 0.38;
+  will-change: transform;
+  animation: nexo-golden-particles 24s linear infinite;
+}
+
+.golden-rain svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  shape-rendering: optimizeSpeed;
+}
+
+.golden-rain__lines path {
+  fill: none;
+  stroke: rgba(214, 163, 51, 0.11);
+  stroke-width: 0.65;
+}
+
+.golden-rain__streams {
+  filter: drop-shadow(0 0 3px rgba(239, 182, 54, 0.72));
+}
+
+.golden-rain__streams path {
+  fill: none;
+  stroke: #f5ca63;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-dasharray: 0.022 0.978;
+  animation: nexo-golden-stream linear infinite;
+}
+
+@keyframes nexo-golden-stream {
   from {
-    background-position: 0 0, 34px 42px;
+    stroke-dashoffset: 1;
   }
 
   to {
-    background-position: 26px -156px, -18px -166px;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nexo-golden-particles {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 288px, 0);
   }
 }
 
@@ -352,9 +408,25 @@ body :focus-visible {
     filter: blur(38px);
   }
 
-  body::after {
-    background-size: 78px 78px, 104px 104px;
-    opacity: 0.17;
+  .golden-rain {
+    opacity: 0.72;
+    background:
+      radial-gradient(circle at 10% 24%, rgba(229, 178, 62, 0.18), transparent 19rem),
+      radial-gradient(circle at 90% 24%, rgba(229, 178, 62, 0.18), transparent 19rem),
+      radial-gradient(circle at 10% 78%, rgba(178, 116, 16, 0.13), transparent 21rem),
+      radial-gradient(circle at 90% 78%, rgba(178, 116, 16, 0.13), transparent 21rem);
+  }
+
+  .golden-rain::after {
+    opacity: 0.32;
+  }
+
+  .golden-rain__lines path {
+    stroke-width: 0.55;
+  }
+
+  .golden-rain__streams path {
+    stroke-width: 1;
   }
 
   body .navbar {
@@ -438,7 +510,8 @@ body :focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   body::before,
-  body::after {
+  .golden-rain__streams path,
+  .golden-rain::after {
     animation: none;
   }
 }

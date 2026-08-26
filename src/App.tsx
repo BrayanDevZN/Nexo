@@ -5,10 +5,12 @@ import Analysis from "./components/Analysis/Analysis";
 import Development from "./components/Development/Development";
 import About from "./components/About/About";
 import CTA from "./components/CTA/CTA";
+import GoldenRain from "./components/GoldenRain/GoldenRain";
 
 function App() {
   return (
     <>
+      <GoldenRain />
       <Navbar />
 
       <main>
