@@ -399,28 +399,53 @@ function Analysis() {
           ))}
         </div>
 
-        <div className="plans-mobile__navigation">
-          <button
-            type="button"
-            onClick={() => scrollToPlan(0)}
-            className={
-              activePlan === 0
-                ? "active"
-                : ""
-            }
-            aria-label="Plano Diagnóstico"
-          />
+        <button
+          type="button"
+          className={`plans-mobile__side-arrow ${
+            activePlan === plans.length - 1
+              ? "plans-mobile__side-arrow--left"
+              : "plans-mobile__side-arrow--right"
+          }`}
+          onClick={() =>
+            scrollToPlan(
+              activePlan === plans.length - 1
+                ? activePlan - 1
+                : activePlan + 1
+            )
+          }
+          aria-label={
+            activePlan === plans.length - 1
+              ? "Voltar para o plano anterior"
+              : "Avançar para o próximo plano"
+          }
+        >
+          {activePlan === plans.length - 1 ? "←" : "→"}
+        </button>
 
-          <button
-            type="button"
-            onClick={() => scrollToPlan(1)}
-            className={
-              activePlan === 1
-                ? "active"
-                : ""
-            }
-            aria-label="Plano Estratégia"
-          />
+        <div className="plans-mobile__navigation">
+          <div className="plans-mobile__dots">
+            <button
+              type="button"
+              onClick={() => scrollToPlan(0)}
+              className={`plans-mobile__dot ${
+                activePlan === 0
+                  ? "active"
+                  : ""
+              }`}
+              aria-label="Plano Diagnóstico"
+            />
+
+            <button
+              type="button"
+              onClick={() => scrollToPlan(1)}
+              className={`plans-mobile__dot ${
+                activePlan === 1
+                  ? "active"
+                  : ""
+              }`}
+              aria-label="Plano Estratégia"
+            />
+          </div>
         </div>
 
         <span className="plans-mobile__counter">

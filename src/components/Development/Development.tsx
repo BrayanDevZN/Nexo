@@ -146,50 +146,79 @@ function Development() {
 
       {/* SERVIÇOS */}
 
-      <div
-        ref={trackRef}
-        className={`development__services ${isDragging ? "is-dragging" : ""}`}
-        data-development-services
-        onScroll={handleServiceScroll}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={finishDrag}
-        onPointerCancel={finishDrag}
-      >
-        {services.map((service) => (
-          <article
-            className="development__card"
-            key={service.number}
-            data-development-card
-          >
-            <div className="development__card-top">
-              <span className="development__number">
-                {service.number}
-              </span>
+      <div className="development__carousel">
+        <div
+          ref={trackRef}
+          className={`development__services ${isDragging ? "is-dragging" : ""}`}
+          data-development-services
+          onScroll={handleServiceScroll}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+        >
+          {services.map((service) => (
+            <article
+              className="development__card"
+              key={service.number}
+              data-development-card
+            >
+              <div className="development__card-top">
+                <span className="development__number">
+                  {service.number}
+                </span>
 
-              <span className="development__arrow">
-                ↗
-              </span>
-            </div>
+                <a
+                  href="#contato"
+                  className="development__arrow"
+                  aria-label={`Falar com a Nexo sobre ${service.title}`}
+                >
+                  ↗
+                </a>
+              </div>
 
-            <h3 className="development__card-title">
-              {service.title}
-            </h3>
+              <h3 className="development__card-title">
+                {service.title}
+              </h3>
 
-            <p className="development__card-description">
-              {service.description}
-            </p>
+              <p className="development__card-description">
+                {service.description}
+              </p>
 
-            <ul className="development__list">
-              {service.items.map((item) => (
-                <li key={item}>
-                  <span>+</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
+              <ul className="development__list">
+                {service.items.map((item) => (
+                  <li key={item}>
+                    <span>+</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={`development__side-arrow ${
+            activeService === services.length - 1
+              ? "development__side-arrow--left"
+              : "development__side-arrow--right"
+          }`}
+          onClick={() =>
+            scrollToService(
+              activeService === services.length - 1
+                ? activeService - 1
+                : activeService + 1
+            )
+          }
+          aria-label={
+            activeService === services.length - 1
+              ? "Voltar para o serviço anterior"
+              : "Avançar para o próximo serviço"
+          }
+        >
+          {activeService === services.length - 1 ? "←" : "→"}
+        </button>
       </div>
 
       <div className="development__carousel-navigation">
