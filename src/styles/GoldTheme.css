@@ -548,13 +548,16 @@ body :focus-visible {
 @media (max-width: 768px) {
   body::before {
     inset: -12%;
-    opacity: 0.38;
-    filter: blur(24px);
-    animation-duration: 32s;
+    opacity: 0.34;
+    filter: blur(18px);
+    animation-duration: 40s;
   }
 
   .golden-rain {
-    opacity: 0.82;
+    opacity: 0.78;
+    mix-blend-mode: normal;
+    mask-image: none;
+    -webkit-mask-image: none;
     background:
       radial-gradient(circle at 10% 24%, rgba(241, 194, 79, 0.27), transparent 21rem),
       radial-gradient(circle at 90% 24%, rgba(241, 194, 79, 0.27), transparent 21rem),
@@ -576,7 +579,7 @@ body :focus-visible {
   }
 
   .golden-rain__streams {
-    filter: drop-shadow(0 0 2px rgba(239, 182, 54, 0.5));
+    filter: none;
   }
 
   .golden-rain__streams path:nth-child(even) {

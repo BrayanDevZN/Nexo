@@ -1,4 +1,46 @@
-import HeroScene from "../../components3d/HeroScene/HeroScene";
+import { lazy, Suspense, useEffect, useState } from "react";
+
+const HeroScene = lazy(
+  () => import("../../components3d/HeroScene/HeroScene"),
+);
+
+function ScenePlaceholder() {
+  return <div className="hero-scene hero-scene--loading" aria-hidden="true" />;
+}
+
+function DeferredHeroScene() {
+  const [canRender, setCanRender] = useState(false);
+
+  useEffect(() => {
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      const idleId = idleWindow.requestIdleCallback(
+        () => setCanRender(true),
+        { timeout: 900 },
+      );
+
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(() => setCanRender(true), 300);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, []);
+
+  if (!canRender) return <ScenePlaceholder />;
+
+  return (
+    <Suspense fallback={<ScenePlaceholder />}>
+      <HeroScene />
+    </Suspense>
+  );
+}
 
 function Hero() {
   return (
@@ -53,7 +95,7 @@ function Hero() {
         className="hero__visual"
         data-hero-visual
       >
-        <HeroScene />
+        <DeferredHeroScene />
       </div>
     </div>
   );

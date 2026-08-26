@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
 
@@ -299,6 +299,8 @@ function Scene({ dragRotation }: { dragRotation: DragRotation }) {
 
 function HeroScene() {
   const [isDragging, setIsDragging] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragRotation = useRef({ x: 0, y: 0 });
   const dragState = useRef({
     pointerId: -1,
@@ -308,10 +310,24 @@ function HeroScene() {
   const renderDpr = useMemo(() => {
     const deviceDpr = window.devicePixelRatio || 1;
     if (IS_MOBILE_RENDER) {
-      return Math.min(Math.max(deviceDpr, 1.05), 1.5);
+      return Math.min(Math.max(deviceDpr, 1), 1.25);
     }
 
     return Math.min(Math.max(deviceDpr * 1.2, 1.5), 2.5);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { rootMargin: "120px 0px", threshold: 0 },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -356,6 +372,7 @@ function HeroScene() {
 
   return (
     <div
+      ref={containerRef}
       className={`hero-scene ${isDragging ? "is-dragging" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -364,6 +381,7 @@ function HeroScene() {
       aria-label="Globo interativo da Nexo. Arraste para girar."
     >
       <Canvas
+        frameloop={isVisible ? "always" : "never"}
         camera={{ position: [0, 0, 6], fov: 45 }}
         dpr={renderDpr}
         gl={{

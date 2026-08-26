@@ -12,6 +12,13 @@
   cursor: grabbing;
 }
 
+.hero-scene--loading {
+  cursor: default;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(239, 191, 77, 0.13), transparent 24%),
+    radial-gradient(circle at 50% 50%, rgba(156, 101, 14, 0.07), transparent 46%);
+}
+
 .hero-scene canvas {
   width: 100% !important;
   height: 100% !important;
