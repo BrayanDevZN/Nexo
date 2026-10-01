@@ -31,6 +31,7 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
 - Serviços em carrossel no celular e grade de duas colunas no desktop.
+- Cards compactos no mobile, textos resumidos nos serviços e no streaming e detalhes de aplicação expansíveis.
 - Navegação interna por rolagem, mantendo a URL sem fragmentos `#`, inclusive no menu mobile.
 - Menu mobile com foco controlado, perguntas frequentes e exemplos em abas.
 - Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.

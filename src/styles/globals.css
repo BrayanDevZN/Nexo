@@ -2042,3 +2042,288 @@ main,
     display: none;
   }
 }
+
+.mobile-copy {
+  display: none;
+}
+.mobile-case-details > summary {
+  display: none;
+}
+@media (min-width: 768px) {
+  .mobile-case-details {
+    display: contents;
+  }
+  .mobile-case-details > .case-details {
+    display: grid;
+  }
+}
+@media (max-width: 767px) {
+  .desktop-copy {
+    display: none;
+  }
+  .mobile-copy {
+    display: inline;
+  }
+  .solution-card,
+  #processo [data-slot="card"],
+  .stream-gallery .stream-console {
+    --card-spacing: 14px;
+    gap: 12px;
+  }
+  .solution-card [data-slot="card-content"],
+  .stream-console [data-slot="card-content"] {
+    gap: 10px;
+  }
+  .solution-card [data-slot="card-title"],
+  #processo [data-slot="card-title"],
+  .stream-console [data-slot="card-title"] {
+    font-size: 18px;
+  }
+  .solution-card .icon-tile {
+    width: 32px;
+    height: 32px;
+  }
+  .solution-card .icon-tile svg {
+    width: 18px;
+    height: 18px;
+  }
+  .solution-top {
+    margin-bottom: 6px;
+  }
+  .solution-card .body-copy,
+  #processo .body-copy {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .detail-label {
+    margin-bottom: 6px;
+    font-size: 8px;
+  }
+  .detail-list {
+    gap: 6px;
+  }
+  .detail-list li {
+    font-size: 13px;
+    line-height: 1.45;
+    gap: 7px;
+  }
+  .service-example {
+    padding-left: 10px;
+  }
+  .service-example > p:last-child {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .solution-card [data-slot="card-footer"] {
+    padding: 10px 14px;
+  }
+  .solution-card [data-slot="badge"] {
+    font-size: 10px;
+  }
+  .carousel-toolbar {
+    margin-top: 12px;
+  }
+  .step-top {
+    margin-bottom: 8px;
+  }
+  .process-details {
+    gap: 7px;
+    padding-top: 10px;
+    margin-top: 12px;
+  }
+  .process-details li {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .step-delivery {
+    font-size: 11px;
+  }
+  .operation-visual {
+    padding: 14px;
+  }
+  .operation-visual .visual-topline {
+    margin-bottom: 12px;
+  }
+  .operation-visual .sources > div {
+    padding-block: 8px;
+    gap: 5px;
+  }
+  .core-stage {
+    height: 140px;
+  }
+  .core-space {
+    scale: 0.65;
+  }
+  .intelligence-node {
+    padding: 12px;
+    margin-top: 12px;
+  }
+  .node-symbol {
+    width: 32px;
+    height: 32px;
+  }
+  .node-symbol .brand > img {
+    width: 25px;
+    height: 25px;
+  }
+  .operation-visual [data-slot="card"] {
+    --card-spacing: 12px;
+    gap: 10px;
+  }
+  .execution-list {
+    gap: 8px;
+  }
+  .operation-visual figcaption {
+    margin-top: 14px;
+  }
+  .stream-console [data-slot="card-description"] {
+    font-size: 11px;
+  }
+  .stream-gallery .stream-log {
+    padding: 10px;
+    gap: 8px;
+  }
+  .stream-gallery .stream-event {
+    min-height: 55px;
+    gap: 8px;
+  }
+  .stream-gallery .stream-event p {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 3px;
+  }
+  .stream-gallery .stream-event strong {
+    font-size: 12px;
+  }
+  .stream-input {
+    padding: 8px;
+  }
+  .stream-input strong {
+    font-size: 11px;
+  }
+  .stream-input div > span {
+    font-size: 8px;
+  }
+  .stream-result > span {
+    display: none;
+  }
+  .stream-console [data-slot="card-footer"] {
+    padding: 10px 14px;
+  }
+  .stream-console [data-slot="card-footer"] p {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .case-panel {
+    padding: 16px;
+    gap: 16px;
+  }
+  .case-copy h3 {
+    font-size: 20px;
+    margin-block: 12px;
+  }
+  .case-copy .body-copy {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .case-benefit {
+    margin-block: 12px;
+    font-size: 12px;
+  }
+  .case-flow {
+    gap: 10px;
+  }
+  .case-flow li {
+    padding: 10px;
+    gap: 10px;
+  }
+  .case-flow strong {
+    font-size: 12px;
+  }
+  .case-flow .flow-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .mobile-case-details > summary {
+    display: list-item;
+    cursor: pointer;
+    color: var(--primary);
+    font-size: 13px;
+    padding-block: 8px;
+  }
+  .mobile-case-details .case-details {
+    padding-top: 14px;
+  }
+  .contact-panel {
+    padding: 24px 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  .desktop-case-details {
+    display: contents;
+  }
+  .mobile-case-details {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .desktop-case-details {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .operation-visual .connector-branches {
+    display: none;
+  }
+  .operation-visual .connector-line {
+    height: 16px;
+  }
+  .operation-visual .core-stage {
+    height: 120px;
+  }
+  .operation-visual .intelligence-node {
+    margin-top: 14px;
+  }
+  .operation-visual [data-slot="card"] {
+    gap: 6px;
+  }
+  .stream-gallery .stream-event {
+    min-height: 50px;
+  }
+  .stream-gallery .stream-log {
+    gap: 6px;
+    padding: 8px;
+  }
+  .stream-console .stream-result {
+    display: none;
+  }
+  .case-copy h3 {
+    margin-block: 8px;
+  }
+  .case-copy .body-copy {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .case-flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .case-flow li {
+    padding: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .case-flow .flow-icon {
+    display: none;
+  }
+  .case-flow strong {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .case-flow li > div {
+    min-width: 0;
+  }
+}

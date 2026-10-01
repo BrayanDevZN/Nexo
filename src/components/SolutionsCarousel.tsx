@@ -17,6 +17,47 @@ import {
 } from "@/components/ui/carousel";
 import { contactUrl, solutions } from "@/lib/content";
 
+const compactSolutions = [
+  {
+    description:
+      "Agentes que consultam informações e executam tarefas com contexto.",
+    includes: [
+      "Busca com referências",
+      "Ferramentas e integrações",
+      "Limites e histórico das ações",
+    ],
+    example: "Consulta o histórico do cliente e prepara o atendimento.",
+  },
+  {
+    description:
+      "Fluxos conectados para reduzir tarefas repetitivas entre equipes.",
+    includes: [
+      "Extração e classificação",
+      "Validação e aprovações",
+      "Integração entre sistemas",
+    ],
+    example: "Organiza documentos e separa divergências para revisão.",
+  },
+  {
+    description: "IA integrada aos dados, ERPs e CRMs que você já utiliza.",
+    includes: [
+      "Conexão por APIs",
+      "Busca, resumos e análises",
+      "Permissões e rastreabilidade",
+    ],
+    example: "Uma atualização no CRM gera um resumo e a próxima ação.",
+  },
+  {
+    description: "Aplicações próprias, da arquitetura à produção.",
+    includes: [
+      "APIs e estrutura de dados",
+      "Interfaces para seu processo",
+      "Testes e implantação",
+    ],
+    example: "Centraliza solicitações e conecta a IA à operação.",
+  },
+];
+
 export function SolutionsCarousel() {
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 767px)").matches,
@@ -79,13 +120,20 @@ export function SolutionsCarousel() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-6">
-                <p className="body-copy">{solution.description}</p>
+                <p className="body-copy">
+                  {mobile
+                    ? compactSolutions[index].description
+                    : solution.description}
+                </p>
                 <div className="service-details">
                   <p className="detail-label">
                     O QUE PODE FAZER PARTE DO PROJETO
                   </p>
                   <ul className="detail-list">
-                    {solution.includes.map((detail) => (
+                    {(mobile
+                      ? compactSolutions[index].includes
+                      : solution.includes
+                    ).map((detail) => (
                       <li key={detail}>
                         <Check className="size-4" aria-hidden="true" />
                         <span>{detail}</span>
@@ -95,7 +143,11 @@ export function SolutionsCarousel() {
                 </div>
                 <div className="service-example">
                   <p className="detail-label">NA ROTINA</p>
-                  <p>{solution.example}</p>
+                  <p>
+                    {mobile
+                      ? compactSolutions[index].example
+                      : solution.example}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {solution.tags.map((tag) => (

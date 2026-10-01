@@ -203,20 +203,39 @@ export default function App() {
                       </div>
                     </li>
                   </ol>
-                  <dl className="case-details">
-                    <div>
-                      <dt>O gargalo</dt>
-                      <dd>{item.problem}</dd>
-                    </div>
-                    <div>
-                      <dt>O controle</dt>
-                      <dd>{item.control}</dd>
-                    </div>
-                    <div>
-                      <dt>O que medimos</dt>
-                      <dd>{item.measurement}</dd>
-                    </div>
-                  </dl>
+                  <div className="desktop-case-details">
+                    <dl className="case-details">
+                      <div>
+                        <dt>O gargalo</dt>
+                        <dd>{item.problem}</dd>
+                      </div>
+                      <div>
+                        <dt>O controle</dt>
+                        <dd>{item.control}</dd>
+                      </div>
+                      <div>
+                        <dt>O que medimos</dt>
+                        <dd>{item.measurement}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <details className="mobile-case-details">
+                    <summary>Ver detalhes do exemplo</summary>
+                    <dl className="case-details">
+                      <div>
+                        <dt>O gargalo</dt>
+                        <dd>{item.problem}</dd>
+                      </div>
+                      <div>
+                        <dt>O controle</dt>
+                        <dd>{item.control}</dd>
+                      </div>
+                      <div>
+                        <dt>O que medimos</dt>
+                        <dd>{item.measurement}</dd>
+                      </div>
+                    </dl>
+                  </details>
                 </div>
               </TabsContent>
             ))}

@@ -109,6 +109,27 @@ const scenarios = [
 const TICK_MS = 65;
 const CHARS_PER_TICK = 4;
 const HOLD_TICKS = 16;
+const compactEvents: Record<string, string[]> = {
+  "Contabilidade conectada": [
+    "Extratos e notas organizados.",
+    "Lançamentos comparados com o extrato.",
+    "Diferença de valor enviada para revisão.",
+    "Resumo financeiro pronto para conferência.",
+  ],
+  "Marketing com contexto": [
+    "Público e diretrizes da marca consultados.",
+    "Histórico de campanhas analisado.",
+    "Anúncios e conteúdo preparados.",
+    "Plano de campanha enviado para revisão.",
+  ],
+  "Atendimento integrado": [
+    "Solicitação e histórico consultados.",
+    "Pedido e políticas conferidos.",
+    "Resposta personalizada preparada.",
+    "CRM atualizado e caso encaminhado.",
+  ],
+};
+
 type Scenario = (typeof scenarios)[number];
 
 function StreamSimulation({
@@ -209,7 +230,18 @@ function StreamSimulation({
                   {event.done && <Check className="size-3" />}
                 </strong>
                 <p>
-                  {event.text.slice(0, event.count)}
+                  <span className="desktop-copy">
+                    {event.text.slice(0, event.count)}
+                  </span>
+                  <span className="mobile-copy">
+                    {compactEvents[scenario.title][index].slice(
+                      0,
+                      Math.ceil(
+                        (event.count / event.text.length) *
+                          compactEvents[scenario.title][index].length,
+                      ),
+                    )}
+                  </span>
                   {event.started && !event.done && (
                     <span className="stream-caret" />
                   )}
