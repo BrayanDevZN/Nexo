@@ -31,14 +31,14 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
 - Serviços em carrossel no celular e grade de duas colunas no desktop.
-- Cards compactos no mobile, textos resumidos nos serviços e no streaming e detalhes de aplicação expansíveis.
+- Cards compactos no mobile, textos resumidos nos serviços e no streaming e apresentação compacta dos benefícios.
 - Navegação interna por rolagem, mantendo a URL sem fragmentos `#`, inclusive no menu mobile.
-- Menu mobile com foco controlado, perguntas frequentes e exemplos em abas.
+- Menu mobile com foco controlado, perguntas frequentes e benefícios com indicadores de validação.
 - Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.
 - Núcleo 3D em CSS com seis faces, órbitas em planos distintos e profundidade por perspectiva, sem WebGL ou novas dependências.
 - Demonstrações ampliadas em streaming de contabilidade, marketing e atendimento, navegáveis por setas, teclado e arraste, identificadas como simulações com dados fictícios.
 - Sem controles visíveis de pausa ou reinício; temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
-- Serviços com entregas e exemplos, processo com atividades de cada etapa, aplicações com gargalo, controle e indicadores de resultado.
+- Serviços com entregas e exemplos, processo com atividades de cada etapa, valor para o negócio com mecanismos, impactos potenciais e indicadores.
 
 As ilustrações e fluxos de aplicação são exemplos; não representam métricas ou resultados de clientes. Os links de contato abrem o WhatsApp existente da Nexo.
 

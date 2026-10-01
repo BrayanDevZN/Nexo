@@ -2,10 +2,7 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  Check,
-  CheckCheck,
   CircuitBoard,
-  FileText,
   Layers3,
   MoveUpRight,
   ShieldCheck,
@@ -17,18 +14,18 @@ import { StreamingDemo } from "@/components/StreamingDemo";
 import { SolutionsCarousel } from "@/components/SolutionsCarousel";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
+import { BusinessValue } from "@/components/BusinessValue";
 import { Process } from "@/components/Process";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cases, contactUrl, faqs, navigation } from "@/lib/content";
+import { contactUrl, faqs, navigation } from "@/lib/content";
 
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
@@ -128,119 +125,7 @@ export default function App() {
         </section>
         <Process />
         <StreamingDemo />
-        <section
-          id="aplicacoes"
-          className="section shell"
-          aria-labelledby="cases-title"
-        >
-          <div className="section-heading">
-            <p className="eyebrow">03 / POSSIBILIDADES NA PRÁTICA</p>
-            <h2 id="cases-title">
-              Encontre o potencial
-              <br />
-              <span>na sua rotina.</span>
-            </h2>
-          </div>
-          <Tabs defaultValue={cases[0].id}>
-            <TabsList
-              aria-label="Áreas de aplicação"
-              className="mb-7 h-auto max-w-full flex-wrap"
-            >
-              {cases.map((item) => (
-                <TabsTrigger key={item.id} value={item.id}>
-                  {item.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {cases.map((item) => (
-              <TabsContent key={item.id} value={item.id}>
-                <div className="case-panel">
-                  <div className="case-copy">
-                    <Badge variant="outline">Exemplo de aplicação</Badge>
-                    <h3>{item.title}</h3>
-                    <p className="body-copy">{item.description}</p>
-                    <p className="case-benefit">
-                      <CheckCheck className="size-5" aria-hidden="true" />
-                      {item.benefit}
-                    </p>
-                    <Button variant="outline" size="lg" asChild>
-                      <a
-                        href={contactUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Avaliar um processo parecido{" "}
-                        <ArrowUpRight data-icon="inline-end" />
-                      </a>
-                    </Button>
-                  </div>
-                  <ol className="case-flow">
-                    <li>
-                      <div className="flow-icon">
-                        <FileText aria-hidden="true" />
-                      </div>
-                      <div>
-                        <span>ENTRADA</span>
-                        <strong>{item.input}</strong>
-                      </div>
-                    </li>
-                    <li>
-                      <div className="flow-icon">
-                        <Brand compact />
-                      </div>
-                      <div>
-                        <span>INTELIGÊNCIA + REGRAS</span>
-                        <strong>{item.action}</strong>
-                      </div>
-                    </li>
-                    <li>
-                      <div className="flow-icon">
-                        <Check aria-hidden="true" />
-                      </div>
-                      <div>
-                        <span>PRÓXIMO PASSO</span>
-                        <strong>{item.output}</strong>
-                      </div>
-                    </li>
-                  </ol>
-                  <div className="desktop-case-details">
-                    <dl className="case-details">
-                      <div>
-                        <dt>O gargalo</dt>
-                        <dd>{item.problem}</dd>
-                      </div>
-                      <div>
-                        <dt>O controle</dt>
-                        <dd>{item.control}</dd>
-                      </div>
-                      <div>
-                        <dt>O que medimos</dt>
-                        <dd>{item.measurement}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                  <details className="mobile-case-details">
-                    <summary>Ver detalhes do exemplo</summary>
-                    <dl className="case-details">
-                      <div>
-                        <dt>O gargalo</dt>
-                        <dd>{item.problem}</dd>
-                      </div>
-                      <div>
-                        <dt>O controle</dt>
-                        <dd>{item.control}</dd>
-                      </div>
-                      <div>
-                        <dt>O que medimos</dt>
-                        <dd>{item.measurement}</dd>
-                      </div>
-                    </dl>
-                  </details>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </section>
+        <BusinessValue />
         <section
           id="sobre"
           className="section section-tinted"

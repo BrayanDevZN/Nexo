@@ -124,59 +124,6 @@ export const steps = [
     ],
   },
 ];
-export const cases = [
-  {
-    id: "operacoes",
-    label: "Operações",
-    title: "Do documento à ação.",
-    description:
-      "Transforme arquivos que chegam por e-mail em informações organizadas e próximas ações, com revisão nas etapas que exigem julgamento humano.",
-    input: "Documentos recebidos",
-    action: "Extração e classificação",
-    output: "Dados no sistema + revisão",
-    benefit: "Menos digitação. Mais rastreabilidade.",
-    problem:
-      "Arquivos chegam por canais diferentes e a equipe precisa abrir, conferir e digitar as mesmas informações.",
-    control:
-      "Campos ausentes, divergências e documentos duplicados seguem para uma fila de revisão.",
-    measurement:
-      "Tempo por documento, quantidade de correções e volume processado pela equipe.",
-  },
-  {
-    id: "comercial",
-    label: "Comercial",
-    title: "Cada oportunidade no fluxo certo.",
-    description:
-      "Organize contatos, entenda a necessidade inicial e direcione oportunidades para a equipe, mantendo o CRM atualizado.",
-    input: "Novo contato",
-    action: "Qualificação e contexto",
-    output: "CRM atualizado + responsável",
-    benefit: "Menos informações perdidas entre equipes.",
-    problem:
-      "Contatos ficam espalhados em mensagens, e o time perde tempo reconstruindo o histórico antes de responder.",
-    control:
-      "Critérios de qualificação e encaminhamento são definidos com o negócio; negociações ficam com a equipe.",
-    measurement:
-      "Tempo de primeira resposta, completude dos registros e oportunidades sem acompanhamento.",
-  },
-  {
-    id: "conhecimento",
-    label: "Conhecimento",
-    title: "O conhecimento da empresa, acessível.",
-    description:
-      "Conecte documentos e procedimentos a uma busca com IA que encontra informações e apresenta as fontes para sua equipe conferir.",
-    input: "Pergunta da equipe",
-    action: "Busca na base interna",
-    output: "Resposta com referências",
-    benefit: "Menos tempo procurando. Mais contexto para agir.",
-    problem:
-      "Procedimentos e documentos estão dispersos, concentrando dúvidas recorrentes em poucas pessoas.",
-    control:
-      "A busca respeita os acessos definidos e apresenta referências; informações insuficientes são sinalizadas.",
-    measurement:
-      "Tempo para encontrar respostas, qualidade das referências e dúvidas que exigem intervenção.",
-  },
-];
 export const faqs = [
   {
     question: "Por onde vale a pena começar?",

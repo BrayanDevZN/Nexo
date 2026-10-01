@@ -9,7 +9,7 @@ export function useScrollReveal() {
     if (!root || !("IntersectionObserver" in window)) return;
     const nodes = Array.from(
       root.querySelectorAll<HTMLElement>(
-        '.section-heading, .solution-card, [data-slot="carousel-item"], .case-panel, .about-grid > div, .faq-grid > div:first-child, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console',
+        '.section-heading, .solution-card, [data-slot="carousel-item"], .value-card, .value-validation, .value-cta, .about-grid > div, .faq-grid > div:first-child, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console',
       ),
     );
     if (paused || reduced) {
