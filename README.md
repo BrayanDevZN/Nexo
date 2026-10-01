@@ -28,6 +28,10 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
 - Menu mobile com foco controlado, perguntas frequentes e exemplos em abas.
 - Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.
+- Núcleo 3D em CSS com seis faces, órbitas em planos distintos e profundidade por perspectiva, sem WebGL ou novas dependências.
+- Demonstração em streaming de processamento documental, explicitamente identificada como simulação com dados fictícios.
+- Controle global de pausa/retomada; animações e temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
+- Serviços com entregas e exemplos, processo com atividades de cada etapa, aplicações com gargalo, controle e indicadores de resultado.
 
 As ilustrações e fluxos de aplicação são exemplos; não representam métricas ou resultados de clientes. Os links de contato abrem o WhatsApp existente da Nexo.
 

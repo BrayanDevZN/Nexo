@@ -84,6 +84,11 @@ export function Process() {
                   </CardHeader>
                   <CardContent className="flex-1">
                     <p className="body-copy">{step.text}</p>
+                    <ul className="process-details">
+                      {step.details.map((detail) => (
+                        <li key={detail}>{detail}</li>
+                      ))}
+                    </ul>
                   </CardContent>
                   <CardFooter>
                     <span className="step-delivery">{step.delivery}</span>

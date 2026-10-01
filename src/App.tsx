@@ -13,6 +13,7 @@ import {
 import { SiteHeader } from "@/components/SiteHeader";
 import { Brand } from "@/components/Brand";
 import { OperationVisual } from "@/components/OperationVisual";
+import { StreamingDemo } from "@/components/StreamingDemo";
 import { Process } from "@/components/Process";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +136,23 @@ export default function App() {
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-6">
                   <p className="body-copy">{solution.description}</p>
+                  <div className="service-details">
+                    <p className="detail-label">
+                      O QUE PODE FAZER PARTE DO PROJETO
+                    </p>
+                    <ul className="detail-list">
+                      {solution.includes.map((detail) => (
+                        <li key={detail}>
+                          <Check className="size-4" aria-hidden="true" />
+                          <span>{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="service-example">
+                    <p className="detail-label">NA ROTINA</p>
+                    <p>{solution.example}</p>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {solution.tags.map((tag) => (
                       <Badge key={tag} variant="secondary">
@@ -168,6 +186,7 @@ export default function App() {
           </div>
         </section>
         <Process />
+        <StreamingDemo />
         <section
           id="aplicacoes"
           className="section shell"
@@ -243,6 +262,20 @@ export default function App() {
                       </div>
                     </li>
                   </ol>
+                  <dl className="case-details">
+                    <div>
+                      <dt>O gargalo</dt>
+                      <dd>{item.problem}</dd>
+                    </div>
+                    <div>
+                      <dt>O controle</dt>
+                      <dd>{item.control}</dd>
+                    </div>
+                    <div>
+                      <dt>O que medimos</dt>
+                      <dd>{item.measurement}</dd>
+                    </div>
+                  </dl>
                 </div>
               </TabsContent>
             ))}

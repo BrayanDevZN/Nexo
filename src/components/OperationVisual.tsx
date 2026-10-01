@@ -17,9 +17,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { IntelligenceCore } from "@/components/IntelligenceCore";
+import { MotionControl, useMotionActivity } from "@/components/MotionProvider";
+
 export function OperationVisual() {
+  const { ref, active } = useMotionActivity<HTMLElement>();
   return (
     <figure
+      ref={ref}
+      data-motion={active ? "running" : "paused"}
       className="operation-visual"
       aria-label="Exemplo de fluxo: documentos e sistemas conectados à IA, com validação antes da execução."
     >
@@ -41,6 +47,7 @@ export function OperationVisual() {
           <span>Seus sistemas</span>
         </div>
       </div>
+      <IntelligenceCore />
       <div className="connector-branches" aria-hidden="true">
         <i />
         <i />
@@ -89,6 +96,9 @@ export function OperationVisual() {
         <span className="signal-dot" /> Pessoas no controle. Tecnologia na
         execução.
       </figcaption>
+      <div className="motion-toolbar">
+        <MotionControl />
+      </div>
     </figure>
   );
 }
