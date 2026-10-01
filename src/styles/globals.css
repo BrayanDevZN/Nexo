@@ -1754,8 +1754,8 @@ main,
   border-radius: 50%;
   background: radial-gradient(
     ellipse,
-    color-mix(in srgb, var(--highlight) 18%, transparent),
-    color-mix(in srgb, var(--primary) 6%, transparent) 43%,
+    color-mix(in srgb, var(--highlight) 28%, transparent),
+    color-mix(in srgb, var(--primary) 10%, transparent) 43%,
     transparent 70%
   );
 }
@@ -1772,8 +1772,34 @@ main,
 .ambient-wash-three {
   left: -12%;
   bottom: -50%;
-  opacity: 0.7;
+  opacity: 0.85;
   animation: ambient-sweep-one 38s ease-in-out infinite alternate-reverse;
+}
+.ambient-drop {
+  position: absolute;
+  left: var(--drop-x);
+  top: -70px;
+  width: 2px;
+  height: var(--drop-length);
+  border-radius: 999px;
+  opacity: var(--drop-opacity);
+  background: linear-gradient(
+    transparent,
+    var(--highlight) 65%,
+    var(--primary)
+  );
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 15%, transparent);
+  animation: ambient-rain var(--drop-duration) linear infinite;
+  animation-delay: var(--drop-delay);
+}
+@keyframes ambient-rain {
+  from {
+    transform: translate3d(0, 0, 0) rotate(-31deg);
+  }
+  to {
+    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0)
+      rotate(-31deg);
+  }
 }
 @keyframes ambient-sweep-one {
   from {
@@ -2003,5 +2029,16 @@ main,
 @media (prefers-reduced-motion: reduce) {
   :is(button, [data-slot="button"]) {
     transition: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ambient-drop:nth-of-type(n + 49) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-drop {
+    display: none;
   }
 }
