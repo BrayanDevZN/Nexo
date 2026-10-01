@@ -2327,3 +2327,64 @@ main,
     min-width: 0;
   }
 }
+
+/* Keep application tabs and flow text within their mobile containers. */
+@media (max-width: 767px) {
+  #aplicacoes [data-slot="tabs-list"] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    flex-wrap: nowrap;
+  }
+  #aplicacoes [data-slot="tabs-trigger"] {
+    min-width: 0;
+    height: 100%;
+    min-height: 38px;
+    padding: 8px 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .case-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .case-flow li {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    min-width: 0;
+  }
+  .case-flow li > div:not(.flow-icon) {
+    display: contents;
+  }
+  .case-flow li span:not(.brand) {
+    font-size: 8px;
+    letter-spacing: 0.07em;
+    overflow-wrap: anywhere;
+  }
+  .case-flow li strong {
+    min-width: 0;
+    margin-top: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .case-flow li:not(:last-child):after {
+    display: none;
+  }
+  .case-copy [data-slot="button"] {
+    max-width: 100%;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
