@@ -94,3 +94,7 @@ export function MotionControl() {
     </Button>
   );
 }
+
+export function useMotionPreferences() {
+  return useContext(MotionContext);
+}

@@ -34,14 +34,17 @@ import {
 } from "@/components/ui/accordion";
 import { cases, contactUrl, faqs, navigation, solutions } from "@/lib/content";
 
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+
 export default function App() {
+  const revealRef = useScrollReveal();
   return (
     <>
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
       <SiteHeader />
-      <main id="conteudo">
+      <main id="conteudo" ref={revealRef}>
         <section
           id="inicio"
           className="hero shell"
