@@ -86,14 +86,13 @@ function Development() {
   return (
     <div className="development">
       <div className="development__header" data-scroll-reveal>
-        <p className="development__eyebrow">SOLUÇÕES DE IA</p>
+        <p className="development__eyebrow">COMO TRANSFORMAMOS A OPERAÇÃO</p>
         <h2 className="development__title">
-          Inteligência Artificial
-          <span> aplicada ao seu negócio.</span>
+          IA integrada
+          <span> onde o trabalho acontece.</span>
         </h2>
         <p className="development__description">
-          Projetamos sistemas que usam IA para executar tarefas, acessar
-          conhecimento, conectar ferramentas e tornar processos mais rápidos e escaláveis.
+          Depois de analisar o negócio, construímos a solução necessária para automatizar tarefas, conectar sistemas e reduzir a carga operacional das equipes.
         </p>
       </div>
 
