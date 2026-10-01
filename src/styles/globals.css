@@ -1797,10 +1797,11 @@ main,
 }
 @keyframes ambient-rain {
   from {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) rotate(-31deg);
   }
   to {
-    transform: translate3d(-35px, calc(100vh + 140px), 0);
+    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0)
+      rotate(-31deg);
   }
 }
 @keyframes ambient-sweep-one {
@@ -1885,7 +1886,7 @@ main,
     width: 160vw;
     height: 65vh;
   }
-  .ambient-drop:nth-of-type(n + 23) {
+  .ambient-drop:nth-of-type(n + 49) {
     display: none;
   }
   .solution-card,

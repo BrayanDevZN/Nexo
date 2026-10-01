@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useMotionPreferences } from "@/components/MotionProvider";
 
 // Deterministic spacing and negative delays keep the rain filled on first render.
-const drops = Array.from({ length: 36 }, (_, index) => ({
+const drops = Array.from({ length: 84 }, (_, index) => ({
   x: (index * 37 + 3) % 100,
   duration: 9 + (index % 7),
   delay: -((index * 2.7) % 15),
@@ -27,7 +27,7 @@ export function AnimatedBackground() {
           className="ambient-drop"
           style={
             {
-              "--drop-x": `${drop.x}%`,
+              "--drop-x": `calc(${drop.x}% + ${drop.x * 0.6 - 60}vh)`,
               "--drop-duration": `${drop.duration}s`,
               "--drop-delay": `${drop.delay}s`,
               "--drop-length": `${drop.length}px`,
