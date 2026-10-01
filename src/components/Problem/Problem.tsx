@@ -4,45 +4,42 @@ function Problem() {
   return (
     <div className="problem">
       <div className="problem__header" data-scroll-reveal>
-        <p className="problem__eyebrow">POR QUE IA?</p>
+        <p className="problem__eyebrow">EFICIÊNCIA OPERACIONAL</p>
 
         <h2 className="problem__title">
-          Sua equipe ainda perde tempo
-          <span> com trabalho que poderia ser automatizado?</span>
+          Quantas pessoas são necessárias
+          <span> para manter seus processos funcionando?</span>
         </h2>
 
         <p className="problem__description">
-          Processos manuais, informações espalhadas e tarefas repetitivas
-          consomem capacidade da equipe. A IA pode assumir parte desse trabalho
-          quando é integrada ao processo certo.
+          Muitas empresas mantêm equipes inteiras executando tarefas repetitivas,
+          conferindo informações, movendo dados entre sistemas e respondendo às
+          mesmas demandas. Nós analisamos esses fluxos para descobrir o que pode ser automatizado com IA.
         </p>
       </div>
 
       <div className="problem__grid">
         <article className="problem__card" data-scroll-reveal>
           <span className="problem__number">01</span>
-          <h3>Trabalho repetitivo</h3>
+          <h3>Horas de trabalho operacional</h3>
           <p>
-            Pessoas gastam horas copiando dados, classificando informações,
-            respondendo demandas e executando rotinas previsíveis.
+            Processos que exigem várias pessoas podem concentrar grande parte do tempo da equipe em execução manual, não em atividades de maior valor.
           </p>
         </article>
 
         <article className="problem__card" data-scroll-reveal>
           <span className="problem__number">02</span>
-          <h3>Processos desconectados</h3>
+          <h3>Custo para escalar</h3>
           <p>
-            Sistemas que não conversam entre si criam retrabalho, atrasos e
-            dependência de tarefas manuais para manter a operação funcionando.
+            Quando o volume aumenta, contratar mais pessoas não deveria ser a única forma de aumentar a capacidade operacional.
           </p>
         </article>
 
         <article className="problem__card" data-scroll-reveal>
           <span className="problem__number">03</span>
-          <h3>IA sem aplicação prática</h3>
+          <h3>Automação sem análise</h3>
           <p>
-            Usar IA isoladamente não transforma uma empresa. O valor aparece
-            quando ela recebe contexto, acessa ferramentas e participa do fluxo real.
+            Automatizar a tarefa errada só acelera um processo ruim. Primeiro entendemos a operação; depois decidimos onde a IA realmente faz sentido.
           </p>
         </article>
       </div>
