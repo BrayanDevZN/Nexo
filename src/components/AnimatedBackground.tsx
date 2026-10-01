@@ -1,20 +1,14 @@
 import type { CSSProperties } from "react";
 import { useMotionPreferences } from "@/components/MotionProvider";
 
-const points = [
-  [8, 18, 0],
-  [24, 72, -8],
-  [43, 12, -3],
-  [68, 48, -12],
-  [90, 24, -5],
-  [14, 88, -15],
-  [56, 82, -10],
-  [82, 91, -6],
-  [34, 45, -13],
-  [76, 8, -2],
-  [6, 53, -11],
-  [94, 66, -17],
-];
+// Deterministic spacing and negative delays keep the rain filled on first render.
+const drops = Array.from({ length: 36 }, (_, index) => ({
+  x: (index * 37 + 3) % 100,
+  duration: 9 + (index % 7),
+  delay: -((index * 2.7) % 15),
+  length: 18 + (index % 5) * 9,
+  opacity: 0.2 + (index % 4) * 0.07,
+}));
 
 export function AnimatedBackground() {
   const { paused, reduced, pageVisible } = useMotionPreferences();
@@ -27,17 +21,17 @@ export function AnimatedBackground() {
       <div className="ambient-wash ambient-wash-one" />
       <div className="ambient-wash ambient-wash-two" />
       <div className="ambient-wash ambient-wash-three" />
-      <div className="ambient-grid" />
-      {points.map(([x, y, delay], index) => (
+      {drops.map((drop, index) => (
         <i
           key={index}
-          className="ambient-point"
+          className="ambient-drop"
           style={
             {
-              "--point-x": `${x}%`,
-              "--point-y": `${y}%`,
-              "--point-delay": `${delay}s`,
-              "--point-size": `${(index % 3) + 2}px`,
+              "--drop-x": `${drop.x}%`,
+              "--drop-duration": `${drop.duration}s`,
+              "--drop-delay": `${drop.delay}s`,
+              "--drop-length": `${drop.length}px`,
+              "--drop-opacity": drop.opacity,
             } as CSSProperties
           }
         />

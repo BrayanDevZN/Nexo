@@ -1778,32 +1778,30 @@ main,
   opacity: 0.7;
   animation: ambient-sweep-one 38s ease-in-out infinite alternate-reverse;
 }
-.ambient-grid {
+.ambient-drop {
   position: absolute;
-  inset: -60px;
-  opacity: 0.085;
-  background-image: radial-gradient(var(--primary) 0.8px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(
+  left: var(--drop-x);
+  top: -70px;
+  width: 2px;
+  height: var(--drop-length);
+  border-radius: 999px;
+  opacity: var(--drop-opacity);
+  background: linear-gradient(
     transparent,
-    var(--foreground) 25%,
-    var(--foreground) 75%,
-    transparent
+    var(--highlight) 65%,
+    var(--primary)
   );
-  animation: ambient-grid-drift 24s linear infinite;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 15%, transparent);
+  animation: ambient-rain var(--drop-duration) linear infinite;
+  animation-delay: var(--drop-delay);
 }
-.ambient-point {
-  position: absolute;
-  left: var(--point-x);
-  top: var(--point-y);
-  width: var(--point-size);
-  height: var(--point-size);
-  border-radius: 50%;
-  background: var(--primary);
-  opacity: 0.25;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 30%, transparent);
-  animation: ambient-point-float 18s ease-in-out infinite alternate;
-  animation-delay: var(--point-delay);
+@keyframes ambient-rain {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-35px, calc(100vh + 140px), 0);
+  }
 }
 @keyframes ambient-sweep-one {
   from {
@@ -1821,20 +1819,6 @@ main,
     transform: translate3d(-18%, -12%, 0) scale(0.9);
   }
 }
-@keyframes ambient-grid-drift {
-  to {
-    transform: translate3d(56px, -56px, 0);
-  }
-}
-@keyframes ambient-point-float {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(30px, -65px, 0);
-  }
-}
-
 /* Stronger violet separation and crisp outlines across the component system. */
 .operation-visual {
   box-shadow:
@@ -1901,9 +1885,8 @@ main,
     width: 160vw;
     height: 65vh;
   }
-  .ambient-grid {
-    background-size: 48px 48px;
-    opacity: 0.065;
+  .ambient-drop:nth-of-type(n + 23) {
+    display: none;
   }
   .solution-card,
   .stream-console {
@@ -1918,5 +1901,8 @@ main,
 @media (prefers-reduced-motion: reduce) {
   .page-ambient * {
     animation: none !important;
+  }
+  .ambient-drop {
+    display: none;
   }
 }
