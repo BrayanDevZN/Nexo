@@ -1918,3 +1918,16 @@ main,
     font-size: 10px;
   }
 }
+
+.stream-example-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.stream-example-notice p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
+}

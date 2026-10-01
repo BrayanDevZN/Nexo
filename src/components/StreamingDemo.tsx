@@ -159,6 +159,9 @@ function StreamSimulation({
   return (
     <Card className="stream-console [--card-spacing:--spacing(6)]">
       <CardHeader>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">EXEMPLO ILUSTRATIVO</Badge>
+        </div>
         <div className="stream-console-heading">
           <CardTitle>
             <h3>{scenario.title}</h3>
@@ -263,7 +266,7 @@ export function StreamingDemo() {
       data-motion={active ? "running" : "paused"}
     >
       <div className="streaming-copy">
-        <p className="eyebrow">IA EM DIFERENTES ÁREAS</p>
+        <p className="eyebrow">EXEMPLOS DE IA EM DIFERENTES ÁREAS</p>
         <h2 id="stream-title">
           Da contabilidade
           <br />
@@ -314,6 +317,13 @@ export function StreamingDemo() {
         </Button>
       </div>
       <div className="stream-gallery">
+        <div className="stream-example-notice">
+          <Badge>EXEMPLOS EM AÇÃO</Badge>
+          <p>
+            Simulações com dados fictícios para mostrar possibilidades de uso da
+            IA.
+          </p>
+        </div>
         <Carousel
           opts={{ align: "start", loop: true, duration: reduced ? 0 : 25 }}
           setApi={setApi}
