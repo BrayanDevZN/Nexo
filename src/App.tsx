@@ -80,7 +80,6 @@ export default function App() {
               </Button>
             </div>
             <div className="hero-note">
-              <span />
               <p>DO DIAGNÓSTICO À SOLUÇÃO EM PRODUÇÃO</p>
             </div>
           </div>
@@ -398,7 +397,7 @@ export default function App() {
       </main>
       <footer className="shell footer">
         <div className="footer-top">
-          <a href="#inicio" aria-label="Nexo — voltar ao início">
+          <a href="#inicio" aria-label="Nexo: voltar ao início">
             <Brand />
           </a>
           <p>

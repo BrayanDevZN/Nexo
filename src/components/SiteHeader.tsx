@@ -17,7 +17,7 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="shell header-inner">
-        <a href="#inicio" aria-label="Nexo — início">
+        <a href="#inicio" aria-label="Nexo: início">
           <Brand />
         </a>
         <nav className="desktop-nav" aria-label="Navegação principal">

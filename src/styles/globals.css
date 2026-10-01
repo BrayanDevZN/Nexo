@@ -272,11 +272,6 @@ h2 span {
   gap: 12px;
   margin-top: 32px;
 }
-.hero-note > span {
-  width: 23px;
-  height: 1px;
-  background: var(--primary);
-}
 .hero-note > p {
   color: var(--muted-foreground);
   font-size: 8px;
@@ -1778,32 +1773,6 @@ main,
   opacity: 0.7;
   animation: ambient-sweep-one 38s ease-in-out infinite alternate-reverse;
 }
-.ambient-drop {
-  position: absolute;
-  left: var(--drop-x);
-  top: -70px;
-  width: 2px;
-  height: var(--drop-length);
-  border-radius: 999px;
-  opacity: var(--drop-opacity);
-  background: linear-gradient(
-    transparent,
-    var(--highlight) 65%,
-    var(--primary)
-  );
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 15%, transparent);
-  animation: ambient-rain var(--drop-duration) linear infinite;
-  animation-delay: var(--drop-delay);
-}
-@keyframes ambient-rain {
-  from {
-    transform: translate3d(0, 0, 0) rotate(-31deg);
-  }
-  to {
-    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0)
-      rotate(-31deg);
-  }
-}
 @keyframes ambient-sweep-one {
   from {
     transform: translate3d(-3%, -3%, 0) scale(0.95);
@@ -1823,21 +1792,21 @@ main,
 /* Stronger violet separation and crisp outlines across the component system. */
 .operation-visual {
   box-shadow:
-    0 28px 65px color-mix(in srgb, var(--shadow-tone) 22%, transparent),
+    0 28px 65px color-mix(in srgb, var(--shadow-tone) 26%, transparent),
     0 8px 20px color-mix(in srgb, var(--shadow-tone) 12%, transparent);
 }
 .solution-card,
 .stream-console,
 [data-slot="carousel-item"] > [data-slot="card"] {
   box-shadow:
-    0 18px 40px color-mix(in srgb, var(--shadow-tone) 17%, transparent),
-    0 4px 12px color-mix(in srgb, var(--shadow-tone) 10%, transparent);
+    0 18px 40px color-mix(in srgb, var(--shadow-tone) 21%, transparent),
+    0 4px 12px color-mix(in srgb, var(--shadow-tone) 13%, transparent);
 }
 .case-panel,
 .contact-panel {
   box-shadow:
-    0 24px 55px color-mix(in srgb, var(--shadow-tone) 21%, transparent),
-    0 6px 16px color-mix(in srgb, var(--shadow-tone) 10%, transparent);
+    0 24px 55px color-mix(in srgb, var(--shadow-tone) 25%, transparent),
+    0 6px 16px color-mix(in srgb, var(--shadow-tone) 13%, transparent);
 }
 .section-tinted {
   background: linear-gradient(
@@ -1864,7 +1833,7 @@ main,
 }
 .intelligence-node {
   border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow-tone) 16%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow-tone) 19%, transparent);
 }
 .tiny-label {
   font-size: 10px;
@@ -1886,14 +1855,11 @@ main,
     width: 160vw;
     height: 65vh;
   }
-  .ambient-drop:nth-of-type(n + 49) {
-    display: none;
-  }
   .solution-card,
   .stream-console {
     box-shadow:
-      0 12px 28px color-mix(in srgb, var(--shadow-tone) 18%, transparent),
-      0 3px 9px color-mix(in srgb, var(--shadow-tone) 10%, transparent);
+      0 12px 28px color-mix(in srgb, var(--shadow-tone) 22%, transparent),
+      0 3px 9px color-mix(in srgb, var(--shadow-tone) 13%, transparent);
   }
   .tiny-label {
     font-size: 8px;
@@ -1902,8 +1868,5 @@ main,
 @media (prefers-reduced-motion: reduce) {
   .page-ambient * {
     animation: none !important;
-  }
-  .ambient-drop {
-    display: none;
   }
 }

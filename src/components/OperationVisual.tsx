@@ -1,9 +1,8 @@
 import {
-  ArrowDown,
   Check,
   Database,
   FileText,
-  Mail,
+  BrainCircuit,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -27,24 +26,24 @@ export function OperationVisual() {
       ref={ref}
       data-motion={active ? "running" : "paused"}
       className="operation-visual"
-      aria-label="Exemplo de fluxo: documentos e sistemas conectados à IA, com validação antes da execução."
+      aria-label="Inteligência artificial conectando dados, conhecimento e processos para analisar, criar e executar com supervisão humana."
     >
       <div className="visual-topline">
-        <span className="tiny-label">UMA OPERAÇÃO CONECTADA</span>
-        <Badge variant="outline">Fluxo ilustrativo</Badge>
+        <span className="tiny-label">IA PARA TODO O NEGÓCIO</span>
+        <Badge variant="outline">Visão ilustrativa</Badge>
       </div>
       <div className="sources">
         <div>
-          <Mail aria-hidden="true" />
-          <span>E-mails</span>
+          <BrainCircuit aria-hidden="true" />
+          <span>Conhecimento</span>
         </div>
         <div>
           <FileText aria-hidden="true" />
-          <span>Documentos</span>
+          <span>Dados</span>
         </div>
         <div>
           <Database aria-hidden="true" />
-          <span>Seus sistemas</span>
+          <span>Processos</span>
         </div>
       </div>
       <IntelligenceCore />
@@ -58,8 +57,8 @@ export function OperationVisual() {
           <Brand compact />
         </div>
         <div>
-          <span className="tiny-label">INTELIGÊNCIA APLICADA</span>
-          <strong>Contexto. Decisão. Ação.</strong>
+          <span className="tiny-label">INTELIGÊNCIA CONECTADA</span>
+          <strong>Entender. Criar. Executar.</strong>
         </div>
         <Sparkles className="size-5" aria-hidden="true" />
       </div>
@@ -67,26 +66,28 @@ export function OperationVisual() {
       <Card className="mx-auto w-[88%]">
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
-            <CardTitle>Um fluxo, do início ao fim</CardTitle>
+            <CardTitle>Uma inteligência, várias aplicações</CardTitle>
             <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
           </div>
-          <CardDescription>Regras e revisão onde importam.</CardDescription>
+          <CardDescription>
+            Soluções desenhadas para cada desafio.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="execution-list">
             <li>
               <Check aria-hidden="true" />
-              <span>Informações organizadas</span>
+              <span>Analisar dados e apoiar decisões</span>
               <span>01</span>
             </li>
             <li>
               <Check aria-hidden="true" />
-              <span>Dados validados</span>
+              <span>Criar respostas e conteúdo útil</span>
               <span>02</span>
             </li>
             <li>
-              <ArrowDown aria-hidden="true" />
-              <span>Próxima ação no sistema</span>
+              <Check aria-hidden="true" />
+              <span>Automatizar tarefas e conectar sistemas</span>
               <span>03</span>
             </li>
           </ol>

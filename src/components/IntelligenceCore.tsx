@@ -26,7 +26,7 @@ export function IntelligenceCore() {
         <div className="core-satellite satellite-two" />
       </div>
       <span className="core-caption">
-        DADOS CONECTADOS. INTELIGÊNCIA EM MOVIMENTO.
+        CONHECIMENTO, DADOS E AÇÃO CONECTADOS.
       </span>
     </div>
   );
