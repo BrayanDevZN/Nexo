@@ -14,16 +14,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Brand } from "@/components/Brand";
 import { OperationVisual } from "@/components/OperationVisual";
 import { StreamingDemo } from "@/components/StreamingDemo";
+import { SolutionsCarousel } from "@/components/SolutionsCarousel";
+import { useSectionNavigation } from "@/hooks/useSectionNavigation";
 import { Process } from "@/components/Process";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -32,12 +27,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cases, contactUrl, faqs, navigation, solutions } from "@/lib/content";
+import { cases, contactUrl, faqs, navigation } from "@/lib/content";
 
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function App() {
   const revealRef = useScrollReveal();
+  useSectionNavigation();
   return (
     <>
       <a className="skip-link" href="#conteudo">
@@ -119,66 +115,7 @@ export default function App() {
               os gargalos da sua operação.
             </p>
           </div>
-          <div className="solutions-grid">
-            {solutions.map((solution) => (
-              <Card
-                key={solution.title}
-                className="solution-card [--card-spacing:--spacing(7)]"
-              >
-                <CardHeader>
-                  <div className="solution-top">
-                    <div className="icon-tile">
-                      <solution.icon className="size-6" aria-hidden="true" />
-                    </div>
-                    <span>{solution.number}</span>
-                  </div>
-                  <CardTitle>
-                    <h3>{solution.title}</h3>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-6">
-                  <p className="body-copy">{solution.description}</p>
-                  <div className="service-details">
-                    <p className="detail-label">
-                      O QUE PODE FAZER PARTE DO PROJETO
-                    </p>
-                    <ul className="detail-list">
-                      {solution.includes.map((detail) => (
-                        <li key={detail}>
-                          <Check className="size-4" aria-hidden="true" />
-                          <span>{detail}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="service-example">
-                    <p className="detail-label">NA ROTINA</p>
-                    <p>{solution.example}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {solution.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" asChild>
-                    <a
-                      href={contactUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Conversar sobre ${solution.title}`}
-                    >
-                      Explorar essa possibilidade{" "}
-                      <ArrowUpRight data-icon="inline-end" />
-                    </a>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <SolutionsCarousel />
           <div className="solutions-note">
             <CircuitBoard className="size-5" aria-hidden="true" />
             <p>

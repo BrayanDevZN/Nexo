@@ -1931,3 +1931,36 @@ main,
   font-size: 13px;
   line-height: 1.7;
 }
+
+.solutions-carousel [data-slot="carousel-content"] {
+  padding: 12px;
+  margin: -12px;
+  touch-action: pan-y pinch-zoom;
+}
+.solutions-track {
+  margin-left: -18px;
+}
+.solution-slide {
+  padding-left: 18px;
+  display: flex;
+}
+.solution-slide > .solution-card {
+  width: 100%;
+}
+.solutions-toolbar {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .solutions-track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    margin-left: 0;
+  }
+  .solution-slide {
+    padding-left: 0;
+  }
+  .solutions-toolbar {
+    display: none;
+  }
+}

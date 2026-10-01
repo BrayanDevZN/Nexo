@@ -30,6 +30,8 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Tema, cores semânticas e responsividade em `src/styles/globals.css`.
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
+- Serviços em carrossel no celular e grade de duas colunas no desktop.
+- Navegação interna por rolagem, mantendo a URL sem fragmentos `#`, inclusive no menu mobile.
 - Menu mobile com foco controlado, perguntas frequentes e exemplos em abas.
 - Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.
 - Núcleo 3D em CSS com seis faces, órbitas em planos distintos e profundidade por perspectiva, sem WebGL ou novas dependências.
