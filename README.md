@@ -24,8 +24,8 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Tailwind CSS v4 e shadcn/ui (Radix, estilo Nova).
 - Componentes locais em `src/components/ui`, configurados em `components.json`.
 - Marca com símbolo próprio gerado em `public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
-- Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à pausa global e movimento reduzido.
-- Fundo animado contínuo com manchas de luz roxa em CSS, pausado por controle global, aba oculta ou movimento reduzido.
+- Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à preferência por movimento reduzido.
+- Fundo animado contínuo com manchas de luz roxa em CSS, pausado com a aba oculta ou movimento reduzido.
 - Contraste reforçado, contornos semânticos e sombras violetas para separar os elementos brancos.
 - Tema, cores semânticas e responsividade em `src/styles/globals.css`.
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
@@ -33,8 +33,8 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Menu mobile com foco controlado, perguntas frequentes e exemplos em abas.
 - Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.
 - Núcleo 3D em CSS com seis faces, órbitas em planos distintos e profundidade por perspectiva, sem WebGL ou novas dependências.
-- Demonstração em streaming de processamento documental, explicitamente identificada como simulação com dados fictícios.
-- Controle global de pausa/retomada; animações e temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
+- Demonstrações ampliadas em streaming de contabilidade, marketing e atendimento, navegáveis por setas, teclado e arraste, identificadas como simulações com dados fictícios.
+- Sem controles visíveis de pausa ou reinício; temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
 - Serviços com entregas e exemplos, processo com atividades de cada etapa, aplicações com gargalo, controle e indicadores de resultado.
 
 As ilustrações e fluxos de aplicação são exemplos; não representam métricas ou resultados de clientes. Os links de contato abrem o WhatsApp existente da Nexo.

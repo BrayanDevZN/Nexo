@@ -1870,3 +1870,51 @@ main,
     animation: none !important;
   }
 }
+
+/* Give the examples a larger stage without changing the site's visual language. */
+.stream-gallery {
+  min-width: 0;
+}
+.streaming-section {
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 48px;
+}
+.stream-gallery .stream-console {
+  --card-spacing: 28px;
+}
+.stream-gallery .stream-event {
+  min-height: 100px;
+}
+.stream-gallery .stream-event strong {
+  font-size: 13px;
+}
+.stream-gallery .stream-event p {
+  font-size: 14px;
+}
+.stream-gallery .stream-log {
+  padding: 22px;
+}
+.stream-gallery .carousel-toolbar {
+  gap: 16px;
+}
+.stream-gallery .carousel-toolbar p {
+  line-height: 1.8;
+}
+@media (max-width: 767px) {
+  .streaming-section {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .stream-gallery .stream-console {
+    --card-spacing: 18px;
+  }
+  .stream-gallery .stream-log {
+    padding: 14px;
+  }
+  .stream-gallery .stream-event {
+    min-height: 145px;
+  }
+  .stream-gallery .carousel-toolbar p {
+    font-size: 10px;
+  }
+}

@@ -6,8 +6,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Pause, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const MotionContext = createContext({
   paused: false,
@@ -66,33 +64,6 @@ export function useMotionActivity<T extends HTMLElement>() {
     ...motion,
     active: visible && motion.pageVisible && !motion.paused && !motion.reduced,
   };
-}
-
-export function MotionControl() {
-  const { paused, reduced, toggle } = useContext(MotionContext);
-  const Icon = paused ? Play : Pause;
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={toggle}
-      disabled={reduced}
-      aria-label={
-        reduced
-          ? "Movimento reduzido ativado no dispositivo"
-          : paused
-            ? "Retomar animações"
-            : "Pausar animações"
-      }
-    >
-      <Icon data-icon="inline-start" />
-      {reduced
-        ? "Movimento reduzido"
-        : paused
-          ? "Retomar animações"
-          : "Pausar animações"}
-    </Button>
-  );
 }
 
 export function useMotionPreferences() {

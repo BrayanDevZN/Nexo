@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 
 import { IntelligenceCore } from "@/components/IntelligenceCore";
-import { MotionControl, useMotionActivity } from "@/components/MotionProvider";
+import { useMotionActivity } from "@/components/MotionProvider";
 
 export function OperationVisual() {
   const { ref, active } = useMotionActivity<HTMLElement>();
@@ -97,9 +97,6 @@ export function OperationVisual() {
         <span className="signal-dot" /> Pessoas no controle. Tecnologia na
         execução.
       </figcaption>
-      <div className="motion-toolbar">
-        <MotionControl />
-      </div>
     </figure>
   );
 }

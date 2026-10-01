@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   Check,
-  FileText,
-  RotateCcw,
+  ArrowLeft,
+  ArrowRight,
+  Calculator,
+  Megaphone,
+  Users,
   Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,47 +19,121 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MotionControl, useMotionActivity } from "@/components/MotionProvider";
+import { useMotionActivity } from "@/components/MotionProvider";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 import { contactUrl } from "@/lib/content";
 
-const events = [
+const scenarios = [
   {
-    label: "Receber",
-    text: "Documento de exemplo recebido. Iniciando a leitura dos campos e a organização das informações.",
+    title: "Contabilidade conectada",
+    icon: Calculator,
+    input: "Extratos e notas fiscais",
+    tag: "FINANCEIRO",
+    result: "Resumo pronto para conferência",
+    events: [
+      {
+        label: "Receber",
+        text: "Extratos e notas fiscais recebidos. Organizando valores, datas e fornecedores do período.",
+      },
+      {
+        label: "Interpretar",
+        text: "Lançamentos classificados. Comparando os registros com o extrato para apoiar a conciliação.",
+      },
+      {
+        label: "Validar",
+        text: "Uma diferença de valor foi identificada. Separando o lançamento para revisão do responsável.",
+      },
+      {
+        label: "Preparar",
+        text: "Resumo financeiro preparado com entradas, saídas e pendências. A equipe confere antes do registro final.",
+      },
+    ],
   },
   {
-    label: "Interpretar",
-    text: "Fornecedor, data e valor identificados. Conferindo campos obrigatórios e possíveis duplicidades.",
+    title: "Marketing com contexto",
+    icon: Megaphone,
+    input: "Briefing e histórico de campanhas",
+    tag: "MARKETING",
+    result: "Campanha pronta para revisão",
+    events: [
+      {
+        label: "Conhecer",
+        text: "Briefing recebido. Consultando o público, a oferta e as diretrizes de comunicação da marca.",
+      },
+      {
+        label: "Analisar",
+        text: "Histórico de campanhas organizado. Identificando temas e canais com maior resposta no exemplo.",
+      },
+      {
+        label: "Criar",
+        text: "Preparando três versões de anúncio, uma sequência de e-mails e um calendário de conteúdo.",
+      },
+      {
+        label: "Planejar",
+        text: "Plano de campanha montado. Textos e agendamento aguardam revisão antes da publicação.",
+      },
+    ],
   },
   {
-    label: "Validar",
-    text: "Uma divergência foi encontrada. Encaminhando o item para conferência da equipe responsável.",
-  },
-  {
-    label: "Preparar",
-    text: "Resumo preparado. O registro no sistema aguarda aprovação humana, conforme a regra deste fluxo.",
+    title: "Atendimento integrado",
+    icon: Users,
+    input: "Solicitação de um cliente",
+    tag: "ATENDIMENTO",
+    result: "Resposta preparada com contexto",
+    events: [
+      {
+        label: "Receber",
+        text: "Mensagem recebida. Identificando a solicitação e consultando o histórico autorizado do cliente.",
+      },
+      {
+        label: "Buscar",
+        text: "Informações encontradas na base interna. Conferindo o pedido e as políticas de atendimento.",
+      },
+      {
+        label: "Responder",
+        text: "Resposta personalizada preparada com as referências necessárias para orientar o cliente.",
+      },
+      {
+        label: "Conectar",
+        text: "Solicitação organizada no CRM. Casos que exigem negociação seguem para a equipe responsável.",
+      },
+    ],
   },
 ];
 const TICK_MS = 65;
 const CHARS_PER_TICK = 4;
 const HOLD_TICKS = 16;
-const lengths = events.map(
-  (event) => Math.ceil(event.text.length / CHARS_PER_TICK) + HOLD_TICKS,
-);
-const totalTicks = lengths.reduce((sum, length) => sum + length, 0) + 45;
+type Scenario = (typeof scenarios)[number];
 
-export function StreamingDemo() {
-  const { ref, active, reduced, paused } = useMotionActivity<HTMLElement>();
+function StreamSimulation({
+  scenario,
+  running,
+  reduced,
+}: {
+  scenario: Scenario;
+  running: boolean;
+  reduced: boolean;
+}) {
+  const events = scenario.events;
+  const lengths = events.map(
+    (event) => Math.ceil(event.text.length / CHARS_PER_TICK) + HOLD_TICKS,
+  );
+  const totalTicks = lengths.reduce((sum, length) => sum + length, 0) + 60;
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    if (!active) return;
+    if (!running) return;
     const interval = window.setInterval(
       () => setTick((value) => (value + 1) % totalTicks),
       TICK_MS,
     );
     return () => window.clearInterval(interval);
-  }, [active]);
+  }, [running, totalTicks]);
   let elapsed = 0;
   const output = events.map((event, index) => {
     const start = elapsed;
@@ -80,6 +157,104 @@ export function StreamingDemo() {
   );
   const finished = output.every((item) => item.done);
   return (
+    <Card className="stream-console [--card-spacing:--spacing(6)]">
+      <CardHeader>
+        <div className="stream-console-heading">
+          <CardTitle>
+            <h3>{scenario.title}</h3>
+          </CardTitle>
+          <Workflow className="size-5 text-primary" aria-hidden="true" />
+        </div>
+        <CardDescription>
+          Demonstração simulada · dados fictícios
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="stream-input">
+          <scenario.icon className="size-5" aria-hidden="true" />
+          <div>
+            <strong>{scenario.input}</strong>
+            <span>Entrada ilustrativa · dados fictícios</span>
+          </div>
+          <Badge variant="secondary">{scenario.tag}</Badge>
+        </div>
+        <div className="stream-progress" aria-hidden="true">
+          {events.map((event, index) => (
+            <span
+              key={event.label}
+              className={cn("stream-step", index <= stage && "is-current")}
+            >
+              <i />
+              {event.label}
+            </span>
+          ))}
+        </div>
+        <div className="stream-log" aria-hidden="true">
+          {output.map((event, index) => (
+            <div
+              key={event.label}
+              className={cn(
+                "stream-event",
+                event.started && "is-started",
+                event.done && "is-complete",
+              )}
+            >
+              <span className="stream-event-index">0{index + 1}</span>
+              <div>
+                <strong>
+                  {event.label}
+                  {event.done && <Check className="size-3" />}
+                </strong>
+                <p>
+                  {event.text.slice(0, event.count)}
+                  {event.started && !event.done && (
+                    <span className="stream-caret" />
+                  )}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="sr-only">
+          <p>
+            {scenario.title}: {events.map((event) => event.text).join(" ")}
+          </p>
+        </div>
+        <div className="stream-result">
+          <Badge variant="outline">
+            {finished ? scenario.result : "Simulação em andamento"}
+          </Badge>
+          <span>Execução conforme suas regras</span>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <p className="body-copy">
+          Ao final: {scenario.result.toLowerCase()}. Aprovação conforme as
+          regras do negócio.
+        </p>
+      </CardFooter>
+    </Card>
+  );
+}
+
+export function StreamingDemo() {
+  const { ref, active, reduced } = useMotionActivity<HTMLElement>();
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [visit, setVisit] = useState(0);
+  useEffect(() => {
+    if (!api) return;
+    const sync = () => {
+      setCurrent(api.selectedScrollSnap());
+      setVisit((value) => value + 1);
+    };
+    sync();
+    api.on("select", sync);
+    return () => {
+      api.off("select", sync);
+    };
+  }, [api]);
+  return (
     <section
       ref={ref}
       id="demonstracao"
@@ -88,15 +263,16 @@ export function StreamingDemo() {
       data-motion={active ? "running" : "paused"}
     >
       <div className="streaming-copy">
-        <p className="eyebrow">DA INFORMAÇÃO À EXECUÇÃO</p>
+        <p className="eyebrow">IA EM DIFERENTES ÁREAS</p>
         <h2 id="stream-title">
-          Veja o trabalho
+          Da contabilidade
           <br />
-          <span>ganhar fluxo.</span>
+          <span>ao relacionamento.</span>
         </h2>
         <p className="section-description">
-          Uma informação chega. A IA interpreta. As regras definem o próximo
-          passo. Sua equipe acompanha o que precisa de atenção.
+          Explore como a IA pode analisar informações, criar conteúdo e conectar
+          tarefas em diferentes áreas. Cada exemplo mostra uma aplicação, do
+          contexto inicial à entrega para a equipe.
         </p>
         <ol className="stream-explainer">
           <li>
@@ -137,96 +313,56 @@ export function StreamingDemo() {
           </a>
         </Button>
       </div>
-      <Card className="stream-console [--card-spacing:--spacing(6)]">
-        <CardHeader>
-          <div className="stream-console-heading">
-            <CardTitle>
-              <h3>Processamento de documentos</h3>
-            </CardTitle>
-            <Workflow className="size-5 text-primary" aria-hidden="true" />
-          </div>
-          <CardDescription>
-            Demonstração simulada · dados fictícios
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div className="stream-input">
-            <FileText className="size-5" aria-hidden="true" />
-            <div>
-              <strong>documento_exemplo.pdf</strong>
-              <span>Entrada ilustrativa · nenhum arquivo real</span>
-            </div>
-            <Badge variant="secondary">PDF</Badge>
-          </div>
-          <div className="stream-progress" aria-hidden="true">
-            {events.map((event, index) => (
-              <span
-                key={event.label}
-                className={cn("stream-step", index <= stage && "is-current")}
+      <div className="stream-gallery">
+        <Carousel
+          opts={{ align: "start", loop: true, duration: reduced ? 0 : 25 }}
+          setApi={setApi}
+          aria-label="Exemplos de IA em ação"
+        >
+          <CarouselContent className="cursor-grab active:cursor-grabbing">
+            {scenarios.map((scenario, index) => (
+              <CarouselItem
+                key={scenario.title}
+                aria-label={scenario.title}
+                aria-hidden={index !== current}
+                inert={index !== current}
               >
-                <i />
-                {event.label}
-              </span>
+                <StreamSimulation
+                  key={`${index}-${index === current ? visit : "idle"}`}
+                  scenario={scenario}
+                  running={active && index === current}
+                  reduced={reduced}
+                />
+              </CarouselItem>
             ))}
-          </div>
-          <div className="stream-log" aria-hidden="true">
-            {output.map((event, index) => (
-              <div
-                key={event.label}
-                className={cn(
-                  "stream-event",
-                  event.started && "is-started",
-                  event.done && "is-complete",
-                )}
-              >
-                <span className="stream-event-index">0{index + 1}</span>
-                <div>
-                  <strong>
-                    {event.label}
-                    {event.done && <Check className="size-3" />}
-                  </strong>
-                  <p>
-                    {event.text.slice(0, event.count)}
-                    {event.started && !event.done && (
-                      <span className="stream-caret" />
-                    )}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="sr-only">
-            <p>
-              Demonstração: leitura de um documento, extração de dados,
-              identificação de divergência e preparação de um resumo. O registro
-              final exige aprovação humana.
+          </CarouselContent>
+          <div className="carousel-toolbar">
+            <p aria-live="polite">
+              {current + 1} / {scenarios.length} · {scenarios[current].title}
+              <br />
+              Arraste para ver outro exemplo
             </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon-lg"
+                aria-label="Exemplo anterior"
+                onClick={() => api?.scrollPrev()}
+              >
+                <ArrowLeft />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-lg"
+                aria-label="Próximo exemplo"
+                onClick={() => api?.scrollNext()}
+              >
+                <ArrowRight />
+              </Button>
+            </div>
           </div>
-          <div className="stream-result">
-            <Badge variant="outline">
-              {finished
-                ? "Aguardando aprovação"
-                : paused
-                  ? "Simulação pausada"
-                  : "Simulação em andamento"}
-            </Badge>
-            <span>Execução conforme suas regras</span>
-          </div>
-        </CardContent>
-        <CardFooter className="flex-wrap justify-between gap-2">
-          <MotionControl />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTick(0)}
-            disabled={reduced}
-            aria-label="Reiniciar demonstração"
-          >
-            <RotateCcw data-icon="inline-start" />
-            Reiniciar
-          </Button>
-        </CardFooter>
-      </Card>
+        </Carousel>
+      </div>
     </section>
   );
 }
