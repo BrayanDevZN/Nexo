@@ -25,6 +25,8 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - Componentes locais em `src/components/ui`, configurados em `components.json`.
 - Marca com símbolo próprio gerado em `public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
 - Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à pausa global e movimento reduzido.
+- Fundo animado contínuo com manchas de luz e pontos em CSS, pausado por controle global, aba oculta ou movimento reduzido.
+- Contraste reforçado, contornos semânticos e sombras violetas para separar os elementos brancos.
 - Tema, cores semânticas e responsividade em `src/styles/globals.css`.
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
