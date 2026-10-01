@@ -15,6 +15,7 @@ import { Brand } from "@/components/Brand";
 import { OperationVisual } from "@/components/OperationVisual";
 import { StreamingDemo } from "@/components/StreamingDemo";
 import { SolutionsCarousel } from "@/components/SolutionsCarousel";
+import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
 import { Process } from "@/components/Process";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 export default function App() {
   const revealRef = useScrollReveal();
   useSectionNavigation();
+  useButtonFeedback();
   return (
     <>
       <a className="skip-link" href="#conteudo">
