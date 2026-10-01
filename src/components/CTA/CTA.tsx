@@ -10,16 +10,15 @@ function CTA() {
   return (
     <div className="cta">
       <div className="cta__content">
-        <p className="cta__eyebrow">VAMOS ENCONTRAR UMA OPORTUNIDADE</p>
+        <p className="cta__eyebrow">ANALISE SUA OPERAÇÃO</p>
 
         <h2 className="cta__title">
-          Onde a IA pode gerar
-          <span> impacto na sua empresa?</span>
+          Quanto trabalho da sua empresa
+          <span> poderia ser automatizado?</span>
         </h2>
 
         <p className="cta__description">
-          Conte como sua operação funciona, onde existe trabalho manual ou
-          gargalos. A Nexo avalia o cenário e identifica possibilidades reais de automação com IA.
+          Conte como sua empresa funciona. Analisamos processos, gargalos e tarefas que consomem sua equipe para identificar onde a IA pode reduzir trabalho manual, custos e tempo de execução.
         </p>
 
         <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="cta__button">
@@ -29,7 +28,7 @@ function CTA() {
 
       <div className="cta__bottom">
         <span>NEXO</span>
-        <p>Agência de Inteligência Artificial</p>
+        <p>Análise de Negócio, Automação e Inteligência Artificial</p>
       </div>
     </div>
   );
