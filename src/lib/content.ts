@@ -9,7 +9,7 @@ import {
   Activity,
 } from "lucide-react";
 
-export const contactUrl = `https://wa.me/553196447823?text=${encodeURIComponent("Olá! Conheci a Nexo pelo site e quero avaliar como aplicar Inteligência Artificial na minha empresa.")}`;
+export const contactUrl = `https://wa.me/553199705688?text=${encodeURIComponent("Olá! Conheci a Nexo pelo site e quero avaliar como aplicar Inteligência Artificial na minha empresa.")}`;
 export const navigation = [
   { href: "#solucoes", label: "Soluções" },
   { href: "#processo", label: "Como funciona" },
