@@ -3,79 +3,46 @@ import "../../styles/Problem.css";
 function Problem() {
   return (
     <div className="problem">
-      <div
-        className="problem__header"
-        data-scroll-reveal
-      >
-        <p className="problem__eyebrow">
-          O PROBLEMA
-        </p>
+      <div className="problem__header" data-scroll-reveal>
+        <p className="problem__eyebrow">POR QUE IA?</p>
 
         <h2 className="problem__title">
-          Você sabe o que está acontecendo
-          <span> no seu negócio?</span>
+          Sua equipe ainda perde tempo
+          <span> com trabalho que poderia ser automatizado?</span>
         </h2>
 
         <p className="problem__description">
-          Nem todo problema aparece de forma evidente.
-          Quedas nas vendas, perda de clientes e processos
-          ineficientes deixam sinais nos dados antes de
-          aparecerem no resultado final.
+          Processos manuais, informações espalhadas e tarefas repetitivas
+          consomem capacidade da equipe. A IA pode assumir parte desse trabalho
+          quando é integrada ao processo certo.
         </p>
       </div>
 
       <div className="problem__grid">
-        <article
-          className="problem__card"
-          data-scroll-reveal
-        >
-          <span className="problem__number">
-            01
-          </span>
-
-          <h3>
-            Decisões sem informação
-          </h3>
-
+        <article className="problem__card" data-scroll-reveal>
+          <span className="problem__number">01</span>
+          <h3>Trabalho repetitivo</h3>
           <p>
-            Decidir apenas com base em percepção pode fazer
-            você ignorar problemas que já estão acontecendo.
+            Pessoas gastam horas copiando dados, classificando informações,
+            respondendo demandas e executando rotinas previsíveis.
           </p>
         </article>
 
-        <article
-          className="problem__card"
-          data-scroll-reveal
-        >
-          <span className="problem__number">
-            02
-          </span>
-
-          <h3>
-            Processos ineficientes
-          </h3>
-
+        <article className="problem__card" data-scroll-reveal>
+          <span className="problem__number">02</span>
+          <h3>Processos desconectados</h3>
           <p>
-            Tarefas manuais e processos mal estruturados
-            consomem tempo e dificultam o crescimento.
+            Sistemas que não conversam entre si criam retrabalho, atrasos e
+            dependência de tarefas manuais para manter a operação funcionando.
           </p>
         </article>
 
-        <article
-          className="problem__card"
-          data-scroll-reveal
-        >
-          <span className="problem__number">
-            03
-          </span>
-
-          <h3>
-            Problemas que passam despercebidos
-          </h3>
-
+        <article className="problem__card" data-scroll-reveal>
+          <span className="problem__number">03</span>
+          <h3>IA sem aplicação prática</h3>
           <p>
-            Pequenas mudanças podem indicar problemas maiores.
-            Sem acompanhamento, elas podem passar despercebidas.
+            Usar IA isoladamente não transforma uma empresa. O valor aparece
+            quando ela recebe contexto, acessa ferramentas e participa do fluxo real.
           </p>
         </article>
       </div>
