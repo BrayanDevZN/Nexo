@@ -9,7 +9,7 @@ export function useScrollReveal() {
     if (!root || !("IntersectionObserver" in window)) return;
     const nodes = Array.from(
       root.querySelectorAll<HTMLElement>(
-        '.section-heading, .solution-card, [data-slot="carousel-item"], .case-panel, .about-grid > div, .faq-grid > div, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console',
+        '.section-heading, .solution-card, [data-slot="carousel-item"], .case-panel, .about-grid > div, .faq-grid > div:first-child, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console',
       ),
     );
     if (paused || reduced) {
@@ -21,22 +21,20 @@ export function useScrollReveal() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          (entry.target as HTMLElement).dataset.reveal = "visible";
-          observer.unobserve(entry.target);
+          // Keep observing: leaving the viewport arms the next entrance in either direction.
+          (entry.target as HTMLElement).dataset.reveal = entry.isIntersecting
+            ? "visible"
+            : "pending";
         });
       },
-      { threshold: 0.06, rootMargin: "0px 0px -30px 0px" },
+      { threshold: 0, rootMargin: "0px" },
     );
     nodes.forEach((node) => {
-      if (node.dataset.reveal === "visible") return;
       const rect = node.getBoundingClientRect();
-      // Content above the initial viewport and hidden tab panels remain readable.
-      if (rect.bottom <= 0 || node.closest('[role="tabpanel"][hidden]')) {
-        node.dataset.reveal = "visible";
-        return;
-      }
-      node.dataset.reveal = "pending";
+      node.dataset.reveal =
+        rect.bottom > 0 && rect.top < window.innerHeight
+          ? "visible"
+          : "pending";
       if (node.matches('.solution-card, [data-slot="accordion-item"]')) {
         const siblings = Array.from(node.parentElement?.children ?? []);
         node.style.setProperty(

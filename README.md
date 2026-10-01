@@ -23,8 +23,8 @@ O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedag
 - React, TypeScript e Vite.
 - Tailwind CSS v4 e shadcn/ui (Radix, estilo Nova).
 - Componentes locais em `src/components/ui`, configurados em `components.json`.
-- Marca com símbolo próprio gerado em `public/images/nexo-symbol-purple.png`, paleta grafite/lavanda/violeta.
-- Entradas de conteúdo por IntersectionObserver, com aparição única, respeito à pausa global e movimento reduzido.
+- Marca com símbolo próprio gerado em `public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
+- Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à pausa global e movimento reduzido.
 - Tema, cores semânticas e responsividade em `src/styles/globals.css`.
 - Conteúdo, exemplos de aplicação e link de contato em `src/lib/content.ts`.
 - Carrossel do processo com Embla, arraste por mouse/toque e navegação por botões e teclado.
