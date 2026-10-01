@@ -3,18 +3,18 @@ import "../../styles/Analysis.css";
 const opportunities = [
   {
     number: "01",
-    title: "Mapeamos",
-    text: "Entendemos a operação, os gargalos, tarefas repetitivas e onde a IA pode gerar impacto real.",
+    title: "Analisamos o negócio",
+    text: "Mapeamos processos, equipes, gargalos, custos operacionais e tarefas que consomem tempo no dia a dia.",
   },
   {
     number: "02",
-    title: "Arquitetamos",
-    text: "Definimos o fluxo, integrações, dados, modelos e regras necessárias para a solução funcionar no negócio.",
+    title: "Encontramos oportunidades",
+    text: "Identificamos tarefas e fluxos em que IA e automação podem reduzir trabalho manual e ampliar a capacidade da equipe.",
   },
   {
     number: "03",
-    title: "Implementamos",
-    text: "Construímos, integramos e colocamos a solução em produção com foco em confiabilidade e evolução.",
+    title: "Integramos a IA",
+    text: "Construímos a solução e conectamos IA aos dados, sistemas e ferramentas que já fazem parte da operação.",
   },
 ];
 
@@ -25,14 +25,14 @@ function Analysis() {
         <p className="analysis__eyebrow">NOSSO PROCESSO</p>
 
         <h2 className="analysis__title">
-          IA começa pelo problema.
-          <span> Não pela ferramenta.</span>
+          Primeiro entendemos o negócio.
+          <span> Depois automatizamos.</span>
         </h2>
 
         <p className="analysis__description">
-          Antes de automatizar, entendemos como sua empresa funciona. A partir
-          disso, identificamos onde agentes e automações podem economizar tempo,
-          reduzir custos e aumentar a capacidade da operação.
+          Nosso trabalho começa dentro do processo. Entendemos o que cada equipe faz,
+          onde existe retrabalho e quais tarefas consomem capacidade. Só então desenhamos
+          como a IA pode assumir ou acelerar parte dessa operação.
         </p>
       </div>
 
@@ -41,14 +41,14 @@ function Analysis() {
           <span className="analysis__intro-label">DA IDEIA À OPERAÇÃO</span>
 
           <h3>
-            Tecnologia conectada
-            <span> ao processo real.</span>
+            Da análise da operação
+            <span> à automação com IA.</span>
           </h3>
 
           <p>
-            Não entregamos uma demonstração de IA desconectada do dia a dia.
-            Construímos soluções que conversam com sistemas, dados, APIs e
-            pessoas para executar trabalho de verdade.
+            A meta não é simplesmente colocar IA na empresa. É redesenhar processos
+            para que tarefas que antes exigiam horas de trabalho de uma ou várias equipes
+            possam ser executadas ou aceleradas por sistemas inteligentes.
           </p>
         </div>
 
@@ -70,8 +70,8 @@ function Analysis() {
         <div>
           <span className="analysis__value-label">ONDE A IA ENTRA</span>
           <h3>
-            Menos tarefas manuais.
-            <span> Mais capacidade.</span>
+            Menos operação manual.
+            <span> Mais eficiência para crescer.</span>
           </h3>
         </div>
 
@@ -86,8 +86,7 @@ function Analysis() {
       <div className="analysis__note" data-scroll-reveal>
         <span>+</span>
         <p>
-          Cada projeto é desenhado de acordo com o processo e a infraestrutura
-          da empresa. A tecnologia é escolhida depois de entendermos o problema.
+          Não prometemos substituir uma equipe inteira com um botão. Medimos onde existe trabalho automatizável e construímos soluções para reduzir carga operacional, tempo de execução e necessidade de escalar processos apenas adicionando pessoas.
         </p>
       </div>
     </div>
