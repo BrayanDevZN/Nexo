@@ -38,24 +38,24 @@ function Hero() {
     <div className="hero">
       <div className="hero__content">
         <p className="hero__eyebrow" data-hero-reveal>
-          AGÊNCIA DE INTELIGÊNCIA ARTIFICIAL
+          ANÁLISE DE NEGÓCIO + INTELIGÊNCIA ARTIFICIAL
         </p>
 
         <h1 className="hero__title" data-hero-reveal>
-          Coloque a IA para trabalhar
+          Entendemos sua operação.
           <br />
-          <span>dentro da sua empresa.</span>
+          <span>Fazemos a IA trabalhar por ela.</span>
         </h1>
 
         <p className="hero__description" data-hero-reveal>
-          Criamos agentes, automações e sistemas com Inteligência Artificial
-          para reduzir trabalho manual, acelerar processos e transformar a
-          operação da sua empresa.
+          Analisamos como sua empresa funciona, identificamos processos que
+          consomem tempo e equipes e integramos Inteligência Artificial para
+          automatizar tarefas, reduzir custos e aumentar a capacidade da operação.
         </p>
 
         <div className="hero__actions" data-hero-reveal>
           <a className="hero__button hero__button--primary" href="#solucoes">
-            Conhecer soluções
+            Descobrir oportunidades
           </a>
 
           <a className="hero__button hero__button--secondary" href="#contato">
