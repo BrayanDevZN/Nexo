@@ -51,26 +51,26 @@
 :root,
 .dark {
   color-scheme: dark;
-  --background: #07131e;
-  --foreground: #edf7fa;
-  --card: #0d1f2e;
-  --card-foreground: #edf7fa;
-  --popover: #102637;
-  --popover-foreground: #edf7fa;
-  --primary: #5eead4;
-  --primary-foreground: #042923;
-  --secondary: #153342;
-  --secondary-foreground: #c3e6ed;
-  --muted: #102737;
-  --muted-foreground: #a3b9c7;
-  --accent: #123a43;
-  --accent-foreground: #c9fbf0;
+  --background: #0c0c10;
+  --foreground: #f1f0f5;
+  --card: #141419;
+  --card-foreground: #f1f0f5;
+  --popover: #17171e;
+  --popover-foreground: #f1f0f5;
+  --primary: #b9a3ff;
+  --primary-foreground: #191126;
+  --secondary: #22212a;
+  --secondary-foreground: #cac6d5;
+  --muted: #1a1921;
+  --muted-foreground: #a3a1b0;
+  --accent: #24202f;
+  --accent-foreground: #e0d6ff;
   --destructive: #ff8f99;
-  --border: #264352;
-  --input: #355567;
-  --ring: #5eead4;
+  --border: #2a2833;
+  --input: #34313e;
+  --ring: #b9a3ff;
   --radius: 0.65rem;
-  --highlight: #7dd3fc;
+  --highlight: #a78bfa;
 }
 
 @layer base {
@@ -1579,7 +1579,7 @@ h2 span {
   }
 }
 
-/* Nexo identity: midnight blue, mint and ice. */
+/* Nexo identity: graphite, lavender and violet. */
 .brand > img {
   width: 38px;
   height: 38px;

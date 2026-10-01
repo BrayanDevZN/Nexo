@@ -2,7 +2,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className="brand">
       <img
-        src="/images/nexo-symbol.png"
+        src="/images/nexo-symbol-purple.png"
         width="38"
         height="38"
         alt=""
