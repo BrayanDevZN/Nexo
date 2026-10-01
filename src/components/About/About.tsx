@@ -7,27 +7,23 @@ function About() {
         <p className="about__eyebrow">SOBRE A NEXO</p>
 
         <h2 className="about__title">
-          IA não é o produto.
-          <span> Resultado é.</span>
+          Não vendemos IA isolada.
+          <span> Transformamos operações.</span>
         </h2>
 
         <p className="about__description">
-          A Nexo é uma agência de Inteligência Artificial que transforma
-          problemas operacionais em sistemas, agentes e automações aplicados ao negócio.
+          A Nexo analisa empresas para encontrar processos caros, lentos ou dependentes de trabalho manual e integra Inteligência Artificial para torná-los mais eficientes.
         </p>
       </div>
 
       <div className="about__content" data-scroll-reveal>
         <div className="about__text">
           <p>
-            Nosso trabalho começa entendendo onde a empresa perde tempo,
-            capacidade ou dinheiro. Só depois definimos como a IA pode participar
-            daquele processo.
+            Entramos no negócio para entender processos, tarefas, sistemas e equipes. Buscamos onde existe trabalho repetitivo ou operacional que pode ser reduzido com tecnologia.
           </p>
 
           <p>
-            Unimos Inteligência Artificial, software, dados e integrações para
-            construir soluções que saem da demonstração e entram na operação.
+            Depois, unimos Inteligência Artificial, software, dados e integrações para construir sistemas capazes de assumir tarefas, acelerar fluxos e permitir que a empresa opere com mais capacidade.
           </p>
         </div>
 
