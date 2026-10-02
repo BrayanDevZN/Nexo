@@ -65,7 +65,7 @@ class UserRepository(Repository[User]):
             raise ValueError("Invalid decision")
         result = self.session.execute(update(User).where(
             User.id == user.id, User.status == "pending", User.role == "member"
-        ).values(status=decision, session_version=User.session_version + 1),
+        ).values(status=decision, session_version=User.session_version + int(decision == "rejected")),
             execution_options={"synchronize_session": False})
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)

@@ -56,14 +56,15 @@ def test_admin_decision_and_member_permissions(app, decision):
         assert client.post(path + "/decision", json={"decision": decision}, headers=headers).status_code == 409
         client.cookies.clear()
         client.cookies.set("nexo_access_token", member_cookie)
-        assert client.get("/auth/me").status_code == 401
-        client.cookies.clear()
         if decision == "approved":
-            member_headers = login(client, DATA["email"], DATA["password"])
+            assert client.get("/auth/me").json()["status"] == "approved"
+            member_headers = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
             assert client.get("/test/approved").status_code == 200
             assert client.get("/admin/notifications").status_code == 403
             assert client.post(path + "/decision", json={"decision": "rejected"}, headers=member_headers).status_code == 403
         else:
+            assert client.get("/auth/me").status_code == 401
+            client.cookies.clear()
             assert client.post("/auth/login", json={"email": DATA["email"], "password": DATA["password"]}, headers=ORIGIN).status_code == 401
 
 

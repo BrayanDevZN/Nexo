@@ -252,10 +252,10 @@ Notificações de outra pessoa respondem 404. Usuários pendentes ou membros apr
 acessam essas rotas administrativas.
 
 Decisão é atômica: encerra a notificação e muda apenas uma conta pending/member.
-UPDATE condicional impede decidir duas vezes; repetição retorna 409. A versão da sessão
-é incrementada, invalidando cookies antigos tanto na aprovação quanto na rejeição.
-Após aprovação o usuário entra novamente para receber a sessão atual e obter acesso
-às futuras rotas de dados. Rejeição impede login local e Google. Não há promoção a admin,
+UPDATE condicional impede decidir duas vezes; repetição retorna 409. Na aprovação, a sessão
+pendente continua válida e as permissões são liberadas na próxima consulta autoritativa SQL,
+sem exigir novo login. Na rejeição, a versão da sessão é incrementada e os cookies anteriores
+são invalidados. Rejeição impede login local e Google. Não há promoção a admin,
 reabertura de pedidos nem alterações da conta do administrador por essas rotas.
 
 Se contas foram criadas no desenvolvimento antes de configurar ADMIN_EMAIL/PASSWORD,

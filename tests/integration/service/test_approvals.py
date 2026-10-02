@@ -6,7 +6,6 @@ from pydantic import SecretStr
 from backend.domain.passwords import PasswordHasher
 from backend.service.approvals import ApprovalConflict, ApprovalPermissionError
 from backend.service.runtime import RuntimeServices
-from backend.service.security import AuthenticationError
 
 
 @pytest.fixture
@@ -30,7 +29,7 @@ def admin(runtime):
     return runtime.auth.login("owner@example.com", "initial-admin-password")[0]
 
 
-def test_approval_transaction_revokes_session_and_invalidates_cached_lists(runtime):
+def test_approval_transaction_activates_session_and_invalidates_cached_lists(runtime):
     user = register(runtime)
     _, token = runtime.auth.login(user.email, "strong-password-123")
     actor = admin(runtime)
@@ -38,11 +37,10 @@ def test_approval_transaction_revokes_session_and_invalidates_cached_lists(runti
     notes = runtime.approvals.notifications(actor, unresolved_only=True)
     assert len(notes) == 1
     approved = runtime.approvals.decide(actor, notes[0]["id"], "approved")
-    assert approved.status == "approved" and approved.session_version == 1
+    assert approved.status == "approved" and approved.session_version == 0
     assert runtime.approvals.users(actor, status="pending") == []
     assert runtime.approvals.notifications(actor, unresolved_only=True) == []
-    with pytest.raises(AuthenticationError):
-        runtime.sessions.authenticate(token)
+    assert runtime.sessions.authenticate(token).status == "approved"
     with pytest.raises(ApprovalConflict):
         runtime.approvals.decide(actor, notes[0]["id"], "rejected")
     with runtime.repositories.transaction() as repos:
