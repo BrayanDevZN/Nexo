@@ -10,6 +10,9 @@ ENV PYTHONUNBUFFERED=1 \
     ENVIRONMENT=production \
     COOKIE_SECURE=true \
     COOKIE_SAMESITE=none \
+    GOOGLE_REDIRECT_URI=https://nexo-production-60a0.up.railway.app/auth/google/callback \
+    FRONTEND_URL=https://nexoaicompany.com \
+    CORS_ORIGINS='["https://nexoaicompany.com","https://www.nexoaicompany.com"]' \
     DATABASE_URL=sqlite:////data/nexo.db \
     UPLOAD_DIR=/data/uploads
 
