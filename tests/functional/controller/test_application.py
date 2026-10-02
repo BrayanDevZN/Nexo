@@ -15,7 +15,8 @@ def test_health_and_unknown_route(settings):
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "service": "nexo-backend"}
-        assert client.get("/clients").status_code == 404
+        assert client.get("/clients").status_code == 401
+        assert client.get("/unknown-route").status_code == 404
 
 
 def test_cors_accepts_configured_origin_and_rejects_unknown(settings):

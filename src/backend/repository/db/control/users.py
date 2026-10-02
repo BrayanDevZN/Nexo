@@ -83,3 +83,24 @@ class UserRepository(Repository[User]):
         if result.rowcount:
             self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         return result.rowcount == 1
+
+
+    def set_profile_fields(self, user: User, *, name: str, phone: str) -> bool:
+        if not name.strip() or not phone:
+            raise ValueError("Name and phone are required")
+        result = self.session.execute(update(User).where(
+            User.id == user.id, User.session_version == user.session_version,
+            User.status.in_(["pending", "approved"])
+        ).values(name=name.strip(), phone=phone), execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)
+        return result.rowcount == 1
+
+    def set_photo_if_current(self, user: User, *, previous: str | None, photo: str | None) -> bool:
+        result = self.session.execute(update(User).where(
+            User.id == user.id, User.session_version == user.session_version,
+            User.status.in_(["pending", "approved"]), User.profile_photo == previous
+        ).values(profile_photo=photo), execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)
+        return result.rowcount == 1

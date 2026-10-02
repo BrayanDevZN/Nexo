@@ -9,6 +9,7 @@ from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.email import GmailConnection
 from backend.infra.connections.google import GoogleConnection
+from backend.infra.connections.photos import PhotoStorage
 from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
@@ -18,9 +19,11 @@ from backend.repository.redis.email_codes import EmailCodeRepository
 from backend.repository.redis.oauth import OAuthRepository
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
+from backend.service.clients import ClientService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
 from backend.service.passwords import PasswordService
+from backend.service.profiles import ProfileService
 from backend.service.security import SessionSecurity
 
 
@@ -37,6 +40,8 @@ class RuntimeServices:
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
+            self.clients = ClientService(self.repositories, self.cached_repositories)
+            self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories)
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),

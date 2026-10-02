@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     auth_rate_limit: int = Field(default=10, ge=1)
     auth_rate_limit_window_seconds: int = Field(default=60, ge=1)
     upload_dir: Path = Path("data/uploads")
+    profile_photo_max_pixels: int = Field(default=10000000, ge=1, le=20000000)
     profile_photo_max_bytes: int = Field(default=2097152, ge=1)
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)

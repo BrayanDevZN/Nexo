@@ -8,9 +8,11 @@ from fastapi.responses import JSONResponse
 
 from backend.controller.handles.approvals import notifications_router, users_router
 from backend.controller.handles.auth import router as auth_router
+from backend.controller.handles.clients import router as clients_router
 from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
 from backend.controller.handles.passwords import router as passwords_router
+from backend.controller.handles.profiles import router as profiles_router
 from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.infra.config.settings import Settings, get_settings
 from backend.service.runtime import RuntimeServices
@@ -52,6 +54,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(passwords_router)
+    app.include_router(clients_router)
+    app.include_router(profiles_router)
     app.include_router(google_router)
     app.include_router(users_router)
     app.include_router(notifications_router)

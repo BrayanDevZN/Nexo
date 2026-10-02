@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 9
+# Backend Nexo — etapas 1 a 10
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -28,7 +28,7 @@ Também é possível executar `python -m backend.main` ou
 
 Autenticação HTTP está implementada; rate limiting será feito na etapa 11. A etapa 2 implementa
 as conexões e o transporte de e-mail; a etapa 3 implementa tabelas e repositórios SQL.
-Não há rotas públicas de CRUD ou envio de e-mail nesta versão.
+Rotas de clientes exigem sessão aprovada; o envio de e-mail é gerenciado por services.
 
 ## Ambiente
 
@@ -189,9 +189,8 @@ Respostas /auth/* usam Cache-Control: no-store; erros de validação não repete
 Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
 
 Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
-/admin_user consultam SQL para autorização; dados de clientes ainda não estão expostos.
-Upload e limites por Redis
-serão implementados nas próximas etapas. A etapa 9 adiciona e-mail de cadastro quando Gmail está configurado.
+/admin_user consultam SQL para autorização; dados de clientes exigem aprovação nas rotas da etapa 10.
+Limites por Redis serão implementados na próxima etapa. A etapa 9 adiciona e-mail de cadastro quando Gmail está configurado.
 
 
 ## Etapa 7 — Google OpenID Connect
@@ -306,3 +305,51 @@ SQL para impedir replay. Falha SQL preserva a senha antiga, mas exige solicitar 
 após o cooldown. UPDATE com versão esperada impede duas redefinições concorrentes ou uso
 de desafio antigo. Os testes usam SMTP substituído por mock, incluindo execução real das
 threads do transporte; nenhum e-mail é enviado ao Gmail real.
+
+
+## Etapa 10 — clientes e perfil
+
+| Rota | Permissão / entrada |
+| --- | --- |
+| GET /clients | aprovado; filtros niche, contract_closed, limit/offset |
+| GET /clients/{id} | aprovado |
+| POST /clients | aprovado; name, niche, contract_closed e phone/email/notes opcionais |
+| PATCH /clients/{id} | aprovado; altera apenas campos enviados |
+| DELETE /clients/{id} | aprovado |
+| PUT /auth/profile | próprio perfil; name e phone |
+| PUT /auth/profile/photo | própria foto; multipart com campo file |
+| GET /auth/profile/photo | própria foto, em JPEG |
+| DELETE /auth/profile/photo | remove própria foto |
+
+Qualquer membro aprovado pode consultar e gerenciar todos os clientes, como o administrador;
+created_by_id é sempre escolhido pelo servidor. Pendentes não acessam clientes, mesmo se o
+cache estiver preenchido. Cada service revalida status/versão no SQL. Após aprovação, a
+sessão existente funciona nas rotas de clientes sem novo login. Leituras usam cache-aside;
+create/update/delete invalidam depois do commit. Listas são limitadas a 100 por página.
+Notes/email/phone podem ser limpos com null no PATCH; name/niche/contract_closed não.
+
+Todas as mutações exigem Origin e X-CSRF-Token; respostas de clientes/perfil usam no-store.
+Contas pendentes podem preencher apenas o próprio perfil e foto, sem acessar dados alheios.
+Essas rotas não alteram e-mail, identidade Google, status, role nem versão da sessão.
+
+Foto aceita bytes JPEG/PNG/WebP estáticos, independente de nome ou MIME enviados.
+PROFILE_PHOTO_MAX_BYTES limita bytes (padrão 2097152) e PROFILE_PHOTO_MAX_PIXELS limita
+pixels (novo, padrão 10000000, máximo configurável 20000000). A imagem é decodificada,
+orientada pelo EXIF e regravada como JPEG de até 512x512 com pixels novos, sem EXIF/XMP/ICC.
+SVG, dados inválidos, animações e limites excedidos são recusados. Erros de limite retornam
+413; imagens inválidas, 400. Upload lê no máximo limite+1 bytes e processamento roda em
+thread. Configure também limites de corpo no proxy de produção para limitar multipart.
+
+Arquivos recebem UUID gerado no servidor, acesso local 0600 e ficam em UPLOAD_DIR.
+Não existe montagem estática pública: GET /auth/profile/photo exige o cookie e retorna
+somente a imagem do próprio usuário, com nosniff. profile_photo contém somente identificador
+interno de arquivo, não caminho absoluto ou URL pública. O frontend deve buscar a imagem
+por essa rota com credentials. Substituição/exclusão remove o arquivo anterior após commit;
+falha SQL elimina o arquivo novo e preserva a foto atual. Atualização condicional do nome
+impede um upload concorrente de sobrescrever resultado com base em uma foto antiga.
+
+Filesystem e SQL não compartilham transação: crash entre gravação, commit e limpeza pode
+produzir arquivo órfão; uma limpeza que falha é registrada sem desfazer a alteração confirmada.
+Use volume persistente para SQLite e UPLOAD_DIR no deploy. Não há acesso a foto de terceiros
+nesta etapa. Testes verificam CRUD, filtros/cache, permissões, validação de imagem,
+path traversal/symlink, falhas SQL, remoção e preservação de campos não enviados.
