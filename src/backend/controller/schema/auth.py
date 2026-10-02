@@ -9,7 +9,8 @@ class LoginInput(BaseModel):
     password: SecretStr
 
 
-class RegistrationInput(LoginInput):
+class ProfileInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=10, max_length=30)
 
@@ -30,6 +31,9 @@ class RegistrationInput(LoginInput):
             raise ValueError("Phone requires 10 to 15 digits")
         return "+" + digits
 
+
+
+class RegistrationInput(LoginInput, ProfileInput):
     @field_validator("password")
     @classmethod
     def password_policy(cls, value):

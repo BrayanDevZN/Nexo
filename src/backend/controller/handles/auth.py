@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from backend.controller.cookies import set_session_cookie
 from backend.controller.dependencies import current_user
 from backend.controller.schema.auth import LoginInput, RegistrationInput, UserOutput
 from backend.service.auth import RegistrationConflict
@@ -26,9 +27,7 @@ def login(data: LoginInput, request: Request, response: Response):
     except AuthenticationError:
         raise HTTPException(status_code=401, detail="Invalid email or password") from None
     settings = request.app.state.settings
-    response.set_cookie(settings.auth_cookie_name, token, httponly=True,
-                        secure=settings.cookie_secure, samesite=settings.cookie_samesite,
-                        path="/", max_age=settings.jwt_expire_minutes * 60)
+    set_session_cookie(response, settings, token)
     return user
 
 

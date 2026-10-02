@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.controller.handles.auth import router as auth_router
+from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
 from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.infra.config.settings import Settings, get_settings
@@ -48,4 +49,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(google_router)
     return app

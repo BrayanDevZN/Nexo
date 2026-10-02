@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 6
+# Backend Nexo — etapas 1 a 7
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -190,5 +190,42 @@ Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
 
 Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
 /admin_user consultam SQL para autorização; dados de clientes ainda não estão expostos.
-Notificações/aprovação, Google OAuth, recuperação de senha, upload e limites por Redis
+Notificações/aprovação, recuperação de senha, upload e limites por Redis
 serão implementados nas próximas etapas. Cadastro ainda não dispara e-mail.
+
+
+## Etapa 7 — Google OpenID Connect
+
+Configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REDIRECT_URI no ambiente.
+Cadastre exatamente GOOGLE_REDIRECT_URI como URI de redirecionamento autorizada no
+cliente OAuth Web do Google Cloud. Exemplo local: http://localhost:8000/auth/google/callback.
+Sem esse par de credenciais, a rota de início responde 503. Não colocar secrets no frontend.
+
+| Rota | Comportamento |
+| --- | --- |
+| GET /auth/google/login | navegar pelo browser; redireciona ao Google |
+| GET /auth/google/callback | troca código e verifica identidade, sem tokens na URL do frontend |
+| GET /auth/google/profile | nome/e-mail verificado e CSRF para completar cadastro |
+| POST /auth/google/complete | name e phone; exige Origin e X-CSRF-Token do perfil |
+
+State fica no Redis por 300 segundos e é vinculado a cookie HttpOnly exclusivo do browser.
+Consumo usa GETDEL (Redis 6.2+) para impedir replay. PKCE S256 protege a troca do código;
+nonce, assinatura RS256/JWKS Google, issuer, audience, azp, validade e email_verified são
+validados antes de usar a identidade. Nenhum access/refresh/id token do Google é salvo.
+Rede Google tem timeout de 10 segundos; erros não expõem códigos ou secrets. Redis
+indisponível falha de forma fechada para esse fluxo, ao contrário do cache de consultas.
+
+Identidade existente é encontrada pelo Google sub. Contas rejected são recusadas;
+pending segue sem acesso a dados. E-mail igual ao cadastro local não causa vínculo nem
+promoção automática: vinculação autenticada fica fora desta etapa. Administrador local
+continua entrando com a senha do painel.
+
+Conta nova recebe cookie HttpOnly temporário de perfil, válido por 600 segundos, sem
+sessão autenticada e sem registro SQL até informar nome e celular. O frontend é redirecionado
+para FRONTEND_URL/admin/complete-profile; após completar, recebe cookie JWT e conta
+pending/member. Login existente redireciona para FRONTEND_URL/admin. Essas telas serão
+construídas na etapa do frontend. Respostas auth usam no-store. Cookies OAuth usam Lax
+para permitir callback por navegação do Google, mesmo se o cookie de sessão usa Strict.
+
+Testes assinam tokens com RSA temporário, substituem endpoints Google por MockTransport
+e usam Redis local. Nunca fazem login Google real nem usam credenciais do desenvolvedor.

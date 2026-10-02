@@ -30,3 +30,25 @@ def local_redis_url():
     if urlsplit(url).hostname not in {"localhost", "127.0.0.1", "redis"}:
         pytest.fail("Integration tests only allow local Redis hosts")
     return url
+
+
+@pytest.fixture
+def google_signer():
+    import json
+    import time
+
+    import jwt
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(key.public_key()))
+    public.update(kid="test-key", alg="RS256", use="sig")
+
+    def sign(**overrides):
+        claims = {"sub": "google-user-123", "email": "ana@example.com", "name": "Ana",
+                  "email_verified": True, "iss": "https://accounts.google.com",
+                  "aud": "test-google-client", "nonce": "test-nonce",
+                  "iat": int(time.time()), "exp": int(time.time()) + 300}
+        claims.update(overrides)
+        return jwt.encode(claims, key, algorithm="RS256", headers={"kid": "test-key"})
+    return sign, {"keys": [public]}

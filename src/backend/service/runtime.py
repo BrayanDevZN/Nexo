@@ -7,12 +7,15 @@ from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.email import GmailConnection
+from backend.infra.connections.google import GoogleConnection
 from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
 from backend.repository.db.schema import create_tables
+from backend.repository.redis.oauth import OAuthRepository
 from backend.service.auth import AuthService
+from backend.service.google import GoogleAuthService
 from backend.service.security import SessionSecurity
 
 
@@ -35,6 +38,11 @@ class RuntimeServices:
             self.sessions = SessionSecurity(self.tokens, self.repositories)
             self.csrf = CSRFService(settings.jwt_secret_key.get_secret_value())
             self.auth = AuthService(self.repositories, self.passwords, self.sessions)
+            namespace = "nexo:oauth:" + hashlib.sha256(
+                settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]
+            self.google = GoogleAuthService(
+                settings, GoogleConnection(settings), OAuthRepository(self.redis.client, namespace),
+                self.repositories, self.sessions, self.csrf)
             self.email = GmailConnection(settings)
             self._cleanup.callback(self.email.close)
         except BaseException:
