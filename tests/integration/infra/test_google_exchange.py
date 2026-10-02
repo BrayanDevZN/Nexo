@@ -32,7 +32,7 @@ def test_actual_oauth_client_with_mock_google_endpoints(settings, google_signer,
     real_http_client = httpx.AsyncClient
     monkeypatch.setattr("backend.infra.connections.google.AsyncOAuth2Client",
                         lambda *args, **kwargs: AsyncOAuth2Client(*args, transport=transport, **kwargs))
-    monkeypatch.setattr("backend.infra.connections.google.httpx.AsyncClient",
+    monkeypatch.setattr("backend.infra.connections.google.AsyncClient",
                         lambda **kwargs: real_http_client(transport=transport, **kwargs))
     packet = asyncio.run(GoogleConnection(settings).exchange("test-code", "test-verifier", "test-nonce"))
     assert packet["keys"] == keys

@@ -2,8 +2,8 @@ import base64
 import hashlib
 from urllib.parse import urlencode
 
-import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
+from httpx import AsyncClient
 
 
 class GoogleProviderError(ValueError):
@@ -35,7 +35,7 @@ class GoogleConnection:
                 token_endpoint_auth_method="client_secret_post", timeout=10, trust_env=False,
             ) as client:
                 token = await client.fetch_token(self.token_endpoint, code=code, code_verifier=verifier)
-            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
+            async with AsyncClient(timeout=10, trust_env=False) as client:
                 response = await client.get(self.jwks_endpoint)
                 response.raise_for_status()
                 keys = response.json()
