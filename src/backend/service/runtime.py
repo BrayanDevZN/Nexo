@@ -1,6 +1,8 @@
 import hashlib
 from contextlib import ExitStack
 
+from backend.domain.passwords import PasswordHasher
+from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.email import GmailConnection
@@ -8,6 +10,7 @@ from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
+from backend.service.security import SessionSecurity
 
 
 class RuntimeServices:
@@ -23,6 +26,10 @@ class RuntimeServices:
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
+            self.passwords = PasswordHasher()
+            self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
+                                     expire_minutes=settings.jwt_expire_minutes)
+            self.sessions = SessionSecurity(self.tokens, self.repositories)
             self.email = GmailConnection(settings)
             self._cleanup.callback(self.email.close)
         except BaseException:

@@ -30,6 +30,7 @@ class RepositoryManager:
                     changed.add(table)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:
+            session.info["cache_dirty_tables"] = changed
             event.listen(session, "before_flush", track_changes)
             yield Repositories(session)
         if self.cache is not None:

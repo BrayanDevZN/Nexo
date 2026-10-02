@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import User
@@ -33,15 +33,13 @@ class UserRepository(Repository[User]):
         if status not in {"pending", "approved", "rejected"}:
             raise ValueError("Invalid status")
         user.status = status
-        user.session_version += 1
-        self.session.flush()
+        self.revoke_sessions(user)
 
     def set_password(self, user: User, password_hash: str) -> None:
         if not password_hash:
             raise ValueError("Password hash is required")
         user.password_hash = password_hash
-        user.session_version += 1
-        self.session.flush()
+        self.revoke_sessions(user)
 
     def update_profile(self, user: User, *, name: str, phone: str | None,
                        profile_photo: str | None) -> None:
@@ -49,3 +47,11 @@ class UserRepository(Repository[User]):
             raise ValueError("Name is required")
         user.name, user.phone, user.profile_photo = name.strip(), phone, profile_photo
         self.session.flush()
+
+    def revoke_sessions(self, user: User) -> None:
+        self.session.flush()
+        self.session.execute(update(User).where(User.id == user.id).values(
+            session_version=User.session_version + 1,
+        ), execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)

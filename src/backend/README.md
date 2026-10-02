@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 4
+# Backend Nexo — etapas 1 a 5
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -138,3 +138,23 @@ crash/falha Redis na invalidação ou alterações SQL fora do manager podem man
 até o TTL. Falha do cache retorna ao banco e não desfaz um commit concluído. Autenticação
 sempre deverá consultar o banco. O Redis de cache pode conter dados de clientes: a
 infraestrutura precisa restringir quem pode ler/escrever esses dados.
+
+## Etapa 5 — bcrypt e JWT
+
+PasswordHasher usa bcrypt com salt aleatório e custo 12. Novas senhas têm no mínimo
+12 caracteres e no máximo 72 bytes UTF-8; nunca são truncadas. Verify retorna false
+para senha incorreta, hash inválido e contas sem senha local (Google).
+
+JWTService fixa HS256, issuer nexo-backend e audience nexo-admin. Exige e valida
+sub, ver, jti, iat, nbf, exp, iss, aud e kind=access; não inclui senhas ou permissões.
+A assinatura e todas as claims são verificadas antes de qualquer uso do token.
+JWT_EXPIRE_MINUTES limita a validade. Tokens são assinados, não criptografados.
+
+SessionSecurity.authenticate consulta SQL diretamente, nunca snapshots cacheados.
+Usuários removidos/rejeitados e tokens com versão divergente são recusados.
+Pending pode autenticar, mas não tem autorização para dados (etapas 6/8).
+Revoke_all incrementa a versão por UPDATE SQL atômico: invalida todas as sessões
+após commit. Mudança de senha/status também incrementa essa versão. Rollback preserva
+sessões anteriores. A invalidação de cache continua ocorrendo depois do commit.
+Não há login/logout HTTP ou cookie nesta etapa; serão implementados na etapa 6.
+Testes de hash usam custo 4 para velocidade; produção usa 12.
