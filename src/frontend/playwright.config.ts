@@ -10,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { outputFolder: "../../playwright-report", open: "never" }]],
   outputDir: "../../test-results",
-  use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure", screenshot: "only-on-failure" },
+  use: { channel: process.env.PLAYWRIGHT_CHANNEL || undefined, baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure", screenshot: "only-on-failure" },
   projects: [
     { name: "unit", testMatch: "**/unit/frontend/*.spec.ts" },
     { name: "integration", testMatch: "**/integration/frontend/*.spec.ts", use: { ...devices["Desktop Chrome"] } },

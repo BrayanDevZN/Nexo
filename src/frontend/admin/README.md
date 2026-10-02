@@ -61,7 +61,8 @@ Testes ficam na raiz: tests/unit/frontend, integration/frontend e functional/fro
 Unit testa transporte e CSRF. Integration usa navegador com API simulada.
 Functional usa FastAPI, SQLite temporário e Redis local real para cadastro,
 aprovação, cookies HttpOnly, clientes, perfil/foto, senha e logout. Não faz login Google nem envio Gmail real.
-CI executa todas as categorias e anexa relatórios/traces com dados sintéticos.
+CI executa todas as categorias com o Chrome da imagem Ubuntu 24.04 e anexa
+relatórios/traces com dados sintéticos. Localmente, o padrão é o Chromium do Playwright.
 
 Os componentes novos seguem a base Radix do shadcn. O acesso ao registry via CLI
 estava indisponível neste ambiente; os arquivos novos vieram da base oficial,

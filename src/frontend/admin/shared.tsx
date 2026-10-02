@@ -19,7 +19,7 @@ export function Feedback({ error, success }: { error?: string; success?: string 
   </Alert>;
 }
 export function Busy({ children }: { children?: ReactNode }) {
-  return <span className="flex items-center gap-2" role="status"><LoaderCircle className="size-4 animate-spin" />{children || "Carregando…"}</span>;
+  return <span className="flex items-center gap-2" role="status"><LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />{children || "Carregando…"}</span>;
 }
 export function Loading() {
   return <div className="flex flex-col gap-4" role="status" aria-label="Carregando painel">

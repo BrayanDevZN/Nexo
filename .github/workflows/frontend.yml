@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   panel:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       redis:
@@ -25,6 +25,7 @@ jobs:
     env:
       REDIS_TEST_URL: redis://127.0.0.1:6379/15
       VITE_API_URL: ''
+      PLAYWRIGHT_CHANNEL: chrome
     defaults:
       run:
         working-directory: src/frontend
@@ -44,7 +45,6 @@ jobs:
       - run: python -m pip install -e '.[dev]'
         working-directory: .
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
       - run: npm run test:full
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
