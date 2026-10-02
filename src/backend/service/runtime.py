@@ -11,6 +11,7 @@ from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
+from backend.repository.db.schema import create_tables
 from backend.service.auth import AuthService
 from backend.service.security import SessionSecurity
 
@@ -39,6 +40,10 @@ class RuntimeServices:
         except BaseException:
             self._cleanup.close()
             raise
+
+    def initialize(self, settings: Settings) -> None:
+        create_tables(self.database.engine)
+        self.auth.bootstrap_admin(settings)
 
     def readiness(self) -> dict[str, bool]:
         status = {}

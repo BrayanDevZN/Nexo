@@ -10,7 +10,6 @@ from backend.controller.handles.auth import router as auth_router
 from backend.controller.handles.health import router as health_router
 from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.infra.config.settings import Settings, get_settings
-from backend.repository.db.schema import create_tables
 from backend.service.runtime import RuntimeServices
 
 
@@ -21,8 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         services = RuntimeServices(config)
         app.state.services = services
         try:
-            await asyncio.to_thread(create_tables, services.database.engine)
-            await asyncio.to_thread(services.auth.bootstrap_admin, config)
+            await asyncio.to_thread(services.initialize, config)
             yield
         finally:
             await asyncio.to_thread(services.close)
