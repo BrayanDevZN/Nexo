@@ -56,3 +56,44 @@ def test_production_configuration():
 
 def test_blank_optional_credentials_are_supported():
     assert config(admin_email="", admin_password="").admin_email is None
+
+
+@pytest.mark.parametrize("value", [
+    "https://*.example.com", "https://user:secret@example.com",
+    "https://example.com:0", "https://example.com:99999",
+    "https://example.com:bad", "https://[broken",
+    "https://example.com?next=evil", "https://example.com#fragment",
+    "https://exam ple.com", "https://example.com/\npath",
+])
+@pytest.mark.parametrize("field", ["frontend_url", "google_redirect_uri", "cors_origins"])
+def test_rejects_unsafe_http_addresses(field, value):
+    with pytest.raises(ValidationError):
+        config(**{field: [value] if field == "cors_origins" else value})
+
+
+@pytest.mark.parametrize("name", ["", "a b", "a=b", "a;bad", "nexo_google_flow", "nexo_google_profile"])
+def test_rejects_invalid_or_oauth_cookie_names(name):
+    with pytest.raises(ValidationError):
+        config(auth_cookie_name=name)
+
+
+@pytest.mark.parametrize("prefix", ["__Host-", "__Secure-"])
+def test_cookie_prefix_requires_secure(prefix):
+    with pytest.raises(ValidationError):
+        config(auth_cookie_name=prefix + "session")
+    assert config(auth_cookie_name=prefix + "session", cookie_secure=True).cookie_secure
+
+
+@pytest.mark.parametrize("password", ["a" * 73, "é" * 37, "short"])
+def test_admin_password_matches_bcrypt_limits(password):
+    with pytest.raises(ValidationError):
+        config(admin_email="admin@example.com", admin_password=password)
+
+
+def test_admin_name_and_legitimate_urls():
+    assert config(admin_name="  Brayan  ").admin_name == "Brayan"
+    assert config(frontend_url="https://example.com/panel/").frontend_url == "https://example.com/panel"
+    assert config(cors_origins=["https://example.com:8443/"]).cors_origins == ["https://example.com:8443"]
+    for name in ["   ", "a" * 121]:
+        with pytest.raises(ValidationError):
+            config(admin_name=name)

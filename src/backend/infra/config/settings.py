@@ -1,4 +1,5 @@
 """Validated configuration; environment variables override the local dotenv file."""
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -52,6 +53,7 @@ class Settings(BaseSettings):
     upload_dir: Path = Path("data/uploads")
     profile_photo_max_pixels: int = Field(default=10000000, ge=1, le=20000000)
     profile_photo_max_bytes: int = Field(default=2097152, ge=1)
+    forwarded_allow_ips: str = "127.0.0.1"
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
@@ -87,13 +89,41 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must identify a SQLite database")
         return value
 
+    @field_validator("admin_name")
+    @classmethod
+    def valid_admin_name(cls, value: str):
+        value = value.strip()
+        if not value or len(value) > 120:
+            raise ValueError("ADMIN_NAME must contain 1 to 120 characters")
+        return value
+
+    @field_validator("auth_cookie_name")
+    @classmethod
+    def valid_cookie_name(cls, value: str):
+        if (not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", value)
+                or value in {"nexo_google_flow", "nexo_google_profile"}):
+            raise ValueError("AUTH_COOKIE_NAME must be a valid, non-reserved cookie name")
+        return value
+
+    @staticmethod
+    def _http_address(value: str):
+        try:
+            parsed = urlsplit(value)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                    or "*" in parsed.hostname or parsed.port == 0
+                    or parsed.username is not None or parsed.password is not None
+                    or parsed.query or parsed.fragment
+                    or any(character.isspace() or ord(character) < 32 for character in value)):
+                raise ValueError
+        except ValueError:
+            raise ValueError("An absolute HTTP(S) URL without credentials, query or fragment is required") from None
+        return parsed
+
     @field_validator("frontend_url", "google_redirect_uri")
     @classmethod
     def http_url(cls, value: str):
-        parsed = urlsplit(value)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-            raise ValueError("An absolute HTTP(S) URL is required")
-        return value
+        cls._http_address(value)
+        return value.rstrip("/") if value.endswith("/") else value
 
     @field_validator("cors_origins")
     @classmethod
@@ -101,10 +131,8 @@ class Settings(BaseSettings):
         if not values:
             raise ValueError("At least one explicit CORS origin is required")
         for value in values:
-            parsed = urlsplit(value)
-            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
-                    or parsed.path not in {"", "/"} or parsed.query or parsed.fragment
-                    or parsed.username or parsed.password):
+            parsed = cls._http_address(value)
+            if parsed.path not in {"", "/"}:
                 raise ValueError("CORS origins must be absolute origins, without paths or wildcards")
         return [value.rstrip("/") for value in values]
 
@@ -115,8 +143,16 @@ class Settings(BaseSettings):
                             (self.google_client_id, self.google_client_secret)]:
             if bool(left) != bool(right):
                 raise ValueError("Configure both values of each credential pair")
-        if self.admin_password and len(self.admin_password.get_secret_value()) < 12:
-            raise ValueError("ADMIN_PASSWORD must contain at least 12 characters")
+        if self.admin_password:
+            password = self.admin_password.get_secret_value()
+            try:
+                valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
+            except UnicodeError:
+                valid = False
+            if not valid:
+                raise ValueError("ADMIN_PASSWORD must contain at least 12 characters and at most 72 UTF-8 bytes")
+        if self.auth_cookie_name.startswith(("__Host-", "__Secure-")) and not self.cookie_secure:
+            raise ValueError("Prefixed auth cookies require COOKIE_SECURE=true")
         if self.cookie_samesite == "none" and not self.cookie_secure:
             raise ValueError("SameSite=None requires COOKIE_SECURE=true")
         if self.environment == "production":

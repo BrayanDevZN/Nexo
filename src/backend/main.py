@@ -31,7 +31,8 @@ def main() -> None:
         initialize_tables(settings)
         print("Database tables created or already present.")
         return
-    uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
+    uvicorn.run(create_app(settings), host=settings.host, port=settings.port,
+                forwarded_allow_ips=settings.forwarded_allow_ips)
 
 
 if __name__ == "__main__":

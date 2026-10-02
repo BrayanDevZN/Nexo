@@ -1,15 +1,16 @@
 # Testes do backend
 
-Executar na raiz: `python -m pytest tests`.
+Execute na raiz: `REDIS_TEST_URL=redis://127.0.0.1:6379/15 python -m pytest tests`.
 
-Cada camada ganha seus testes em `tests/unit/<camada>`,
-`tests/integration/<camada>` e `tests/functional/<camada>` conforme implementada.
-Não criar testes vazios para funcionalidades futuras.
+- `unit/<camada>`: invariantes e comportamentos isolados, sem serviços externos.
+- `integration/<camada>`: conexões, transações e componentes combinados.
+- `functional/<camada>`: contratos HTTP e comandos reais.
+- `functional/system`: ciclo completo de conta aprovada, clientes, perfil, senha e logout.
 
-- Unit: validação de configuração e invariantes, sem serviços externos.
-- Integration: precedência entre dotenv/ambiente e configuração da aplicação.
-- Functional: contrato HTTP e execução real do comando de configuração.
+SQLite e arquivos são temporários; Redis é local real. Google usa identidades
+sintéticas e endpoints simulados; yagmail usa SMTP mockado com threads reais.
+Não use Redis de produção: o fixture aceita apenas hosts locais/de CI.
+Sem REDIS_TEST_URL os testes dependentes de Redis são pulados; CI define a variável.
 
-Nesta etapa, nenhum teste acessa Gmail, Google, Redis público ou banco de produção.
-Etapa 2 adiciona SQLAlchemy com SQLite temporário, Redis local real e yagmail com SMTP mockado.
-Defina REDIS_TEST_URL para Redis local; os workflows já fazem isso.
+GitHub Actions executa as três categorias e a suíte completa em Python 3.12/3.13.
+Relatórios JUnit ficam anexados às execuções por sete dias.

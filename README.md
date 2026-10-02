@@ -58,5 +58,7 @@ O desenho anterior permanece preservado na branch `nexo-ai-v1`.
 
 ## Backend administrativo
 
-Etapa 1: estrutura Python/FastAPI, configuração validada e testes na raiz.
+Backend Python/FastAPI com autenticação por senha e Google, aprovação de contas,
+clientes, perfil/foto, recuperação de senha, SQLite e Redis. Testes na raiz e CI
+automático. O frontend do painel administrativo é a próxima etapa.
 Consulte [instruções do backend](src/backend/README.md).
