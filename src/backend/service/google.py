@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import logging
 import secrets
 from dataclasses import asdict
 
@@ -10,6 +11,8 @@ from backend.infra.connections.google import GoogleProviderError
 from backend.repository.redis.oauth import OAuthStateError
 from backend.service.approvals import ApprovalService
 from backend.service.auth import RegistrationConflict
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleUnavailable(ValueError):
@@ -39,6 +42,7 @@ class GoogleAuthService:
             identity = GoogleTokenVerifier(self.settings.google_client_id).verify(
                 packet["id_token"], packet["keys"], record["nonce"])
         except GoogleIdentityError:
+            logger.warning("Google identity verification failed")
             raise GoogleProviderError("Google authentication failed") from None
         return await asyncio.to_thread(self._resolve_identity, identity)
 

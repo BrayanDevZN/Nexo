@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from redis.exceptions import RedisError
@@ -13,6 +15,7 @@ from backend.service.security import AuthenticationError
 router = APIRouter(prefix="/auth/google", tags=["google authentication"])
 FLOW_COOKIE = "nexo_google_flow"
 PROFILE_COOKIE = "nexo_google_profile"
+logger = logging.getLogger(__name__)
 
 
 def fail(exc):
@@ -42,6 +45,7 @@ async def callback(request: Request, state: str = "", code: str = ""):
             state, request.cookies.get(FLOW_COOKIE, ""), code)
     except (RedisError, OAuthStateError, GoogleProviderError,
             RegistrationConflict, AuthenticationError) as exc:
+        logger.warning("Google callback failed: category=%s", type(exc).__name__)
         response = Response(status_code=fail(exc).status_code,
                             content='{"detail":"Google authentication failed"}',
                             media_type="application/json")
