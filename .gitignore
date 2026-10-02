@@ -24,3 +24,7 @@ data/
 *.db-shm
 
 *.db-wal
+
+playwright-report/
+test-results/
+reports/

@@ -14,3 +14,8 @@ Sem REDIS_TEST_URL os testes dependentes de Redis são pulados; CI define a vari
 
 GitHub Actions executa as três categorias e a suíte completa em Python 3.12/3.13.
 Relatórios JUnit ficam anexados às execuções por sete dias.
+
+Frontend: tests/unit/frontend, integration/frontend e functional/frontend usam
+Playwright. Execute npm --prefix src/frontend test; para FastAPI/Redis reais,
+REDIS_TEST_URL=redis://127.0.0.1:6379/15 npm --prefix src/frontend run test:full.
+Consulte src/frontend/admin/README.md para instalar o navegador.

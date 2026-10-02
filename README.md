@@ -60,5 +60,8 @@ O desenho anterior permanece preservado na branch `nexo-ai-v1`.
 
 Backend Python/FastAPI com autenticação por senha e Google, aprovação de contas,
 clientes, perfil/foto, recuperação de senha, SQLite e Redis. Testes na raiz e CI
-automático. O frontend do painel administrativo é a próxima etapa.
+automático. Painel administrativo em /admin, mantendo a identidade visual do site.
+Configure VITE_API_URL no frontend para a URL pública do backend; publique o backend
+com FRONTEND_URL/CORS_ORIGINS correspondentes ao site. Consulte
+[instruções do painel](src/frontend/admin/README.md).
 Consulte [instruções do backend](src/backend/README.md).

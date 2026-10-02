@@ -1,0 +1,127 @@
+import { test, expect, type Page } from "../../../src/frontend/test-kit";
+
+const member = { id: "member", name: "Ana Silva", email: "ana@example.com", phone: "+5511999999999", status: "pending", role: "member", profile_photo: null };
+async function mock(page: Page, options: { user?: typeof member; requests?: boolean } = {}) {
+  let user = options.user;
+  const rows: Record<string, unknown>[] = [];
+  await page.route("**/api/**", async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace("/api", "");
+    const method = request.method();
+    let body: unknown = {};
+    let status = 200;
+    if (path === "/auth/me") { body = user || {}; status = user ? 200 : 401; }
+    else if (path === "/auth/csrf") body = { csrf_token: "test-csrf" };
+    else if (path === "/auth/login") { user = options.user || member; body = user; }
+    else if (path === "/auth/register") { body = member; status = 201; }
+    else if (path === "/auth/google/profile") body = { name: "Ana", email: member.email, csrf_token: "google-csrf" };
+    else if (path === "/auth/google/complete") { user = member; body = member; status = 201; expect(request.headers()["x-csrf-token"]).toBe("google-csrf"); }
+    else if (path === "/auth/logout" || path === "/auth/password/change") { user = undefined; status = 204; }
+    else if (path === "/auth/password/recovery/request") status = 202;
+    else if (path === "/auth/password/recovery/confirm") status = 204;
+    else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
+    else if (path === "/admin/users") body = [member];
+    else if (path.endsWith("/decision")) { expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); options.requests = false; body = member; }
+    else if (path === "/clients" && method === "GET") body = rows;
+    else if (path === "/clients" && method === "POST") { const row = { ...request.postDataJSON(), id: "client", created_at: "2026-10-02", updated_at: "2026-10-02" }; rows.push(row); body = row; status = 201; }
+    else if (path === "/clients/client" && method === "PATCH") { Object.assign(rows[0], request.postDataJSON()); body = rows[0]; }
+    else if (path === "/clients/client" && method === "DELETE") { rows.splice(0); status = 204; }
+    else if (path === "/auth/profile") { user = { ...user!, ...request.postDataJSON() }; body = user; }
+    else status = 404;
+    await route.fulfill({ status, ...(status === 204 ? {} : { contentType: "application/json", body: JSON.stringify(body) }) });
+  });
+}
+
+test("login, pending permissions, profile and logout", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByLabel("Senha", { exact: true }).fill("test-password-123");
+  await page.getByRole("button", { name: "Entrar no painel" }).click();
+  await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clientes", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Solicitações" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Meu perfil" }).click();
+  await page.getByLabel("Nome completo").fill("Ana Souza");
+  await page.getByRole("button", { name: "Salvar perfil" }).click();
+  await expect(page.getByText("Perfil atualizado.")).toBeVisible();
+  await page.getByRole("button", { name: "Sair", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.length)).toBe(0);
+});
+
+test("Google onboarding submits browser CSRF and enters pending state", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin/complete-profile");
+  await page.getByLabel("Nome completo").fill("Ana Google");
+  await page.getByLabel("Celular").fill("11999999999");
+  await page.getByRole("button", { name: "Solicitar acesso" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
+});
+
+test("approved member creates, edits and confirms deletion", async ({ page }) => {
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Novo cliente" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Nome / empresa").fill("Loja Nexo");
+  await dialog.getByLabel("Nicho", { exact: true }).fill("Varejo");
+  await dialog.getByRole("button", { name: "Salvar cliente" }).click();
+  await expect(page.getByText("Cliente salvo.")).toBeVisible();
+  await page.getByRole("button", { name: "Editar Loja Nexo" }).click();
+  await dialog.getByLabel("Situação do contrato").selectOption("true");
+  await dialog.getByRole("button", { name: "Salvar cliente" }).click();
+  await expect(page.locator("[data-slot=badge]").filter({ hasText: "Fechado" })).toBeVisible();
+  await page.getByRole("button", { name: "Excluir Loja Nexo" }).click();
+  await expect(page.getByText("Excluir cliente?")).toBeVisible();
+  await page.getByRole("button", { name: "Confirmar exclusão" }).click();
+  await expect(page.getByText("Cliente removido.")).toBeVisible();
+});
+
+test("principal admin sees notification and approves request", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" }, requests: true });
+  await page.goto("/admin");
+  await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
+  await page.getByRole("button", { name: "Ver solicitações" }).click();
+  await page.getByRole("button", { name: "Autorizar", exact: true }).click();
+  await page.getByRole("button", { name: "Confirmar decisão" }).click();
+  await expect(page.getByText("Acesso autorizado.")).toBeVisible();
+});
+
+test("mobile login and panel fit the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await mock(page);
+  await page.goto("/admin");
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByLabel("Senha", { exact: true }).fill("test-password-123");
+  await page.getByRole("button", { name: "Entrar no painel" }).click();
+  await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../../test-results/pending-mobile.png", fullPage: true });
+});
+
+test("password recovery shows generic message and accepts code", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Esqueci minha senha" }).click();
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByRole("button", { name: "Enviar código" }).click();
+  await expect(page.getByText(/Se este e-mail tem uma conta/)).toBeVisible();
+  await page.getByLabel("Código recebido por e-mail").fill("12345678");
+  await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByRole("button", { name: "Atualizar senha", exact: true }).click();
+  await expect(page.getByText("Senha atualizada. Entre com sua nova senha.")).toBeVisible();
+});
+
+test("expired session returns to login", async ({ page }) => {
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+  await page.unroute("**/api/**");
+  await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
+  await page.getByRole("button", { name: "Atualizar clientes" }).click();
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+});

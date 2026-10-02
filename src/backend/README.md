@@ -104,7 +104,7 @@ RS256/JWKS, issuer, audience, azp, validade e email_verified são verificados.
 Identidade existente usa Google sub; e-mail coincidente com cadastro local não vincula contas.
 Nova identidade recebe cookie temporário de 600 segundos e só vira conta ao informar
 nome/celular. Redirecionamentos: FRONTEND_URL/admin e /admin/complete-profile.
-Cookies OAuth usam Lax. As telas administrativas ainda precisam ser implementadas.
+Cookies OAuth usam Lax. As telas administrativas ficam em src/frontend/admin e são acessadas em /admin.
 
 Senhas: bcrypt custo 12, mínimo 12 caracteres e máximo 72 bytes UTF-8.
 Troca/redefinição revoga todas as sessões e exige novo login. Conta exclusivamente Google

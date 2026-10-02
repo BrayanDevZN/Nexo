@@ -1,0 +1,52 @@
+import { test, expect } from "../../../src/frontend/test-kit";
+
+test("real API: signup, admin decision, cookie permissions, CRUD and logout", async ({ browser }) => {
+  const email = "browser-" + Date.now() + "@example.com";
+  const memberContext = await browser.newContext();
+  const adminContext = await browser.newContext();
+  const member = await memberContext.newPage();
+  const admin = await adminContext.newPage();
+  try {
+    await member.goto("http://127.0.0.1:4173/admin");
+    await member.getByRole("button", { name: "Ainda não tem conta? Cadastre-se" }).click();
+    await member.getByLabel("Nome completo").fill("Ana Browser");
+    await member.getByLabel("Celular").fill("11999999999");
+    await member.getByLabel("E-mail", { exact: true }).fill(email);
+    await member.getByLabel("Nova senha", { exact: true }).fill("browser-member-password");
+    await member.getByRole("button", { name: "Criar conta", exact: true }).click();
+    await expect(member.getByText(/Conta criada/)).toBeVisible();
+    await member.getByLabel("Senha", { exact: true }).fill("browser-member-password");
+    await member.getByRole("button", { name: "Entrar no painel" }).click();
+    await expect(member.getByText("Seu acesso está em análise")).toBeVisible();
+    const cookies = await memberContext.cookies();
+    expect(cookies.find(cookie => cookie.name === "nexo_access_token")?.httpOnly).toBe(true);
+    expect(await member.evaluate(() => document.cookie.includes("nexo_access_token"))).toBe(false);
+    expect(await member.evaluate(async () => (await fetch("/api/clients")).status)).toBe(403);
+    await admin.goto("http://127.0.0.1:4173/admin");
+    await admin.getByLabel("E-mail", { exact: true }).fill("owner@example.com");
+    await admin.getByLabel("Senha", { exact: true }).fill("initial-admin-password");
+    await admin.getByRole("button", { name: "Entrar no painel" }).click();
+    await admin.getByRole("button", { name: "Ver solicitações" }).click();
+    await admin.getByRole("button", { name: "Autorizar", exact: true }).click();
+    await admin.getByRole("button", { name: "Confirmar decisão" }).click();
+    await expect(admin.getByText("Acesso autorizado.")).toBeVisible();
+    await member.getByRole("button", { name: "Verificar aprovação" }).click();
+    await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+    await member.getByRole("button", { name: "Novo cliente" }).click();
+    const dialog = member.getByRole("dialog");
+    await dialog.getByLabel("Nome / empresa").fill("Loja Browser");
+    await dialog.getByLabel("Nicho", { exact: true }).fill("Varejo");
+    await dialog.getByRole("button", { name: "Salvar cliente" }).click();
+    await expect(member.getByText("Cliente salvo.")).toBeVisible();
+    await member.getByRole("button", { name: "Editar Loja Browser" }).click();
+    await dialog.getByLabel("Situação do contrato").selectOption("true");
+    await dialog.getByRole("button", { name: "Salvar cliente" }).click();
+    await expect(member.locator("[data-slot=badge]").filter({ hasText: "Fechado" })).toBeVisible();
+    await member.getByRole("button", { name: "Excluir Loja Browser" }).click();
+    await member.getByRole("button", { name: "Confirmar exclusão" }).click();
+    await expect(member.getByText("Cliente removido.")).toBeVisible();
+    await member.getByRole("button", { name: "Sair", exact: true }).click();
+    await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);
+  } finally { await memberContext.close(); await adminContext.close(); }
+});
