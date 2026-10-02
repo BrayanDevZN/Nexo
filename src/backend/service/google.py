@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from backend.domain.google import GoogleIdentity, GoogleIdentityError, GoogleTokenVerifier
 from backend.infra.connections.google import GoogleProviderError
 from backend.repository.redis.oauth import OAuthStateError
+from backend.service.approvals import ApprovalService
 from backend.service.auth import RegistrationConflict
 
 
@@ -66,6 +67,7 @@ class GoogleAuthService:
                     raise RegistrationConflict("Account already registered; sign in again")
                 user = repos.users.create(name=name, phone=phone, email=identity.email,
                                           google_sub=identity.subject)
+                ApprovalService.notify_registration(repos, user)
             return user, self.sessions.issue(user)
         except IntegrityError:
             raise RegistrationConflict("Account already registered; sign in again") from None

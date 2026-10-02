@@ -14,6 +14,7 @@ from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
 from backend.repository.db.schema import create_tables
 from backend.repository.redis.oauth import OAuthRepository
+from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.google import GoogleAuthService
 from backend.service.security import SessionSecurity
@@ -32,6 +33,7 @@ class RuntimeServices:
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
+            self.approvals = ApprovalService(self.repositories, self.cached_repositories)
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
                                      expire_minutes=settings.jwt_expire_minutes)
@@ -52,6 +54,7 @@ class RuntimeServices:
     def initialize(self, settings: Settings) -> None:
         create_tables(self.database.engine)
         self.auth.bootstrap_admin(settings)
+        self.approvals.synchronize_pending()
 
     def readiness(self) -> dict[str, bool]:
         status = {}

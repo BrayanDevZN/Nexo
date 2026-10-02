@@ -1,5 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
+from backend.service.approvals import ApprovalService
 from backend.service.security import AuthenticationError
 
 
@@ -21,6 +22,7 @@ class AuthService:
                     raise RegistrationConflict("Email already registered")
                 user = repos.users.create(name=name, email=email, phone=phone,
                                           password_hash=hashed)
+                ApprovalService.notify_registration(repos, user)
             return user
         except IntegrityError:
             raise RegistrationConflict("Email already registered") from None

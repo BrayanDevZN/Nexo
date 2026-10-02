@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend.controller.handles.approvals import notifications_router, users_router
 from backend.controller.handles.auth import router as auth_router
 from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
@@ -50,4 +51,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(google_router)
+    app.include_router(users_router)
+    app.include_router(notifications_router)
     return app

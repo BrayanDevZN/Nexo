@@ -58,3 +58,15 @@ class UserRepository(Repository[User]):
         ), execution_options={"synchronize_session": False})
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
+
+
+    def decide_pending(self, user: User, decision: str) -> bool:
+        if decision not in {"approved", "rejected"}:
+            raise ValueError("Invalid decision")
+        result = self.session.execute(update(User).where(
+            User.id == user.id, User.status == "pending", User.role == "member"
+        ).values(status=decision, session_version=User.session_version + 1),
+            execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)
+        return result.rowcount == 1

@@ -27,6 +27,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     response = JSONResponse({"detail": "Invalid or expired session"}, status_code=401)
         if response is None:
             response = await call_next(request)
-        if request.url.path.startswith("/auth/"):
+        if request.url.path.startswith(("/auth/", "/admin/")):
             response.headers["Cache-Control"] = "no-store"
         return response

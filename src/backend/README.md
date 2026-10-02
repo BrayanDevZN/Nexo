@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 7
+# Backend Nexo — etapas 1 a 8
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -190,7 +190,7 @@ Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
 
 Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
 /admin_user consultam SQL para autorização; dados de clientes ainda não estão expostos.
-Notificações/aprovação, recuperação de senha, upload e limites por Redis
+Recuperação de senha, upload e limites por Redis
 serão implementados nas próximas etapas. Cadastro ainda não dispara e-mail.
 
 
@@ -229,3 +229,38 @@ para permitir callback por navegação do Google, mesmo se o cookie de sessão u
 
 Testes assinam tokens com RSA temporário, substituem endpoints Google por MockTransport
 e usam Redis local. Nunca fazem login Google real nem usam credenciais do desenvolvedor.
+
+
+## Etapa 8 — notificações e aprovação
+
+Cadastro por senha ou conclusão do perfil Google cria uma notificação approval_request
+para o administrador principal na mesma transação SQL que a conta. Não há envio de e-mail
+nesta etapa: são notificações do painel, consultadas por HTTP. O frontend poderá exibir
+notificação/toast e atualizar periodicamente essa lista na etapa do painel.
+
+| Rota | Comportamento (somente administrador aprovado) |
+| --- | --- |
+| GET /admin/users | perfis seguros; filtro status e paginação limit/offset |
+| GET /admin/notifications | somente notificações próprias; filtro unresolved_only |
+| PATCH /admin/notifications/{id}/read | marca leitura sem alterar a primeira data |
+| POST /admin/notifications/{id}/decision | decision=approved ou rejected |
+
+POST/PATCH exigem Origin e X-CSRF-Token da sessão. As listagens usam cache-aside; a
+identidade, versão da sessão e role/status são revalidadas diretamente no SQL. Listas
+limitam a 100 registros por página e não retornam hash, Google sub ou versão da sessão.
+Notificações de outra pessoa respondem 404. Usuários pendentes ou membros aprovados não
+acessam essas rotas administrativas.
+
+Decisão é atômica: encerra a notificação e muda apenas uma conta pending/member.
+UPDATE condicional impede decidir duas vezes; repetição retorna 409. A versão da sessão
+é incrementada, invalidando cookies antigos tanto na aprovação quanto na rejeição.
+Após aprovação o usuário entra novamente para receber a sessão atual e obter acesso
+às futuras rotas de dados. Rejeição impede login local e Google. Não há promoção a admin,
+reabertura de pedidos nem alterações da conta do administrador por essas rotas.
+
+Se contas foram criadas no desenvolvimento antes de configurar ADMIN_EMAIL/PASSWORD,
+a inicialização cria os pedidos pendentes que faltam. INSERT SELECT com NOT EXISTS
+impede duplicatas de pedidos abertos. Repetir a inicialização preserva decisões e leitura.
+Falha ao criar notificação desfaz o cadastro; falha ao alterar usuário desfaz a decisão.
+Invalidação do cache ocorre somente depois de commit; falha Redis de cache mantém fallback
+SQL e o limite de consistência do TTL descrito na etapa 4.

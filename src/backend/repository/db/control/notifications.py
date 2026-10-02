@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from uuid import uuid4
+
+from sqlalchemy import exists, insert, literal, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Notification
@@ -31,3 +33,42 @@ class NotificationRepository(Repository[Notification]):
         notification.resolved_at = utc_now()
         notification.read_at = notification.read_at or notification.resolved_at
         self.session.flush()
+
+
+    def ensure_approval_request(self, *, recipient_id: str, requested_user_id: str) -> bool:
+        # One INSERT SELECT makes the absence check atomic under SQLite's write lock.
+        missing = ~exists(select(Notification.id).where(
+            Notification.recipient_id == recipient_id,
+            Notification.requested_user_id == requested_user_id,
+            Notification.kind == "approval_request", Notification.resolved_at.is_(None)))
+        now = utc_now()
+        values = select(literal(str(uuid4())), literal(now), literal(now),
+                        literal("approval_request"), literal(recipient_id),
+                        literal(requested_user_id)).where(missing)
+        result = self.session.execute(insert(Notification).from_select(
+            ["id", "created_at", "updated_at", "kind", "recipient_id", "requested_user_id"], values))
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        return result.rowcount == 1
+
+    def mark_read(self, notification: Notification) -> None:
+        # Conditional update preserves the first read timestamp across concurrent requests.
+        self.session.execute(update(Notification).where(
+            Notification.id == notification.id, Notification.read_at.is_(None)
+        ).values(read_at=utc_now()), execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        self.session.refresh(notification)
+
+    def resolve_if_pending(self, notification: Notification, decision: str) -> bool:
+        if decision not in {"approved", "rejected"}:
+            raise ValueError("Invalid decision")
+        from sqlalchemy import func
+        now = utc_now()
+        result = self.session.execute(update(Notification).where(
+            Notification.id == notification.id, Notification.resolved_at.is_(None)
+        ).values(decision=decision, resolved_at=now,
+                 read_at=func.coalesce(Notification.read_at, now)),
+            execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        self.session.refresh(notification)
+        return result.rowcount == 1
