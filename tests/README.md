@@ -11,4 +11,5 @@ Não criar testes vazios para funcionalidades futuras.
 - Functional: contrato HTTP e execução real do comando de configuração.
 
 Nesta etapa, nenhum teste acessa Gmail, Google, Redis público ou banco de produção.
-Conexões e seus testes com serviços locais entram na etapa 2.
+Etapa 2 adiciona SQLAlchemy com SQLite temporário, Redis local real e yagmail com SMTP mockado.
+Defina REDIS_TEST_URL para Redis local; os workflows já fazem isso.

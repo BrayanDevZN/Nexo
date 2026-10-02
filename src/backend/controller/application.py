@@ -1,13 +1,27 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.controller.handles.health import router as health_router
 from backend.infra.config.settings import Settings, get_settings
+from backend.service.runtime import RuntimeServices
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings if settings is not None else get_settings()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        services = RuntimeServices(config)
+        app.state.services = services
+        try:
+            yield
+        finally:
+            await asyncio.to_thread(services.close)
+
     app = FastAPI(
+        lifespan=lifespan,
         title="Nexo Admin API", version="0.1.0",
         docs_url=None if config.environment == "production" else "/docs",
         redoc_url=None if config.environment == "production" else "/redoc",
