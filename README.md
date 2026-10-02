@@ -55,3 +55,8 @@ npx shadcn@latest add <componente>
 ```
 
 O desenho anterior permanece preservado na branch `nexo-ai-v1`.
+
+## Backend administrativo
+
+Etapa 1: estrutura Python/FastAPI, configuração validada e testes na raiz.
+Consulte [instruções do backend](src/backend/README.md).
