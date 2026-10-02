@@ -9,7 +9,11 @@ from starlette.routing import Match
 def route_template(request):
     # The middleware runs before routing; never key on attacker-supplied IDs or queries.
     partial = None
-    for route in request.app.routes:
+    candidates = [*getattr(request.app.state, "rate_limit_routes", []), *request.app.routes]
+    for route in candidates:
+        # New FastAPI versions keep included routers as lazy wrappers without a path.
+        if not isinstance(getattr(route, "path", None), str):
+            continue
         match, _ = route.matches(request.scope)
         if match == Match.FULL:
             return getattr(route, "path", "unmatched")

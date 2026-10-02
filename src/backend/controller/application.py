@@ -53,12 +53,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
-    app.include_router(health_router)
-    app.include_router(auth_router)
-    app.include_router(passwords_router)
-    app.include_router(clients_router)
-    app.include_router(profiles_router)
-    app.include_router(google_router)
-    app.include_router(users_router)
-    app.include_router(notifications_router)
+    routers = [health_router, auth_router, passwords_router, clients_router, profiles_router,
+               google_router, users_router, notifications_router]
+    # Public routes from our handles provide stable templates across FastAPI versions.
+    app.state.rate_limit_routes = [route for router in routers for route in router.routes]
+    for router in routers:
+        app.include_router(router)
     return app
