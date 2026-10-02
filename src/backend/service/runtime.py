@@ -4,6 +4,7 @@ from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.email import GmailConnection
 from backend.infra.connections.redis import RedisConnection
+from backend.repository.db.control.manager import RepositoryManager
 
 
 class RuntimeServices:
@@ -12,6 +13,7 @@ class RuntimeServices:
         try:
             self.database = DatabaseConnection(settings)
             self._cleanup.callback(self.database.close)
+            self.repositories = RepositoryManager(self.database)
             self.redis = RedisConnection(settings)
             self._cleanup.callback(self.redis.close)
             self.email = GmailConnection(settings)

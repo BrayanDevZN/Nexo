@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 e 2
+# Backend Nexo — etapas 1 a 3
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -26,10 +26,9 @@ Também é possível executar `python -m backend.main` ou
 - `controller`: aplicação, handles/APIRouter, schemas e futuros middlewares.
 - `main.py`: comando de validação e inicialização.
 
-As camadas futuras têm apenas os pacotes Python; autenticação, CRUD, criação de tabelas
-e rate limiting ainda não foram implementados. A etapa 2 implementa as conexões e o
-transporte de e-mail, sem expor rotas de envio.
-O comando para criar tabelas será implementado com os models na etapa 3.
+Autenticação e rate limiting HTTP ainda não foram implementados. A etapa 2 implementa
+as conexões e o transporte de e-mail; a etapa 3 implementa tabelas e repositórios SQL.
+Não há rotas públicas de CRUD ou envio de e-mail nesta versão.
 
 ## Ambiente
 
@@ -83,3 +82,29 @@ REDIS_TEST_URL=redis://127.0.0.1:6379/15 python -m pytest tests
 
 CI provisiona Redis para as suítes integration/functional. SQLite é temporário nos testes.
 Gmail usa transporte substituído por mock; nenhum e-mail real é enviado por testes.
+
+## Etapa 3 — banco e repositórios
+
+```sh
+nexo create-tables
+# equivalente: python -m backend.main create-tables
+```
+
+Cria users, clients e notifications; repetir preserva os dados. Não é uma ferramenta
+para alterar schemas existentes. Mudanças futuras exigirão migrações explícitas.
+O comando não acessa Redis/Gmail nem cria o administrador ainda (etapa 6).
+
+Users: UUID, nome, e-mail normalizado único, celular, hash opcional para login Google,
+Google sub único, foto, role (member/admin), status (pending/approved/rejected), versão de
+sessão e timestamps UTC. Contas novas são pending/member por padrão.
+Clients: UUID, nome, nicho, celular/e-mail opcionais, contrato fechado, observações e criador.
+Notifications: destinatário, usuário solicitante, leitura, decisão e resolução.
+O serviço de aprovação e as permissões serão implementados depois; os repositórios
+não constituem autorização e não são expostos diretamente por HTTP.
+
+RepositoryManager.transaction compartilha uma sessão entre os controles. Repositórios
+fazem flush, sem commits próprios, permitindo aprovação/notificação atômicas. Listagens
+são paginadas (máximo 100), chaves estrangeiras impedem apagar criadores referenciados.
+Não armazenar senhas em texto nos campos password_hash. Nenhuma conta real é criada
+por esta etapa. Os testes usam SQLite temporário e verificam persistência, unicidade,
+rollback, filtros, integridade referencial e o comando em subprocesso.

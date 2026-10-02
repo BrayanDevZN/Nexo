@@ -7,11 +7,13 @@ from pydantic import ValidationError
 
 from backend.controller.application import create_app
 from backend.infra.config.settings import get_settings
+from backend.service.schema import initialize_tables
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Nexo backend")
     parser.add_argument("--check-config", action="store_true")
+    parser.add_argument("command", nargs="?", choices=["create-tables"])
     args = parser.parse_args()
     try:
         settings = get_settings()
@@ -24,6 +26,10 @@ def main() -> None:
         raise SystemExit(1) from None
     if args.check_config:
         print("Backend configuration valid.")
+        return
+    if args.command == "create-tables":
+        initialize_tables(settings)
+        print("Database tables created or already present.")
         return
     uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
 
