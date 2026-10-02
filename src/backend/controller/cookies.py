@@ -5,11 +5,13 @@ def set_session_cookie(response, settings, token):
 
 
 def set_google_cookie(response, settings, name, value, ttl):
-    # Lax permits the top-level Google callback even if auth uses Strict.
+    # The flow returns by navigation; profile completion uses frontend fetches.
+    samesite = "lax" if name == "nexo_google_flow" else settings.cookie_samesite
     response.set_cookie(name, value, max_age=ttl, httponly=True,
-                        secure=settings.cookie_secure, samesite="lax", path="/auth/google")
+                        secure=settings.cookie_secure, samesite=samesite, path="/auth/google")
 
 
 def clear_google_cookie(response, settings, name):
+    samesite = "lax" if name == "nexo_google_flow" else settings.cookie_samesite
     response.delete_cookie(name, path="/auth/google", httponly=True,
-                           secure=settings.cookie_secure, samesite="lax")
+                           secure=settings.cookie_secure, samesite=samesite)
