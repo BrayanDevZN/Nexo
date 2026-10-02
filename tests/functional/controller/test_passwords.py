@@ -98,9 +98,9 @@ def test_recovery_errors_do_not_echo_secrets_and_fail_closed(mailbox, monkeypatc
 
     client, _, _ = mailbox
     response = client.post("/auth/password/recovery/confirm", headers=ORIGIN,
-                           json={"email": EMAIL, "code": "12345678", "new_password": "secret-short"})
+                           json={"email": EMAIL, "code": "12345678", "new_password": "tiny-secret"})
     assert response.status_code == 422
-    assert "secret-short" not in response.text and "12345678" not in response.text
+    assert "tiny-secret" not in response.text and "12345678" not in response.text
     repository = client.app.state.services.password_service.code_repository
     monkeypatch.setattr(repository, "issue", Mock(side_effect=ConnectionError("redis-secret-sentinel")))
     response = client.post("/auth/password/recovery/request", headers=ORIGIN, json={"email": EMAIL})
