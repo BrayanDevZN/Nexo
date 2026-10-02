@@ -37,14 +37,18 @@ class RegistrationInput(LoginInput, ProfileInput):
     @field_validator("password")
     @classmethod
     def password_policy(cls, value):
-        password = value.get_secret_value()
-        try:
-            size = len(password.encode("utf-8"))
-        except UnicodeError:
-            raise ValueError("Password must be valid UTF-8") from None
-        if len(password) < 12 or size > 72:
-            raise ValueError("Password requires at least 12 characters and at most 72 UTF-8 bytes")
-        return value
+        return validate_new_password(value)
+
+
+def validate_new_password(value):
+    password = value.get_secret_value()
+    try:
+        size = len(password.encode("utf-8"))
+    except UnicodeError:
+        raise ValueError("Password must be valid UTF-8") from None
+    if len(password) < 12 or size > 72:
+        raise ValueError("Password requires at least 12 characters and at most 72 UTF-8 bytes")
+    return value
 
 
 class UserOutput(BaseModel):

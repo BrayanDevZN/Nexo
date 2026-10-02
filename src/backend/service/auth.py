@@ -9,8 +9,9 @@ class RegistrationConflict(ValueError):
 
 
 class AuthService:
-    def __init__(self, repositories, passwords, sessions):
+    def __init__(self, repositories, passwords, sessions, messages=None):
         self.repositories, self.passwords, self.sessions = repositories, passwords, sessions
+        self.messages = messages
         # Verify an equivalent hash even when the email does not exist.
         self._dummy_hash = passwords.hash("unused-login-placeholder-password")
 
@@ -23,6 +24,8 @@ class AuthService:
                 user = repos.users.create(name=name, email=email, phone=phone,
                                           password_hash=hashed)
                 ApprovalService.notify_registration(repos, user)
+            if self.messages:
+                self.messages.welcome(user)
             return user
         except IntegrityError:
             raise RegistrationConflict("Email already registered") from None

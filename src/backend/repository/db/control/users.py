@@ -70,3 +70,16 @@ class UserRepository(Repository[User]):
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
         return result.rowcount == 1
+
+
+    def replace_password_if_current(self, identifier: str, version: int, hashed: str) -> bool:
+        if not hashed:
+            raise ValueError("Password hash is required")
+        result = self.session.execute(update(User).where(
+            User.id == identifier, User.session_version == version,
+            User.status.in_(["pending", "approved"]), User.password_hash.is_not(None)
+        ).values(password_hash=hashed, session_version=User.session_version + 1),
+            execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        return result.rowcount == 1

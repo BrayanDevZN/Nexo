@@ -2,6 +2,7 @@ import hashlib
 from contextlib import ExitStack
 
 from backend.domain.csrf import CSRFService
+from backend.domain.email_codes import EmailCodeService
 from backend.domain.passwords import PasswordHasher
 from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
@@ -13,10 +14,13 @@ from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
 from backend.repository.db.schema import create_tables
+from backend.repository.redis.email_codes import EmailCodeRepository
 from backend.repository.redis.oauth import OAuthRepository
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
+from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
+from backend.service.passwords import PasswordService
 from backend.service.security import SessionSecurity
 
 
@@ -39,14 +43,22 @@ class RuntimeServices:
                                      expire_minutes=settings.jwt_expire_minutes)
             self.sessions = SessionSecurity(self.tokens, self.repositories)
             self.csrf = CSRFService(settings.jwt_secret_key.get_secret_value())
-            self.auth = AuthService(self.repositories, self.passwords, self.sessions)
+            self.email = GmailConnection(settings)
+            self._cleanup.callback(self.email.close)
+            self.messages = AccountMessages(self.email)
+            self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]
             self.google = GoogleAuthService(
                 settings, GoogleConnection(settings), OAuthRepository(self.redis.client, namespace),
-                self.repositories, self.sessions, self.csrf)
-            self.email = GmailConnection(settings)
-            self._cleanup.callback(self.email.close)
+                self.repositories, self.sessions, self.csrf, self.messages)
+            self.password_service = PasswordService(
+                self.repositories, self.passwords,
+                EmailCodeService(settings.jwt_secret_key.get_secret_value()),
+                EmailCodeRepository(self.redis.client, namespace + ":password:" + database_namespace,
+                                    ttl=settings.email_code_ttl_seconds,
+                                    max_attempts=settings.email_code_max_attempts,
+                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email)
         except BaseException:
             self._cleanup.close()
             raise

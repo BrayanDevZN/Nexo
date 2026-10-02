@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     cache_ttl_seconds: int = Field(default=60, ge=1)
     email_code_ttl_seconds: int = Field(default=600, ge=1)
+    email_code_resend_cooldown_seconds: int = Field(default=60, ge=1, le=3600)
     email_code_max_attempts: int = Field(default=5, ge=1, le=20)
     redis_timeout_seconds: float = Field(default=3, gt=0, le=30)
     sqlite_timeout_seconds: float = Field(default=5, gt=0, le=60)

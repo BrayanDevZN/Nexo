@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 8
+# Backend Nexo — etapas 1 a 9
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -190,8 +190,8 @@ Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
 
 Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
 /admin_user consultam SQL para autorização; dados de clientes ainda não estão expostos.
-Recuperação de senha, upload e limites por Redis
-serão implementados nas próximas etapas. Cadastro ainda não dispara e-mail.
+Upload e limites por Redis
+serão implementados nas próximas etapas. A etapa 9 adiciona e-mail de cadastro quando Gmail está configurado.
 
 
 ## Etapa 7 — Google OpenID Connect
@@ -264,3 +264,45 @@ impede duplicatas de pedidos abertos. Repetir a inicialização preserva decisõ
 Falha ao criar notificação desfaz o cadastro; falha ao alterar usuário desfaz a decisão.
 Invalidação do cache ocorre somente depois de commit; falha Redis de cache mantém fallback
 SQL e o limite de consistência do TTL descrito na etapa 4.
+
+
+## Etapa 9 — senha, códigos e e-mails em threads
+
+| Rota | Entrada |
+| --- | --- |
+| POST /auth/password/change | current_password e new_password; sessão e CSRF obrigatórios |
+| POST /auth/password/recovery/request | email; Origin obrigatório, sem sessão necessária |
+| POST /auth/password/recovery/confirm | email, code e new_password; Origin obrigatório |
+
+Novas senhas seguem bcrypt (12 caracteres, até 72 bytes UTF-8). Troca/redefinição retorna
+204, revoga todas as sessões e remove cookie no browser que fez o pedido. Login deve ser
+feito novamente com a nova senha. Nenhuma operação altera role/status ou aprova contas.
+Contas somente Google continuam usando Google; este fluxo não cria senha local para elas.
+Rejeitados não recebem código nem podem redefinir senha por estas rotas.
+
+Código de 8 dígitos é gerado com secrets; Redis guarda apenas HMAC vinculado ao e-mail,
+identificador do usuário e versão de sessão. EMAIL_CODE_TTL_SECONDS controla validade,
+EMAIL_CODE_MAX_ATTEMPTS limita erros e EMAIL_CODE_RESEND_COOLDOWN_SECONDS (novo, padrão
+60) limita reenvios por endereço. Lua faz emissão, contagem de tentativas e consumo único
+atomicamente. Novo envio substitui o código anterior após o intervalo. Mudança prévia de
+senha/rejeição invalida códigos antigos pela versão autoritativa no SQL.
+
+Pedidos retornam o mesmo 202 para endereço elegível, desconhecido, conta Google ou
+rejeitada; apenas contas locais elegíveis recebem mensagem. Cooldown também é aplicado
+para desconhecidos. Gmail não configurado ou Redis indisponível responde 503 genérico;
+falhas/lotação de envio mantêm resposta 202 sem revelar existência da conta.
+
+Yagmail envia no ThreadPoolExecutor já existente, com fila limitada e timeout SMTP.
+Erro de entrega remove somente o desafio correspondente, preservando reenvios posteriores;
+falta de Redis no cleanup deixa o código expirar naturalmente. Não há Celery nem worker.
+Código não aparece no JSON, logs ou cache de consultas. Respostas auth usam no-store.
+
+Após commit do cadastro local/Google, envio de boas-vindas informa que a conta aguarda
+aprovação. É best effort: Gmail não configurado ou falha de envio não desfaz o cadastro.
+E-mails aceitos em memória podem ser perdidos se o processo cair, sem fila durável.
+
+Redis e SQLite não compartilham transação: código válido é consumido ANTES da alteração
+SQL para impedir replay. Falha SQL preserva a senha antiga, mas exige solicitar novo código
+após o cooldown. UPDATE com versão esperada impede duas redefinições concorrentes ou uso
+de desafio antigo. Os testes usam SMTP substituído por mock, incluindo execução real das
+threads do transporte; nenhum e-mail é enviado ao Gmail real.

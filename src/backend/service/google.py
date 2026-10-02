@@ -17,9 +17,10 @@ class GoogleUnavailable(ValueError):
 
 
 class GoogleAuthService:
-    def __init__(self, settings, provider, flows, repositories, sessions, csrf):
+    def __init__(self, settings, provider, flows, repositories, sessions, csrf, messages=None):
         self.settings, self.provider, self.flows = settings, provider, flows
         self.repositories, self.sessions, self.csrf = repositories, sessions, csrf
+        self.messages = messages
 
     def start(self):
         if not self.settings.google_client_id:
@@ -68,6 +69,8 @@ class GoogleAuthService:
                 user = repos.users.create(name=name, phone=phone, email=identity.email,
                                           google_sub=identity.subject)
                 ApprovalService.notify_registration(repos, user)
+            if self.messages:
+                self.messages.welcome(user)
             return user, self.sessions.issue(user)
         except IntegrityError:
             raise RegistrationConflict("Account already registered; sign in again") from None

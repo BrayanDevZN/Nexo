@@ -18,7 +18,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             if request.headers.get("origin") not in self.settings.cors_origins:
                 response = JSONResponse({"detail": "Untrusted request origin"}, status_code=403)
-            elif request.url.path not in {"/auth/login", "/auth/register", "/auth/google/complete"}:
+            elif request.url.path not in {"/auth/login", "/auth/register", "/auth/google/complete",
+                                                "/auth/password/recovery/request",
+                                                "/auth/password/recovery/confirm"}:
                 try:
                     claims = self.tokens.read(request.cookies.get(self.settings.auth_cookie_name, ""))
                     if not self.csrf.verify(claims.token_id, request.headers.get("x-csrf-token", "")):
