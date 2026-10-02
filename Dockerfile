@@ -19,7 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/backend ./src/backend
 RUN mkdir -p /data/uploads
 
-VOLUME ["/data"]
 EXPOSE 8000
 
 CMD ["python", "-m", "backend.main"]
