@@ -10,7 +10,9 @@ from backend.controller.application import create_app
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_health_and_unknown_route(settings):
+def test_health_and_unknown_route(settings, local_redis_url):
+    from pydantic import SecretStr
+    settings.redis_url = SecretStr(local_redis_url)
     with TestClient(create_app(settings)) as client:
         response = client.get("/health")
         assert response.status_code == 200

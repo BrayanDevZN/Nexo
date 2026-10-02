@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 10
+# Backend Nexo — etapas 1 a 11
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -26,7 +26,7 @@ Também é possível executar `python -m backend.main` ou
 - `controller`: aplicação, handles/APIRouter, schemas e futuros middlewares.
 - `main.py`: comando de validação e inicialização.
 
-Autenticação HTTP está implementada; rate limiting será feito na etapa 11. A etapa 2 implementa
+Autenticação HTTP está implementada; rate limiting HTTP está implementado na etapa 11. A etapa 2 implementa
 as conexões e o transporte de e-mail; a etapa 3 implementa tabelas e repositórios SQL.
 Rotas de clientes exigem sessão aprovada; o envio de e-mail é gerenciado por services.
 
@@ -190,7 +190,7 @@ Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
 
 Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
 /admin_user consultam SQL para autorização; dados de clientes exigem aprovação nas rotas da etapa 10.
-Limites por Redis serão implementados na próxima etapa. A etapa 9 adiciona e-mail de cadastro quando Gmail está configurado.
+Limites por Redis estão implementados na etapa 11. A etapa 9 adiciona e-mail de cadastro quando Gmail está configurado.
 
 
 ## Etapa 7 — Google OpenID Connect
@@ -353,3 +353,46 @@ produzir arquivo órfão; uma limpeza que falha é registrada sem desfazer a alt
 Use volume persistente para SQLite e UPLOAD_DIR no deploy. Não há acesso a foto de terceiros
 nesta etapa. Testes verificam CRUD, filtros/cache, permissões, validação de imagem,
 path traversal/symlink, falhas SQL, remoção e preservação de campos não enviados.
+
+
+## Etapa 11 — limites de requisições por Redis
+
+| Variável | Padrão | Escopo |
+| --- | --- | --- |
+| GLOBAL_RATE_LIMIT | 1000 | todas as requisições da aplicação na janela |
+| GLOBAL_RATE_LIMIT_WINDOW_SECONDS | 60 | janela global |
+| RATE_LIMIT | 60 | IP + método + padrão da rota |
+| RATE_LIMIT_WINDOW_SECONDS | 60 | janela por rota |
+| AUTH_RATE_LIMIT | 10 | autenticação compartilhada por IP |
+| AUTH_RATE_LIMIT_WINDOW_SECONDS | 60 | janela de autenticação |
+
+Essas variáveis já constam no .env.example e são validadas como inteiros positivos pelo
+Settings. Middleware verifica os limites antes de CSRF/handlers, incluindo tentativas
+não autorizadas. Lua executa INCR e PEXPIRE de todos os contadores atomicamente. Cada
+janela fixa começa no primeiro pedido, sem prorrogar expiração por novo acesso; contador
+sem TTL recebe TTL reparado. Não há KEYS ou FLUSHDB na aplicação.
+
+Global é compartilhado entre processos/réplicas usando o mesmo namespace de banco e
+JWT_SECRET_KEY. Limite de autenticação agrega login, cadastro, logout, troca/recuperação
+de senha e todas as rotas Google; me/csrf e perfil usam o limite normal por rota. Chaves
+não guardam IP bruto, IDs, queries ou e-mails. A rota /clients/{identifier} compartilha
+contador para qualquer ID, inclusive pedidos com método errado. Rotas desconhecidas
+compartilham padrão unmatched, evitando chaves novas por path aleatório.
+
+Excesso responde 429 com Retry-After arredondado para cima, cobrindo a maior expiração
+entre limites excedidos. CORS expõe esse header ao frontend. Negativas continuam contando
+na janela, sem renovar TTL. Redis indisponível responde 503 genérico (fail closed), antes
+de acessar dados ou processar mutações. Não há fallback em memória para esses contadores.
+GET/HEAD /health e /health/ready, além de OPTIONS, são isentos para probes e preflight.
+
+Identidade de rede vem de request.client, não de X-Forwarded-For lido pelo middleware.
+No deploy, configurar proxies confiáveis no servidor ASGI para que request.client reflita
+o usuário real; cabeçalhos enviados diretamente pelo cliente não mudam o contador.
+Usuários atrás do mesmo IP compartilham limite; ajustar valores à carga esperada.
+A janela fixa permite rajadas na troca de janela; não é algoritmo de taxa contínua.
+A implementação requer Redis standalone, como o serviço Railway atual, sem suporte
+específico a slots de Redis Cluster.
+
+Testes incluem concorrência real no Redis (admite exatamente o orçamento), expiração,
+reparo de TTL, escopo global entre IPs, agrupamento de endpoints auth, parâmetros variáveis,
+cabeçalho forjado, leitura das seis envs, CORS/Retry-After e Redis indisponível.

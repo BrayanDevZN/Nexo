@@ -14,6 +14,7 @@ from backend.controller.handles.health import router as health_router
 from backend.controller.handles.passwords import router as passwords_router
 from backend.controller.handles.profiles import router as profiles_router
 from backend.controller.middleware.csrf import CSRFMiddleware
+from backend.controller.middleware.rate_limits import RateLimitMiddleware
 from backend.infra.config.settings import Settings, get_settings
 from backend.service.runtime import RuntimeServices
 
@@ -46,10 +47,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse(status_code=422, content={"detail": errors})
 
     app.add_middleware(CSRFMiddleware, settings=config)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware, allow_origins=config.cors_origins, allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-CSRF-Token"],
+        allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
     app.include_router(health_router)
     app.include_router(auth_router)

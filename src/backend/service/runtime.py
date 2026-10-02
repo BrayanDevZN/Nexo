@@ -17,6 +17,7 @@ from backend.repository.db.control.manager import RepositoryManager
 from backend.repository.db.schema import create_tables
 from backend.repository.redis.email_codes import EmailCodeRepository
 from backend.repository.redis.oauth import OAuthRepository
+from backend.repository.redis.rate_limits import RateLimitRepository
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.clients import ClientService
@@ -24,6 +25,7 @@ from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
+from backend.service.rate_limits import RateLimitService
 from backend.service.security import SessionSecurity
 
 
@@ -43,6 +45,9 @@ class RuntimeServices:
             self.clients = ClientService(self.repositories, self.cached_repositories)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories)
+            rate_namespace = "nexo:rate:" + hashlib.sha256(
+                (settings.database_url + settings.jwt_secret_key.get_secret_value()).encode()).hexdigest()[:32]
+            self.rate_limits = RateLimitService(RateLimitRepository(self.redis.client), settings, rate_namespace)
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
                                      expire_minutes=settings.jwt_expire_minutes)
