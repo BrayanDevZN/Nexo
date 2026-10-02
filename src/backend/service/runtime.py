@@ -1,6 +1,7 @@
 import hashlib
 from contextlib import ExitStack
 
+from backend.domain.csrf import CSRFService
 from backend.domain.passwords import PasswordHasher
 from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
@@ -10,6 +11,7 @@ from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
+from backend.service.auth import AuthService
 from backend.service.security import SessionSecurity
 
 
@@ -30,6 +32,8 @@ class RuntimeServices:
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
                                      expire_minutes=settings.jwt_expire_minutes)
             self.sessions = SessionSecurity(self.tokens, self.repositories)
+            self.csrf = CSRFService(settings.jwt_secret_key.get_secret_value())
+            self.auth = AuthService(self.repositories, self.passwords, self.sessions)
             self.email = GmailConnection(settings)
             self._cleanup.callback(self.email.close)
         except BaseException:

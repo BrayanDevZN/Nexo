@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 5
+# Backend Nexo — etapas 1 a 6
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -26,7 +26,7 @@ Também é possível executar `python -m backend.main` ou
 - `controller`: aplicação, handles/APIRouter, schemas e futuros middlewares.
 - `main.py`: comando de validação e inicialização.
 
-Autenticação e rate limiting HTTP ainda não foram implementados. A etapa 2 implementa
+Autenticação HTTP está implementada; rate limiting será feito na etapa 11. A etapa 2 implementa
 as conexões e o transporte de e-mail; a etapa 3 implementa tabelas e repositórios SQL.
 Não há rotas públicas de CRUD ou envio de e-mail nesta versão.
 
@@ -41,7 +41,7 @@ JWT_SECRET_KEY é obrigatório (mínimo 32 caracteres). Pares de credenciais sã
 no desenvolvimento, mas devem estar completos. Produção exige admin, cookies Secure e
 URLs HTTPS. SameSite=None exige Secure. Senhas/URL Redis não aparecem no repr nem nos
 erros do CLI. CORS aceita apenas origens explícitas. Ajuste SameSite e origens aos domínios
-reais no deploy. A autenticação e proteção CSRF ainda serão implementadas.
+reais no deploy. Cookie JWT e proteção CSRF estão implementados.
 
 E-mails: yagmail em ThreadPoolExecutor; nenhum Celery/worker separado.
 Não reutilizar a senha de aplicativo do Gmail como senha do administrador.
@@ -156,5 +156,39 @@ Pending pode autenticar, mas não tem autorização para dados (etapas 6/8).
 Revoke_all incrementa a versão por UPDATE SQL atômico: invalida todas as sessões
 após commit. Mudança de senha/status também incrementa essa versão. Rollback preserva
 sessões anteriores. A invalidação de cache continua ocorrendo depois do commit.
-Não há login/logout HTTP ou cookie nesta etapa; serão implementados na etapa 6.
+A etapa 6 adiciona login/logout HTTP e cookie.
 Testes de hash usam custo 4 para velocidade; produção usa 12.
+
+
+## Etapa 6 — autenticação HTTP
+
+A inicialização cria tabelas ausentes e, quando ADMIN_EMAIL e ADMIN_PASSWORD estão
+configurados, cria o administrador approved/admin. Repetir preserva senha, nome e versão
+já salvos. Um e-mail pertencente a um membro não é promovido pelo bootstrap; a aplicação
+recusa iniciar. ADMIN_PASSWORD é senha própria do painel, não a senha de aplicativo Gmail.
+No desenvolvimento, deixar esse par vazio permite iniciar sem administrador. A produção
+exige ambos. create-tables continua sendo um comando sem bootstrap e sem migrações.
+
+| Rota | Comportamento |
+| --- | --- |
+| POST /auth/register | nome, email, phone e password; retorna conta pending/member |
+| POST /auth/login | email e password; define cookie JWT HttpOnly |
+| GET /auth/me | retorna somente o próprio perfil seguro |
+| GET /auth/csrf | retorna csrf_token vinculado à sessão autenticada |
+| POST /auth/logout | exige CSRF; revoga todas as sessões e remove cookie |
+
+O JWT não aparece no JSON e não é aceito via Authorization. O cookie tem Path=/,
+Max-Age=JWT_EXPIRE_MINUTES*60, SameSite e Secure vindos da configuração. HttpOnly impede
+leitura por JavaScript/TypeScript; use fetch com credentials: "include". Isso não impede
+scripts de realizar requisições, portanto a aplicação também precisa evitar XSS.
+
+Requisições POST/PUT/PATCH/DELETE exigem Origin exata em CORS_ORIGINS, inclusive
+login/cadastro. Demais mutações exigem X-CSRF-Token obtido em GET /auth/csrf. O código
+CSRF é HMAC vinculado ao jti e não contém o JWT; uma sessão nova exige código novo.
+Respostas /auth/* usam Cache-Control: no-store; erros de validação não repetem inputs.
+Erros de login são genéricos, inclusive para conta inexistente ou rejeitada.
+
+Contas pending só acessam o próprio perfil e código CSRF. Dependências approved_user
+/admin_user consultam SQL para autorização; dados de clientes ainda não estão expostos.
+Notificações/aprovação, Google OAuth, recuperação de senha, upload e limites por Redis
+serão implementados nas próximas etapas. Cadastro ainda não dispara e-mail.

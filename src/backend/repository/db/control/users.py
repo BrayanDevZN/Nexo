@@ -19,6 +19,9 @@ class UserRepository(Repository[User]):
     def by_email(self, email: str) -> User | None:
         return self.session.scalar(select(User).where(User.email == email.strip().lower()))
 
+    def principal_admin(self) -> User | None:
+        return self.session.scalar(select(User).where(User.role == "admin"))
+
     def by_google_sub(self, subject: str) -> User | None:
         return self.session.scalar(select(User).where(User.google_sub == subject))
 

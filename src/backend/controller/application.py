@@ -2,10 +2,15 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from backend.controller.handles.auth import router as auth_router
 from backend.controller.handles.health import router as health_router
+from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.infra.config.settings import Settings, get_settings
+from backend.repository.db.schema import create_tables
 from backend.service.runtime import RuntimeServices
 
 
@@ -16,6 +21,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         services = RuntimeServices(config)
         app.state.services = services
         try:
+            await asyncio.to_thread(create_tables, services.database.engine)
+            await asyncio.to_thread(services.auth.bootstrap_admin, config)
             yield
         finally:
             await asyncio.to_thread(services.close)
@@ -28,10 +35,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None if config.environment == "production" else "/openapi.json",
     )
     app.state.settings = config
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, exc):
+        # Do not echo submitted passwords or unknown sensitive fields.
+        errors = [{"loc": error["loc"], "type": error["type"], "msg": error["msg"]}
+                  for error in exc.errors()]
+        return JSONResponse(status_code=422, content={"detail": errors})
+
+    app.add_middleware(CSRFMiddleware, settings=config)
     app.add_middleware(
         CORSMiddleware, allow_origins=config.cors_origins, allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"],
     )
     app.include_router(health_router)
+    app.include_router(auth_router)
     return app
