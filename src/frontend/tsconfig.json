@@ -17,8 +17,9 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@/*": ["./src/frontend/*"]
+      "@/*": ["./*"]
     }
   },
-  "include": ["src"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

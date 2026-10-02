@@ -7,6 +7,7 @@ Site institucional da Nexo, agência de inteligência artificial aplicada a proc
 Requer Node.js 22.12+ ou 24 e npm.
 
 ```sh
+cd src/frontend
 npm ci
 npm run dev
 ```
@@ -16,14 +17,16 @@ npm run build
 npm run preview
 ```
 
-O build verifica TypeScript e gera os arquivos estáticos em `dist/`. A hospedagem existente no Railway continua utilizando `npm run start` com a variável `PORT` fornecida pela plataforma.
+O build verifica TypeScript e gera os arquivos estáticos em `src/frontend/dist/`.
+
+Na Vercel, configure **Root Directory** como `src/frontend`, build como `npm run build` e saída como `dist`. No Railway, configure a raiz do serviço como `/src/frontend` e utilize `npm run start` com a variável `PORT` fornecida pela plataforma.
 
 ## Interface
 
 - React, TypeScript e Vite.
 - Tailwind CSS v4 e shadcn/ui (Radix, estilo Nova).
-- Componentes locais em `src/frontend/components/ui`, configurados em `components.json`.
-- Marca com símbolo próprio gerado em `public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
+- Componentes locais em `src/frontend/components/ui`, configurados em `src/frontend/components.json`.
+- Marca com símbolo próprio gerado em `src/frontend/public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
 - Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à preferência por movimento reduzido.
 - Fundo animado contínuo com manchas de luz roxa mais intensas e chuva diagonal de partículas em CSS, pausado com a aba oculta ou movimento reduzido.
 - Contraste reforçado, contornos semânticos e sombras violetas para separar os elementos brancos.
@@ -45,6 +48,7 @@ As ilustrações e fluxos de aplicação são exemplos; não representam métric
 ## Componentes
 
 ```sh
+cd src/frontend
 npx shadcn@latest info
 npx shadcn@latest docs button
 npx shadcn@latest add <componente>
