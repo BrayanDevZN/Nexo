@@ -1,6 +1,6 @@
 import { test, expect } from "../../../src/frontend/test-kit";
 
-test("real API: signup, admin decision, cookie permissions, CRUD and logout", async ({ browser }) => {
+test("real API: signup, admin decision, cookie permissions, CRUD, profile and password", async ({ browser }) => {
   const email = "browser-" + Date.now() + "@example.com";
   const memberContext = await browser.newContext();
   const adminContext = await browser.newContext();
@@ -45,6 +45,27 @@ test("real API: signup, admin decision, cookie permissions, CRUD and logout", as
     await member.getByRole("button", { name: "Excluir Loja Browser" }).click();
     await member.getByRole("button", { name: "Confirmar exclusão" }).click();
     await expect(member.getByText("Cliente removido.")).toBeVisible();
+    await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
+    await member.getByLabel("Nome completo").fill("Ana Atualizada");
+    await member.getByRole("button", { name: "Salvar perfil" }).click();
+    await expect(member.getByText("Perfil atualizado.")).toBeVisible();
+    await member.getByLabel("Escolher foto").setInputFiles({
+      name: "photo.png", mimeType: "image/png",
+      buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNsYGhgIAUwkaR6VMOohiGlAQBCPQEgiSD+iQAAAABJRU5ErkJggg==", "base64"),
+    });
+    await member.getByRole("button", { name: "Enviar foto" }).click();
+    await expect(member.getByRole("img", { name: "Foto de Ana Atualizada" })).toBeVisible();
+    await member.getByRole("button", { name: "Remover foto" }).click();
+    await expect(member.getByText("Foto removida.")).toBeVisible();
+    await member.getByLabel("Senha atual", { exact: true }).fill("browser-member-password");
+    await member.getByLabel("Nova senha", { exact: true }).fill("browser-updated-password");
+    await member.getByLabel("Confirmar nova senha").fill("browser-updated-password");
+    await member.getByRole("button", { name: "Atualizar senha", exact: true }).click();
+    await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    await member.getByLabel("E-mail", { exact: true }).fill(email);
+    await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
+    await member.getByRole("button", { name: "Entrar no painel" }).click();
+    await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await member.getByRole("button", { name: "Sair", exact: true }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);

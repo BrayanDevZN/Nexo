@@ -41,7 +41,7 @@ test("login, pending permissions, profile and logout", async ({ page }) => {
   await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
   await expect(page.getByRole("button", { name: "Clientes", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Solicitações" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Meu perfil" }).click();
+  await page.getByRole("button", { name: "Meu perfil", exact: true }).click();
   await page.getByLabel("Nome completo").fill("Ana Souza");
   await page.getByRole("button", { name: "Salvar perfil" }).click();
   await expect(page.getByText("Perfil atualizado.")).toBeVisible();
@@ -69,6 +69,7 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
   await dialog.getByLabel("Nicho", { exact: true }).fill("Varejo");
   await dialog.getByRole("button", { name: "Salvar cliente" }).click();
   await expect(page.getByText("Cliente salvo.")).toBeVisible();
+  await page.screenshot({ path: "../../test-results/clients-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Editar Loja Nexo" }).click();
   await dialog.getByLabel("Situação do contrato").selectOption("true");
   await dialog.getByRole("button", { name: "Salvar cliente" }).click();
@@ -95,6 +96,7 @@ test("mobile login and panel fit the viewport", async ({ page }) => {
   await page.goto("/admin");
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../../test-results/login-mobile.png", fullPage: true });
   await page.getByLabel("E-mail", { exact: true }).fill(member.email);
   await page.getByLabel("Senha", { exact: true }).fill("test-password-123");
   await page.getByRole("button", { name: "Entrar no painel" }).click();

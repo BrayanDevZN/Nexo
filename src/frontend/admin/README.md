@@ -60,7 +60,7 @@ REDIS_TEST_URL=redis://127.0.0.1:6379/15 npm run test:full
 Testes ficam na raiz: tests/unit/frontend, integration/frontend e functional/frontend.
 Unit testa transporte e CSRF. Integration usa navegador com API simulada.
 Functional usa FastAPI, SQLite temporário e Redis local real para cadastro,
-aprovação, cookies HttpOnly, clientes e logout. Não faz login Google nem envio Gmail real.
+aprovação, cookies HttpOnly, clientes, perfil/foto, senha e logout. Não faz login Google nem envio Gmail real.
 CI executa todas as categorias e anexa relatórios/traces com dados sintéticos.
 
 Os componentes novos seguem a base Radix do shadcn. O acesso ao registry via CLI
