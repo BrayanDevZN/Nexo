@@ -1,9 +1,12 @@
+import hashlib
 from contextlib import ExitStack
 
 from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.email import GmailConnection
 from backend.infra.connections.redis import RedisConnection
+from backend.repository.cache.aside import CacheAside
+from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
 
 
@@ -13,9 +16,13 @@ class RuntimeServices:
         try:
             self.database = DatabaseConnection(settings)
             self._cleanup.callback(self.database.close)
-            self.repositories = RepositoryManager(self.database)
             self.redis = RedisConnection(settings)
             self._cleanup.callback(self.redis.close)
+            database_namespace = hashlib.sha256(settings.database_url.encode()).hexdigest()[:16]
+            self.cache = CacheAside(self.redis.client, ttl=settings.cache_ttl_seconds,
+                                    prefix="nexo:cache:" + database_namespace)
+            self.repositories = RepositoryManager(self.database, cache=self.cache)
+            self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.email = GmailConnection(settings)
             self._cleanup.callback(self.email.close)
         except BaseException:

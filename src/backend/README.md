@@ -1,4 +1,4 @@
-# Backend Nexo — etapas 1 a 3
+# Backend Nexo — etapas 1 a 4
 
 Executar os comandos a partir da raiz do repositório. Requer Python 3.12+.
 
@@ -108,3 +108,33 @@ são paginadas (máximo 100), chaves estrangeiras impedem apagar criadores refer
 Não armazenar senhas em texto nos campos password_hash. Nenhuma conta real é criada
 por esta etapa. Os testes usam SQLite temporário e verificam persistência, unicidade,
 rollback, filtros, integridade referencial e o comando em subprocesso.
+
+## Etapa 4 — cache-aside
+
+`RuntimeServices.cached_repositories.transaction()` retorna consultas em `users`,
+`clients` e `notifications`. Consultas retornam snapshots JSON seguros (datas UTC),
+sem hash de senha, Google sub ou versão de sessão. `.db` expõe os repositórios SQL
+na mesma transação para alterações e consultas autoritativas de autenticação.
+Não use snapshots cacheados para autorizar sessões ou decisões administrativas.
+
+```python
+with services.cached_repositories.transaction() as repos:
+    clients = repos.clients.list(niche="varejo", limit=50)
+with services.cached_repositories.transaction() as repos:
+    row = repos.db.clients.get(client_id)
+    repos.db.clients.update(row, contract_closed=True)
+```
+
+Miss consulta SQL e preenche Redis com CACHE_TTL_SECONDS. Null e listas vazias também
+são cacheados. Chaves incluem hash dos filtros e namespace do banco. Escritas são
+rastreadas na sessão e invalidam gerações por tabela APÓS commit, inclusive usando
+`services.repositories`. Rollbacks não invalidam; consultas após uma alteração
+na transação ignoram cache e não publicam dados não confirmados.
+Uma operação Lua impede uma consulta lenta de preencher uma geração já invalidada.
+Entradas antigas expiram pelo TTL, sem KEYS/FLUSHDB em produção.
+
+Cache-aside não oferece consistência forte: entre commit e invalidação há uma janela;
+crash/falha Redis na invalidação ou alterações SQL fora do manager podem manter snapshots
+até o TTL. Falha do cache retorna ao banco e não desfaz um commit concluído. Autenticação
+sempre deverá consultar o banco. O Redis de cache pode conter dados de clientes: a
+infraestrutura precisa restringir quem pode ler/escrever esses dados.
