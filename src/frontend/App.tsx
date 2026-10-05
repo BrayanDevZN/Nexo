@@ -50,21 +50,21 @@ export default function App() {
               <span className="signal-dot" /> INTELIGÊNCIA ARTIFICIAL APLICADA
             </Badge>
             <h1 id="hero-title">
-              Menos tarefas.
+              Menos gargalos.
               <br />
               Mais capacidade.
               <br />
               <span>Esse é o nexo.</span>
             </h1>
             <p>
-              Analisamos seu negócio e integramos IA para automatizar processos,
-              conectar sistemas e liberar sua equipe para o que faz a empresa
-              crescer.
+              Aumentamos a capacidade operacional da sua empresa com IA e
+              automação. Conectamos sistemas e reduzimos tarefas manuais para
+              sua equipe atender mais clientes e realizar mais entregas.
             </p>
             <div className="hero-actions">
               <Button size="lg" asChild>
                 <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-                  Encontrar oportunidades{" "}
+                  Ampliar minha operação{" "}
                   <ArrowUpRight data-icon="inline-end" />
                 </a>
               </Button>
@@ -110,8 +110,9 @@ export default function App() {
               </h2>
             </div>
             <p className="section-description">
-              Conectamos inteligência artificial, software e dados para resolver
-              os gargalos da sua operação.
+              Construímos agentes e automações para reduzir gargalos, acelerar
+              processos e ampliar o volume de trabalho que sua empresa consegue
+              realizar.
             </p>
           </div>
           <SolutionsCarousel />
@@ -146,8 +147,9 @@ export default function App() {
               </p>
               <p className="body-copy">
                 Entendemos como sua empresa funciona, identificamos o que trava
-                a operação e construímos soluções para reduzir a carga de
-                trabalho das equipes.
+                a operação e construímos soluções para aumentar sua capacidade
+                operacional: mais atendimentos, processos e entregas com melhor
+                aproveitamento da equipe e dos sistemas existentes.
               </p>
             </div>
             <div className="principles">
@@ -218,14 +220,15 @@ export default function App() {
             </div>
             <p className="eyebrow">O PRÓXIMO PASSO COMEÇA COM UMA CONVERSA</p>
             <h2 id="contact-title">
-              Sua equipe pode
+              Sua operação pode
               <br />
-              <span>ir além do operacional.</span>
+              <span>entregar mais.</span>
             </h2>
             <p>
-              Conte onde o trabalho está travando.
+              Sua demanda cresceu, mas a operação não acompanha?
               <br />
-              Vamos entender o problema e avaliar o que podemos construir.
+              Vamos identificar os gargalos e avaliar como ampliar sua capacidade
+              com IA e automação.
             </p>
             <Button size="lg" asChild>
               <a href={contactUrl} target="_blank" rel="noopener noreferrer">

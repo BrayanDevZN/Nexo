@@ -126,6 +126,11 @@ export const steps = [
 ];
 export const faqs = [
   {
+    question: "Como a Nexo aumenta a capacidade operacional?",
+    answer:
+      "Identificamos os gargalos que limitam o volume de trabalho da empresa e automatizamos etapas como triagem, organização de documentos, atualização de sistemas e preparação de respostas. Isso libera tempo da equipe para atender mais demanda. Medimos o ganho pelo volume concluído, tempo de resposta e fila de pendências de cada processo.",
+  },
+  {
     question: "Por onde vale a pena começar?",
     answer:
       "Por um processo com volume recorrente, dor clara e dados disponíveis. No diagnóstico, avaliamos o esforço de integração e o potencial de melhoria para propor um primeiro escopo que possa ser validado antes de ampliar.",

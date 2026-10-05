@@ -37,13 +37,13 @@ const benefits = [
   },
   {
     icon: Gauge,
-    title: "Mais capacidade de entrega",
+    title: "Mais capacidade operacional",
     label: "CAPACIDADE",
-    description: "Absorva mais demanda com uma operação melhor organizada.",
+    description: "Atenda mais clientes e realize mais entregas com os recursos da sua empresa.",
     mechanism:
       "Agentes e automações podem preparar tarefas, distribuir solicitações e manter os sistemas atualizados ao longo do fluxo.",
     impact:
-      "A equipe consegue dedicar sua atenção às etapas que exigem julgamento, em vez de gastar tempo organizando cada solicitação.",
+      "Sua empresa pode absorver mais demanda sem aumentar a carga manual na mesma proporção. A equipe se concentra nas exceções e nas etapas que exigem julgamento.",
     measurement:
       "Volume concluído, tempo de resposta e tamanho da fila de pendências.",
   },
