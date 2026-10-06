@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
+
+function Detail({ label, value, multiline = false }: { label: string; value: string | null | undefined; multiline?: boolean }) {
+  return <div className={multiline ? "sm:col-span-2" : ""}><p className="text-xs font-medium text-muted-foreground">{label}</p><p className={"mt-1 text-sm " + (multiline ? "whitespace-pre-wrap break-words" : "break-words")}>{value?.trim() || "Não informado"}</p></div>;
+}
 
 function whatsappUrl(phone: string, name: string) {
   const digits = phone.replace(/\D/g, "");
@@ -44,6 +48,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [success, setSuccess] = useState("");
   const [editor, setEditor] = useState<ClientRecord | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClientRecord | null>(null);
+  const [viewing, setViewing] = useState<ClientRecord | null>(null);
   const [busy, setBusy] = useState(false);
   const [createRequestId, setCreateRequestId] = useState("");
   const saveInFlight = useRef(false);
@@ -71,7 +76,8 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     const value = (key: string) => String(data.get(key) || "").trim();
     const body: ClientInput = {
       name: value("name"), niche: value("niche"), phone: value("phone") || null,
-      email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
+      email: value("email") || null, notes: value("notes") || null,
+      pain: value("pain") || null, approach: value("approach") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
       ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
     };
@@ -129,13 +135,32 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
         {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
-      <CardFooter className="justify-between gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></CardFooter>
+      <CardFooter className="flex-wrap justify-between gap-2"><Button variant="secondary" onClick={() => setViewing(client)} aria-label={"Ver dados de " + client.name}><Eye data-icon="inline-start" /> Ver</Button><div className="flex gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></div></CardFooter>
     </Card>;
     })}</div>}
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-muted-foreground">{rows.length} contatos nesta página · Página {offset / 20 + 1}</p>
       <div className="flex gap-2"><Button variant="outline" disabled={loading || offset === 0} onClick={() => setOffset(offset - 20)}><ArrowLeft data-icon="inline-start" /> Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima<ArrowRight data-icon="inline-end" /></Button></div>
     </div>
+    <Dialog open={!!viewing} onOpenChange={open => { if (!open) setViewing(null); }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader><DialogTitle>Dados do cliente</DialogTitle><DialogDescription>Informações completas do contato e acompanhamento.</DialogDescription></DialogHeader>
+        {viewing && <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{viewing.name}</CardTitle><CardDescription>{viewing.niche}</CardDescription></div><Badge variant={viewing.contract_closed || viewing.pipeline_stage === "won" ? "default" : viewing.pipeline_stage === "lost" ? "destructive" : "secondary"}>{viewing.contract_closed || viewing.pipeline_stage === "won" ? "Contrato fechado" : PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || "Em negociação"}</Badge></div></CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <Detail label="E-mail" value={viewing.email} />
+            <Detail label="Celular" value={viewing.phone} />
+            <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+            <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
+            <Detail label="Criado por" value={viewing.created_by_name} />
+            <Detail label="Etapa do funil" value={PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || viewing.pipeline_stage} />
+            <Detail label="Possível dor do cliente" value={viewing.pain} multiline />
+            <Detail label="Melhor forma de abordagem" value={viewing.approach} multiline />
+            <Detail label="Observações" value={viewing.notes} multiline />
+            <Detail label="Criado em" value={new Date(viewing.created_at).toLocaleString("pt-BR")} />
+            <Detail label="Atualizado em" value={new Date(viewing.updated_at).toLocaleString("pt-BR")} />
+          </CardContent><CardFooter><Button variant="outline" onClick={() => { setViewing(null); setEditor(viewing); }}>Editar cliente</Button></CardFooter></Card>}
+      </DialogContent>
+    </Dialog>
     <Dialog open={editor !== null} onOpenChange={open => { if (!open && !busy) { setEditor(null); setCreateRequestId(""); setError(""); } }}>
       <DialogContent showCloseButton={!busy}>
         <DialogHeader><DialogTitle>{editor === "new" ? "Novo cliente" : "Editar cliente"}</DialogTitle><DialogDescription>Registre o contato e acompanhe a contratação.</DialogDescription></DialogHeader>
@@ -152,6 +177,8 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Field><FieldLabel htmlFor="client-contract">Situação do contrato</FieldLabel><NativeSelect id="client-contract" name="contract" defaultValue={String(row?.contract_closed || false)}>
               <NativeSelectOption value="false">Em negociação</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption>
             </NativeSelect></Field>
+            <Field><FieldLabel htmlFor="client-pain">Possível dor do cliente (opcional)</FieldLabel><Textarea id="client-pain" name="pain" maxLength={5000} placeholder="Ex.: dificuldade para atrair novos clientes" defaultValue={row?.pain || ""} /></Field>
+            <Field><FieldLabel htmlFor="client-approach">Melhor forma de abordagem (opcional)</FieldLabel><Textarea id="client-approach" name="approach" maxLength={5000} placeholder="Ex.: primeiro contato por WhatsApp, com uma conversa consultiva" defaultValue={row?.approach || ""} /></Field>
             <Field><FieldLabel htmlFor="client-notes">Observações (opcional)</FieldLabel><Textarea id="client-notes" name="notes" maxLength={10000} defaultValue={row?.notes || ""} /></Field>
           </FieldGroup>
           <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={() => { setEditor(null); setCreateRequestId(""); setError(""); }}>Cancelar</Button><Button type="submit" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : <><Check data-icon="inline-start" /> Salvar cliente</>}</Button></DialogFooter>
