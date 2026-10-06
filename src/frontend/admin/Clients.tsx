@@ -45,6 +45,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [editor, setEditor] = useState<ClientRecord | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClientRecord | null>(null);
   const [busy, setBusy] = useState(false);
+  const saveInFlight = useRef(false);
   const serial = useRef(0);
   const load = useCallback(async () => {
     const id = ++serial.current;
@@ -64,6 +65,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   useEffect(() => { void load(); return () => { serial.current++; }; }, [load]);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saveInFlight.current) return;
     const data = new FormData(event.currentTarget);
     const value = (key: string) => String(data.get(key) || "").trim();
     const body: ClientInput = {
@@ -71,12 +73,13 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
     };
+    saveInFlight.current = true;
     setBusy(true); setError(""); setSuccess("");
     try {
       await api.mutate(editor === "new" ? "/clients" : "/clients/" + editor!.id,
         editor === "new" ? "POST" : "PATCH", body);
       setEditor(null); setSuccess("Cliente salvo."); await load();
-    } catch (e) { setError(message(e)); } finally { setBusy(false); }
+    } catch (e) { setError(message(e)); } finally { saveInFlight.current = false; setBusy(false); }
   }
   async function remove() {
     if (!deleting) return;
