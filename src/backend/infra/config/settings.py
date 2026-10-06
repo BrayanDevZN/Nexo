@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     admin_name: str = "Brayan"
     email: EmailStr | None = None
     password: SecretStr | None = None
+    resend_key: SecretStr | None = None
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
@@ -59,7 +60,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
-    @field_validator("email", "password",
+    @field_validator("email", "password", "resend_key",
                      "google_client_id", "google_client_secret", mode="before")
     @classmethod
     def empty_optional(cls, value):
@@ -161,6 +162,8 @@ class Settings(BaseSettings):
                 raise ValueError("Production requires COOKIE_SECURE=true")
             if not self.email or not self.password:
                 raise ValueError("Production requires EMAIL and PASSWORD for the administrator")
+            if not self.resend_key:
+                raise ValueError("Production requires RESEND_KEY for email delivery")
             urls = [self.frontend_url, *self.cors_origins]
             if self.google_client_id:
                 urls.append(self.google_redirect_uri)
@@ -172,4 +175,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

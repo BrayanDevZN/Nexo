@@ -8,7 +8,7 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("", response_model=HealthResponse)
 def health() -> HealthResponse:
-    """Liveness only: does not assert database, Redis or SMTP availability."""
+    """Liveness only: does not assert database, Redis or Resend availability."""
     return HealthResponse()
 
 

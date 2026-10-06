@@ -31,7 +31,7 @@ class AuthService:
             raise RegistrationConflict("Email already registered") from None
 
     def login(self, email, password):
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             user = repos.users.by_email(email)
         hashed = user.password_hash if user and user.password_hash else self._dummy_hash
         valid = self.passwords.verify(password, hashed)
@@ -43,7 +43,7 @@ class AuthService:
         if settings.email is None:
             return
         email = str(settings.email).lower()
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             existing = repos.users.by_email(email)
             if existing:
                 self._validate_admin(existing)

@@ -39,7 +39,12 @@ export function apiBase(value: string): string {
 }
 
 export function createApi(base: string, fetcher: typeof fetch = fetch) {
-  async function request<T>(path: string, init: RequestInit = {}, format: "json" | "blob" = "json"): Promise<T> {
+  const getCache = new Map<string, { expiresAt: number; value: Promise<unknown> }>();
+  let csrfToken = "";
+  const getCacheTtlMs = 15_000;
+  function clearReadCache() { getCache.clear(); }
+  function resetSession() { csrfToken = ""; clearReadCache(); }
+  async function perform<T>(path: string, init: RequestInit, format: "json" | "blob"): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
@@ -81,15 +86,38 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
       throw new ApiError(0, "Não foi possível conectar ao servidor. Confira sua conexão e tente novamente.");
     } finally { clearTimeout(timeout); }
   }
+  function request<T>(path: string, init: RequestInit = {}, format: "json" | "blob" = "json"): Promise<T> {
+    const method = (init.method || "GET").toUpperCase();
+    const cacheable = method === "GET" && format === "json" && !init.body && path !== "/auth/csrf";
+    if (!cacheable) return perform<T>(path, init, format);
+    const key = base + path;
+    const existing = getCache.get(key);
+    if (existing && existing.expiresAt > Date.now()) return existing.value as Promise<T>;
+    const value = perform<T>(path, init, format);
+    getCache.set(key, { expiresAt: Date.now() + getCacheTtlMs, value });
+    void value.catch(() => { if (getCache.get(key)?.value === value) getCache.delete(key); });
+    return value;
+  }
   async function mutate<T>(path: string, method: string, body?: unknown, csrf?: string): Promise<T> {
-    const token = csrf ?? (await request<{ csrf_token: string }>("/auth/csrf")).csrf_token;
-    return request<T>(path, {
+    let token = csrf ?? csrfToken;
+    if (!token) {
+      token = (await request<{ csrf_token: string }>("/auth/csrf")).csrf_token;
+      csrfToken = token;
+    }
+    const result = await request<T>(path, {
       method, headers: { "X-CSRF-Token": token },
       body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body),
     });
+    clearReadCache();
+    if (["/auth/logout", "/auth/password/change", "/auth/account/deletion/confirm"].includes(path)) csrfToken = "";
+    return result;
   }
   function publicPost<T>(path: string, body: unknown) {
     return request<T>(path, { method: "POST", body: JSON.stringify(body) });
   }
-  return { request, mutate, publicPost, file: (path: string) => request<Blob>(path, {}, "blob"), photo: () => request<Blob>("/auth/profile/photo", {}, "blob"), googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
+  function prefetch(path: string) { return request(path).catch(() => undefined); }
+  return { request, mutate, publicPost, prefetch, invalidate: clearReadCache, resetSession,
+    file: (path: string) => request<Blob>(path, {}, "blob"),
+    photo: () => request<Blob>("/auth/profile/photo", {}, "blob"),
+    googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
 }

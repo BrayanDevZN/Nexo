@@ -1,4 +1,5 @@
 from backend.repository.cache.queries import snapshot
+from backend.service.access import authorize_read
 
 
 class ApprovalPermissionError(ValueError):
@@ -24,18 +25,13 @@ class ApprovalService:
             repos.notifications.ensure_approval_request(recipient_id=admin.id,
                                                         requested_user_id=user.id)
             # Approved members also receive a realtime notification about the new signup.
-            offset = 0
-            while True:
-                members = repos.users.list(status="approved", limit=100, offset=offset)
-                if not isinstance(members, list):
-                    break
-                for member in members:
-                    if member.id != user.id and member.role == "member":
-                        repos.notifications.create_member_joined(
-                            recipient_id=member.id, member_id=user.id, member_name=user.name)
-                if len(members) < 100:
-                    break
-                offset += 100
+            member_ids = repos.users.approved_member_ids()
+            # Keeps the notification helper tolerant of lightweight test
+            # doubles while production repositories always return a list.
+            recipients = [identifier for identifier in member_ids if identifier != user.id] if isinstance(member_ids, list) else []
+            repos.notifications.create_member_joined_many(
+                recipient_ids=recipients, member_id=user.id, member_name=user.name,
+            )
 
     def synchronize_pending(self):
         # Also covers accounts created in development before admin credentials were set.
@@ -59,14 +55,21 @@ class ApprovalService:
                 or current.session_version != actor.session_version):
             raise ApprovalPermissionError("Administrator access required")
 
+    @staticmethod
+    def _authorize_read(repos, actor):
+        current = authorize_read(repos, actor, approved=True)
+        if current.role != "admin":
+            raise ApprovalPermissionError("Administrator access required")
+        return current
+
     def users(self, actor, **filters):
-        with self.cached_repositories.transaction() as repos:
-            self._authorize(repos.db, actor)
+        with self.cached_repositories.read_transaction() as repos:
+            self._authorize_read(repos.db, actor)
             return repos.users.list(**filters)
 
     def notifications(self, actor, **filters):
-        with self.cached_repositories.transaction() as repos:
-            self._authorize(repos.db, actor)
+        with self.cached_repositories.read_transaction() as repos:
+            self._authorize_read(repos.db, actor)
             return repos.notifications.list_for_recipient(actor.id, kind="approval_request", **filters)
 
     @staticmethod

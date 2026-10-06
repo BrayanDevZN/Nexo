@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
@@ -11,13 +11,15 @@ class Notification(IdentityTimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("decision IN ('approved', 'rejected') OR decision IS NULL",
                         name="notification_decision"),
+        Index("notification_recipient_kind_created", "recipient_id", "kind", "created_at", "id"),
+        Index("notification_recipient_resolved_created", "recipient_id", "resolved_at", "created_at", "id"),
     )
     kind: Mapped[str] = mapped_column(String(32), default="approval_request")
     announcement_id: Mapped[str | None] = mapped_column(String(36), index=True)
     title: Mapped[str | None] = mapped_column(String(160))
     body: Mapped[str | None] = mapped_column(Text)
     recipient_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True,
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False,
     )
     requested_user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True,

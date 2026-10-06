@@ -40,3 +40,18 @@ def test_foreign_keys_enforced(settings):
                 session.execute(text("INSERT INTO child VALUES (99)"))
     finally:
         connection.close()
+
+
+def test_file_database_uses_wal_and_read_session_keeps_loaded_values(settings):
+    connection = DatabaseConnection(settings)
+    try:
+        with connection.session() as session:
+            session.execute(text("CREATE TABLE probe_read (id INTEGER PRIMARY KEY, name TEXT)"))
+            session.execute(text("INSERT INTO probe_read VALUES (1, 'Nexo')"))
+        with connection.read_session() as session:
+            row = session.execute(text("SELECT id, name FROM probe_read")).mappings().one()
+        assert row["name"] == "Nexo"
+        with connection.engine.connect() as engine:
+            assert engine.execute(text("PRAGMA journal_mode")).scalar_one().lower() == "wal"
+    finally:
+        connection.close()

@@ -17,6 +17,16 @@ redis.call('SET', KEYS[2], ARGV[2], 'EX', ARGV[3])
 return 1
 """
 
+# A normal cache hit used to make two sequential Redis round trips: one for
+# the generation and one for the payload.  Railway Redis is remote from the
+# API process, so that latency was visible in every list endpoint.  Resolve
+# both values atomically in one small Lua call instead.
+READ_CURRENT = """
+local generation = redis.call('GET', KEYS[1]) or '0'
+local payload = redis.call('GET', ARGV[1] .. generation .. ':' .. ARGV[2])
+return {generation, payload}
+"""
+
 
 class CacheAside:
     def __init__(self, redis: Redis, *, ttl: int, prefix: str):
@@ -28,15 +38,32 @@ class CacheAside:
         return f"{self.prefix}:{table}:generation"
 
     def query_key(self, table: str, generation: str, query: dict) -> str:
-        canonical = json.dumps(query, sort_keys=True, separators=(",", ":"))
-        digest = hashlib.sha256(canonical.encode()).hexdigest()
+        digest = self._query_digest(query)
         return f"{self.prefix}:{table}:{generation}:{digest}"
+
+    @staticmethod
+    def _query_digest(query: dict) -> str:
+        canonical = json.dumps(query, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode()).hexdigest()
+
+    def _read_current(self, table: str, query: dict) -> tuple[str, str | None]:
+        reply = self.redis.eval(
+            READ_CURRENT, 1, self.generation_key(table), f"{self.prefix}:{table}:",
+            self._query_digest(query),
+        )
+        if not isinstance(reply, (list, tuple)) or len(reply) != 2:
+            raise RedisError("Invalid cache response")
+        generation, payload = reply
+        if isinstance(generation, bytes):
+            generation = generation.decode()
+        if isinstance(payload, bytes):
+            payload = payload.decode()
+        return str(generation or "0"), payload
 
     def read(self, table: str, query: dict, loader: Callable[[], Any]):
         try:
-            generation = self.redis.get(self.generation_key(table)) or "0"
+            generation, payload = self._read_current(table, query)
             key = self.query_key(table, generation, query)
-            payload = self.redis.get(key)
             if payload is not None:
                 try:
                     envelope = json.loads(payload)

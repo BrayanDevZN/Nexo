@@ -1,7 +1,13 @@
 from sqlalchemy.exc import IntegrityError
 
 from backend.repository.cache.queries import snapshot
-from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound, authorize
+from backend.service.access import (
+    AccessDenied,
+    ResourceConflict,
+    ResourceNotFound,
+    authorize,
+    authorize_read,
+)
 
 
 class MemberService:
@@ -15,6 +21,13 @@ class MemberService:
             raise AccessDenied("Administrator access required")
 
     @staticmethod
+    def _authorize_read(repos, actor):
+        current = authorize_read(repos, actor, approved=True)
+        if current.role != "admin":
+            raise AccessDenied("Administrator access required")
+        return current
+
+    @staticmethod
     def _target(repos, identifier):
         user = repos.users.get(identifier)
         if user is None:
@@ -22,15 +35,15 @@ class MemberService:
         return user
 
     def directory(self, actor, *, limit=50, offset=0):
-        with self.cached_repositories.transaction() as repos:
-            authorize(repos.db, actor, approved=True)
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
             # Explicit allowlist: shared directory never contains contact or authentication data.
             return [{**{key: row[key] for key in ("id", "name", "role")}, "has_photo": bool(row["profile_photo"])}
                     for row in repos.users.list(status="approved", limit=limit, offset=offset)]
 
     def photo(self, actor, identifier):
-        with self.repositories.transaction() as repos:
-            current = authorize(repos, actor, approved=True)
+        with self.repositories.read_transaction() as repos:
+            current = authorize_read(repos, actor, approved=True)
             user = self._target(repos, identifier)
             if (user.status != "approved" and current.role != "admin") or not user.profile_photo:
                 raise ResourceNotFound("Profile photo not found")
@@ -43,8 +56,8 @@ class MemberService:
             raise ResourceNotFound("Profile photo not found") from None
 
     def users(self, actor, **filters):
-        with self.cached_repositories.transaction() as repos:
-            self._authorize(repos.db, actor)
+        with self.cached_repositories.read_transaction() as repos:
+            self._authorize_read(repos.db, actor)
             principal = repos.db.users.principal_admin()
             return [{**row, "is_principal": bool(principal and row["id"] == principal.id)}
                     for row in repos.users.list(**filters)]

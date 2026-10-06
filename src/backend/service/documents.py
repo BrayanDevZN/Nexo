@@ -2,7 +2,7 @@ import logging
 
 from backend.domain.documents import validate_document
 from backend.repository.cache.queries import snapshot
-from backend.service.access import AccessDenied, ResourceNotFound, authorize
+from backend.service.access import AccessDenied, ResourceNotFound, authorize, authorize_read
 from backend.service.clients import ClientService
 
 logger = logging.getLogger(__name__)
@@ -14,13 +14,13 @@ class DocumentService:
         self.storage, self.max_bytes = storage, max_bytes
 
     def list(self, actor, **filters):
-        with self.cached_repositories.transaction() as repos:
-            authorize(repos.db, actor, approved=True)
-            return [ClientService.with_creator(repos, row) for row in repos.documents.list(**filters)]
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            return ClientService.with_creators(repos, repos.documents.list(**filters))
 
     def upload(self, actor, filename, data):
-        with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
+        with self.repositories.read_transaction() as repos:
+            authorize_read(repos, actor, approved=True)
         filename = validate_document(filename, data, self.max_bytes)
         key = self.storage.write(data)
         try:
@@ -34,8 +34,8 @@ class DocumentService:
             raise
 
     def download(self, actor, identifier):
-        with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
+        with self.repositories.read_transaction() as repos:
+            authorize_read(repos, actor, approved=True)
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")

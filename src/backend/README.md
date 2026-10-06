@@ -18,17 +18,18 @@ nexo
 ```
 
 Também aceita `python -m backend.main`. O comando `create-tables` cria tabelas ausentes
-sem Redis/Gmail, preserva dados e não executa migrações nem cria administrador.
+sem Redis/Resend, preserva dados e não executa migrações nem cria administrador.
 A inicialização normal cria as tabelas e o administrador de EMAIL/PASSWORD.
 Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mesmo e-mail.
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
-Na criação inicial, a senha do painel é a mesma `PASSWORD` usada pelo yagmail.
+Na criação inicial, a senha do painel vem de `PASSWORD`. O envio usa a chave
+`RESEND_KEY` e o endereço `EMAIL` como remetente verificado no Resend.
 
 ## Arquitetura
 
 | Camada | Responsabilidade |
 | --- | --- |
-| infra | Settings/env, conexões SQL/Redis/Google/yagmail e armazenamento das fotos |
+| infra | Settings/env, conexões SQL/Redis/Google/Resend e armazenamento das fotos |
 | domain | bcrypt, JWT, CSRF, identidade Google, códigos de e-mail e normalização de fotos |
 | repository | models, tabelas, transações, consultas SQL, Redis e cache-aside |
 | service | cadastro, sessões, aprovações, clientes, perfil, senha e rate limit |
@@ -132,8 +133,9 @@ SQL e filesystem não têm transação conjunta; crash pode deixar arquivos órf
 ## Ambiente e operação
 
 .env.example lista todas as variáveis. Ambiente sobrescreve dotenv.
-EMAIL/PASSWORD são usadas tanto para criar o administrador com senha bcrypt
-quanto para enviar e-mails via yagmail. Use o e-mail Gmail e sua senha de aplicativo. Redis sem senha usa redis://host:porta/0.
+EMAIL/PASSWORD criam o administrador com senha bcrypt. `RESEND_KEY` autoriza o
+envio de e-mails pela API HTTPS do Resend; o `EMAIL` precisa ser um remetente
+verificado no Resend. Redis sem senha usa redis://host:porta/0.
 GOOGLE_CLIENT_SECRET, PASSWORD e JWT_SECRET_KEY ficam somente no backend.
 
 Produção exige ENVIRONMENT=production, COOKIE_SECURE=true e URLs HTTPS.
@@ -170,15 +172,15 @@ python -m ruff check src/backend tests
 tests/unit, integration e functional seguem as camadas na raiz. O cenário
 functional/system atravessa cadastro, aprovação, clientes, perfil/foto, troca de senha,
 recuperação e logout com cookies Secure/HttpOnly. SQLite e arquivos são temporários.
-Redis é local real; Gmail e endpoints Google são simulados. Não valida entrega Gmail
+Redis é local real; Resend e endpoints Google são simulados. Não valida entrega Resend
 nem login Google real. GitHub Actions executa as três suítes e a suíte completa em
 Python 3.12/3.13, com relatórios JUnit anexados.
 
-O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo yagmail e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o administrador só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O admin inicial continua sendo criado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
+O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo Resend e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o administrador só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O admin inicial continua sendo criado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
 
 No painel, `POST /auth/password/change` exige senha atual e nova senha. A opção “Esqueci minha senha” continua usando os endpoints `/auth/password/recovery/request` e `/auth/password/recovery/confirm`, com código por email. Após o cadastro local ou o preenchimento do perfil Google, o frontend oferece foto opcional ou pular; o upload usa `/auth/profile/photo`, protegido por sessão e CSRF, inclusive para contas pendentes.
 
-O cadastro só responde 202 depois que o SMTP aceita a mensagem. Falha ou timeout retorna 503, invalida o código e libera nova tentativa; o intervalo normal de reenvio retorna 429. Os logs classificam falhas de rede, autenticação e rejeição SMTP sem expor credenciais ou conteúdo. Railway Free, Trial e Hobby bloqueiam SMTP; yagmail exige Railway Pro (com redeploy após upgrade) ou hospedagem com saída SMTP liberada. Para permanecer nos planos inferiores, é necessário substituir o transporte por uma API HTTPS de email. Referência: https://docs.railway.com/networking/outbound-networking
+O cadastro só responde 202 depois que a API do Resend aceita a mensagem. Falha ou timeout retorna 503, invalida o código e libera nova tentativa; o intervalo normal de reenvio retorna 429. Os logs classificam falhas de rede, autenticação e rejeição do provedor sem expor credenciais ou conteúdo.
 
 O retorno OAuth legado no domínio Railway é redirecionado uma única vez para o `/api/auth/google/callback` do frontend antes de consumir o state. O cookie fica no domínio do frontend com Path=/ e HttpOnly/Secure; a identidade continua exigindo state ligado ao navegador, PKCE e nonce. Isso permite a configuração atual cujo redirect URI aponta para Railway. A configuração preferida continua sendo o callback no domínio www, cadastrado também no Google Console. A foto é carregada por fetch autenticado e apresentada com um blob temporário, que é revogado ao sair do perfil.
 
@@ -212,15 +214,15 @@ Ambas as listas respondem com `Cache-Control: no-store`.
 
 ## Exclusão da própria conta
 
-`AccountDeletionService` usa yagmail no executor já existente, aguardando o
-SMTP aceitar o envio antes de responder 202. Redis guarda apenas HMAC do código
+`AccountDeletionService` usa Resend no executor já existente, aguardando a API
+aceitar o envio antes de responder 202. Redis guarda apenas HMAC do código
 com propósito `account-deletion`, ID e versão da sessão, separado dos códigos de
 cadastro e recuperação. Reutiliza TTL, tentativas máximas e cooldown configurados
 em `EMAIL_CODE_*`; as duas rotas também têm limite de autenticação.
 
 O código é de uso único e vinculado à identidade autenticada. Mudanças de email,
 senha ou cargo invalidam a confirmação antiga. Solicitar código não exclui conta;
-falha de SMTP invalida o código e permite nova tentativa. Contas pendentes e
+falha do Resend invalida o código e permite nova tentativa. Contas pendentes e
 contas Google podem usar o fluxo, mas o admin principal permanece protegido.
 
 A exclusão usa a mesma transação de preservação de clientes e limpeza de

@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from backend.repository.cache.queries import snapshot
-from backend.service.access import authorize
+from backend.service.access import authorize, authorize_read
 
 
 class AnnouncementPermissionError(ValueError):
@@ -20,8 +20,8 @@ class AnnouncementService:
         return current
 
     def list_for_user(self, actor, *, limit=50, offset=0, kind=None):
-        with self.cached_repositories.transaction() as repos:
-            authorize(repos.db, actor, approved=True)
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
             return repos.notifications.list_for_recipient(actor.id, kind=kind, limit=limit, offset=offset)
 
     def mark_read(self, actor, identifier):
@@ -36,25 +36,19 @@ class AnnouncementService:
     def create(self, actor, *, title: str, body: str):
         with self.repositories.transaction() as repos:
             current = self._authorize(repos, actor)
-            recipients = []
-            offset = 0
-            while True:
-                page = repos.users.list(status="approved", limit=100, offset=offset)
-                recipients.extend(page)
-                if len(page) < 100:
-                    break
-                offset += 100
+            recipients = repos.users.approved_recipients()
             announcement_id = str(uuid4())
-            notes = [repos.notifications.create_announcement(
-                announcement_id=announcement_id, recipient_id=user.id,
-                creator_id=current.id, title=title, body=body) for user in recipients]
+            notes = repos.notifications.create_announcements(
+                announcement_id=announcement_id, recipient_ids=[user.id for user in recipients],
+                creator_id=current.id, title=title, body=body,
+            )
         queued = 0
         for user in recipients:
             try:
                 if self.messages.announcement(user, title, body):
                     queued += 1
             except Exception:
-                # DB delivery is durable; an SMTP outage must not roll back the notice.
+                # DB delivery is durable; a Resend outage must not roll back the notice.
                 continue
         created_at = min((note.created_at for note in notes), default=None)
         return {"id": announcement_id, "title": title, "body": body,

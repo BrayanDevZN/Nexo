@@ -1,7 +1,7 @@
 import logging
 
 from backend.domain.photos import normalize_photo
-from backend.service.access import ResourceConflict, ResourceNotFound, authorize
+from backend.service.access import ResourceConflict, ResourceNotFound, authorize, authorize_read
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class ProfileService:
             return user
 
     def upload(self, actor, data):
-        with self.repositories.transaction() as repos:
-            user = authorize(repos, actor)
+        with self.repositories.read_transaction() as repos:
+            user = authorize_read(repos, actor)
             previous = user.profile_photo
         normalized = normalize_photo(data, max_bytes=self.settings.profile_photo_max_bytes,
                                      max_pixels=self.settings.profile_photo_max_pixels)
@@ -46,8 +46,8 @@ class ProfileService:
         self.cleanup_photo(previous)
 
     def read_photo(self, actor):
-        with self.repositories.transaction() as repos:
-            user = authorize(repos, actor)
+        with self.repositories.read_transaction() as repos:
+            user = authorize_read(repos, actor)
             name, data = user.profile_photo, user.profile_photo_data
         if data is not None:
             return data

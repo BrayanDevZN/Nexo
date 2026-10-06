@@ -1,45 +1,52 @@
 from datetime import date, datetime, time
 
-from backend.service.access import authorize
+from backend.repository.cache.queries import snapshot
+from backend.service.access import authorize_read
 
 
 class DashboardService:
-    def __init__(self, repositories, cached_repositories):
-        self.repositories, self.cached_repositories = repositories, cached_repositories
+    def __init__(self, repositories, cache):
+        self.repositories, self.cache = repositories, cache
 
     def overview(self, actor):
-        with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
-            members = repos.users.count(status="approved")
-            clients = repos.clients.count()
-            funnel = repos.clients.funnel_counts()
-            potential_value, closed_value = repos.clients.value_totals()
-            today = date.today()
-            months = []
-            for distance in range(5, -1, -1):
-                year, month = today.year, today.month - distance
-                while month <= 0:
-                    year -= 1
-                    month += 12
-                start = datetime.combine(date(year, month, 1), time.min)
-                if month == 12:
-                    next_start = datetime.combine(date(year + 1, 1, 1), time.min)
-                else:
-                    next_start = datetime.combine(date(year, month + 1, 1), time.min)
-                months.append({"month": f"{year:04d}-{month:02d}", "label": date(year, month, 1).strftime("%b/%y"),
-                               "count": repos.clients.count_contracts_between(start, next_start)})
-        with self.cached_repositories.transaction() as cached:
-            announcements = cached.notifications.list_for_recipient(actor.id, limit=3, offset=0)
-            documents = [self._document_with_creator(cached, row) for row in cached.documents.list(limit=3, offset=0)]
-            documents_count = cached.db.documents.count()
+        with self.repositories.read_transaction() as repos:
+            authorize_read(repos, actor, approved=True)
+            return self.cache.read("dashboard", {"actor_id": actor.id}, lambda: self._overview(repos, actor))
+
+    def _overview(self, repos, actor):
+        """Build a cold overview with set-based SQL, then cache its JSON payload."""
+        members = repos.users.count(status="approved")
+        today = date.today()
+        first_year, first_month = today.year, today.month - 5
+        while first_month <= 0:
+            first_year -= 1
+            first_month += 12
+        start = datetime.combine(date(first_year, first_month, 1), time.min)
+        if today.month == 12:
+            end = datetime.combine(date(today.year + 1, 1, 1), time.min)
+        else:
+            end = datetime.combine(date(today.year, today.month + 1, 1), time.min)
+        clients, potential_value, closed_value, funnel, month_counts = repos.clients.dashboard_metrics(start, end)
+        documents_rows = [snapshot("documents", row) for row in repos.documents.list(limit=3, offset=0)]
+        names = repos.users.names_by_ids(row["created_by_id"] for row in documents_rows)
+        documents = [{**row, "created_by_name": names.get(row["created_by_id"], "Membro removido")}
+                     for row in documents_rows]
+        announcements = [snapshot("notifications", row) for row in repos.notifications.list_for_recipient(
+            actor.id, limit=3, offset=0,
+        )]
+        documents_count = repos.documents.count()
+        months = []
+        for distance in range(5, -1, -1):
+            year, month = today.year, today.month - distance
+            while month <= 0:
+                year -= 1
+                month += 12
+            key = f"{year:04d}-{month:02d}"
+            months.append({"month": key, "label": date(year, month, 1).strftime("%b/%y"),
+                           "count": month_counts.get(key, 0)})
         return {"members_count": members, "clients_count": clients,
                 "funnel": funnel, "potential_value": potential_value,
                 "closed_value": closed_value,
                 "conversion_rate": (funnel.get("won", 0) / clients * 100) if clients else 0,
                 "documents_count": documents_count, "documents": documents,
                 "contracts_by_month": months, "announcements": announcements}
-
-    @staticmethod
-    def _document_with_creator(repos, row):
-        user = repos.users.get(row["created_by_id"])
-        return {**row, "created_by_name": user["name"] if user else "Membro removido"}

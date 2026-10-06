@@ -50,11 +50,12 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
   useEffect(() => {
-    const expired = () => { generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
+    const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
     window.addEventListener("nexo:session-expired", expired);
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
   const event = useCallback((value: RealtimeEvent) => {
+    if (["notifications.changed", "account.changed"].includes(value.type)) api.invalidate();
     window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
     if (["ready", "account.changed"].includes(value.type)) void refresh();
     if (["ready", "notifications.changed"].includes(value.type) && user?.role === "admin" && user.status === "approved") void requests();
@@ -62,14 +63,21 @@ export default function AdminApp() {
   }, [refresh, requests, user?.id, user?.role, user?.status, page, activeChat]);
   const realtime = useRealtime(api, user, event);
   useEffect(() => { if (user?.role === "admin" && user.status === "approved") void requests(); }, [user?.id, user?.role, user?.status, requests]);
+  useEffect(() => {
+    if (user?.status !== "approved") return;
+    // Warm the overview while Clientes is visible.  Navigation to Início can
+    // then reuse the short-lived client cache instead of waiting on the API.
+    const timer = window.setTimeout(() => { void api.prefetch("/dashboard"); }, 150);
+    return () => window.clearTimeout(timer);
+  }, [user?.id, user?.status]);
   function onLogin(person: User) {
     generation.current++;
     if (complete) window.history.replaceState(null, "", "/admin");
-    setUser(person); setError(""); setPage("clients");
+    api.resetSession(); setUser(person); setError(""); setPage("clients");
   }
   async function logout() {
     setLoggingOut(true); setError("");
-    try { await api.mutate("/auth/logout", "POST"); generation.current++; setUser(null); setHasRequests(false); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
+    try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
   if (loading) return <main className="admin-loading"><Loading /></main>;
@@ -109,7 +117,7 @@ export default function AdminApp() {
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
         {hasRequests && user.role === "admin" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
-        {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { setUser(null); setError(""); }} /> :
+        {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { api.resetSession(); setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
           page === "home" ? <Home api={api} user={user} /> :
           page === "funnel" ? <Funnel api={api} /> :

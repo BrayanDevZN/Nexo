@@ -22,7 +22,7 @@ class RegistrationService:
 
     def request(self, *, name, email, phone, password):
         email = email.strip().lower()
-        with self.auth.repositories.transaction() as repos:
+        with self.auth.repositories.read_transaction() as repos:
             if repos.users.by_email(email):
                 raise RegistrationConflict("Email already registered")
         if not self.sender.configured:
@@ -37,11 +37,11 @@ class RegistrationService:
             future = self.sender.send(email, "Código para confirmar seu cadastro Nexo",
                                       "Seu código de confirmação é: " + code +
                                       "\nEle expira em " + str(self.repository.ttl) + " segundos.")
-            # SMTP must accept the message before the browser advances to confirmation.
+            # Resend must accept the message before the browser advances to confirmation.
             future.result(timeout=self.delivery_timeout)
         except (EmailQueueFullError, EmailUnavailableError, TimeoutError, CancelledError):
             self.repository.remove(email, digest)
-            logger.warning("Registration email was not accepted by SMTP")
+            logger.warning("Registration email was not accepted by Resend")
             raise EmailUnavailableError("Registration email unavailable") from None
 
     def confirm(self, email, code):

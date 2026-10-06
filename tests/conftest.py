@@ -1,4 +1,5 @@
 import pytest
+from pydantic import SecretStr
 
 from backend.infra.config.settings import Settings, get_settings
 
@@ -20,6 +21,7 @@ def settings(tmp_path):
         _env_file=None,
         environment="test",
         jwt_secret_key="test-only-key-" * 4,
+        resend_key=SecretStr("test-resend-key"),
         database_url="sqlite:///" + str(tmp_path / "nested" / "nexo.db"),
     )
 

@@ -1,4 +1,5 @@
 from sqlalchemy import and_, delete, or_, select
+from sqlalchemy.orm import load_only
 
 from backend.repository.db.control.base import pagination
 from backend.repository.db.models import ChatMessage
@@ -23,7 +24,14 @@ class ChatRepository:
 
     def list(self, *, actor_id, member_id, before=None, limit=50):
         pagination(limit, 0)
-        query = select(ChatMessage).where(or_(
+        # The message list shows metadata only.  Do not deserialize image or
+        # audio BLOBs until the dedicated media endpoint is requested.
+        query = select(ChatMessage).options(load_only(
+            ChatMessage.sequence, ChatMessage.id, ChatMessage.sender_id,
+            ChatMessage.recipient_id, ChatMessage.sender_name, ChatMessage.client_id,
+            ChatMessage.text, ChatMessage.kind, ChatMessage.media_type,
+            ChatMessage.size, ChatMessage.created_at,
+        )).where(or_(
             and_(ChatMessage.sender_id == actor_id, ChatMessage.recipient_id == member_id),
             and_(ChatMessage.sender_id == member_id, ChatMessage.recipient_id == actor_id)))
         if before is not None:

@@ -18,9 +18,10 @@ PASSWORD = "initial-password-123"
 def mailbox(settings, local_redis_url, monkeypatch):
     settings.redis_url = SecretStr(local_redis_url)
     settings.email = "sender@example.com"
-    settings.password = SecretStr("test-smtp-secret")
-    smtp = Mock()
-    monkeypatch.setattr("backend.infra.connections.email.yagmail.SMTP", Mock(return_value=smtp))
+    settings.password = SecretStr("test-admin-password")
+    resend = Mock()
+    resend.post.return_value = Mock(status_code=200, json=Mock(return_value={"id": "email-id"}))
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(return_value=resend))
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     app = create_app(settings)
     with TestClient(app) as client:
@@ -33,18 +34,18 @@ def mailbox(settings, local_redis_url, monkeypatch):
         app.state.services.email.send = tracked_send
         assert verified_register(client, headers=ORIGIN, json={"name": "Ana", "phone": "11999999999",
                            "email": EMAIL, "password": PASSWORD}).status_code == 201
-        yield client, smtp, futures
+        yield client, resend, futures
 
 
-def code_from_mail(smtp, futures):
+def code_from_mail(resend, futures):
     for future in futures:
         future.result(timeout=5)
-    messages = [call.kwargs for call in smtp.send.call_args_list
-                if call.kwargs["subject"].startswith("Código")]
+    messages = [call.kwargs["json"] for call in resend.post.call_args_list
+                if call.kwargs["json"]["subject"].startswith("Código")]
     assert len(messages) == 1
-    assert messages[0]["to"] == EMAIL
-    assert type(messages[0]["contents"]).__name__ == "raw"
-    return re.search(r"[0-9]{8}", str(messages[0]["contents"])).group()
+    assert messages[0]["to"] == [EMAIL]
+    assert isinstance(messages[0]["text"], str)
+    return re.search(r"[0-9]{8}", messages[0]["text"]).group()
 
 
 def login(client):
@@ -91,7 +92,8 @@ def test_recovery_email_thread_redis_and_single_use(mailbox):
     assert client.get("/auth/me").status_code == 401
     client.cookies.clear()
     assert client.post("/auth/login", headers=ORIGIN, json={"email": EMAIL, "password": "changed-password-123"}).status_code == 200
-    assert any(call.kwargs["subject"] == "Cadastro Nexo recebido" for call in smtp.send.call_args_list)
+    assert any(call.kwargs["json"]["subject"] == "Cadastro Nexo recebido"
+               for call in smtp.post.call_args_list)
 
 
 def test_recovery_errors_do_not_echo_secrets_and_fail_closed(mailbox, monkeypatch):

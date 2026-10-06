@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
@@ -77,6 +77,23 @@ class ClientRepository(Repository[Client]):
         closed = self.session.scalar(select(func.coalesce(func.sum(Client.contract_value), 0)).where(
             Client.contract_closed.is_(True))) or 0
         return float(total), float(closed)
+
+    def dashboard_metrics(self, start, end) -> tuple[int, float, float, dict[str, int], dict[str, int]]:
+        """Return all client aggregates for the overview in three SQL queries."""
+        totals = self.session.execute(select(
+            func.count(Client.id),
+            func.coalesce(func.sum(Client.contract_value), 0),
+            func.coalesce(func.sum(case((Client.contract_closed.is_(True), Client.contract_value), else_=0)), 0),
+        )).one()
+        funnel = {stage: int(count) for stage, count in self.session.execute(
+            select(Client.pipeline_stage, func.count()).group_by(Client.pipeline_stage)
+        )}
+        months = {month: int(count) for month, count in self.session.execute(
+            select(func.strftime("%Y-%m", Client.created_at), func.count()).where(
+                Client.contract_closed.is_(True), Client.created_at >= start, Client.created_at < end,
+            ).group_by(func.strftime("%Y-%m", Client.created_at))
+        )}
+        return int(totals[0] or 0), float(totals[1] or 0), float(totals[2] or 0), funnel, months
 
     def transfer_creator(self, previous_id, owner_id):
         result = self.session.execute(update(Client).where(Client.created_by_id == previous_id).values(

@@ -10,7 +10,7 @@ from backend.service.approvals import ApprovalPermissionError, ApprovalService
 def test_notification_targets_principal_admin():
     repos = Mock()
     repos.users.principal_admin.return_value = SimpleNamespace(id="owner", status="approved")
-    user = SimpleNamespace(id="member", status="pending", role="member")
+    user = SimpleNamespace(id="member", name="Ana", status="pending", role="member")
     ApprovalService.notify_registration(repos, user)
     repos.notifications.ensure_approval_request.assert_called_once_with(
         recipient_id="owner", requested_user_id="member")

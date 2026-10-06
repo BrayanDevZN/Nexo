@@ -8,7 +8,7 @@ from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.documents import DocumentStorage
-from backend.infra.connections.email import GmailConnection
+from backend.infra.connections.email import ResendConnection
 from backend.infra.connections.google import GoogleConnection
 from backend.infra.connections.photos import PhotoStorage
 from backend.infra.connections.realtime import RealtimeConnection
@@ -54,7 +54,7 @@ class RuntimeServices:
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.clients = ClientService(self.repositories, self.cached_repositories)
-            self.dashboard = DashboardService(self.repositories, self.cached_repositories)
+            self.dashboard = DashboardService(self.repositories, self.cache)
             self.documents = DocumentService(self.repositories, self.cached_repositories,
                                              DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
@@ -76,7 +76,7 @@ class RuntimeServices:
                                      expire_minutes=settings.jwt_expire_minutes)
             self.sessions = SessionSecurity(self.tokens, self.repositories)
             self.csrf = CSRFService(settings.jwt_secret_key.get_secret_value())
-            self.email = GmailConnection(settings)
+            self.email = ResendConnection(settings)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
             self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages)

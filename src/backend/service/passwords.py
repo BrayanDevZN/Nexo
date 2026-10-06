@@ -16,7 +16,7 @@ class PasswordService:
         self.codes, self.code_repository, self.sender = codes, code_repository, sender
 
     def change(self, actor, current_password, new_password):
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             user = repos.users.get(actor.id)
             if (user is None or user.session_version != actor.session_version
                     or user.status == "rejected"):
@@ -32,7 +32,7 @@ class PasswordService:
         if not self.sender.configured:
             raise EmailUnavailableError("Email recovery is unavailable")
         email = email.strip().lower()
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             user = repos.users.by_email(email)
         eligible = user is not None and user.password_hash is not None and user.status != "rejected"
         code = self.codes.create()

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from sqlalchemy import func, select, update
+from sqlalchemy.orm import load_only
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import User
@@ -27,17 +30,43 @@ class UserRepository(Repository[User]):
         query = select(User).where(User.role == "admin")
         if self.principal_email:
             query = query.where(User.email == self.principal_email)
-        return self.session.scalar(query.order_by(User.created_at, User.id))
+        return self.session.scalar(query.options(load_only(
+            User.id, User.email, User.status, User.role, User.created_at,
+        )).order_by(User.created_at, User.id))
 
     def by_google_sub(self, subject: str) -> User | None:
         return self.session.scalar(select(User).where(User.google_sub == subject))
 
     def list(self, *, status: str | None = None, limit: int = 50, offset: int = 0) -> list[User]:
         pagination(limit, offset)
-        query = select(User).order_by(User.created_at, User.id)
+        # Member listings never need password, provider identity or profile
+        # image bytes.  Avoid pulling BLOBs just to render a name/avatar flag.
+        query = select(User).options(load_only(
+            User.id, User.name, User.email, User.phone, User.profile_photo,
+            User.status, User.role, User.created_at, User.updated_at,
+        )).order_by(User.created_at, User.id)
         if status is not None:
             query = query.where(User.status == status)
         return list(self.session.scalars(query.limit(limit).offset(offset)))
+
+    def names_by_ids(self, identifiers) -> dict[str, str]:
+        """Fetch creator names in one query instead of an N+1 lookup loop."""
+        values = sorted({str(identifier) for identifier in identifiers if identifier})
+        if not values:
+            return {}
+        return dict(self.session.execute(
+            select(User.id, User.name).where(User.id.in_(values))
+        ).all())
+
+    def approved_recipients(self) -> list[User]:
+        """Minimal rows needed to fan out an announcement after the commit."""
+        query = select(User).options(load_only(User.id, User.email)).where(User.status == "approved")
+        return list(self.session.scalars(query))
+
+    def approved_member_ids(self) -> list[str]:
+        return list(self.session.scalars(select(User.id).where(
+            User.status == "approved", User.role == "member",
+        )))
 
 
     def count(self, *, status: str | None = None) -> int:

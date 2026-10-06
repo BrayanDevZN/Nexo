@@ -11,7 +11,7 @@ from backend.service.account_deletion import AccountDeletionService, DeletionCod
 def service():
     repos = MagicMock()
     actor = SimpleNamespace(id="member", email="ana@example.com", session_version=0, status="pending")
-    db = repos.transaction.return_value.__enter__.return_value
+    db = repos.read_transaction.return_value.__enter__.return_value
     db.users.get.return_value = actor
     db.users.principal_admin.return_value = None
     done = Future()

@@ -9,8 +9,8 @@ from backend.service.registration import RegistrationCodeError, RegistrationServ
 
 def test_request_stores_only_password_hash_and_defers_user_creation():
     auth = Mock()
-    auth.repositories.transaction = MagicMock()
-    auth.repositories.transaction.return_value.__enter__.return_value.users.by_email.return_value = None
+    auth.repositories.read_transaction = MagicMock()
+    auth.repositories.read_transaction.return_value.__enter__.return_value.users.by_email.return_value = None
     auth.passwords.hash.return_value = "bcrypt-hash"
     codes = Mock()
     codes.create.return_value = "12345678"
@@ -42,8 +42,8 @@ def test_invalid_code_never_creates_account():
 
 def test_failed_delivery_invalidates_pending_code():
     auth = Mock()
-    auth.repositories.transaction = MagicMock()
-    auth.repositories.transaction.return_value.__enter__.return_value.users.by_email.return_value = None
+    auth.repositories.read_transaction = MagicMock()
+    auth.repositories.read_transaction.return_value.__enter__.return_value.users.by_email.return_value = None
     codes, repo = Mock(), Mock(ttl=600)
     codes.create.return_value = "12345678"
     failed = Future()
@@ -59,7 +59,7 @@ def test_failed_delivery_invalidates_pending_code():
 
 def test_delivery_timeout_does_not_report_success():
     auth = MagicMock()
-    auth.repositories.transaction.return_value.__enter__.return_value.users.by_email.return_value = None
+    auth.repositories.read_transaction.return_value.__enter__.return_value.users.by_email.return_value = None
     codes, repo = Mock(), Mock(ttl=600)
     codes.create.return_value = "12345678"
     sender = Mock(configured=True, send=Mock(return_value=Future()))

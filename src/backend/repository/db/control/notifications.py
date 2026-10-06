@@ -27,6 +27,27 @@ class NotificationRepository(Repository[Notification]):
                                      body=f"{member_name} criou uma conta e aguarda aprovação.",
                                      recipient_id=recipient_id, requested_user_id=member_id))
 
+    def create_announcements(self, *, announcement_id: str, recipient_ids,
+                             creator_id: str, title: str, body: str) -> list[Notification]:
+        rows = [Notification(kind="announcement", announcement_id=announcement_id,
+                             title=title, body=body, recipient_id=identifier,
+                             requested_user_id=creator_id) for identifier in recipient_ids]
+        if rows:
+            self.session.add_all(rows)
+            self.session.flush()
+        return rows
+
+    def create_member_joined_many(self, *, recipient_ids, member_id: str,
+                                   member_name: str) -> list[Notification]:
+        rows = [Notification(kind="member_joined", title="Novo membro na equipe",
+                             body=f"{member_name} criou uma conta e aguarda aprovação.",
+                             recipient_id=identifier, requested_user_id=member_id)
+                for identifier in recipient_ids]
+        if rows:
+            self.session.add_all(rows)
+            self.session.flush()
+        return rows
+
     def list_for_recipient(self, recipient_id: str, *, unresolved_only: bool = False,
                            kind: str | None = None, limit: int = 50, offset: int = 0) -> list[Notification]:
         pagination(limit, offset)

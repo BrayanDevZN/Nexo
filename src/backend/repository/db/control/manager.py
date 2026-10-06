@@ -40,6 +40,17 @@ class RepositoryManager:
             event.listen(session, "before_flush", track_changes)
             yield Repositories(session, self.principal_email)
         if self.cache is not None:
-            self.cache.invalidate(changed)  # reached only after successful SQL commit
+            invalidations = set(changed)
+            # The overview is a cross-table projection.  Its cache must be
+            # invalidated together with any table it summarizes.
+            if changed & {"users", "clients", "notifications", "documents"}:
+                invalidations.add("dashboard")
+            self.cache.invalidate(invalidations)  # reached only after successful SQL commit
         if changed and self.on_change:
             self.on_change(changed)
+
+    @contextmanager
+    def read_transaction(self):
+        """Yield repositories for a read path without committing a SQLite transaction."""
+        with self.database.read_session() as session:
+            yield Repositories(session, self.principal_email)

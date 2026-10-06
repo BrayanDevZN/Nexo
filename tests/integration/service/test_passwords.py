@@ -18,7 +18,7 @@ def runtime(settings, local_redis_url, monkeypatch):
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     service = RuntimeServices(settings)
     service.initialize(settings)
-    # Sender mock preserves the asynchronous Future contract without contacting Gmail.
+    # Sender mock preserves the asynchronous Future contract without contacting Resend.
     done = Future()
     done.set_result(None)
     service.email.send = Mock(return_value=done)

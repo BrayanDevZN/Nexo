@@ -26,7 +26,7 @@ class RealtimeService:
     def authenticate(self, payload):
         if not payload or payload["expires_at"] <= time.time():
             raise AuthenticationError("Expired realtime session")
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             return authorize(repos, SimpleNamespace(id=payload["id"], session_version=payload["session_version"]))
 
     def check_rate(self, user_id):

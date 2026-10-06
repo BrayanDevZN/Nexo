@@ -4,7 +4,13 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.domain.chat import normalize_media
 from backend.repository.cache.queries import snapshot
-from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound, authorize
+from backend.service.access import (
+    AccessDenied,
+    ResourceConflict,
+    ResourceNotFound,
+    authorize,
+    authorize_read,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +21,16 @@ class ChatService:
         self.storage, self.events, self.settings = storage, events, settings
 
     @staticmethod
-    def participants(repos, actor, member_id):
-        user = authorize(repos, actor, approved=True)
+    def participants(repos, actor, member_id, *, read=False):
+        user = authorize_read(repos, actor, approved=True) if read else authorize(repos, actor, approved=True)
         recipient = repos.users.get(member_id)
         if recipient is None or recipient.status != "approved" or recipient.id == user.id:
             raise ResourceNotFound("Approved member not found")
         return user, recipient
 
     def history(self, actor, member_id, *, before=None, limit=50):
-        with self.cached_repositories.transaction() as repos:
-            self.participants(repos.db, actor, member_id)
+        with self.cached_repositories.read_transaction() as repos:
+            self.participants(repos.db, actor, member_id, read=True)
             return repos.chat_messages.list(actor_id=actor.id, member_id=member_id, before=before, limit=limit)
 
     @staticmethod
@@ -67,8 +73,8 @@ class ChatService:
         return row
 
     def upload(self, actor, member_id, client_id, kind, media_type, data):
-        with self.repositories.transaction() as repos:
-            self.participants(repos, actor, member_id)
+        with self.repositories.read_transaction() as repos:
+            self.participants(repos, actor, member_id, read=True)
         data, media_type = normalize_media(kind, media_type, data, self.settings)
         key = self.storage.write(data)
         try:
@@ -83,8 +89,8 @@ class ChatService:
         return row
 
     def media(self, actor, identifier):
-        with self.repositories.transaction() as repos:
-            user = authorize(repos, actor, approved=True)
+        with self.repositories.read_transaction() as repos:
+            user = authorize_read(repos, actor, approved=True)
             row = repos.chat_messages.get(identifier)
             if row is None or not row.storage_key:
                 raise ResourceNotFound("Media not found")

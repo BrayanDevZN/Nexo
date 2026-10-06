@@ -1,4 +1,4 @@
-from backend.service.access import ResourceNotFound, authorize
+from backend.service.access import ResourceNotFound, authorize, authorize_read
 
 
 class ClientService:
@@ -7,17 +7,23 @@ class ClientService:
 
     @staticmethod
     def with_creator(repos, row):
-        user = repos.users.get(row["created_by_id"])
-        return {**row, "created_by_name": user["name"] if user else "Membro removido"}
+        return ClientService.with_creators(repos, [row])[0]
+
+    @staticmethod
+    def with_creators(repos, rows):
+        """Add creator names with one indexed query for the whole page."""
+        names = repos.db.users.names_by_ids(row["created_by_id"] for row in rows)
+        return [{**row, "created_by_name": names.get(row["created_by_id"], "Membro removido")}
+                for row in rows]
 
     def list(self, actor, **filters):
-        with self.cached_repositories.transaction() as repos:
-            authorize(repos.db, actor, approved=True)
-            return [self.with_creator(repos, row) for row in repos.clients.list(**filters)]
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            return self.with_creators(repos, repos.clients.list(**filters))
 
     def get(self, actor, identifier):
-        with self.cached_repositories.transaction() as repos:
-            authorize(repos.db, actor, approved=True)
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
             client = repos.clients.get(identifier)
             if client is None:
                 raise ResourceNotFound("Client not found")

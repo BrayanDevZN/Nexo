@@ -1,9 +1,8 @@
 import logging
-import smtplib
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import BoundedSemaphore, Lock
 
-import yagmail
+import httpx
 from pydantic import EmailStr, TypeAdapter
 
 from backend.infra.config.settings import Settings
@@ -22,10 +21,19 @@ class EmailQueueFullError(RuntimeError):
     pass
 
 
-class GmailConnection:
-    """Bounded in-process delivery; one SMTP connection per task, never shared."""
+class ResendConnection:
+    """Bounded in-process delivery through Resend's HTTPS API."""
     def __init__(self, settings: Settings):
         self.settings = settings
+        self._client = httpx.Client(
+            base_url="https://api.resend.com", timeout=settings.email_timeout_seconds,
+            trust_env=False,
+            headers={
+                "Authorization": "Bearer " + (settings.resend_key.get_secret_value()
+                                                if settings.resend_key else ""),
+                "Content-Type": "application/json",
+            },
+        )
         self._executor = ThreadPoolExecutor(
             max_workers=settings.email_max_workers, thread_name_prefix="nexo-email",
         )
@@ -35,11 +43,11 @@ class GmailConnection:
 
     @property
     def configured(self) -> bool:
-        return bool(self.settings.email and self.settings.password)
+        return bool(self.settings.email and self.settings.resend_key)
 
     def send(self, recipient: str, subject: str, body: str) -> Future:
         if not self.configured:
-            raise EmailUnavailableError("Gmail credentials are not configured")
+            raise EmailUnavailableError("Resend credentials are not configured")
         recipient = str(address.validate_python(recipient))
         if not subject or "\r" in subject or "\n" in subject:
             raise ValueError("Subject must be nonempty and contain no line breaks")
@@ -57,39 +65,25 @@ class GmailConnection:
         return future
 
     def _deliver(self, recipient: str, subject: str, body: str):
-        smtp = None
         try:
-            smtp = yagmail.SMTP(
-                user=str(self.settings.email),
-                password=self.settings.password.get_secret_value(),
-                host="smtp.gmail.com", port=465, smtp_ssl=True,
-                timeout=self.settings.email_timeout_seconds,
-            )
-            # raw prevents user content from being interpreted as local attachments.
-            smtp.send(to=recipient, subject=subject, contents=yagmail.raw(body))
+            response = self._client.post("/emails", json={
+                "from": str(self.settings.email), "to": [recipient],
+                "subject": subject, "text": body,
+            })
+            if 200 <= response.status_code < 300:
+                return response.json()
+            status = response.status_code
+            category = ("authentication" if status in {401, 403} else
+                        "rate_limit" if status == 429 else
+                        "recipient_rejected" if 400 <= status < 500 else "provider")
+            raise EmailUnavailableError("Resend delivery failed", category=category,
+                                        smtp_code=status if 100 <= status <= 599 else None)
+        except EmailUnavailableError:
+            raise
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError, OSError) as error:
+            raise EmailUnavailableError("Resend delivery failed", category="network") from error
         except Exception as error:
-            # Never log recipient, body, credentials or raw SMTP exception text.
-            if isinstance(error, smtplib.SMTPAuthenticationError):
-                category = "authentication"
-            elif isinstance(error, smtplib.SMTPRecipientsRefused):
-                category = "recipient_rejected"
-            elif isinstance(error, smtplib.SMTPException):
-                category = "smtp"
-            elif isinstance(error, (TimeoutError, ConnectionError, OSError)):
-                category = "network"
-            else:
-                category = "unexpected"
-            smtp_code = getattr(error, "smtp_code", None)
-            if not isinstance(smtp_code, int) or not 100 <= smtp_code <= 599:
-                smtp_code = None
-            raise EmailUnavailableError("Gmail delivery failed", category=category,
-                                        smtp_code=smtp_code) from error
-        finally:
-            if smtp is not None:
-                try:
-                    smtp.close()
-                except Exception:
-                    logger.warning("SMTP connection cleanup failed")
+            raise EmailUnavailableError("Resend delivery failed", category="unexpected") from error
 
     def _finished(self, future: Future) -> None:
         self._slots.release()
@@ -102,3 +96,8 @@ class GmailConnection:
         with self._lock:
             self._closed = True
         self._executor.shutdown(wait=True, cancel_futures=False)
+        self._client.close()
+
+
+# Source-compatible alias; the implementation no longer uses SMTP or yagmail.
+GmailConnection = ResendConnection

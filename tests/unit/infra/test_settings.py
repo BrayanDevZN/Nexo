@@ -47,6 +47,7 @@ def test_secret_values_are_not_exposed_in_repr():
 def test_production_configuration():
     values = dict(environment="production", cookie_secure=True,
                   email="admin@example.com", password="long-admin-password",
+                  resend_key="test-resend-key",
                   frontend_url="https://example.com", cors_origins=["https://example.com"])
     assert config(**values).environment == "production"
     values["cookie_secure"] = False

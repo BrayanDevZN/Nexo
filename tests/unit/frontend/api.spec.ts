@@ -25,6 +25,24 @@ test("credentials stay in cookies and CSRF precedes mutations", async () => {
   expect(new Headers(calls[1].init.headers).has("Authorization")).toBe(false);
 });
 
+test("reuses GET and CSRF work briefly, then invalidates reads after a mutation", async () => {
+  const calls: string[] = [];
+  const fake: typeof fetch = async input => {
+    const url = String(input); calls.push(url);
+    if (url.endsWith("/auth/csrf")) return Response.json({ csrf_token: "csrf" });
+    if (url.endsWith("/clients")) return Response.json([]);
+    return new Response(null, { status: 204 });
+  };
+  const api = createApi("/api", fake);
+  await Promise.all([api.request("/clients"), api.request("/clients")]);
+  expect(calls.filter(url => url.endsWith("/clients"))).toHaveLength(1);
+  await api.mutate("/clients/id", "DELETE");
+  await api.mutate("/documents/id", "DELETE");
+  expect(calls.filter(url => url.endsWith("/auth/csrf"))).toHaveLength(1);
+  await api.request("/clients");
+  expect(calls.filter(url => url.endsWith("/clients"))).toHaveLength(2);
+});
+
 test("OAuth completion uses its own CSRF and uploads preserve multipart", async () => {
   const calls: RequestInit[] = [];
   const fake: typeof fetch = async (_, init) => { calls.push(init!); return Response.json({}); };

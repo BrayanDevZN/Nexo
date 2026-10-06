@@ -19,7 +19,7 @@ class AccountDeletionService:
         self.delivery_timeout = delivery_timeout
 
     def _user(self, actor):
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             user = authorize(repos, actor)
             principal = repos.users.principal_admin()
             if principal and principal.id == user.id:

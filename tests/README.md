@@ -8,7 +8,7 @@ Execute na raiz: `REDIS_TEST_URL=redis://127.0.0.1:6379/15 python -m pytest test
 - `functional/system`: ciclo completo de conta aprovada, clientes, perfil, senha e logout.
 
 SQLite e arquivos são temporários; Redis é local real. Google usa identidades
-sintéticas e endpoints simulados; yagmail usa SMTP mockado com threads reais.
+identidades sintéticas e endpoints simulados; Resend é mockado com threads reais.
 Não use Redis de produção: o fixture aceita apenas hosts locais/de CI.
 Sem REDIS_TEST_URL os testes dependentes de Redis são pulados; CI define a variável.
 

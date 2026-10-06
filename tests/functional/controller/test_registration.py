@@ -22,8 +22,9 @@ def test_email_confirmation_precedes_creation_notification_and_login(
     settings.redis_url = SecretStr(local_redis_url)
     settings.email = "owner@example.com"
     settings.password = SecretStr("initial-admin-password")
-    smtp = Mock()
-    monkeypatch.setattr("backend.infra.connections.email.yagmail.SMTP", Mock(return_value=smtp))
+    resend = Mock()
+    resend.post.return_value = Mock(status_code=200, json=Mock(return_value={"id": "email-id"}))
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(return_value=resend))
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     with TestClient(create_app(settings)) as client:
         services = client.app.state.services
@@ -50,9 +51,9 @@ def test_email_confirmation_precedes_creation_notification_and_login(
             ).status_code
             == 401
         )
-        mail = smtp.send.call_args_list[0].kwargs
-        assert mail["to"] == DATA["email"]
-        code = re.search(r"[0-9]{8}", str(mail["contents"])).group()
+        mail = resend.post.call_args_list[0].kwargs["json"]
+        assert mail["to"] == [DATA["email"]]
+        code = re.search(r"[0-9]{8}", mail["text"]).group()
         repository = services.registration.repository
         cached = str(repository.redis.hgetall(repository.key(DATA["email"])))
         assert DATA["password"] not in cached and code not in cached
@@ -98,16 +99,17 @@ def test_smtp_failure_returns_503_and_allows_retry(settings, local_redis_url, mo
     settings.redis_url = SecretStr(local_redis_url)
     settings.email = "owner@example.com"
     settings.password = SecretStr("initial-admin-password")
-    smtp = Mock()
-    smtp.send.side_effect = TimeoutError("private-smtp-error")
-    monkeypatch.setattr("backend.infra.connections.email.yagmail.SMTP", Mock(return_value=smtp))
+    resend = Mock()
+    resend.post.side_effect = TimeoutError("private-resend-error")
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(return_value=resend))
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     with TestClient(create_app(settings)) as client:
         response = client.post("/auth/register", headers=ORIGIN, json=DATA)
-        assert response.status_code == 503 and "private-smtp-error" not in response.text
+        assert response.status_code == 503 and "private-resend-error" not in response.text
         repo = client.app.state.services.registration.repository
         assert not repo.redis.exists(repo.key(DATA["email"]))
         assert not repo.redis.exists(repo.key(DATA["email"]) + ":cooldown")
-        smtp.send.side_effect = None
+        resend.post.side_effect = None
+        resend.post.return_value = Mock(status_code=200, json=Mock(return_value={"id": "email-id"}))
         assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 202
         assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 429

@@ -1,4 +1,5 @@
 from sqlalchemy import func, select, update
+from sqlalchemy.orm import load_only
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Document
@@ -13,8 +14,13 @@ class DocumentRepository(Repository[Document]):
 
     def list(self, *, limit=50, offset=0):
         pagination(limit, offset)
-        return list(self.session.scalars(select(Document).order_by(Document.created_at.desc(), Document.id)
-                                        .limit(limit).offset(offset)))
+        # content is stored in SQLite for portable volumes but is only needed
+        # by download.  Listing must not read every BLOB in the page.
+        query = select(Document).options(load_only(
+            Document.id, Document.filename, Document.size, Document.created_by_id,
+            Document.created_at, Document.updated_at,
+        )).order_by(Document.created_at.desc(), Document.id)
+        return list(self.session.scalars(query.limit(limit).offset(offset)))
 
     def count(self) -> int:
         return int(self.session.scalar(select(func.count()).select_from(Document)) or 0)

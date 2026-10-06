@@ -8,7 +8,7 @@ from backend.repository.cache.aside import CacheAside
 
 def test_redis_failure_falls_back_to_database_without_hiding_db_failure():
     redis = Mock()
-    redis.get.side_effect = ConnectionError("secret")
+    redis.eval.side_effect = ConnectionError("secret")
     cache = CacheAside(redis, ttl=30, prefix="unit")
     loader = Mock(return_value={"id": "one"})
     assert cache.read("users", {}, loader) == {"id": "one"}
@@ -21,19 +21,27 @@ def test_cached_none_and_empty_list_are_hits():
     redis = Mock()
     cache = CacheAside(redis, ttl=30, prefix="unit")
     for value in ["null", "[]"]:
-        redis.get.side_effect = ["0", '{"schema":1,"value":' + value + '}']
+        redis.eval.return_value = ["0", '{"schema":1,"value":' + value + '}']
         loader = Mock()
         assert cache.read("users", {}, loader) in [None, []]
         loader.assert_not_called()
 
 
+def test_cache_hit_uses_one_redis_round_trip():
+    redis = Mock()
+    redis.eval.return_value = ["7", '{"schema":1,"value":{"id":"one"}}']
+    cache = CacheAside(redis, ttl=30, prefix="unit")
+    assert cache.read("users", {"id": "one"}, Mock()) == {"id": "one"}
+    redis.eval.assert_called_once()
+
+
 def test_corrupt_cache_is_reloaded():
     redis = Mock()
-    redis.get.side_effect = ["0", "corrupt-json"]
+    redis.eval.side_effect = [["0", "corrupt-json"], 1]
     loader = Mock(return_value=[])
     cache = CacheAside(redis, ttl=30, prefix="unit")
     assert cache.read("clients", {}, loader) == []
-    redis.eval.assert_called_once()
+    assert redis.eval.call_count == 2
 
 
 def test_cache_key_is_canonical_and_does_not_expose_filter_values():

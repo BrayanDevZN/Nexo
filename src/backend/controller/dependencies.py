@@ -1,12 +1,15 @@
 from fastapi import HTTPException, Request
 
+from backend.service.access import REQUEST_AUTHENTICATED
 from backend.service.security import AuthenticationError
 
 
 def current_user(request: Request):
     token = request.cookies.get(request.app.state.settings.auth_cookie_name, "")
     try:
-        return request.app.state.services.sessions.authenticate(token)
+        user = request.app.state.services.sessions.authenticate(token)
+        setattr(user, REQUEST_AUTHENTICATED, True)
+        return user
     except AuthenticationError:
         raise HTTPException(status_code=401, detail="Invalid or expired session") from None
 

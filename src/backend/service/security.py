@@ -21,7 +21,7 @@ class SessionSecurity:
         except InvalidTokenError:
             raise AuthenticationError("Invalid or expired session") from None
         # Authoritative SQL read: cached snapshots cannot authorize a session.
-        with self.repositories.transaction() as repos:
+        with self.repositories.read_transaction() as repos:
             user = repos.users.get(claims.user_id)
             if (user is None or user.session_version != claims.session_version
                     or user.status not in {"pending", "approved"}):

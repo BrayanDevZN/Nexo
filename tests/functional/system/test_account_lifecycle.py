@@ -1,4 +1,4 @@
-"""Complete browser-cookie lifecycle using real SQLite/Redis and mocked SMTP."""
+"""Complete browser-cookie lifecycle using real SQLite/Redis and mocked Resend."""
 import re
 from io import BytesIO
 from unittest.mock import Mock
@@ -44,8 +44,9 @@ def test_complete_approved_member_lifecycle(settings, local_redis_url, tmp_path,
     settings.password = SecretStr(ADMIN["password"])
     settings.upload_dir = tmp_path / "photos"
     settings.auth_rate_limit = 30
-    smtp = Mock()
-    monkeypatch.setattr("backend.infra.connections.email.yagmail.SMTP", Mock(return_value=smtp))
+    resend = Mock()
+    resend.post.return_value = Mock(status_code=200, json=Mock(return_value={"id": "email-id"}))
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(return_value=resend))
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     app = create_app(settings)
     with TestClient(app, base_url="https://api.example.com") as client:
@@ -108,10 +109,10 @@ def test_complete_approved_member_lifecycle(settings, local_redis_url, tmp_path,
                            json={"email": MEMBER["email"]}).status_code == 202
         for future in futures:
             future.result(timeout=5)
-        messages = [call.kwargs for call in smtp.send.call_args_list
-                    if call.kwargs["subject"].startswith("Código")]
+        messages = [call.kwargs["json"] for call in resend.post.call_args_list
+                    if call.kwargs["json"]["subject"].startswith("Código")]
         assert len(messages) == 1
-        code = re.search(r"[0-9]{8}", str(messages[0]["contents"])).group()
+        code = re.search(r"[0-9]{8}", messages[0]["text"]).group()
         recovered = "recovered-member-password"
         payload = {"email": MEMBER["email"], "code": code, "new_password": recovered}
         assert client.post("/auth/password/recovery/confirm", headers=ORIGIN, json=payload).status_code == 204

@@ -11,3 +11,8 @@ class CachedRepositoryManager:
     def transaction(self):
         with self.repositories.transaction() as repositories:
             yield CachedRepositories(repositories, self.cache, repositories.users.session)
+
+    @contextmanager
+    def read_transaction(self):
+        with self.repositories.read_transaction() as repositories:
+            yield CachedRepositories(repositories, self.cache, repositories.users.session)

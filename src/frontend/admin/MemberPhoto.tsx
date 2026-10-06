@@ -7,7 +7,10 @@ export function MemberPhoto({ api, id, name, hasPhoto }: { api: ReturnType<typeo
   useEffect(() => {
     let active = true; let objectUrl = "";
     setUrl("");
-    void api.file("/members/" + encodeURIComponent(id) + "/photo?v=" + Date.now()).then(blob => {
+    // Members without a photo used to create a guaranteed 404 request every
+    // time a list was rendered, and the cache-busting query prevented reuse.
+    if (!hasPhoto) return () => { active = false; };
+    void api.file("/members/" + encodeURIComponent(id) + "/photo").then(blob => {
       if (active) { objectUrl = URL.createObjectURL(blob); setUrl(objectUrl); }
     }).catch(() => {});
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };

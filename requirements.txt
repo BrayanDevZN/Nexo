@@ -6,7 +6,6 @@ sqlalchemy>=2.0,<3
 redis>=5,<8
 bcrypt>=4,<6
 PyJWT>=2.10,<3
-yagmail>=0.15,<1
 authlib>=1.4,<2
 httpx>=0.28,<1
 python-multipart>=0.0.20,<1

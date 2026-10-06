@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, LargeBinary, String
+from sqlalchemy import ForeignKey, Index, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
@@ -6,6 +6,7 @@ from backend.repository.db.models.base import Base, IdentityTimestampMixin
 
 class Document(IdentityTimestampMixin, Base):
     __tablename__ = "documents"
+    __table_args__ = (Index("document_created_at_id", "created_at", "id"),)
     filename: Mapped[str] = mapped_column(String(180), nullable=False)
     storage_key: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
     content: Mapped[bytes | None] = mapped_column(LargeBinary)
