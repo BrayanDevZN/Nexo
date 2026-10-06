@@ -47,6 +47,7 @@ def test_client_queries_invalidate_after_mutations_and_recheck_permissions(runti
     assert service.clients.list(actor, contract_closed=False) == []
     assert service.clients.get(actor, row.id)["contract_closed"] is True
     saved = service.clients.get(actor, row.id)
+    assert saved["contract_closed_at"] is not None
     assert saved["pain"] == "Baixa geração de leads"
     assert saved["approach"] == "Contato consultivo por telefone"
     service.clients.update(actor, row.id, pain="Poucos clientes", approach="Agendar uma demonstração")
@@ -56,6 +57,7 @@ def test_client_queries_invalidate_after_mutations_and_recheck_permissions(runti
     service.clients.update(actor, row.id, contract_closed=False)
     cancelled = service.clients.get(actor, row.id)
     assert cancelled["contract_closed"] is False
+    assert cancelled["contract_closed_at"] is None
     assert cancelled["pipeline_stage"] == "lost"
     titles = [notice["title"] for notice in service.announcements.list_for_user(actor)]
     assert titles.count("Novo cliente cadastrado") == 1
