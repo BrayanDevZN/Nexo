@@ -36,6 +36,11 @@ export default function AdminApp() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [chatMember, setChatMember] = useState<string>();
   const [hasRequests, setHasRequests] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState({ total: 0, chat_messages: 0 });
+  const refreshUnreadCounts = useCallback(async () => {
+    try { setUnreadCounts(await api.request<{ total: number; chat_messages: number }>("/notifications/unread-count")); }
+    catch (e) { if (e instanceof ApiError && e.status === 401) setUnreadCounts({ total: 0, chat_messages: 0 }); }
+  }, []);
   const [loggingOut, setLoggingOut] = useState(false);
   const complete = window.location.pathname.replace(/\/$/, "") === "/admin/complete-profile";
   const refresh = useCallback(async () => {
@@ -52,7 +57,7 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
   useEffect(() => {
-    const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
+    const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
     window.addEventListener("nexo:session-expired", expired);
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
@@ -60,11 +65,16 @@ export default function AdminApp() {
     if (["notifications.changed", "account.changed"].includes(value.type)) api.invalidate();
     window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
     if (["ready", "account.changed"].includes(value.type)) void refresh();
+    if (["ready", "notifications.changed", "chat.message"].includes(value.type)) void refreshUnreadCounts();
     if (["ready", "notifications.changed"].includes(value.type) && user?.role === "admin" && user.status === "approved") void requests();
     if (value.type === "chat.message" && value.message && value.message.recipient_id === user?.id && (page !== "chat" || activeChat !== value.message.sender_id)) setIncoming(value.message);
-  }, [refresh, requests, user?.id, user?.role, user?.status, page, activeChat]);
+  }, [refresh, requests, refreshUnreadCounts, user?.id, user?.role, user?.status, page, activeChat]);
   const realtime = useRealtime(api, user, event);
   useEffect(() => { if (user?.role === "admin" && user.status === "approved") void requests(); }, [user?.id, user?.role, user?.status, requests]);
+  useEffect(() => {
+    if (user?.status === "approved") void refreshUnreadCounts();
+    else setUnreadCounts({ total: 0, chat_messages: 0 });
+  }, [user?.id, user?.status, refreshUnreadCounts]);
   useEffect(() => {
     if (user?.status !== "approved") return;
     // Warm the overview while Clientes is visible.  Navigation to Início can
@@ -79,7 +89,7 @@ export default function AdminApp() {
   }
   async function logout() {
     setLoggingOut(true); setError("");
-    try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
+    try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
   if (loading) return <main className="admin-loading"><Loading /></main>;
@@ -93,9 +103,9 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
         {user.status === "approved" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {user.status === "approved" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
-        {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {incoming && <Badge>Nova</Badge>}</Button>}
+        {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
         {user.role === "admin" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
-        {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos</Button>}
+        {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.total > 0 && <Badge>{unreadCounts.total}</Badge>}</Button>}
         {user.role === "admin" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
         {user.status === "approved" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> Chaves de API</Button>}
@@ -126,8 +136,8 @@ export default function AdminApp() {
           page === "home" ? <Home api={api} user={user} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
-          page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} /> :
-          page === "announcements" ? <Announcements api={api} user={user} /> :
+          page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
+          page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
