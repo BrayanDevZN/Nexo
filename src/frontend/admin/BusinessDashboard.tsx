@@ -13,7 +13,7 @@ type Period = "30" | "90" | "365" | "all";
 type Bucket = { key: string; label: string; leads: number; won: number };
 type MemberMetric = { id: string; name: string; leads: number; won: number; value: number };
 
-const currency = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const currency = (value: number | string) => Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const shortDate = (value: string) => new Date(value).toLocaleDateString("pt-BR");
 
 export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }) {
@@ -65,7 +65,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       item.leads += 1;
       if (row.pipeline_stage === "won" || row.contract_closed) {
         item.won += 1;
-        item.value += row.contract_value || 0;
+        item.value += Number(row.contract_value || 0);
       }
       grouped.set(row.created_by_id, item);
     }
@@ -113,9 +113,9 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   const maxLeads = Math.max(1, ...buckets.map(item => item.leads));
   const maxMemberLeads = Math.max(1, ...members.map(item => item.leads));
   const wonCount = filtered.filter(row => row.pipeline_stage === "won" || row.contract_closed).length;
-  const pipelineValue = filtered.reduce((total, row) => total + (row.contract_value || 0), 0);
+  const pipelineValue = filtered.reduce((total, row) => total + Number(row.contract_value || 0), 0);
   const closedValue = filtered.filter(row => row.pipeline_stage === "won" || row.contract_closed)
-    .reduce((total, row) => total + (row.contract_value || 0), 0);
+    .reduce((total, row) => total + Number(row.contract_value || 0), 0);
   const selectedMemberName = members.find(member => member.id === selectedMember)?.name;
 
   function selectMember(id: string) {
