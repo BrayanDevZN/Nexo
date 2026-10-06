@@ -3,6 +3,7 @@ import { apiBase, ApiError, createApi } from "../../../src/frontend/admin/api";
 
 test("validates public backend URLs", () => {
   expect(apiBase("")).toBe("/api");
+  expect(apiBase("/api/")).toBe("/api");
   expect(apiBase("https://api.example.com/")).toBe("https://api.example.com");
   for (const url of ["javascript:alert(1)", "https://user:pass@example.com", "https://example.com?x=1"]) {
     expect(() => apiBase(url)).toThrow();

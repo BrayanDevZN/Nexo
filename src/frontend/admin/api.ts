@@ -20,7 +20,7 @@ export class ApiError extends Error {
 
 export function apiBase(value: string): string {
   const base = value.trim().replace(/\/+$/, "");
-  if (!base) return "/api";
+  if (!base || base === "/api") return "/api";
   const url = new URL(base);
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
     throw new Error("VITE_API_URL deve ser uma URL HTTP(S) do backend.");

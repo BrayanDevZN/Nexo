@@ -12,7 +12,7 @@ import { Approvals } from "./Approvals";
 import { Profile } from "./Profile";
 import { Feedback, Loading, message } from "./shared";
 
-const api = createApi(apiBase(import.meta.env.VITE_API_URL || ""));
+const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
 type Page = "clients" | "approvals" | "profile";
 export default function AdminApp() {
   const [user, setUser] = useState<User | null>(null);

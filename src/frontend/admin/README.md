@@ -20,12 +20,21 @@ CORS_ORIGINS=["http://localhost:5173"], COOKIE_SECURE=false, COOKIE_SAMESITE=lax
 Ajuste ambos se usar outro host ou porta. Google callback local usa a porta do backend.
 
 Na Vercel, Root Directory=src/frontend, build=npm run build, output=dist.
-Configure VITE_API_URL com a URL HTTPS pública do backend e faça um novo build.
+Em produção, o admin usa /api no próprio domínio do frontend. O vercel.json
+encaminha esse caminho para a API Railway e desativa cache das respostas.
+VITE_API_URL só é usado em desenvolvimento; não configure acesso direto ao
+Railway no navegador, pois isso depende de cookies de terceiros.
 No backend, FRONTEND_URL e CORS_ORIGINS devem usar a origem exata do frontend,
 COOKIE_SECURE=true, ENVIRONMENT=production e ADMIN_EMAIL/PASSWORD próprios.
 Se frontend/API forem sites diferentes, COOKIE_SAMESITE=none. Prefira domínios
 do mesmo site para evitar bloqueios de cookies de terceiros pelo navegador.
-Cadastre no Google o callback HTTPS exato GOOGLE_REDIRECT_URI.
+Na produção atual, configure no Railway e cadastre no Google:
+GOOGLE_REDIRECT_URI=https://www.nexoaicompany.com/api/auth/google/callback
+FRONTEND_URL=https://www.nexoaicompany.com
+CORS_ORIGINS=["https://www.nexoaicompany.com"]
+O cookie temporário Google usa o caminho público do callback (/api/auth/google)
+para que a navegação e a conclusão do cadastro passem pelo mesmo domínio.
+Variáveis cadastradas no Railway prevalecem sobre os padrões do Dockerfile.
 
 Somente a URL pública entra em VITE_API_URL. Secrets, senhas e JWT_SECRET_KEY
 ficam no backend. O frontend não lê JWT e não guarda credenciais no storage.
