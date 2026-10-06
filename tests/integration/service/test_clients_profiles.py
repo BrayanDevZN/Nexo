@@ -36,14 +36,23 @@ def test_client_queries_invalidate_after_mutations_and_recheck_permissions(runti
     assert service.clients.list(actor) == []
     service.clients.messages = Mock()
     key = str(uuid4())
-    row = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo",\n                                pain="Baixa geração de leads", approach="Contato consultivo por telefone")
-    retry = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo",\n                                   pain="Baixa geração de leads", approach="Contato consultivo por telefone")
+    row = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo",
+                                pain="Baixa geração de leads", approach="Contato consultivo por telefone")
+    retry = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo",
+                                   pain="Baixa geração de leads", approach="Contato consultivo por telefone")
     assert retry.id == row.id
     assert len(service.clients.list(actor)) == 1
     assert service.clients.list(actor, contract_closed=False)[0]["id"] == row.id
     service.clients.update(actor, row.id, contract_closed=True)
     assert service.clients.list(actor, contract_closed=False) == []
-    assert service.clients.get(actor, row.id)["contract_closed"] is True\n    saved = service.clients.get(actor, row.id)\n    assert saved["pain"] == "Baixa geração de leads"\n    assert saved["approach"] == "Contato consultivo por telefone"\n    service.clients.update(actor, row.id, pain="Poucos clientes", approach="Agendar uma demonstração")\n    updated = service.clients.get(actor, row.id)\n    assert updated["pain"] == "Poucos clientes"\n    assert updated["approach"] == "Agendar uma demonstração"
+    assert service.clients.get(actor, row.id)["contract_closed"] is True
+    saved = service.clients.get(actor, row.id)
+    assert saved["pain"] == "Baixa geração de leads"
+    assert saved["approach"] == "Contato consultivo por telefone"
+    service.clients.update(actor, row.id, pain="Poucos clientes", approach="Agendar uma demonstração")
+    updated = service.clients.get(actor, row.id)
+    assert updated["pain"] == "Poucos clientes"
+    assert updated["approach"] == "Agendar uma demonstração"
     service.clients.update(actor, row.id, contract_closed=False)
     cancelled = service.clients.get(actor, row.id)
     assert cancelled["contract_closed"] is False
