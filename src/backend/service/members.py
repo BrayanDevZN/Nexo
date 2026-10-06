@@ -35,15 +35,30 @@ class MemberService:
             raise ResourceNotFound("Member not found")
         return user
 
+    @staticmethod
+    def _row_value(row, key):
+        """Read projected repository rows and ORM objects consistently."""
+        if isinstance(row, dict):
+            return row[key]
+        return getattr(row, key)
+
     def directory(self, actor, *, limit=50, offset=0):
         with self.cached_repositories.read_transaction() as repos:
             authorize_read(repos.db, actor, approved=True)
             # Explicit allowlist: shared directory never contains contact or authentication data.
             rows = repos.users.list(status="approved", limit=limit, offset=offset)
-            online = self.presence.online_users([row["id"] for row in rows]) if self.presence else {}
-            return [{**{key: row[key] for key in ("id", "name", "role")},
-                     "has_photo": bool(row["profile_photo"]), "online": online.get(row["id"], False)}
-                    for row in rows]
+            row_ids = [self._row_value(row, "id") for row in rows]
+            online = self.presence.online_users(row_ids) if self.presence else {}
+            return [
+                {
+                    "id": self._row_value(row, "id"),
+                    "name": self._row_value(row, "name"),
+                    "role": self._row_value(row, "role"),
+                    "has_photo": bool(self._row_value(row, "profile_photo")),
+                    "online": online.get(self._row_value(row, "id"), False),
+                }
+                for row in rows
+            ]
 
     def photo(self, actor, identifier):
         with self.repositories.read_transaction() as repos:
