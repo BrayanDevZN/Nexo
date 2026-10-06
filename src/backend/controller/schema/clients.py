@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
 
 from pydantic import (
     BaseModel,
@@ -40,6 +41,11 @@ class ClientFields(BaseModel):
     @classmethod
     def clean_phone(cls, value):
         return ProfileInput.clean_phone(value) if value is not None else None
+
+
+class ClientCreate(ClientFields):
+    # Reused by the form if a successful POST response is lost, making retries safe.
+    idempotency_key: UUID | None = None
 
 
 class ClientPatch(ClientFields):
