@@ -43,7 +43,8 @@ function AreaChart({ points, canDrill, onDrill }: {
       coordinates.map(item => "L " + item.x + " " + item.y).join(" ") +
       " L " + coordinates[coordinates.length - 1].x + " " + bottom + " Z"
     : "";
-  const selected = (coordinates.find(item => item.point.key === hoveredKey) || coordinates[coordinates.length - 1])?.point;
+  const lastWithSales = [...coordinates].reverse().find(item => item.point.contracts > 0);
+  const selected = (coordinates.find(item => item.point.key === hoveredKey) || lastWithSales || coordinates[coordinates.length - 1])?.point;
   return <div className="min-w-0">
     {selected && <p className="mb-2 text-sm text-muted-foreground">Vendas em <span className="font-medium text-foreground">{selected.label}</span>: {currency(selected.value)} · {selected.contracts} contratos</p>}
     <div className="overflow-x-auto">
