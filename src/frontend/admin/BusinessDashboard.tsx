@@ -296,7 +296,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
 
       <Card>
         <CardHeader className="flex flex-wrap flex-row items-start justify-between gap-3">
-          <div><CardTitle className="flex items-center gap-2"><TrendingUp /> Vendas ao longo do tempo</CardTitle><CardDescription>Receita dos contratos fechados. Comece pelos anos, clique em um ano para ver os meses e depois em um mês para ver os dias.</CardDescription></div>
+          <div><CardTitle className="flex items-center gap-2">{period.year !== undefined && <Button variant="ghost" size="icon-sm" aria-label={period.month !== undefined ? "Voltar para os meses" : "Voltar para os anos"} title={period.month !== undefined ? "Voltar para os meses" : "Voltar para os anos"} onClick={() => setPeriod(period.month !== undefined ? { year: period.year } : {})}><ChevronLeft /></Button>}<TrendingUp /> Vendas ao longo do tempo</CardTitle><CardDescription>Receita dos contratos fechados. Comece pelos anos, clique em um ano para ver os meses e depois em um mês para ver os dias.</CardDescription></div>
           <Badge variant="outline"><CalendarDays data-icon="inline-start" /> {periodTitle}</Badge>
         </CardHeader>
         <CardContent><AreaChart points={timeline} canDrill={canDrill} onDrill={drill} />
