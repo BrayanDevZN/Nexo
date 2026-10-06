@@ -43,12 +43,22 @@ class ChatRepository:
             (ChatMessage.sender_id == actor_id, ChatMessage.recipient_id),
             else_=ChatMessage.sender_id,
         )
+        latest_sequence = func.max(ChatMessage.sequence)
+        messages_sent = func.sum(case((ChatMessage.sender_id != actor_id, 1), else_=0))
         rows = self.session.execute(
-            select(member_id, func.max(ChatMessage.created_at))
+            select(member_id, func.max(ChatMessage.created_at), messages_sent, latest_sequence)
             .where(or_(ChatMessage.sender_id == actor_id, ChatMessage.recipient_id == actor_id))
             .group_by(member_id)
+            .order_by(latest_sequence.desc(), member_id)
         )
-        return {identifier: created_at for identifier, created_at in rows}
+        return {
+            identifier: {
+                "last_message_at": created_at,
+                "messages_sent": int(sent_count or 0),
+                "last_message_sequence": int(sequence),
+            }
+            for identifier, created_at, sent_count, sequence in rows
+        }
 
     def delete_for_user(self, identifier):
         clause = or_(ChatMessage.sender_id == identifier, ChatMessage.recipient_id == identifier)
