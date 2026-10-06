@@ -2,6 +2,7 @@ from concurrent.futures import CancelledError, TimeoutError
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.service.access import ResourceConflict, authorize
+from backend.service.email_messages import AccountMessages
 
 
 class DeletionCodeError(ValueError):
@@ -13,10 +14,10 @@ class DeletionCooldownError(ValueError):
 
 
 class AccountDeletionService:
-    def __init__(self, repositories, members, codes, code_repository, sender, *, delivery_timeout=12):
+    def __init__(self, repositories, members, codes, code_repository, sender, *, delivery_timeout=12, messages=None):
         self.repositories, self.members = repositories, members
         self.codes, self.code_repository, self.sender = codes, code_repository, sender
-        self.delivery_timeout = delivery_timeout
+        self.delivery_timeout, self.messages = delivery_timeout, messages
 
     def _user(self, actor):
         with self.repositories.read_transaction() as repos:
@@ -36,10 +37,12 @@ class AccountDeletionService:
         if not self.code_repository.issue(user.email, digest, record):
             raise DeletionCooldownError("Wait before requesting another code")
         try:
-            future = self.sender.send(user.email, "Confirme a exclusão da sua conta Nexo",
-                                      "Seu código para excluir sua conta é: " + code +
-                                      "\nEle expira em " + str(self.code_repository.ttl) +
-                                      " segundos. Se você não solicitou a exclusão, ignore este email.")
+            future = (self.messages.deletion_code(user.email, code, self.code_repository.ttl)
+                      if self.messages else self.sender.send(
+                          user.email, "Confirme a exclusão da sua conta Nexo",
+                          "Seu código para excluir sua conta é: " + code +
+                          "\nEle expira em " + str(self.code_repository.ttl) +
+                          " segundos. Se você não solicitou a exclusão, ignore este email."))
             future.result(timeout=self.delivery_timeout)
         except (EmailQueueFullError, EmailUnavailableError, TimeoutError, CancelledError):
             self.code_repository.remove(user.email, digest)
