@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 import { PIPELINE_STAGES, type ClientRecord, type createApi } from "./api";
 import { Feedback, Loading, message } from "./shared";
 
@@ -59,20 +59,21 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
   onSelect: (id: string) => void;
   emptyLabel: string;
 }) {
-  const height = Math.max(150, rows.length * 54 + 32);
   return <Card>
     <CardHeader><div className="flex items-center gap-2">{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
     <CardContent>
-      {rows.length ? <ChartContainer config={rankChartConfig} className="min-h-[12rem]" style={{ height }} aria-label={`${title}, gráfico de barras horizontais`}>
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 8 }}>
-          <CartesianGrid horizontal={false} />
-          <XAxis type="number" tickLine={false} axisLine={false} tickFormatter={compactCurrency} />
-          <YAxis type="category" dataKey="label" width={140} tickLine={false} axisLine={false} />
+      {rows.length ? <ChartContainer config={rankChartConfig} className="h-[20rem]" aria-label={`${title}, gráfico de colunas`}>
+        <BarChart data={rows} margin={{ top: 34, right: 18, bottom: 18, left: 8 }} barCategoryGap="28%">
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} tick={{ fontSize: 11 }} />
+          <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[0, 5, 5, 0]} isAnimationActive={false} onClick={entry => {
+          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} maxBarSize={72} isAnimationActive={false} onClick={entry => {
             const item = entry as unknown as { payload?: GroupMetric };
             if (item.payload) onSelect(selectedId === item.payload.id ? "all" : item.payload.id);
-          }} />
+          }}>
+            <LabelList dataKey="value" position="top" formatter={value => compactCurrency(Number(value ?? 0))} className="fill-foreground text-[11px] font-medium" />
+          </Bar>
         </BarChart>
       </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>Sem vendas no período</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
       {rows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Selecione uma barra para cruzar esse resultado nos outros gráficos. {rows.map(row => `${row.label}: ${row.contracts} contratos`).join(" · ")}</p>}
@@ -132,6 +133,21 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     (selectedContract === "all" || row.id === selectedContract)
   ), [timeSales, selectedMember, selectedNiche, selectedContract]);
 
+  const memberChartSales = useMemo(() => timeSales.filter(row =>
+    (selectedNiche === "all" || row.niche === selectedNiche) &&
+    (selectedContract === "all" || row.id === selectedContract)
+  ), [timeSales, selectedNiche, selectedContract]);
+
+  const nicheChartSales = useMemo(() => timeSales.filter(row =>
+    (selectedMember === "all" || row.created_by_id === selectedMember) &&
+    (selectedContract === "all" || row.id === selectedContract)
+  ), [timeSales, selectedMember, selectedContract]);
+
+  const contractChartSales = useMemo(() => timeSales.filter(row =>
+    (selectedMember === "all" || row.created_by_id === selectedMember) &&
+    (selectedNiche === "all" || row.niche === selectedNiche)
+  ), [timeSales, selectedMember, selectedNiche]);
+
   const recentClients = useMemo(() => [...rows]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 50), [rows]);
@@ -172,7 +188,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
 
   const members = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
-    for (const row of filteredSales) {
+    for (const row of memberChartSales) {
       const item = grouped.get(row.created_by_id) || {
         id: row.created_by_id, label: row.created_by_name || "Membro removido", contracts: 0, value: 0,
       };
@@ -181,11 +197,11 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       grouped.set(row.created_by_id, item);
     }
     return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts);
-  }, [filteredSales]);
+  }, [memberChartSales]);
 
   const niches = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
-    for (const row of filteredSales) {
+    for (const row of nicheChartSales) {
       const id = row.niche || "Sem nicho";
       const item = grouped.get(id) || { id, label: id, contracts: 0, value: 0 };
       item.contracts += 1;
@@ -193,13 +209,13 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       grouped.set(id, item);
     }
     return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts).slice(0, 8);
-  }, [filteredSales]);
+  }, [nicheChartSales]);
 
-  const topContracts = useMemo<ContractMetric[]>(() => [...filteredSales].map(row => ({
+  const topContracts = useMemo<ContractMetric[]>(() => [...contractChartSales].map(row => ({
     id: row.id, name: row.name, niche: row.niche,
     member: row.created_by_name || "Membro removido",
     value: Number(row.contract_value || 0), closedAt: closedAt(row),
-  })).sort((a, b) => b.value - a.value || b.closedAt.getTime() - a.closedAt.getTime()).slice(0, 10), [filteredSales]);
+  })).sort((a, b) => b.value - a.value || b.closedAt.getTime() - a.closedAt.getTime()).slice(0, 10), [contractChartSales]);
 
   const totalValue = filteredSales.reduce((sum, row) => sum + Number(row.contract_value || 0), 0);
   const averageValue = filteredSales.length ? totalValue / filteredSales.length : 0;
