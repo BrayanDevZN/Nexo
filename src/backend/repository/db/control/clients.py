@@ -52,7 +52,7 @@ class ClientRepository(Repository[Client]):
                     raise ValueError("Name and niche are required")
                 value = value.strip()
             setattr(client, field, value)
-        if changes.get("contract_closed") is True and "pipeline_stage" not in changes:
+        if changes.get("contract_closed") is True:
             client.pipeline_stage = "won"
         if changes.get("pipeline_stage") == "won":
             client.contract_closed = True
