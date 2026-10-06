@@ -1,4 +1,5 @@
 from io import BytesIO
+from uuid import uuid4
 from unittest.mock import Mock
 
 import pytest
@@ -33,11 +34,25 @@ def png():
 def test_client_queries_invalidate_after_mutations_and_recheck_permissions(runtime):
     service, actor = runtime
     assert service.clients.list(actor) == []
-    row = service.clients.create(actor, name="Client", niche="Varejo")
+    service.clients.messages = Mock()
+    key = str(uuid4())
+    row = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo")
+    retry = service.clients.create(actor, idempotency_key=key, name="Client", niche="Varejo")
+    assert retry.id == row.id
+    assert len(service.clients.list(actor)) == 1
     assert service.clients.list(actor, contract_closed=False)[0]["id"] == row.id
     service.clients.update(actor, row.id, contract_closed=True)
     assert service.clients.list(actor, contract_closed=False) == []
     assert service.clients.get(actor, row.id)["contract_closed"] is True
+    service.clients.update(actor, row.id, contract_closed=False)
+    cancelled = service.clients.get(actor, row.id)
+    assert cancelled["contract_closed"] is False
+    assert cancelled["pipeline_stage"] == "lost"
+    titles = [notice["title"] for notice in service.announcements.list_for_user(actor)]
+    assert titles.count("Novo cliente cadastrado") == 1
+    assert "Contrato fechado" in titles
+    assert "Contrato cancelado" in titles
+    assert service.clients.messages.announcement.call_count >= 3
     with service.repositories.transaction() as repos:
         repos.users.set_status(repos.users.get(actor.id), "pending")
     with pytest.raises(AccessDenied):
