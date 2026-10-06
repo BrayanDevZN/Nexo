@@ -134,7 +134,7 @@ class AccountMessages:
                 user.email, "Cadastro Nexo recebido",
                 "Recebemos seu cadastro e ele aguarda aprovação.",
                 "Seu cadastro foi recebido",
-                ["Olá, " + user.name + ". Seu cadastro foi recebido e aguarda aprovação do administrador.",
+                ["Olá, " + (getattr(user, "name", None) or "pessoa") + ". Seu cadastro foi recebido e aguarda aprovação do administrador.",
                  "Você receberá outro e-mail assim que a decisão sobre seu acesso for registrada."],
             )
         except (EmailUnavailableError, EmailQueueFullError):
