@@ -2,7 +2,6 @@ import logging
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.service.security import AuthenticationError
-from backend.service.email_messages import AccountMessages
 
 logger = logging.getLogger(__name__)
 
