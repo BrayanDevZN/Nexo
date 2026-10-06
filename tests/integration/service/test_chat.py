@@ -48,3 +48,14 @@ def test_realtime_tickets_single_use_origin_limits_and_revocation(runtime):
     runtime.sessions.revoke_all(actor.id)
     with pytest.raises(AccessDenied):
         runtime.realtime.authenticate(payload)
+
+
+def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
+    admin, (member, _) = owner(runtime), registered(runtime)
+    assert runtime.announcements.unread_counts(member) == {"total": 0, "chat_messages": 0}
+
+    runtime.chat.send(admin, member.id, str(uuid4()), "Nova mensagem")
+
+    assert runtime.announcements.unread_counts(member) == {"total": 1, "chat_messages": 1}
+    assert runtime.announcements.mark_chat_read(member, admin.id) == 1
+    assert runtime.announcements.unread_counts(member) == {"total": 0, "chat_messages": 0}
