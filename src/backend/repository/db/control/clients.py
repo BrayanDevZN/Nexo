@@ -55,9 +55,12 @@ class ClientRepository(Repository[Client]):
                     raise ValueError("Name and niche are required")
                 value = value.strip()
             setattr(client, field, value)
+        if changes.get("contract_closed") is False and client.pipeline_stage == "won":
+            # A closed contract cannot remain in the won stage after cancellation.
+            client.pipeline_stage = "lost"
         if changes.get("contract_closed") is True:
             client.pipeline_stage = "won"
-        if changes.get("pipeline_stage") == "won":
+        if changes.get("pipeline_stage") == "won" and changes.get("contract_closed") is not False:
             client.contract_closed = True
         self.session.flush()
         return client
