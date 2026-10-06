@@ -11,6 +11,7 @@ export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
   notes: string | null; pain: string | null; approach: string | null;
+  contract_closed_at: string | null;
   contract_closed: boolean; contract_value: number | string | null;
   pipeline_stage: PipelineStage; next_follow_up: string | null;
   created_by_id: string; created_by_name: string;
