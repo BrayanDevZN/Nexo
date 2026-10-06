@@ -27,6 +27,12 @@ class NotificationRepository(Repository[Notification]):
                                      body=f"{member_name} criou uma conta e aguarda aprovação.",
                                      recipient_id=recipient_id, requested_user_id=member_id))
 
+    def create_chat_message(self, *, recipient_id: str, sender_id: str,
+                            sender_name: str, body: str) -> Notification:
+        return self.add(Notification(kind="chat_message", title=f"Nova mensagem de {sender_name}",
+                                     body=body, recipient_id=recipient_id,
+                                     requested_user_id=sender_id))
+
     def create_announcements(self, *, announcement_id: str, recipient_ids,
                              creator_id: str, title: str, body: str) -> list[Notification]:
         rows = [Notification(kind="announcement", announcement_id=announcement_id,

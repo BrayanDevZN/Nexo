@@ -8,7 +8,7 @@ import { type createApi, type User } from "./api";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 import { Textarea } from "@/components/ui/textarea";
 
-type Notice = { id: string; kind: "announcement" | "member_joined"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
+type Notice = { id: string; kind: "announcement" | "member_joined" | "chat_message"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
 
 export function Announcements({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
   const [notices, setNotices] = useState<Notice[]>([]);

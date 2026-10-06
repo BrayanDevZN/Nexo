@@ -51,6 +51,9 @@ async def realtime(socket: WebSocket):
         async with services.realtime_connection.client.pubsub() as pubsub:
             await pubsub.subscribe(services.events.channel(), services.events.channel(user.id))
             await socket.accept(subprotocol="nexo.v1")
+            was_online = bool(services.events.online_users([user.id]).get(user.id))
+            if not was_online:
+                services.events.publish({"type": "presence.changed", "user_id": user.id, "online": True})
             await socket.send_json({"type": "ready"})
             outgoing = asyncio.Queue(maxsize=128)
 
@@ -125,3 +128,5 @@ async def realtime(socket: WebSocket):
         if acquired and user:
             with suppress(RedisError):
                 await asyncio.to_thread(services.events.release, user.id, lease)
+                if not services.events.online_users([user.id]).get(user.id):
+                    services.events.publish({"type": "presence.changed", "user_id": user.id, "online": False})

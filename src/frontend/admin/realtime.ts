@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, type createApi, type User } from "./api";
 export type ChatMessage = { id: string; sequence: number; sender_id: string; recipient_id: string; sender_name: string; client_id: string; kind: "text" | "image" | "audio"; text: string | null; media_type: string | null; size: number | null; created_at: string };
-export type RealtimeEvent = { type: string; message?: ChatMessage; code?: string };
+export type RealtimeEvent = { type: string; message?: ChatMessage; code?: string; user_id?: string; online?: boolean };
 export function websocketUrl(value: string): string {
   const url = new URL(value, window.location.origin);
   if (!["http:", "https:", "ws:", "wss:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error("URL de tempo real inválida.");

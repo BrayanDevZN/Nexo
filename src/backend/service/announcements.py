@@ -28,7 +28,7 @@ class AnnouncementService:
         with self.repositories.transaction() as repos:
             current = authorize(repos, actor, approved=True)
             note = repos.notifications.get(identifier)
-            if note is None or note.recipient_id != current.id or note.kind != "announcement":
+            if note is None or note.recipient_id != current.id or note.kind not in {"announcement", "chat_message", "member_joined"}:
                 raise KeyError("Announcement not found")
             repos.notifications.mark_read(note)
             return snapshot("notifications", note)

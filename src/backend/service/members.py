@@ -11,8 +11,9 @@ from backend.service.access import (
 
 
 class MemberService:
-    def __init__(self, repositories, cached_repositories, profiles):
+    def __init__(self, repositories, cached_repositories, profiles, presence=None):
         self.repositories, self.cached_repositories, self.profiles = repositories, cached_repositories, profiles
+        self.presence = presence
 
     @staticmethod
     def _authorize(repos, actor):
@@ -38,8 +39,11 @@ class MemberService:
         with self.cached_repositories.read_transaction() as repos:
             authorize_read(repos.db, actor, approved=True)
             # Explicit allowlist: shared directory never contains contact or authentication data.
-            return [{**{key: row[key] for key in ("id", "name", "role")}, "has_photo": bool(row["profile_photo"])}
-                    for row in repos.users.list(status="approved", limit=limit, offset=offset)]
+            rows = repos.users.list(status="approved", limit=limit, offset=offset)
+            online = self.presence.online_users([row.id for row in rows]) if self.presence else {}
+            return [{**{key: row[key] for key in ("id", "name", "role")},
+                     "has_photo": bool(row["profile_photo"]), "online": online.get(row["id"], False)}
+                    for row in rows]
 
     def photo(self, actor, identifier):
         with self.repositories.read_transaction() as repos:

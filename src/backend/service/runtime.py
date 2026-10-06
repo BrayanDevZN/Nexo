@@ -67,6 +67,7 @@ class RuntimeServices:
             self.rate_limits = RateLimitService(RateLimitRepository(self.redis.client), settings, rate_namespace)
             self.events = RealtimeRepository(self.redis.client, "nexo:realtime:" + database_namespace + ":" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:16])
+            self.members.presence = self.events
             self.realtime = RealtimeService(self.events, self.repositories, settings, self.rate_limits)
             self.repositories.on_change = self.realtime.changed
             self.realtime_connection = RealtimeConnection(settings)

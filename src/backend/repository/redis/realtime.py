@@ -57,3 +57,12 @@ class RealtimeRepository:
 
     def release(self, user_id, connection_id):
         self.redis.zrem(self.prefix + ":connections:" + user_id, connection_id)
+
+    def online_users(self, user_ids):
+        now = time.time()
+        result = {}
+        for user_id in set(user_ids):
+            key = self.prefix + ":connections:" + str(user_id)
+            self.redis.zremrangebyscore(key, "-inf", now)
+            result[str(user_id)] = bool(self.redis.zcard(key))
+        return result

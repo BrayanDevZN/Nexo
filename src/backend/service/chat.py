@@ -50,6 +50,9 @@ class ChatService:
                 row = repos.chat_messages.create(sender_id=user.id, sender_name=user.name,
                     recipient_id=recipient.id, client_id=client_id, **fields)
                 result = snapshot("chat_messages", row)
+                body = fields.get("text") or ("Enviou uma foto." if fields.get("kind") == "image" else "Enviou um áudio.")
+                repos.notifications.create_chat_message(recipient_id=recipient.id, sender_id=user.id,
+                                                        sender_name=user.name, body=body)
         except IntegrityError:
             with self.repositories.transaction() as repos:
                 self.participants(repos, actor, member_id)

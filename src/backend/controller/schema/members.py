@@ -7,6 +7,7 @@ from backend.controller.schema.auth import ProfileInput, UserOutput
 
 class MemberDirectoryOutput(BaseModel):
     has_photo: bool = False
+    online: bool = False
     id: str
     name: str
     role: Literal["member", "admin"]
