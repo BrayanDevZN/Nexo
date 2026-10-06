@@ -54,7 +54,7 @@ class NotificationRepository(Repository[Notification]):
             self.session.flush()
         return rows
 
-    def unread_counts(self, recipient_id: str) -> dict[str, int]:
+    def unread_counts(self, recipient_id: str) -> dict[str, int | dict[str, int]]:
         rows = self.session.execute(
             select(Notification.kind, func.count(Notification.id))
             .where(Notification.recipient_id == recipient_id, Notification.read_at.is_(None))
