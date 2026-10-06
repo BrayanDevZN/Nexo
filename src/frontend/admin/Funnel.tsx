@@ -24,8 +24,8 @@ const stageTones: Record<PipelineStage, string> = {
   lost: "border-funnel-lost/70 bg-funnel-lost/15",
 };
 
-function formatValue(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function formatValue(value: number | string) {
+  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export function Funnel({ api }: { api: ReturnType<typeof createApi> }) {
@@ -65,8 +65,8 @@ export function Funnel({ api }: { api: ReturnType<typeof createApi> }) {
 
   const metrics = useMemo(() => {
     const won = rows.filter(row => row.pipeline_stage === "won" || row.contract_closed);
-    const value = rows.reduce((total, row) => total + (row.contract_value || 0), 0);
-    const wonValue = won.reduce((total, row) => total + (row.contract_value || 0), 0);
+    const value = rows.reduce((total, row) => total + Number(row.contract_value || 0), 0);
+    const wonValue = won.reduce((total, row) => total + Number(row.contract_value || 0), 0);
     return { won: won.length, value, wonValue };
   }, [rows]);
 
@@ -87,7 +87,7 @@ export function Funnel({ api }: { api: ReturnType<typeof createApi> }) {
         <CardContent className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
           {items.map(row => <Card key={row.id} draggable={busy !== row.id} onDragStart={() => { setDragging(row.id); setDropStage(null); }} onDragEnd={() => { setDragging(""); setDropStage(null); }} className={cn("cursor-grab border bg-background shadow-sm transition-opacity active:cursor-grabbing", dragging === row.id && "opacity-50")}>
             <CardHeader className="gap-2 p-4 pb-2"><div className="flex items-start gap-2"><GripVertical className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" /><div className="min-w-0 flex-1"><CardTitle className="truncate text-sm">{row.name}</CardTitle><CardDescription className="truncate">{row.niche}</CardDescription></div></div></CardHeader>
-            <CardContent className="flex flex-col gap-2 px-4 pb-3 pt-0"><p className="text-xs text-muted-foreground">Criado por {row.created_by_name}</p>{typeof row.contract_value === "number" && <p className="text-sm font-medium">{formatValue(row.contract_value)}</p>}{row.next_follow_up && <p className="text-xs text-muted-foreground">Follow-up: {new Date(row.next_follow_up).toLocaleDateString("pt-BR")}</p>}</CardContent>
+            <CardContent className="flex flex-col gap-2 px-4 pb-3 pt-0"><p className="text-xs text-muted-foreground">Criado por {row.created_by_name}</p>{row.contract_value != null && <p className="text-sm font-medium">{formatValue(row.contract_value)}</p>}{row.next_follow_up && <p className="text-xs text-muted-foreground">Follow-up: {new Date(row.next_follow_up).toLocaleDateString("pt-BR")}</p>}</CardContent>
             <CardFooter className="flex-wrap justify-end gap-1 p-3 pt-0"><Button size="icon-sm" variant="ghost" disabled={busy === row.id} onClick={() => setDeleting(row)} aria-label={"Remover " + row.name + " do quadro"}><Trash2 /></Button>{stage.value !== "lost" && stage.value !== "won" && <Button size="sm" variant="ghost" disabled={busy === row.id} onClick={() => void move(row, PIPELINE_STAGES[index + 1].value)} aria-label={"Avançar " + row.name}>Avançar <ArrowRight data-icon="inline-end" /></Button>}{stage.value === "won" && <Badge variant="default"><Check data-icon="inline-start" /> Fechado</Badge>}</CardFooter>
           </Card>)}
           {!items.length && <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-5 text-center text-xs text-muted-foreground">Solte oportunidades aqui</div>}
