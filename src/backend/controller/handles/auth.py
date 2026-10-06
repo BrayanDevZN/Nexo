@@ -11,7 +11,7 @@ from backend.controller.schema.auth import (
 )
 from backend.infra.connections.email import EmailUnavailableError
 from backend.service.auth import RegistrationConflict
-from backend.service.registration import RegistrationCodeError
+from backend.service.registration import RegistrationCodeError, RegistrationCooldownError
 from backend.service.security import AuthenticationError
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -26,6 +26,10 @@ def register(data: RegistrationInput, request: Request):
         return {"detail": "Confirmation code sent"}
     except RegistrationConflict:
         raise HTTPException(status_code=409, detail="Email already registered") from None
+    except RegistrationCooldownError:
+        cooldown = request.app.state.settings.email_code_resend_cooldown_seconds
+        raise HTTPException(status_code=429, detail="Wait before requesting another code",
+                            headers={"Retry-After": str(cooldown)}) from None
     except (RedisError, EmailUnavailableError):
         raise HTTPException(status_code=503, detail="Registration email unavailable") from None
 

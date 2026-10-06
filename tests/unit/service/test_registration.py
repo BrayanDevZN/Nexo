@@ -50,7 +50,21 @@ def test_failed_delivery_invalidates_pending_code():
     failed.set_exception(EmailUnavailableError("Failed"))
     sender = Mock(configured=True)
     sender.send.return_value = failed
-    RegistrationService(auth, codes, repo, sender).request(
-        name="Ana", email="ana@example.com", phone="11999999999", password="secret-password"
-    )
+    with pytest.raises(EmailUnavailableError):
+        RegistrationService(auth, codes, repo, sender).request(
+            name="Ana", email="ana@example.com", phone="11999999999", password="secret-password"
+        )
     repo.remove.assert_called_once()
+
+
+def test_delivery_timeout_does_not_report_success():
+    auth = MagicMock()
+    auth.repositories.transaction.return_value.__enter__.return_value.users.by_email.return_value = None
+    codes, repo = Mock(), Mock(ttl=600)
+    codes.create.return_value = "12345678"
+    sender = Mock(configured=True, send=Mock(return_value=Future()))
+    with pytest.raises(EmailUnavailableError):
+        RegistrationService(auth, codes, repo, sender, delivery_timeout=.001).request(
+            name="Ana", email="ana@example.com", phone="11999999999", password="secret-password")
+    repo.remove.assert_called_once()
+    auth.register.assert_not_called()

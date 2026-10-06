@@ -71,3 +71,19 @@ def test_unconfigured_gmail_does_not_connect(settings):
             connection.send("receiver@example.com", "Nexo", "body")
     finally:
         connection.close()
+
+
+@pytest.mark.parametrize("kind,category,code", [("auth", "authentication", 535), ("timeout", "network", None)])
+def test_failure_logs_category_without_credentials(settings, monkeypatch, caplog, kind, category, code):
+    import smtplib
+    connection, smtp = sender(settings, monkeypatch)
+    smtp.send.side_effect = (smtplib.SMTPAuthenticationError(535, b"smtp-secret-sentinel")
+                            if kind == "auth" else TimeoutError("smtp-secret-sentinel"))
+    try:
+        with pytest.raises(EmailUnavailableError) as error:
+            connection.send("receiver@example.com", "Nexo", "private-code").result(timeout=5)
+        assert error.value.category == category and error.value.smtp_code == code
+    finally:
+        connection.close()
+    assert "category=" + category in caplog.text
+    assert not any(secret in caplog.text for secret in ["smtp-secret-sentinel", "receiver@example.com", "private-code"])

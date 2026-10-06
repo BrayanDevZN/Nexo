@@ -92,3 +92,22 @@ def test_unconfigured_sender_never_creates_user(settings):
         assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 503
         with client.app.state.services.repositories.transaction() as repos:
             assert repos.users.by_email(DATA["email"]) is None
+
+
+def test_smtp_failure_returns_503_and_allows_retry(settings, local_redis_url, monkeypatch):
+    settings.redis_url = SecretStr(local_redis_url)
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
+    smtp = Mock()
+    smtp.send.side_effect = TimeoutError("private-smtp-error")
+    monkeypatch.setattr("backend.infra.connections.email.yagmail.SMTP", Mock(return_value=smtp))
+    monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
+    with TestClient(create_app(settings)) as client:
+        response = client.post("/auth/register", headers=ORIGIN, json=DATA)
+        assert response.status_code == 503 and "private-smtp-error" not in response.text
+        repo = client.app.state.services.registration.repository
+        assert not repo.redis.exists(repo.key(DATA["email"]))
+        assert not repo.redis.exists(repo.key(DATA["email"]) + ":cooldown")
+        smtp.send.side_effect = None
+        assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 202
+        assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 429

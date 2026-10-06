@@ -172,3 +172,21 @@ test("profile changes password with current password without email code", async 
   await page.getByRole("button", { name: "Atualizar senha", exact: true }).click();
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });
+
+
+test("failed SMTP delivery keeps signup form and does not claim code was sent", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/auth/register", route => route.fulfill({
+    status: 503, contentType: "application/json", body: JSON.stringify({ detail: "Registration email unavailable" }),
+  }));
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Ainda não tem conta? Cadastre-se" }).click();
+  await page.getByLabel("Nome completo").fill("Ana Silva");
+  await page.getByLabel("Celular").fill("11999999999");
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  await expect(page.getByText(/Não foi possível enviar o código por e-mail/)).toBeVisible();
+  await expect(page.getByLabel("Código recebido por e-mail")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Criar conta", exact: true })).toBeEnabled();
+});

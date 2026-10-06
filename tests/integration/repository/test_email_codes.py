@@ -48,3 +48,14 @@ def test_only_one_concurrent_consumer_can_reset(codes):
     with ThreadPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(lambda _: codes.consume("ana@example.com", "digest"), range(2)))
     assert results.count(record) == 1 and results.count(None) == 1
+
+
+def test_failed_delivery_removes_cooldown_but_old_digest_cannot_remove_new_code(codes):
+    email = "ana@example.com"
+    assert codes.issue(email, "failed-digest", {})
+    codes.remove(email, "failed-digest")
+    assert not codes.redis.exists(codes.key(email) + ":cooldown")
+    assert codes.issue(email, "new-digest", {})
+    codes.remove(email, "failed-digest")
+    assert codes.redis.exists(codes.key(email) + ":cooldown")
+    assert codes.consume(email, "new-digest") == {}

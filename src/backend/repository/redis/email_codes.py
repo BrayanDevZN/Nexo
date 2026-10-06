@@ -23,7 +23,7 @@ return record
 """
 REMOVE = """
 if redis.call('HGET', KEYS[1], 'digest') == ARGV[1] then
-  return redis.call('DEL', KEYS[1])
+  return redis.call('DEL', KEYS[1], KEYS[2])
 end
 return 0
 """
@@ -47,4 +47,5 @@ class EmailCodeRepository:
         return json.loads(record) if record else None
 
     def remove(self, email, digest):
-        self.redis.eval(REMOVE, 1, self.key(email), digest)
+        key = self.key(email)
+        self.redis.eval(REMOVE, 2, key, key + ":cooldown", digest)

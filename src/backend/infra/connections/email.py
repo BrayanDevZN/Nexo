@@ -1,4 +1,5 @@
 import logging
+import smtplib
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import BoundedSemaphore, Lock
 
@@ -12,7 +13,9 @@ address = TypeAdapter(EmailStr)
 
 
 class EmailUnavailableError(RuntimeError):
-    pass
+    def __init__(self, message, *, category="unavailable", smtp_code=None):
+        super().__init__(message)
+        self.category, self.smtp_code = category, smtp_code
 
 
 class EmailQueueFullError(RuntimeError):
@@ -66,7 +69,21 @@ class GmailConnection:
             smtp.send(to=recipient, subject=subject, contents=yagmail.raw(body))
         except Exception as error:
             # Never log recipient, body, credentials or raw SMTP exception text.
-            raise EmailUnavailableError("Gmail delivery failed") from error
+            if isinstance(error, smtplib.SMTPAuthenticationError):
+                category = "authentication"
+            elif isinstance(error, smtplib.SMTPRecipientsRefused):
+                category = "recipient_rejected"
+            elif isinstance(error, smtplib.SMTPException):
+                category = "smtp"
+            elif isinstance(error, (TimeoutError, ConnectionError, OSError)):
+                category = "network"
+            else:
+                category = "unexpected"
+            smtp_code = getattr(error, "smtp_code", None)
+            if not isinstance(smtp_code, int) or not 100 <= smtp_code <= 599:
+                smtp_code = None
+            raise EmailUnavailableError("Gmail delivery failed", category=category,
+                                        smtp_code=smtp_code) from error
         finally:
             if smtp is not None:
                 try:
@@ -77,7 +94,9 @@ class GmailConnection:
     def _finished(self, future: Future) -> None:
         self._slots.release()
         if not future.cancelled() and future.exception() is not None:
-            logger.error("Email delivery failed")
+            error = future.exception()
+            logger.error("Email delivery failed: category=%s smtp_code=%s",
+                         getattr(error, "category", "unexpected"), getattr(error, "smtp_code", None))
 
     def close(self) -> None:
         with self._lock:

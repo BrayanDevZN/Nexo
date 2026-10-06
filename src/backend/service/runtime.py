@@ -68,7 +68,8 @@ class RuntimeServices:
                 EmailCodeRepository(self.redis.client, namespace + ":registration:" + database_namespace,
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
-                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email)
+                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email,
+                delivery_timeout=min(settings.email_timeout_seconds + 2, 12))
             self.password_service = PasswordService(
                 self.repositories, self.passwords,
                 EmailCodeService(settings.jwt_secret_key.get_secret_value()),
