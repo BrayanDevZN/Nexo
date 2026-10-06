@@ -10,6 +10,7 @@ class ClientRepository(Repository[Client]):
     def create(self, *, name: str, niche: str, created_by_id: str, identifier: str | None = None,
                contract_closed: bool = False, phone: str | None = None,
                email: str | None = None, notes: str | None = None,
+               pain: str | None = None, approach: str | None = None,
                contract_value=None, pipeline_stage: str = "lead",
                next_follow_up=None) -> Client:
         if not name.strip() or not niche.strip():
@@ -20,7 +21,8 @@ class ClientRepository(Repository[Client]):
             contract_closed = True
         row = Client(name=name.strip(), niche=niche.strip(),
                      created_by_id=created_by_id, contract_closed=contract_closed,
-                     phone=phone, email=email, notes=notes, contract_value=contract_value,
+                     phone=phone, email=email, notes=notes, pain=pain, approach=approach,
+                     contract_value=contract_value,
                      pipeline_stage=pipeline_stage, next_follow_up=next_follow_up)
         if identifier is not None:
             row.id = identifier
@@ -46,7 +48,7 @@ class ClientRepository(Repository[Client]):
 
     def update(self, client: Client, **changes) -> Client:
         allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value",
-                   "pipeline_stage", "next_follow_up", "notes"}
+                   "pipeline_stage", "next_follow_up", "notes", "pain", "approach"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         for field, value in changes.items():
