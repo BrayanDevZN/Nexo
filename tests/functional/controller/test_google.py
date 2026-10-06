@@ -7,6 +7,7 @@ from pydantic import SecretStr
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -79,8 +80,9 @@ def test_callback_rejects_wrong_browser_and_replay(client):
 
 
 def test_google_does_not_auto_link_local_account(client):
-    assert client.post("/auth/register", json={"name": "Ana", "phone": "11999999999",
+    assert verified_register(client, json={"name": "Ana", "phone": "11999999999",
                        "email": "ana@example.com", "password": "strong-password-123"}, headers=ORIGIN).status_code == 201
+    client.cookies.clear()
     assert callback(client, start(client)).status_code == 409
     assert client.get("/auth/me").status_code == 401
     with client.app.state.services.repositories.transaction() as repos:

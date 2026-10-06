@@ -8,6 +8,7 @@ from pydantic import SecretStr
 from backend.controller.application import create_app
 from backend.controller.dependencies import approved_user
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 DATA = {"name": "Ana", "phone": "11999999999", "email": "ana@example.com",
@@ -33,7 +34,7 @@ def login(client, email, password):
 @pytest.mark.parametrize("decision", ["approved", "rejected"])
 def test_admin_decision_and_member_permissions(app, decision):
     with TestClient(app) as client:
-        assert client.post("/auth/register", json=DATA, headers=ORIGIN).status_code == 201
+        assert verified_register(client, json=DATA, headers=ORIGIN).status_code == 201
         login(client, DATA["email"], DATA["password"])
         member_cookie = client.cookies.get("nexo_access_token")
         assert client.get("/admin/users").status_code == 403

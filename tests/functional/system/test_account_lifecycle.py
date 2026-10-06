@@ -9,6 +9,7 @@ from pydantic import SecretStr
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "https://panel.example.com"}
 MEMBER = {"email": "member@example.com", "password": "initial-member-password",
@@ -60,7 +61,7 @@ def test_complete_approved_member_lifecycle(settings, local_redis_url, tmp_path,
         assert client.get("/docs").status_code == 404
         assert client.get("/openapi.json").status_code == 404
         assert client.get("/health/ready").status_code == 200
-        assert client.post("/auth/register", headers=ORIGIN, json=MEMBER).status_code == 201
+        assert verified_register(client, headers=ORIGIN, json=MEMBER).status_code == 201
         member_headers = login(client, {key: MEMBER[key] for key in ("email", "password")})
         token = client.cookies.get(settings.auth_cookie_name)
         assert client.get("/auth/me").json()["status"] == "pending"

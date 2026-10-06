@@ -60,3 +60,16 @@ class UserOutput(BaseModel):
     profile_photo: str | None
     status: str
     role: str
+
+
+class RegistrationConfirmInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+    code: SecretStr
+
+    @field_validator("code")
+    @classmethod
+    def numeric_code(cls, value):
+        if not re.fullmatch(r"[0-9]{8}", value.get_secret_value()):
+            raise ValueError("Code must contain 8 digits")
+        return value

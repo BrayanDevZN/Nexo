@@ -13,7 +13,8 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     if (path === "/auth/me") { body = user || {}; status = user ? 200 : 401; }
     else if (path === "/auth/csrf") body = { csrf_token: "test-csrf" };
     else if (path === "/auth/login") { user = options.user || member; body = user; }
-    else if (path === "/auth/register") { body = member; status = 201; }
+    else if (path === "/auth/register") { status = 202; }
+    else if (path === "/auth/register/confirm") { user = member; body = member; status = 201; }
     else if (path === "/auth/google/profile") body = { name: "Ana", email: member.email, csrf_token: "google-csrf" };
     else if (path === "/auth/google/complete") { user = member; body = member; status = 201; expect(request.headers()["x-csrf-token"]).toBe("google-csrf"); }
     else if (path === "/auth/logout" || path === "/auth/password/change") { user = undefined; status = 204; }
@@ -26,6 +27,11 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/clients" && method === "POST") { const row = { ...request.postDataJSON(), id: "client", created_at: "2026-10-02", updated_at: "2026-10-02" }; rows.push(row); body = row; status = 201; }
     else if (path === "/clients/client" && method === "PATCH") { Object.assign(rows[0], request.postDataJSON()); body = rows[0]; }
     else if (path === "/clients/client" && method === "DELETE") { rows.splice(0); status = 204; }
+    else if (path === "/auth/profile/photo" && method === "PUT") {
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      expect(request.headers()["content-type"]).toContain("multipart/form-data");
+      user = { ...user!, profile_photo: "photo.jpg" } as typeof member; body = user;
+    }
     else if (path === "/auth/profile") { user = { ...user!, ...request.postDataJSON() }; body = user; }
     else status = 404;
     await route.fulfill({ status, ...(status === 204 ? {} : { contentType: "application/json", body: JSON.stringify(body) }) });
@@ -56,6 +62,7 @@ test("Google onboarding submits browser CSRF and enters pending state", async ({
   await page.getByLabel("Nome completo").fill("Ana Google");
   await page.getByLabel("Celular").fill("11999999999");
   await page.getByRole("button", { name: "Solicitar acesso" }).click();
+  await page.getByRole("button", { name: "Pular por enquanto" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
 });
@@ -125,5 +132,43 @@ test("expired session returns to login", async ({ page }) => {
   await page.unroute("**/api/**");
   await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
   await page.getByRole("button", { name: "Atualizar clientes" }).click();
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+});
+
+
+for (const photoChoice of ["skip", "save"]) test("registration confirms email before optional photo step: " + photoChoice, async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Ainda não tem conta? Cadastre-se" }).click();
+  await page.getByLabel("Nome completo").fill("Ana Silva");
+  await page.getByLabel("Celular").fill("11999999999");
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  await expect(page.getByText("Confirme seu e-mail", { exact: true })).toBeVisible();
+  await page.getByLabel("Código recebido por e-mail").fill("12345678");
+  await page.getByRole("button", { name: "Confirmar cadastro" }).click();
+  await expect(page.getByText("Adicione sua foto de perfil")).toBeVisible();
+  if (photoChoice === "skip") await page.setViewportSize({ width: 360, height: 780 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../../test-results/signup-photo-" + photoChoice + ".png", fullPage: true });
+  await expect(page.getByRole("button", { name: "Salvar foto e continuar" })).toBeDisabled();
+  await page.getByLabel("Escolher foto").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNsYGhgIAUwkaR6VMOohiGlAQBCPQEgiSD+iQAAAABJRU5ErkJggg==", "base64") });
+  await expect(page.getByRole("button", { name: "Salvar foto e continuar" })).toBeEnabled();
+  await expect(page.getByRole("img", { name: "Prévia da foto selecionada" })).toBeVisible();
+  await page.getByRole("button", { name: photoChoice === "skip" ? "Pular por enquanto" : "Salvar foto e continuar" }).click();
+  await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
+});
+
+
+test("profile changes password with current password without email code", async ({ page }) => {
+  await mock(page, { user: member });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Meu perfil", exact: true }).click();
+  await page.getByLabel("Senha atual", { exact: true }).fill("initial-password-123");
+  await page.getByLabel("Nova senha", { exact: true }).fill("changed-password-123");
+  await page.getByLabel("Confirmar nova senha").fill("changed-password-123");
+  await expect(page.getByLabel("Código recebido por e-mail")).toHaveCount(0);
+  await page.getByRole("button", { name: "Atualizar senha", exact: true }).click();
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });

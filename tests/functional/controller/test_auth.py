@@ -5,6 +5,7 @@ from pydantic import SecretStr
 from backend.controller.application import create_app
 from backend.controller.dependencies import admin_user, approved_user
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 DATA = {"name": "Ana", "phone": "+55 (11) 99999-9999", "email": "ana@example.com",
@@ -24,7 +25,7 @@ def client(settings, local_redis_url, monkeypatch):
 
 
 def register_and_login(client):
-    assert client.post("/auth/register", json=DATA, headers=ORIGIN).status_code == 201
+    assert verified_register(client, json=DATA, headers=ORIGIN).status_code == 201
     response = client.post("/auth/login", json={"email": DATA["email"],
                            "password": DATA["password"]}, headers=ORIGIN)
     assert response.status_code == 200

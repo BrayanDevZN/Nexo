@@ -2,13 +2,14 @@ from backend.infra.config.settings import Settings
 
 
 def test_same_environment_credentials_create_admin_and_configure_sender(tmp_path, monkeypatch):
+    from unittest.mock import Mock
+
     from backend.domain.passwords import PasswordHasher
     from backend.infra.connections.database import DatabaseConnection
     from backend.infra.connections.email import GmailConnection
     from backend.repository.db.control.manager import RepositoryManager
     from backend.repository.db.schema import create_tables
     from backend.service.auth import AuthService
-    from unittest.mock import Mock
 
     monkeypatch.setenv("EMAIL", "owner@example.com")
     monkeypatch.setenv("PASSWORD", "shared-application-password")

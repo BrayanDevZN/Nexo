@@ -7,6 +7,7 @@ from pydantic import SecretStr
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 DATA = {"name": "Ana", "phone": "11999999999", "email": "ana@example.com",
@@ -62,7 +63,7 @@ def test_clients_crud_filters_and_server_selected_creator(client):
 
 
 def test_pending_cannot_read_or_mutate_clients_and_approval_activates_session(client):
-    assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 201
+    assert verified_register(client, headers=ORIGIN, json=DATA).status_code == 201
     headers = login(client, DATA["email"], DATA["password"])
     member_token = client.cookies.get("nexo_access_token")
     assert client.get("/clients").status_code == 403
@@ -101,7 +102,7 @@ def test_profile_photo_is_private_validated_and_can_be_deleted(client):
 
 
 def test_pending_can_edit_only_own_profile_without_promoting_account(client):
-    assert client.post("/auth/register", headers=ORIGIN, json=DATA).status_code == 201
+    assert verified_register(client, headers=ORIGIN, json=DATA).status_code == 201
     headers = login(client, DATA["email"], DATA["password"])
     assert client.put("/auth/profile", headers=headers,
                       json={"name": "Ana Silva", "phone": "11988888888"}).status_code == 200

@@ -15,8 +15,8 @@ class AuthService:
         # Verify an equivalent hash even when the email does not exist.
         self._dummy_hash = passwords.hash("unused-login-placeholder-password")
 
-    def register(self, *, name, email, phone, password):
-        hashed = self.passwords.hash(password)
+    def register(self, *, name, email, phone, password=None, password_hash=None):
+        hashed = password_hash or self.passwords.hash(password)
         try:
             with self.repositories.transaction() as repos:
                 if repos.users.by_email(email):

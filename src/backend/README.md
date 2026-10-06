@@ -165,3 +165,7 @@ recuperação e logout com cookies Secure/HttpOnly. SQLite e arquivos são tempo
 Redis é local real; Gmail e endpoints Google são simulados. Não valida entrega Gmail
 nem login Google real. GitHub Actions executa as três suítes e a suíte completa em
 Python 3.12/3.13, com relatórios JUnit anexados.
+
+O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo yagmail e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o administrador só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O admin inicial continua sendo criado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
+
+No painel, `POST /auth/password/change` exige senha atual e nova senha. A opção “Esqueci minha senha” continua usando os endpoints `/auth/password/recovery/request` e `/auth/password/recovery/confirm`, com código por email. Após o cadastro local ou o preenchimento do perfil Google, o frontend oferece foto opcional ou pular; o upload usa `/auth/profile/photo`, protegido por sessão e CSRF, inclusive para contas pendentes.

@@ -57,7 +57,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
         throw new ApiError(response.status, messages[response.status] ||
-          (path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
+          (path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
       }
       if (response.status === 204) return undefined as T;
       return await response.json() as T;

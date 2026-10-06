@@ -26,6 +26,7 @@ from backend.service.google import GoogleAuthService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
 from backend.service.rate_limits import RateLimitService
+from backend.service.registration import RegistrationService
 from backend.service.security import SessionSecurity
 
 
@@ -62,6 +63,12 @@ class RuntimeServices:
             self.google = GoogleAuthService(
                 settings, GoogleConnection(settings), OAuthRepository(self.redis.client, namespace),
                 self.repositories, self.sessions, self.csrf, self.messages)
+            self.registration = RegistrationService(
+                self.auth, EmailCodeService(settings.jwt_secret_key.get_secret_value(), "registration"),
+                EmailCodeRepository(self.redis.client, namespace + ":registration:" + database_namespace,
+                                    ttl=settings.email_code_ttl_seconds,
+                                    max_attempts=settings.email_code_max_attempts,
+                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email)
             self.password_service = PasswordService(
                 self.repositories, self.passwords,
                 EmailCodeService(settings.jwt_secret_key.get_secret_value()),

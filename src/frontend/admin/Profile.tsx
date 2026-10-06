@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { PhotoPicker } from "./PhotoPicker";
 import { UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from ".
 export function Profile({ api, user, onUpdate, onLoggedOut }: {
   api: ReturnType<typeof createApi>; user: User; onUpdate: (user: User) => void; onLoggedOut: () => void;
 }) {
+  const [selectedPhoto, setSelectedPhoto] = useState<File>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -27,7 +29,7 @@ export function Profile({ api, user, onUpdate, onLoggedOut }: {
     const data = new FormData(event.currentTarget);
     void action(async () => {
       onUpdate(await api.mutate<User>("/auth/profile/photo", "PUT", data));
-      setPhotoVersion(v => v + 1); setPhotoFailed(false);
+      setPhotoVersion(v => v + 1); setPhotoFailed(false); setSelectedPhoto(undefined);
     }, "Foto atualizada.");
   }
   function password(event: FormEvent<HTMLFormElement>) {
@@ -54,7 +56,7 @@ export function Profile({ api, user, onUpdate, onLoggedOut }: {
       <Card><CardHeader><CardTitle>Foto de perfil</CardTitle><CardDescription>JPEG, PNG ou WebP estático. Até 2 MB no limite padrão.</CardDescription></CardHeader>
         <CardContent className="flex flex-col gap-5">
           {user.profile_photo && !photoFailed ? <img className="admin-avatar" src={api.photoUrl + "?v=" + photoVersion} alt={"Foto de " + user.name} onError={() => setPhotoFailed(true)} /> : <div className="admin-avatar flex items-center justify-center" aria-label="Sem foto"><UserRound className="size-10" /></div>}
-          <form onSubmit={upload} className="flex flex-col gap-5"><FieldGroup><TextField label="Escolher foto" name="file" type="file" accept="image/jpeg,image/png,image/webp" required /></FieldGroup><Button disabled={busy} type="submit">Enviar foto</Button></form>
+          <form onSubmit={upload} className="flex flex-col gap-5"><FieldGroup><PhotoPicker key={photoVersion} disabled={busy} onSelect={setSelectedPhoto} /></FieldGroup><Button disabled={busy || !selectedPhoto} type="submit">Enviar foto</Button></form>
           {user.profile_photo && <Button variant="outline" disabled={busy} onClick={() => void action(async () => {
             await api.mutate("/auth/profile/photo", "DELETE"); onUpdate({ ...user, profile_photo: null }); setPhotoFailed(false);
           }, "Foto removida.")}>Remover foto</Button>}

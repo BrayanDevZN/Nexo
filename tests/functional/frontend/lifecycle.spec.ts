@@ -14,9 +14,9 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Nova senha", { exact: true }).fill("browser-member-password");
     await member.getByRole("button", { name: "Criar conta", exact: true }).click();
-    await expect(member.getByText(/Conta criada/)).toBeVisible();
-    await member.getByLabel("Senha", { exact: true }).fill("browser-member-password");
-    await member.getByRole("button", { name: "Entrar no painel" }).click();
+    await member.getByLabel("Código recebido por e-mail").fill("12345678");
+    await member.getByRole("button", { name: "Confirmar cadastro" }).click();
+    await member.getByRole("button", { name: "Pular por enquanto" }).click();
     await expect(member.getByText("Seu acesso está em análise")).toBeVisible();
     const cookies = await memberContext.cookies();
     expect(cookies.find(cookie => cookie.name === "nexo_access_token")?.httpOnly).toBe(true);

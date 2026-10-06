@@ -16,14 +16,19 @@ def isolated_environment(monkeypatch):
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(_env_file=None, environment="test", jwt_secret_key="test-only-key-" * 4,
-                    database_url="sqlite:///" + str(tmp_path / "nested" / "nexo.db"))
+    return Settings(
+        _env_file=None,
+        environment="test",
+        jwt_secret_key="test-only-key-" * 4,
+        database_url="sqlite:///" + str(tmp_path / "nested" / "nexo.db"),
+    )
 
 
 @pytest.fixture
 def local_redis_url():
     import os
     from urllib.parse import urlsplit
+
     url = os.getenv("REDIS_TEST_URL")
     if not url:
         pytest.skip("Set REDIS_TEST_URL to a local test Redis (required in CI)")
@@ -45,10 +50,38 @@ def google_signer():
     public.update(kid="test-key", alg="RS256", use="sig")
 
     def sign(**overrides):
-        claims = {"sub": "google-user-123", "email": "ana@example.com", "name": "Ana",
-                  "email_verified": True, "iss": "https://accounts.google.com",
-                  "aud": "test-google-client", "nonce": "test-nonce",
-                  "iat": int(time.time()), "exp": int(time.time()) + 300}
+        claims = {
+            "sub": "google-user-123",
+            "email": "ana@example.com",
+            "name": "Ana",
+            "email_verified": True,
+            "iss": "https://accounts.google.com",
+            "aud": "test-google-client",
+            "nonce": "test-nonce",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 300,
+        }
         claims.update(overrides)
         return jwt.encode(claims, key, algorithm="RS256", headers={"kid": "test-key"})
+
     return sign, {"keys": [public]}
+
+
+def verified_register(client, *, json, headers):
+    """Exercise the verification endpoints with a test-only mail transport."""
+    from concurrent.futures import Future
+    from unittest.mock import Mock, patch
+
+    service = client.app.state.services.registration
+    done = Future()
+    done.set_result(None)
+    with (
+        patch.object(service, "sender", Mock(configured=True, send=Mock(return_value=done))),
+        patch.object(service.codes, "create", return_value="12345678"),
+    ):
+        response = client.post("/auth/register", json=json, headers=headers)
+    if response.status_code != 202:
+        return response
+    return client.post(
+        "/auth/register/confirm", headers=headers, json={"email": json["email"], "code": "12345678"}
+    )

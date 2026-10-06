@@ -7,6 +7,7 @@ from pydantic import SecretStr
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
+from tests.conftest import verified_register
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 EMAIL = "ana@example.com"
@@ -30,7 +31,7 @@ def mailbox(settings, local_redis_url, monkeypatch):
             futures.append(future)
             return future
         app.state.services.email.send = tracked_send
-        assert client.post("/auth/register", headers=ORIGIN, json={"name": "Ana", "phone": "11999999999",
+        assert verified_register(client, headers=ORIGIN, json={"name": "Ana", "phone": "11999999999",
                            "email": EMAIL, "password": PASSWORD}).status_code == 201
         yield client, smtp, futures
 

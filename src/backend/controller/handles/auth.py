@@ -1,22 +1,48 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from redis.exceptions import RedisError
 
 from backend.controller.cookies import set_session_cookie
 from backend.controller.dependencies import current_user
-from backend.controller.schema.auth import LoginInput, RegistrationInput, UserOutput
+from backend.controller.schema.auth import (
+    LoginInput,
+    RegistrationConfirmInput,
+    RegistrationInput,
+    UserOutput,
+)
+from backend.infra.connections.email import EmailUnavailableError
 from backend.service.auth import RegistrationConflict
+from backend.service.registration import RegistrationCodeError
 from backend.service.security import AuthenticationError
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.post("/register", response_model=UserOutput, status_code=201)
+@router.post("/register", status_code=202)
 def register(data: RegistrationInput, request: Request):
     try:
-        return request.app.state.services.auth.register(
+        request.app.state.services.registration.request(
             name=data.name, email=str(data.email), phone=data.phone,
             password=data.password.get_secret_value())
+        return {"detail": "Confirmation code sent"}
     except RegistrationConflict:
         raise HTTPException(status_code=409, detail="Email already registered") from None
+    except (RedisError, EmailUnavailableError):
+        raise HTTPException(status_code=503, detail="Registration email unavailable") from None
+
+
+@router.post("/register/confirm", response_model=UserOutput, status_code=201)
+def confirm_registration(data: RegistrationConfirmInput, request: Request, response: Response):
+    try:
+        services = request.app.state.services
+        user = services.registration.confirm(str(data.email), data.code.get_secret_value())
+        set_session_cookie(response, request.app.state.settings, services.sessions.issue(user))
+        return user
+    except RegistrationCodeError:
+        raise HTTPException(status_code=400, detail="Invalid or expired registration code") from None
+    except RegistrationConflict:
+        raise HTTPException(status_code=409, detail="Email already registered") from None
+    except RedisError:
+        raise HTTPException(status_code=503, detail="Registration unavailable") from None
 
 
 @router.post("/login", response_model=UserOutput)

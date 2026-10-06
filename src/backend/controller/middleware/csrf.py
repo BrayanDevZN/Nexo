@@ -18,7 +18,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             if request.headers.get("origin") not in self.settings.cors_origins:
                 response = JSONResponse({"detail": "Untrusted request origin"}, status_code=403)
-            elif request.url.path not in {"/auth/login", "/auth/register", "/auth/google/complete",
+            elif request.url.path not in {"/auth/login", "/auth/register", "/auth/register/confirm", "/auth/google/complete",
                                                 "/auth/password/recovery/request",
                                                 "/auth/password/recovery/confirm"}:
                 try:
