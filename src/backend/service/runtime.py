@@ -61,7 +61,6 @@ class RuntimeServices:
                                              DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
             self.members = MemberService(self.repositories, self.cached_repositories, self.profiles)
-            self.approvals = ApprovalService(self.repositories, self.cached_repositories)
             rate_namespace = "nexo:rate:" + hashlib.sha256(
                 (settings.database_url + settings.jwt_secret_key.get_secret_value()).encode()).hexdigest()[:32]
             self.rate_limits = RateLimitService(RateLimitRepository(self.redis.client), settings, rate_namespace)
@@ -82,6 +81,7 @@ class RuntimeServices:
             self.email = ResendConnection(settings)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
+            self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
@@ -95,7 +95,7 @@ class RuntimeServices:
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
                                     cooldown=settings.email_code_resend_cooldown_seconds), self.email,
-                delivery_timeout=min(settings.email_timeout_seconds + 2, 12))
+                delivery_timeout=min(settings.email_timeout_seconds + 2, 12), messages=self.messages)
             self.account_deletion = AccountDeletionService(
                 self.repositories, self.members,
                 EmailCodeService(settings.jwt_secret_key.get_secret_value(), "account-deletion"),
@@ -103,14 +103,14 @@ class RuntimeServices:
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
                                     cooldown=settings.email_code_resend_cooldown_seconds), self.email,
-                delivery_timeout=min(settings.email_timeout_seconds + 2, 12))
+                delivery_timeout=min(settings.email_timeout_seconds + 2, 12), messages=self.messages)
             self.password_service = PasswordService(
                 self.repositories, self.passwords,
                 EmailCodeService(settings.jwt_secret_key.get_secret_value()),
                 EmailCodeRepository(self.redis.client, namespace + ":password:" + database_namespace,
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
-                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email)
+                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email, messages=self.messages)
         except BaseException:
             self._cleanup.close()
             raise
