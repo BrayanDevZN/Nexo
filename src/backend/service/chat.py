@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 
@@ -73,7 +74,7 @@ class ChatService:
         key = self.storage.write(data)
         try:
             row, created = self.save(actor, member_id, client_id, kind=kind, storage_key=key,
-                                     media_type=media_type, size=len(data))
+                                     media_type=media_type, media_data=data, size=len(data))
         except BaseException:
             self.cleanup([key])
             raise
@@ -90,7 +91,9 @@ class ChatService:
                 raise ResourceNotFound("Media not found")
             if user.id not in {row.sender_id, row.recipient_id}:
                 raise AccessDenied("Conversation is private")
-            key, media_type = row.storage_key, row.media_type
+            key, media_type, data = row.storage_key, row.media_type, row.media_data
+        if data is not None:
+            return data, media_type
         try:
             return self.storage.read(key), media_type
         except FileNotFoundError:

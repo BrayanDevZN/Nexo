@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from backend.domain.documents import validate_document
 from backend.repository.cache.queries import snapshot
@@ -26,12 +27,12 @@ class DocumentService:
         try:
             with self.repositories.transaction() as repos:
                 user = authorize(repos, actor, approved=True)
-                row = repos.documents.create(filename=filename, storage_key=key, size=len(data), created_by_id=user.id)
-                result = {**snapshot("documents", row), "created_by_name": user.name}
+                row = repos.documents.create(filename=filename, storage_key=key,
+                                             content=data, size=len(data), created_by_id=user.id)
+                return {**snapshot("documents", row), "created_by_name": user.name}
         except BaseException:
             self.cleanup(key)
             raise
-        return result
 
     def download(self, actor, identifier):
         with self.repositories.transaction() as repos:
@@ -39,7 +40,9 @@ class DocumentService:
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
-            key, filename = row.storage_key, row.filename
+            key, filename, content = row.storage_key, row.filename, row.content
+        if content is not None:
+            return filename, content
         try:
             return filename, self.storage.read(key)
         except FileNotFoundError:
@@ -53,7 +56,7 @@ class DocumentService:
                 raise ResourceNotFound("Document not found")
             if user.role != "admin" and row.created_by_id != user.id:
                 raise AccessDenied("Only the creator or an administrator can delete this document")
-            key = row.storage_key
+            key, content = row.storage_key, row.content
             repos.documents.delete(identifier)
         self.cleanup(key)
 

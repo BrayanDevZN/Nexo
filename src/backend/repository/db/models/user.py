@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, String
+from sqlalchemy import CheckConstraint, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
@@ -18,6 +18,7 @@ class User(IdentityTimestampMixin, Base):
     password_hash: Mapped[str | None] = mapped_column(String(255))
     google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
     profile_photo: Mapped[str | None] = mapped_column(String(255))
+    profile_photo_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     role: Mapped[str] = mapped_column(String(16), default="member")
     session_version: Mapped[int] = mapped_column(default=0)

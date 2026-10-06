@@ -34,7 +34,9 @@ class MemberService:
             user = self._target(repos, identifier)
             if (user.status != "approved" and current.role != "admin") or not user.profile_photo:
                 raise ResourceNotFound("Profile photo not found")
-            photo = user.profile_photo
+            photo, data = user.profile_photo, user.profile_photo_data
+        if data is not None:
+            return data
         try:
             return self.profiles.storage.read(photo)
         except FileNotFoundError:

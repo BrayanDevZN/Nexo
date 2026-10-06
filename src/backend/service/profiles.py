@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from backend.domain.photos import normalize_photo
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize
@@ -27,7 +28,8 @@ class ProfileService:
         try:
             with self.repositories.transaction() as repos:
                 user = authorize(repos, actor)
-                if not repos.users.set_photo_if_current(user, previous=previous, photo=name):
+                if not repos.users.set_photo_if_current(user, previous=previous, photo=name,
+                                                        photo_data=normalized):
                     raise ResourceConflict("Profile photo changed; try again")
         except BaseException:
             self.cleanup_photo(name)
@@ -39,14 +41,17 @@ class ProfileService:
         with self.repositories.transaction() as repos:
             user = authorize(repos, actor)
             previous = user.profile_photo
-            if not repos.users.set_photo_if_current(user, previous=previous, photo=None):
+            if not repos.users.set_photo_if_current(user, previous=previous, photo=None,
+                                                    photo_data=None):
                 raise ResourceConflict("Profile photo changed; try again")
         self.cleanup_photo(previous)
 
     def read_photo(self, actor):
         with self.repositories.transaction() as repos:
             user = authorize(repos, actor)
-            name = user.profile_photo
+            name, data = user.profile_photo, user.profile_photo_data
+        if data is not None:
+            return data
         if name is None:
             raise ResourceNotFound("Profile photo not found")
         try:

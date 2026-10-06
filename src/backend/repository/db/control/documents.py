@@ -7,8 +7,9 @@ from backend.repository.db.models import Document
 class DocumentRepository(Repository[Document]):
     model = Document
 
-    def create(self, *, filename, storage_key, size, created_by_id):
-        return self.add(Document(filename=filename, storage_key=storage_key, size=size, created_by_id=created_by_id))
+    def create(self, *, filename, storage_key, content, size, created_by_id):
+        return self.add(Document(filename=filename, storage_key=storage_key, content=content,
+                                 size=size, created_by_id=created_by_id))
 
     def list(self, *, limit=50, offset=0):
         pagination(limit, offset)

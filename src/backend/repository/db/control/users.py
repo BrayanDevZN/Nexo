@@ -110,11 +110,13 @@ class UserRepository(Repository[User]):
         self.session.refresh(user)
         return result.rowcount == 1
 
-    def set_photo_if_current(self, user: User, *, previous: str | None, photo: str | None) -> bool:
+    def set_photo_if_current(self, user: User, *, previous: str | None,
+                             photo: str | None, photo_data: bytes | None = None) -> bool:
         result = self.session.execute(update(User).where(
             User.id == user.id, User.session_version == user.session_version,
             User.status.in_(["pending", "approved"]), User.profile_photo == previous
-        ).values(profile_photo=photo), execution_options={"synchronize_session": False})
+        ).values(profile_photo=photo, profile_photo_data=photo_data),
+            execution_options={"synchronize_session": False})
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
         return result.rowcount == 1
