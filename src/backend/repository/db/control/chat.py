@@ -1,4 +1,4 @@
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.orm import load_only
 
 from backend.repository.db.control.base import pagination
@@ -37,6 +37,18 @@ class ChatRepository:
         if before is not None:
             query = query.where(ChatMessage.sequence < before)
         return list(reversed(list(self.session.scalars(query.order_by(ChatMessage.sequence.desc()).limit(limit)))))
+
+    def activity_by_member(self, actor_id):
+        member_id = case(
+            (ChatMessage.sender_id == actor_id, ChatMessage.recipient_id),
+            else_=ChatMessage.sender_id,
+        )
+        rows = self.session.execute(
+            select(member_id, func.max(ChatMessage.created_at))
+            .where(or_(ChatMessage.sender_id == actor_id, ChatMessage.recipient_id == actor_id))
+            .group_by(member_id)
+        )
+        return {identifier: created_at for identifier, created_at in rows}
 
     def delete_for_user(self, identifier):
         clause = or_(ChatMessage.sender_id == identifier, ChatMessage.recipient_id == identifier)
