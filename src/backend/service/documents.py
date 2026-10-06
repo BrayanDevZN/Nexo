@@ -1,5 +1,4 @@
 import logging
-from uuid import uuid4
 
 from backend.domain.documents import validate_document
 from backend.repository.cache.queries import snapshot
@@ -56,7 +55,7 @@ class DocumentService:
                 raise ResourceNotFound("Document not found")
             if user.role != "admin" and row.created_by_id != user.id:
                 raise AccessDenied("Only the creator or an administrator can delete this document")
-            key, content = row.storage_key, row.content
+            key = row.storage_key
             repos.documents.delete(identifier)
         self.cleanup(key)
 

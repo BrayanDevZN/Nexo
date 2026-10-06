@@ -1,5 +1,4 @@
 import logging
-from uuid import uuid4
 
 from backend.domain.photos import normalize_photo
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize
