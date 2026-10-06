@@ -24,19 +24,40 @@ function Media({ api, row }: { api: ReturnType<typeof createApi>; row: ChatMessa
 export function Chat({ api, actor, realtime, initialMember, onSelect, onNotificationsRead }: { api: ReturnType<typeof createApi>; actor: User; realtime: ReturnType<typeof useRealtime>; initialMember?: string; onSelect: (id: string | null) => void; onNotificationsRead?: () => Promise<void> }) {
   const [members, setMembers] = useState<DirectoryMember[]>([]); const [membersLoading, setMembersLoading] = useState(true); const [selected, setSelected] = useState(initialMember || "");
   const [rows, setRows] = useState<ChatMessage[]>([]); const [text, setText] = useState(""); const [loading, setLoading] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [hasOlder, setHasOlder] = useState(false); const [recording, setRecording] = useState(false); const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [unreadByMember, setUnreadByMember] = useState<Record<string, number>>({});
+  const [lastActivity, setLastActivity] = useState<Record<string, string>>({});
+  const refreshConversationMeta = useCallback(async () => {
+    try {
+      const [counts, activity] = await Promise.all([
+        api.request<{ chat_by_sender?: Record<string, number> }>("/notifications/unread-count"),
+        api.request<{ member_id: string; last_message_at: string }[]>("/chat/conversations"),
+      ]);
+      setUnreadByMember(counts.chat_by_sender || {});
+      setLastActivity(Object.fromEntries(activity.map(row => [row.member_id, row.last_message_at])));
+    } catch { /* Keep conversations usable while metadata refreshes. */ }
+  }, [api]);
+  useEffect(() => {
+    void refreshConversationMeta();
+    const event = (value: Event) => {
+      const type = (value as CustomEvent).detail.type;
+      if (type === "ready" || type === "notifications.changed") void refreshConversationMeta();
+    };
+    window.addEventListener("nexo:realtime", event);
+    return () => window.removeEventListener("nexo:realtime", event);
+  }, [refreshConversationMeta]);
   const active = useRef(true);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined); const recordingClock = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const serial = useRef(0); const attempt = useRef({ member: "", text: "", id: "" }); const recorder = useRef<MediaRecorder | null>(null); const stream = useRef<MediaStream | null>(null); const photo = useRef<HTMLInputElement>(null); const audio = useRef<HTMLInputElement>(null);
   useEffect(() => { let active = true; setMembersLoading(true); void (async () => { const all: DirectoryMember[] = []; for (let offset = 0; active; offset += 100) { const page = await api.request<DirectoryMember[]>("/members?limit=100&offset=" + offset); all.push(...page); if (page.length < 100) break; } if (active) setMembers(all.filter(row => row.id !== actor.id)); })().catch(e => { if (active) setError(message(e)); }).finally(() => { if (active) setMembersLoading(false); }); return () => { active = false; }; }, [api, actor.id]);
   const load = useCallback(async (older = false, reset = false) => {
     if (!selected) return; const current = ++serial.current; setLoading(true); setError("");
-    try { const params = new URLSearchParams({ limit: "50" }); if (older && rows.length) params.set("before", String(rows[0].sequence)); const history = await api.request<ChatMessage[]>("/chat/" + selected + "/messages?" + params); if (current === serial.current) { setRows(old => reset ? history : merge(old, history)); if (older || reset || !rows.length) setHasOlder(history.length === 50); if (!older) { try { await api.mutate("/notifications/chat/" + selected + "/read", "PATCH"); await onNotificationsRead?.(); } catch { /* keep the conversation available if its read marker fails */ } } } }
+    try { const params = new URLSearchParams({ limit: "50" }); if (older && rows.length) params.set("before", String(rows[0].sequence)); const history = await api.request<ChatMessage[]>("/chat/" + selected + "/messages?" + params); if (current === serial.current) { setRows(old => reset ? history : merge(old, history)); if (older || reset || !rows.length) setHasOlder(history.length === 50); if (!older) { try { await api.mutate("/notifications/chat/" + selected + "/read", "PATCH"); setUnreadByMember(old => ({ ...old, [selected]: 0 })); await onNotificationsRead?.(); } catch { /* keep the conversation available if its read marker fails */ } } } }
     catch (e) { if (current === serial.current) setError(message(e)); } finally { if (current === serial.current) setLoading(false); }
   }, [api, selected, rows, onNotificationsRead]);
   const loadRef = useRef(load); loadRef.current = load;
   useEffect(() => { onSelect(selected); return () => onSelect(null); }, [selected, onSelect]);
   useEffect(() => { setRows([]); setText(""); setHasOlder(false); setError(""); void loadRef.current(); return () => { serial.current++; }; }, [selected]);
-  useEffect(() => { const event = (event: Event) => { const value = (event as CustomEvent).detail; if (value.type === "ready") void loadRef.current(false, true); if (value.type === "presence.changed" && value.user_id) setMembers(old => old.map(member => member.id === value.user_id ? { ...member, online: value.online } : member)); const row: ChatMessage | undefined = value.message; if (row && ((row.sender_id === actor.id && row.recipient_id === selected) || (row.sender_id === selected && row.recipient_id === actor.id))) { setRows(old => merge(old, [row])); if (row.sender_id === selected && row.recipient_id === actor.id) void api.mutate("/notifications/chat/" + selected + "/read", "PATCH").then(() => onNotificationsRead?.()).catch(() => {}); } }; window.addEventListener("nexo:realtime", event); return () => window.removeEventListener("nexo:realtime", event); }, [actor.id, selected, api, onNotificationsRead]);
+  useEffect(() => { const event = (event: Event) => { const value = (event as CustomEvent).detail; if (value.type === "ready") void loadRef.current(false, true); if (value.type === "presence.changed" && value.user_id) setMembers(old => old.map(member => member.id === value.user_id ? { ...member, online: value.online } : member)); const row: ChatMessage | undefined = value.message; if (row) { const peer = row.sender_id === actor.id ? row.recipient_id : row.sender_id; setLastActivity(old => ({ ...old, [peer]: row.created_at })); if (row.sender_id !== actor.id && row.recipient_id === actor.id && selected !== row.sender_id) setUnreadByMember(old => ({ ...old, [row.sender_id]: (old[row.sender_id] || 0) + 1 })); } if (row && ((row.sender_id === actor.id && row.recipient_id === selected) || (row.sender_id === selected && row.recipient_id === actor.id))) { setRows(old => merge(old, [row])); if (row.sender_id === selected && row.recipient_id === actor.id) void api.mutate("/notifications/chat/" + selected + "/read", "PATCH").then(() => { setUnreadByMember(old => ({ ...old, [selected]: 0 })); return onNotificationsRead?.(); }).catch(() => {}); } }; window.addEventListener("nexo:realtime", event); return () => window.removeEventListener("nexo:realtime", event); }, [actor.id, selected, api, onNotificationsRead]);
   useEffect(() => { active.current = true; return () => { active.current = false; clearTimeout(recordingTimer.current); clearInterval(recordingClock.current); if (recorder.current?.state === "recording") { recorder.current.onstop = null; recorder.current.stop(); } stream.current?.getTracks().forEach(track => track.stop()); }; }, []);
   function onComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -62,6 +83,8 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
       device.start(1000); setRecordingSeconds(0); recordingClock.current = setInterval(() => setRecordingSeconds(seconds => seconds + 1), 1000); recordingTimer.current = setTimeout(() => { if (device.state === "recording") device.stop(); }, 120000); setRecording(true); setError("");
     } catch { stream.current?.getTracks().forEach(track => track.stop()); setError("Não foi possível acessar o microfone. Autorize no navegador ou envie um arquivo de áudio."); } finally { if (active.current) setBusy(false); }
   }
+  const orderedMembers = [...members].sort((a, b) =>
+    (lastActivity[b.id] || "").localeCompare(lastActivity[a.id] || ""));
   const person = members.find(row => row.id === selected);
   return <section className="flex min-w-0 flex-col gap-6" aria-labelledby="chat-title"><div className="admin-section-head"><div><span className="admin-eyebrow">CONVERSAS DA EQUIPE</span><h1 id="chat-title">Chat</h1><p>Converse com os membros e compartilhe fotos e áudios.</p></div><Badge variant={realtime.status === "online" ? "default" : "secondary"}>{realtime.status === "online" ? "Conectado" : realtime.status === "connecting" ? "Conectando…" : "Reconectando…"}</Badge></div><Feedback error={error} />
     <div className="grid h-[calc(100dvh-11rem)] min-h-[30rem] min-w-0 items-stretch gap-6 md:h-[calc(100dvh-13rem)] md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
@@ -69,8 +92,8 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
         <CardHeader><CardTitle>Membros</CardTitle><CardDescription>Clique em alguém para abrir a conversa.</CardDescription></CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-y-auto">
           {membersLoading ? <Loading /> : members.length ? <nav aria-label="Membros para conversar" className="flex flex-col gap-2">
-            {members.map(member => <Button key={member.id} type="button" variant={selected === member.id ? "secondary" : "ghost"} className="h-auto min-h-16 w-full justify-start gap-3 py-3" disabled={busy || recording} aria-label={"Conversar com " + member.name} aria-current={selected === member.id ? "true" : undefined} onClick={() => setSelected(member.id)}>
-              <MemberPhoto api={api} id={member.id} name={member.name} hasPhoto={member.has_photo} /><span className="min-w-0 flex-1 truncate text-left">{member.name}</span><Badge variant={member.online ? "default" : "outline"}>{member.online ? "Online" : "Offline"}</Badge>
+            {orderedMembers.map(member => <Button key={member.id} type="button" variant={selected === member.id ? "secondary" : "ghost"} className="h-auto min-h-16 w-full justify-start gap-3 py-3" disabled={busy || recording} aria-label={"Conversar com " + member.name} aria-current={selected === member.id ? "true" : undefined} onClick={() => setSelected(member.id)}>
+              <MemberPhoto api={api} id={member.id} name={member.name} hasPhoto={member.has_photo} />{(unreadByMember[member.id] || 0) > 0 && <Badge aria-label={unreadByMember[member.id] + " mensagens novas"}>{unreadByMember[member.id]}</Badge>}<span className="min-w-0 flex-1 truncate text-left">{member.name}</span><Badge variant={member.online ? "default" : "outline"}>{member.online ? "Online" : "Offline"}</Badge>
             </Button>)}
           </nav> : <Empty><EmptyHeader><EmptyTitle>Nenhum membro disponível</EmptyTitle><EmptyDescription>Os outros membros aprovados aparecem aqui.</EmptyDescription></EmptyHeader></Empty>}
         </CardContent>
