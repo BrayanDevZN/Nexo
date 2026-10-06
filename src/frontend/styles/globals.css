@@ -33,6 +33,13 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-funnel-lead: var(--funnel-lead);
+  --color-funnel-contacted: var(--funnel-contacted);
+  --color-funnel-diagnosis: var(--funnel-diagnosis);
+  --color-funnel-proposal: var(--funnel-proposal);
+  --color-funnel-negotiation: var(--funnel-negotiation);
+  --color-funnel-won: var(--funnel-won);
+  --color-funnel-lost: var(--funnel-lost);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -71,6 +78,13 @@
   --radius: 0.65rem;
   --highlight: #8b5cf6;
   --shadow-tone: #7c3aed;
+  --funnel-lead: #06b6d4;
+  --funnel-contacted: #2563eb;
+  --funnel-diagnosis: #7c3aed;
+  --funnel-proposal: #f59e0b;
+  --funnel-negotiation: #f97316;
+  --funnel-won: #16a34a;
+  --funnel-lost: #dc2626;
 }
 
 @layer base {

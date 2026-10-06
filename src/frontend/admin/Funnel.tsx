@@ -15,13 +15,13 @@ const stageDescriptions: Record<PipelineStage, string> = {
 };
 
 const stageTones: Record<PipelineStage, string> = {
-  lead: "border-primary/30 bg-primary/5",
-  contacted: "border-secondary bg-secondary/30",
-  diagnosis: "border-accent bg-accent/30",
-  proposal: "border-muted-foreground/30 bg-muted/40",
-  negotiation: "border-primary/50 bg-primary/10",
-  won: "border-primary bg-primary/10",
-  lost: "border-destructive/30 bg-destructive/5",
+  lead: "border-funnel-lead/70 bg-funnel-lead/15",
+  contacted: "border-funnel-contacted/70 bg-funnel-contacted/15",
+  diagnosis: "border-funnel-diagnosis/70 bg-funnel-diagnosis/15",
+  proposal: "border-funnel-proposal/70 bg-funnel-proposal/15",
+  negotiation: "border-funnel-negotiation/70 bg-funnel-negotiation/15",
+  won: "border-funnel-won/70 bg-funnel-won/15",
+  lost: "border-funnel-lost/70 bg-funnel-lost/15",
 };
 
 function formatValue(value: number) {
