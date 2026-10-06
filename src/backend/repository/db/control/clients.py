@@ -10,15 +10,22 @@ class ClientRepository(Repository[Client]):
     def create(self, *, name: str, niche: str, created_by_id: str,
                contract_closed: bool = False, phone: str | None = None,
                email: str | None = None, notes: str | None = None,
-               contract_value=None) -> Client:
+               contract_value=None, pipeline_stage: str = "lead",
+               next_follow_up=None) -> Client:
         if not name.strip() or not niche.strip():
             raise ValueError("Name and niche are required")
+        if contract_closed and pipeline_stage == "lead":
+            pipeline_stage = "won"
+        if pipeline_stage == "won":
+            contract_closed = True
         return self.add(Client(name=name.strip(), niche=niche.strip(),
                                created_by_id=created_by_id, contract_closed=contract_closed,
-                               phone=phone, email=email, notes=notes, contract_value=contract_value))
+                               phone=phone, email=email, notes=notes, contract_value=contract_value,
+                               pipeline_stage=pipeline_stage, next_follow_up=next_follow_up))
 
     def list(self, *, niche: str | None = None, contract_closed: bool | None = None,
              name: str | None = None, created_by_id: str | None = None,
+             pipeline_stage: str | None = None,
              limit: int = 50, offset: int = 0) -> list[Client]:
         pagination(limit, offset)
         query = select(Client).order_by(Client.created_at, Client.id)
@@ -30,10 +37,13 @@ class ClientRepository(Repository[Client]):
             query = query.where(Client.niche == niche)
         if contract_closed is not None:
             query = query.where(Client.contract_closed == contract_closed)
+        if pipeline_stage is not None:
+            query = query.where(Client.pipeline_stage == pipeline_stage)
         return list(self.session.scalars(query.limit(limit).offset(offset)))
 
     def update(self, client: Client, **changes) -> Client:
-        allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value", "notes"}
+        allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value",
+                   "pipeline_stage", "next_follow_up", "notes"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         for field, value in changes.items():
@@ -42,6 +52,10 @@ class ClientRepository(Repository[Client]):
                     raise ValueError("Name and niche are required")
                 value = value.strip()
             setattr(client, field, value)
+        if changes.get("contract_closed") is True and "pipeline_stage" not in changes:
+            client.pipeline_stage = "won"
+        if changes.get("pipeline_stage") == "won":
+            client.contract_closed = True
         self.session.flush()
         return client
 
@@ -53,6 +67,16 @@ class ClientRepository(Repository[Client]):
         return int(self.session.scalar(select(func.count()).select_from(Client).where(
             Client.contract_closed.is_(True), Client.created_at >= start, Client.created_at < end
         )) or 0)
+
+    def funnel_counts(self) -> dict[str, int]:
+        rows = self.session.execute(select(Client.pipeline_stage, func.count()).group_by(Client.pipeline_stage))
+        return {stage: int(count) for stage, count in rows}
+
+    def value_totals(self) -> tuple[float, float]:
+        total = self.session.scalar(select(func.coalesce(func.sum(Client.contract_value), 0))) or 0
+        closed = self.session.scalar(select(func.coalesce(func.sum(Client.contract_value), 0)).where(
+            Client.contract_closed.is_(True))) or 0
+        return float(total), float(closed)
 
     def transfer_creator(self, previous_id, owner_id):
         result = self.session.execute(update(Client).where(Client.created_by_id == previous_id).values(

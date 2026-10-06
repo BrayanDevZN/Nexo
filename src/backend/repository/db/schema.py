@@ -15,6 +15,12 @@ def create_tables(engine: Engine) -> None:
     if "contract_value" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN contract_value NUMERIC(12, 2)"))
+    if "pipeline_stage" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN pipeline_stage VARCHAR(24) DEFAULT 'lead'"))
+    if "next_follow_up" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN next_follow_up DATETIME"))
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),

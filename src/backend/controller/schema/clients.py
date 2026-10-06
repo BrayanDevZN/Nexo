@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -13,6 +14,8 @@ from pydantic import (
 
 from backend.controller.schema.auth import ProfileInput
 
+PipelineStage = Literal["lead", "contacted", "diagnosis", "proposal", "negotiation", "won", "lost"]
+
 
 class ClientFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -20,6 +23,8 @@ class ClientFields(BaseModel):
     niche: str = Field(min_length=1, max_length=120)
     contract_closed: StrictBool = False
     contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    pipeline_stage: PipelineStage = "lead"
+    next_follow_up: datetime | None = None
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
     notes: str | None = Field(default=None, max_length=10000)
@@ -42,6 +47,8 @@ class ClientPatch(ClientFields):
     niche: str | None = Field(default=None, min_length=1, max_length=120)
     contract_closed: StrictBool | None = None
     contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    pipeline_stage: PipelineStage | None = None
+    next_follow_up: datetime | None = None
 
     @field_validator("name", "niche")
     @classmethod

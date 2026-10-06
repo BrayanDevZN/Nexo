@@ -12,6 +12,8 @@ class DashboardService:
             authorize(repos, actor, approved=True)
             members = repos.users.count(status="approved")
             clients = repos.clients.count()
+            funnel = repos.clients.funnel_counts()
+            potential_value, closed_value = repos.clients.value_totals()
             today = date.today()
             months = []
             for distance in range(5, -1, -1):
@@ -31,6 +33,9 @@ class DashboardService:
             documents = [self._document_with_creator(cached, row) for row in cached.documents.list(limit=3, offset=0)]
             documents_count = cached.db.documents.count()
         return {"members_count": members, "clients_count": clients,
+                "funnel": funnel, "potential_value": potential_value,
+                "closed_value": closed_value,
+                "conversion_rate": (funnel.get("won", 0) / clients * 100) if clients else 0,
                 "documents_count": documents_count, "documents": documents,
                 "contracts_by_month": months, "announcements": announcements}
 

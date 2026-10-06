@@ -7,14 +7,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { type createApi, type ClientRecord, type ClientInput } from "./api";
+import { PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
   const [offset, setOffset] = useState(0);
-  const [filters, setFilters] = useState({ niche: "", status: "", name: "", created_by_id: "" });
+  const [filters, setFilters] = useState({ niche: "", status: "", stage: "", name: "", created_by_id: "" });
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [draftName, setDraftName] = useState("");
   useEffect(() => {
@@ -46,6 +46,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     if (filters.created_by_id) params.set("created_by_id", filters.created_by_id);
     if (filters.niche) params.set("niche", filters.niche);
     if (filters.status) params.set("contract_closed", filters.status);
+    if (filters.stage) params.set("pipeline_stage", filters.stage);
     try {
       const result = await api.request<ClientRecord[]>("/clients?" + params);
       if (id === serial.current) setRows(result);
@@ -60,6 +61,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     const body: ClientInput = {
       name: value("name"), niche: value("niche"), phone: value("phone") || null,
       email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
+      pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
     };
     setBusy(true); setError(""); setSuccess("");
     try {
@@ -90,6 +92,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <TextField label="Nome do cliente" placeholder="Pesquisar nome" value={draftName} onChange={e => setDraftName(e.target.value)} maxLength={160} />
           <Field><FieldLabel htmlFor="creator-filter">Criado por</FieldLabel><NativeSelect id="creator-filter" value={filters.created_by_id} onChange={e => { setOffset(0); setFilters({ ...filters, created_by_id: e.target.value }); }}><NativeSelectOption value="">Todos os membros</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field>
           <TextField label="Nicho" placeholder="Ex.: Contabilidade" value={draftNiche} onChange={e => setDraftNiche(e.target.value)} maxLength={120} />
+          <Field><FieldLabel htmlFor="stage-filter">Etapa</FieldLabel><NativeSelect id="stage-filter" value={filters.stage} onChange={e => { setOffset(0); setFilters({ ...filters, stage: e.target.value }); }}><NativeSelectOption value="">Todas</NativeSelectOption>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="contract-filter">Contrato</FieldLabel><NativeSelect id="contract-filter" value={filters.status} onChange={e => { setOffset(0); setFilters({ ...filters, status: e.target.value }); }}>
             <NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption><NativeSelectOption value="false">Em negociação</NativeSelectOption>
           </NativeSelect></Field>
@@ -101,12 +104,13 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     {loading ? <Loading /> : rows.length === 0 && !error ? <Empty>
       <EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente nesta lista</EmptyTitle><EmptyDescription>Cadastre um cliente ou ajuste os filtros para encontrar seus contatos.</EmptyDescription></EmptyHeader>
     </Empty> : <div className="admin-client-grid">{rows.map(client => <Card key={client.id}>
-      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed ? "default" : "secondary"}>{client.contract_closed ? "Fechado" : "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
+      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || client.pipeline_stage}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
         {client.phone && <p className="text-sm">{client.phone}</p>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
+        {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
         {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
@@ -127,6 +131,8 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
+            <Field><FieldLabel htmlFor="pipeline-stage">Etapa do funil</FieldLabel><NativeSelect id="pipeline-stage" name="pipeline_stage" defaultValue={row?.pipeline_stage || "lead"}>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
+            <TextField label="Próximo follow-up (opcional)" name="next_follow_up" type="date" defaultValue={row?.next_follow_up ? row.next_follow_up.slice(0, 10) : ""} />
             <Field><FieldLabel htmlFor="client-contract">Situação do contrato</FieldLabel><NativeSelect id="client-contract" name="contract" defaultValue={String(row?.contract_closed || false)}>
               <NativeSelectOption value="false">Em negociação</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption>
             </NativeSelect></Field>
