@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { PhotoPicker } from "./PhotoPicker";
-import { UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type createApi, type User } from "./api";
@@ -9,7 +8,6 @@ import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from ".
 export function Profile({ api, user, onUpdate, onLoggedOut }: {
   api: ReturnType<typeof createApi>; user: User; onUpdate: (user: User) => void; onLoggedOut: () => void;
 }) {
-  const [selectedPhoto, setSelectedPhoto] = useState<File>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -35,12 +33,12 @@ export function Profile({ api, user, onUpdate, onLoggedOut }: {
     const data = new FormData(event.currentTarget);
     void action(async () => onUpdate(await api.mutate<User>("/auth/profile", "PUT", Object.fromEntries(data))), "Perfil atualizado.");
   }
-  function upload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
+  function upload(file: File | undefined) {
+    if (!file || busy) return;
+    const data = new FormData(); data.set("file", file);
     void action(async () => {
       onUpdate(await api.mutate<User>("/auth/profile/photo", "PUT", data));
-      setPhotoVersion(v => v + 1); setPhotoFailed(false); setSelectedPhoto(undefined);
+      setPhotoVersion(v => v + 1); setPhotoFailed(false);
     }, "Foto atualizada.");
   }
   function password(event: FormEvent<HTMLFormElement>) {
@@ -66,8 +64,8 @@ export function Profile({ api, user, onUpdate, onLoggedOut }: {
       </Card>
       <Card><CardHeader><CardTitle>Foto de perfil</CardTitle><CardDescription>JPEG, PNG ou WebP estático. Até 2 MB no limite padrão.</CardDescription></CardHeader>
         <CardContent className="flex flex-col gap-5">
-          {photoSource && !photoFailed ? <img className="admin-avatar" src={photoSource} alt={"Foto de " + user.name} onError={() => setPhotoFailed(true)} /> : <div className="admin-avatar flex items-center justify-center" aria-label="Sem foto"><UserRound className="size-10" /></div>}
-          <form onSubmit={upload} className="flex flex-col gap-5"><FieldGroup><PhotoPicker key={photoVersion} disabled={busy} onSelect={setSelectedPhoto} /></FieldGroup><Button disabled={busy || !selectedPhoto} type="submit">Enviar foto</Button></form>
+          <FieldGroup><PhotoPicker key={photoVersion} source={photoFailed ? "" : photoSource} alt={"Foto de " + user.name} disabled={busy} onSelect={upload} /></FieldGroup>
+          {busy && <Busy>Salvando…</Busy>}
           {user.profile_photo && <Button variant="outline" disabled={busy} onClick={() => void action(async () => {
             await api.mutate("/auth/profile/photo", "DELETE"); onUpdate({ ...user, profile_photo: null }); setPhotoFailed(false);
           }, "Foto removida.")}>Remover foto</Button>}

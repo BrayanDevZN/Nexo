@@ -129,3 +129,24 @@ def test_deletion_failure_rolls_back_transfers_and_does_not_remove_photo(runtime
     assert runtime.sessions.authenticate(token).id == user.id
     assert runtime.clients.get(actor, client.id)["created_by_id"] == user.id
     assert len(runtime.approvals.notifications(actor)) == 1
+
+
+def test_shared_directory_uses_allowlist_approval_and_fresh_authorization(runtime):
+    actor = owner(runtime)
+    user, token = registered(runtime, approved=False)
+    with pytest.raises(AccessDenied):
+        runtime.members.directory(user)
+    before = runtime.members.directory(actor)
+    assert [row["id"] for row in before] == [actor.id]
+    note = runtime.approvals.notifications(actor)[0]
+    runtime.approvals.decide(actor, note["id"], "approved")
+    approved = runtime.sessions.authenticate(token)
+    rows = runtime.members.directory(approved)
+    assert {row["id"] for row in rows} == {actor.id, user.id}
+    assert all(set(row) == {"id", "name", "role"} for row in rows)
+    assert len(runtime.members.directory(approved, limit=1, offset=1)) == 1
+    runtime.members.update(actor, user.id, {"name": "Ana Edited"})
+    assert next(row for row in runtime.members.directory(approved) if row["id"] == user.id)["name"] == "Ana Edited"
+    runtime.sessions.revoke_all(user.id)
+    with pytest.raises(AccessDenied):
+        runtime.members.directory(approved)

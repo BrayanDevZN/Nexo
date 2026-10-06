@@ -61,6 +61,7 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/password/change | current_password, new_password |
 | POST /auth/password/recovery/request | email; resposta genérica 202 |
 | POST /auth/password/recovery/confirm | email, code, new_password |
+| GET /members | usuários aprovados; lista paginada com apenas id, nome e cargo de contas aprovadas |
 | GET /admin/users | somente admin; filtro status, limit/offset e identificação da conta principal |
 | PATCH /admin/users/{id} | admin altera nome, email, celular e cargo; cargo exige usuário aprovado |
 | DELETE /admin/users/{id} | admin exclui conta e preserva seus clientes |
@@ -193,3 +194,12 @@ A exclusão transfere clientes ao principal e remove notificações relacionadas
 na mesma transação SQL. Após commit, invalida caches de usuários, clientes e
 notificações e remove o arquivo de foto, se houver. Falha SQL reverte tudo.
 Não são necessárias novas tabelas ou migração para esses cargos.
+
+
+A lista compartilhada `/members` valida aprovação e sessão no SQL antes de ler
+cache. O service aplica uma lista explícita de campos (`id`, `name`, `role`) e
+`MemberDirectoryOutput` restringe novamente a resposta. Email, telefone, senha,
+hash, identificador Google e versão de sessão não fazem parte desse retorno.
+A gestão `/admin/users` continua exclusiva de admins e permite contatos para
+edição, mas seus schemas e snapshots também excluem qualquer senha/hash.
+Ambas as listas respondem com `Cache-Control: no-store`.

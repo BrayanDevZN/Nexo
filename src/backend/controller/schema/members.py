@@ -5,6 +5,12 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 from backend.controller.schema.auth import ProfileInput, UserOutput
 
 
+class MemberDirectoryOutput(BaseModel):
+    id: str
+    name: str
+    role: Literal["member", "admin"]
+
+
 class MemberOutput(UserOutput):
     is_principal: bool = False
 

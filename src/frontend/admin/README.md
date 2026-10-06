@@ -50,7 +50,14 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 - Administrador recebe aviso de novos pedidos, consultados a cada 30 segundos;
   autorizar/recusar pede confirmação e usa decisão do backend.
 - Membros aprovados consultam e gerenciam todos os clientes.
-- A aba Membros é exclusiva de administradores: lista/filtro/paginação, edição
+- A aba Membros é compartilhada pelos usuários aprovados e mostra apenas nome
+  e cargo da equipe, sem contatos ou dados de autenticação. Usa GET /members.
+- No mobile, o botão de menu abre um Sheet shadcn pela esquerda; selecionar uma
+  página fecha a barra lateral. O menu respeita as permissões da conta.
+- O lápis sobre a foto abre o seletor de arquivos, tanto no cadastro quanto no
+  perfil. No perfil, a seleção válida salva automaticamente. O cadastro mantém
+  a opção de salvar e continuar ou pular a foto.
+- A aba Gerenciar membros é exclusiva de administradores: lista/filtro/paginação, edição
   de nome/email/celular e cargos Membro/Administrador para usuários aprovados.
   Excluir exige confirmação e preserva clientes. A conta principal é protegida.
   Alterar email/cargo encerra as sessões da conta alterada, exigindo novo login.

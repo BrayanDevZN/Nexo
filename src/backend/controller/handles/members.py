@@ -1,10 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import admin_user
-from backend.controller.schema.members import MemberOutput, MemberUpdateInput
+from backend.controller.dependencies import admin_user, approved_user
+from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
 router = APIRouter(prefix="/admin/users", tags=["members"])
+directory_router = APIRouter(prefix="/members", tags=["members"])
+
+
+@directory_router.get("", response_model=list[MemberDirectoryOutput])
+def directory(request: Request, limit: int = Query(default=50, ge=1, le=100),
+              offset: int = Query(default=0, ge=0), actor=Depends(approved_user)):
+    try:
+        return request.app.state.services.members.directory(actor, limit=limit, offset=offset)
+    except AccessDenied as error:
+        raise HTTPException(status_code=403, detail=str(error)) from None
 
 
 def fail(error):

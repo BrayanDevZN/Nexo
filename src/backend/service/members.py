@@ -21,6 +21,13 @@ class MemberService:
             raise ResourceNotFound("Member not found")
         return user
 
+    def directory(self, actor, *, limit=50, offset=0):
+        with self.cached_repositories.transaction() as repos:
+            authorize(repos.db, actor, approved=True)
+            # Explicit allowlist: shared directory never contains contact or authentication data.
+            return [{key: row[key] for key in ("id", "name", "role")}
+                    for row in repos.users.list(status="approved", limit=limit, offset=offset)]
+
     def users(self, actor, **filters):
         with self.cached_repositories.transaction() as repos:
             self._authorize(repos.db, actor)

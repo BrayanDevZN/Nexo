@@ -23,6 +23,7 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/auth/password/recovery/confirm") status = 204;
     else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
     else if (path === "/admin/users") body = members;
+    else if (path === "/members") body = members.map(({ id, name, role }) => ({ id, name, role }));
     else if (path.startsWith("/admin/users/") && method === "PATCH") {
       expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
       const target = members.find(row => row.id === path.split("/").pop())!;
@@ -205,7 +206,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" } });
   await page.goto("/admin");
-  await page.getByRole("button", { name: "Membros", exact: true }).click();
+  await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
   await page.getByRole("button", { name: "Editar membro Principal" }).click();
   const dialog = page.getByRole("dialog");
@@ -236,5 +237,52 @@ test("approved regular member cannot see member management", async ({ page }) =>
   await mock(page, { user: { ...member, status: "approved" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Gerenciar membros", exact: true })).toHaveCount(0);
+});
+
+
+test("mobile sheet navigates to shared directory without revealing contact details", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.goto("/admin");
   await expect(page.getByRole("button", { name: "Membros", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Abrir menu do painel" }).click();
+  const menu = page.getByRole("dialog", { name: "Menu do painel" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("heading", { name: "Menu do painel" })).toHaveCSS("font-size", "16px");
+  await expect(menu.getByRole("button", { name: "Gerenciar membros" })).toHaveCount(0);
+  await page.screenshot({ path: "../../test-results/admin-mobile-sidebar.png", fullPage: true, animations: "disabled" });
+  await menu.getByRole("button", { name: "Membros", exact: true }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(page.getByText("Ana Silva", { exact: true })).toBeVisible();
+  await expect(page.getByText("Principal", { exact: true })).toBeVisible();
+  await expect(page.getByText(member.email, { exact: true })).toHaveCount(0);
+  await expect(page.getByText("owner@example.com", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(member.phone, { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../../test-results/directory-mobile.png", fullPage: true });
+  await page.getByRole("button", { name: "Abrir menu do painel" }).click();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Abrir menu do painel" })).toBeFocused();
+});
+
+test("profile pencil saves chosen photo automatically and rejects invalid uploads", async ({ page }) => {
+  await mock(page, { user: member });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Meu perfil", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Alterar foto de perfil" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enviar foto" })).toHaveCount(0);
+  let uploads = 0;
+  page.on("request", request => { if (request.url().endsWith("/auth/profile/photo") && request.method() === "PUT") uploads++; });
+  await page.getByLabel("Escolher foto").setInputFiles({ name: "invalid.txt", mimeType: "text/plain", buffer: Buffer.from("invalid") });
+  await expect(page.getByText("Escolha JPEG, PNG ou WebP de até 2 MB.")).toBeVisible();
+  expect(uploads).toBe(0);
+  const picker = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Alterar foto de perfil" }).click();
+  await (await picker).setFiles({ name: "photo.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNsYGhgIAUwkaR6VMOohiGlAQBCPQEgiSD+iQAAAABJRU5ErkJggg==", "base64") });
+  await expect(page.getByText("Foto atualizada.")).toBeVisible();
+  expect(uploads).toBe(1);
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.screenshot({ path: "../../test-results/profile-pencil-mobile.png", fullPage: true });
 });

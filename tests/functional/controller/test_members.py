@@ -58,3 +58,31 @@ def test_admin_member_lifecycle_and_access_boundaries(app):
         assert client.delete(path, headers=headers).status_code == 204
         assert client.get("/admin/users", params={"status": "approved"}).json()[0]["is_principal"]
         assert client.delete(path, headers=headers).status_code == 404
+
+
+def test_shared_directory_filters_sensitive_fields_and_enforces_approval(app):
+    with TestClient(app) as client:
+        assert client.get("/members").status_code == 401
+        assert verified_register(client, json=DATA, headers=ORIGIN).status_code == 201
+        assert client.get("/members").status_code == 403
+        user = client.get("/auth/me").json()
+        headers = login(client)
+        note = client.get("/admin/notifications").json()[0]
+        assert client.post("/admin/notifications/" + note["id"] + "/decision",
+                           json={"decision": "approved"}, headers=headers).status_code == 200
+        with app.state.services.repositories.transaction() as repos:
+            hashed = repos.users.get(user["id"]).password_hash
+            repos.users.create(name="Pending", email="pending@example.com", google_sub="pending-google")
+        admin_response = client.get("/admin/users")
+        assert hashed not in admin_response.text
+        assert all(not {"password", "password_hash", "google_sub", "session_version"} & row.keys()
+                   for row in admin_response.json())
+        login(client, DATA["email"], DATA["password"])
+        response = client.get("/members")
+        assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
+        assert {row["name"] for row in response.json()} == {"Ana", app.state.settings.admin_name}
+        assert all(set(row) == {"id", "name", "role"} for row in response.json())
+        assert DATA["email"] not in response.text and DATA["password"] not in response.text and hashed not in response.text
+        assert client.get("/members", params={"limit": 101}).status_code == 422
+        assert len(client.get("/members", params={"limit": 1, "offset": 1}).json()) == 1
+        assert client.get("/admin/users").status_code == 403
