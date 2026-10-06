@@ -61,8 +61,16 @@ def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
     assert activity[0]["member_id"] == member.id
     assert activity[0]["last_message_at"].isoformat() + "Z" == message["created_at"]
     assert activity[0]["messages_sent"] == 0
+    with runtime.repositories.transaction() as repos:
+        other = repos.users.create(name="Other", email="other@example.com", phone="11988888888",
+                                   password_hash=runtime.passwords.hash("other-password-123"),
+                                   status="approved")
+    runtime.chat.send(admin, other.id, str(uuid4()), "Outra conversa")
+    activity = runtime.chat.conversations(admin)
+    assert [row["member_id"] for row in activity] == [other.id, member.id]
     reply = runtime.chat.send(member, admin.id, str(uuid4()), "Resposta")
     activity = runtime.chat.conversations(admin)
+    assert activity[0]["member_id"] == member.id
     assert activity[0]["last_message_at"].isoformat() + "Z" == reply["created_at"]
     assert activity[0]["messages_sent"] == 1
     assert runtime.chat.conversations(member)[0]["messages_sent"] == 1
