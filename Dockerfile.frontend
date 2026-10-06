@@ -24,6 +24,7 @@ RUN printf '%s\n' \
   '    server_name _;' \
   '    root /usr/share/nginx/html;' \
   '    index index.html;' \
+  '    resolver 1.1.1.1 8.8.8.8 ipv6=off valid=300s;' \
   '' \
   '    location /api/ {' \
   '        proxy_pass ${BACKEND_URL}/;' \
