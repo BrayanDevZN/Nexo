@@ -1,5 +1,9 @@
+import logging
+
 from backend.repository.cache.queries import snapshot
 from backend.service.access import authorize_read
+
+logger = logging.getLogger(__name__)
 
 
 class ApprovalPermissionError(ValueError):
@@ -15,8 +19,9 @@ class ApprovalConflict(ValueError):
 
 
 class ApprovalService:
-    def __init__(self, repositories, cached_repositories):
+    def __init__(self, repositories, cached_repositories, messages=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
+        self.messages = messages
 
     @staticmethod
     def notify_registration(repos, user):
@@ -98,4 +103,10 @@ class ApprovalService:
             user = repos.users.get(notification.requested_user_id)
             if user is None or user.role != "member" or not repos.users.decide_pending(user, decision):
                 raise ApprovalConflict("Account is no longer awaiting approval")
-            return user
+        if self.messages:
+            try:
+                self.messages.access_decision(user, decision)
+            except Exception as error:
+                logger.warning("Access decision email could not be queued: category=%s",
+                               type(error).__name__)
+        return user
