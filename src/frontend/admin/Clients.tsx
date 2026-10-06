@@ -45,6 +45,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [editor, setEditor] = useState<ClientRecord | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClientRecord | null>(null);
   const [busy, setBusy] = useState(false);
+  const [createRequestId, setCreateRequestId] = useState("");
   const saveInFlight = useRef(false);
   const serial = useRef(0);
   const load = useCallback(async () => {
@@ -72,13 +73,14 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       name: value("name"), niche: value("niche"), phone: value("phone") || null,
       email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
+      ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
     };
     saveInFlight.current = true;
     setBusy(true); setError(""); setSuccess("");
     try {
       await api.mutate(editor === "new" ? "/clients" : "/clients/" + editor!.id,
         editor === "new" ? "POST" : "PATCH", body);
-      setEditor(null); setSuccess("Cliente salvo."); await load();
+      setEditor(null); setCreateRequestId(""); setSuccess("Cliente salvo."); await load();
     } catch (e) { setError(message(e)); } finally { saveInFlight.current = false; setBusy(false); }
   }
   async function remove() {
@@ -94,7 +96,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   return <section className="flex flex-col gap-6" aria-labelledby="clients-title">
     <div className="admin-section-head">
       <div><span className="admin-eyebrow">RELACIONAMENTOS</span><h1 id="clients-title">Clientes</h1><p>Do primeiro contato ao contrato fechado.</p></div>
-      <Button size="lg" onClick={() => { setError(""); setEditor("new"); }}><Plus data-icon="inline-start" /> Novo cliente</Button>
+      <Button size="lg" onClick={() => { setError(""); setCreateRequestId(crypto.randomUUID()); setEditor("new"); }}><Plus data-icon="inline-start" /> Novo cliente</Button>
     </div>
     <Feedback error={editor || deleting ? "" : error} success={success} />
     <Card><CardHeader><CardTitle>Encontre um contato</CardTitle><CardDescription>Pesquise pelo nome e combine filtros por nicho, criador e contrato.</CardDescription></CardHeader>
@@ -134,7 +136,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       <p className="text-sm text-muted-foreground">{rows.length} contatos nesta página · Página {offset / 20 + 1}</p>
       <div className="flex gap-2"><Button variant="outline" disabled={loading || offset === 0} onClick={() => setOffset(offset - 20)}><ArrowLeft data-icon="inline-start" /> Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima<ArrowRight data-icon="inline-end" /></Button></div>
     </div>
-    <Dialog open={editor !== null} onOpenChange={open => { if (!open && !busy) { setEditor(null); setError(""); } }}>
+    <Dialog open={editor !== null} onOpenChange={open => { if (!open && !busy) { setEditor(null); setCreateRequestId(""); setError(""); } }}>
       <DialogContent showCloseButton={!busy}>
         <DialogHeader><DialogTitle>{editor === "new" ? "Novo cliente" : "Editar cliente"}</DialogTitle><DialogDescription>Registre o contato e acompanhe a contratação.</DialogDescription></DialogHeader>
         <Feedback error={error} />
@@ -152,7 +154,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             </NativeSelect></Field>
             <Field><FieldLabel htmlFor="client-notes">Observações (opcional)</FieldLabel><Textarea id="client-notes" name="notes" maxLength={10000} defaultValue={row?.notes || ""} /></Field>
           </FieldGroup>
-          <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={() => { setEditor(null); setError(""); }}>Cancelar</Button><Button type="submit" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : <><Check data-icon="inline-start" /> Salvar cliente</>}</Button></DialogFooter>
+          <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={() => { setEditor(null); setCreateRequestId(""); setError(""); }}>Cancelar</Button><Button type="submit" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : <><Check data-icon="inline-start" /> Salvar cliente</>}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
