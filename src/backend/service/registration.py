@@ -3,7 +3,6 @@ from concurrent.futures import CancelledError, TimeoutError
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.service.auth import RegistrationConflict
-from backend.service.email_messages import AccountMessages
 
 logger = logging.getLogger(__name__)
 
