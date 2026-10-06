@@ -48,12 +48,14 @@ def test_login_failure_has_generic_error(auth, email):
 
 
 def test_bootstrap_preserves_changed_password(auth, settings):
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     auth.bootstrap_admin(settings)
     with auth.repositories.transaction() as repos:
-        admin = repos.users.by_email(settings.admin_email)
+        admin = repos.users.by_email(settings.email)
         assert admin.role == "admin" and admin.status == "approved"
+        assert admin.google_sub is None
+        assert auth.passwords.verify(settings.password.get_secret_value(), admin.password_hash)
         repos.users.set_password(admin, auth.passwords.hash("changed-admin-password"))
     auth.bootstrap_admin(settings)
     _, token = auth.login("owner@example.com", "changed-admin-password")
@@ -67,9 +69,9 @@ def test_bootstrap_preserves_changed_password(auth, settings):
 def test_bootstrap_does_not_promote_registered_member(auth, settings):
     auth.register(name="Ana", email="owner@example.com", phone="+5511999999999",
                   password="strong-password-123")
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     with pytest.raises(RuntimeError, match="not an approved administrator"):
         auth.bootstrap_admin(settings)
     with auth.repositories.transaction() as repos:
-        assert repos.users.by_email(settings.admin_email).role == "member"
+        assert repos.users.by_email(settings.email).role == "member"

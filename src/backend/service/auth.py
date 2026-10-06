@@ -40,9 +40,9 @@ class AuthService:
         return user, self.sessions.issue(user)
 
     def bootstrap_admin(self, settings):
-        if settings.admin_email is None:
+        if settings.email is None:
             return
-        email = str(settings.admin_email).lower()
+        email = str(settings.email).lower()
         with self.repositories.transaction() as repos:
             existing = repos.users.by_email(email)
             if existing:
@@ -50,7 +50,7 @@ class AuthService:
                 return
             if repos.users.principal_admin():
                 raise RuntimeError("Configured administrator differs from existing administrator")
-        hashed = self.passwords.hash(settings.admin_password.get_secret_value())
+        hashed = self.passwords.hash(settings.password.get_secret_value())
         try:
             with self.repositories.transaction() as repos:
                 repos.users.create(name=settings.admin_name, email=email, password_hash=hashed,

@@ -39,10 +39,8 @@ def test_complete_approved_member_lifecycle(settings, local_redis_url, tmp_path,
     settings.cookie_samesite = "none"
     settings.frontend_url = "https://panel.example.com"
     settings.cors_origins = ["https://panel.example.com"]
-    settings.admin_email = ADMIN["email"]
-    settings.admin_password = SecretStr(ADMIN["password"])
-    settings.email = "sender@example.com"
-    settings.password = SecretStr("mock-smtp-secret")
+    settings.email = ADMIN["email"]
+    settings.password = SecretStr(ADMIN["password"])
     settings.upload_dir = tmp_path / "photos"
     settings.auth_rate_limit = 30
     smtp = Mock()

@@ -46,7 +46,7 @@ def test_secret_values_are_not_exposed_in_repr():
 
 def test_production_configuration():
     values = dict(environment="production", cookie_secure=True,
-                  admin_email="admin@example.com", admin_password="long-admin-password",
+                  email="admin@example.com", password="long-admin-password",
                   frontend_url="https://example.com", cors_origins=["https://example.com"])
     assert config(**values).environment == "production"
     values["cookie_secure"] = False
@@ -55,7 +55,7 @@ def test_production_configuration():
 
 
 def test_blank_optional_credentials_are_supported():
-    assert config(admin_email="", admin_password="").admin_email is None
+    assert config(email="", password="").email is None
 
 
 @pytest.mark.parametrize("value", [
@@ -85,9 +85,9 @@ def test_cookie_prefix_requires_secure(prefix):
 
 
 @pytest.mark.parametrize("password", ["a" * 73, "é" * 37, "short"])
-def test_admin_password_matches_bcrypt_limits(password):
+def test_password_matches_bcrypt_limits(password):
     with pytest.raises(ValidationError):
-        config(admin_email="admin@example.com", admin_password=password)
+        config(email="admin@example.com", password=password)
 
 
 def test_admin_name_and_legitimate_urls():

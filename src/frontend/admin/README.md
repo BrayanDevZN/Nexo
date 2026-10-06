@@ -25,7 +25,7 @@ encaminha esse caminho para a API Railway e desativa cache das respostas.
 VITE_API_URL só é usado em desenvolvimento; não configure acesso direto ao
 Railway no navegador, pois isso depende de cookies de terceiros.
 No backend, FRONTEND_URL e CORS_ORIGINS devem usar a origem exata do frontend,
-COOKIE_SECURE=true, ENVIRONMENT=production e ADMIN_EMAIL/PASSWORD próprios.
+COOKIE_SECURE=true, ENVIRONMENT=production e EMAIL/PASSWORD para o administrador.
 Se frontend/API forem sites diferentes, COOKIE_SAMESITE=none. Prefira domínios
 do mesmo site para evitar bloqueios de cookies de terceiros pelo navegador.
 Na produção atual, configure no Railway e cadastre no Google:

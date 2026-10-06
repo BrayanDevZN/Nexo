@@ -18,7 +18,7 @@ if __name__ == "__main__":
             database_url="sqlite:///" + directory + "/nexo.db",
             upload_dir=Path(directory) / "uploads",
             redis_url=os.environ["REDIS_TEST_URL"],
-            admin_email="owner@example.com", admin_password="initial-admin-password",
+            email="owner@example.com", password="initial-admin-password",
             frontend_url="http://127.0.0.1:4173", cors_origins=["http://127.0.0.1:4173"],
             auth_rate_limit=100,
         )

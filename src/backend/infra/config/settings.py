@@ -20,8 +20,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/nexo.db"
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
     admin_name: str = "Brayan"
-    admin_email: EmailStr | None = None
-    admin_password: SecretStr | None = None
     email: EmailStr | None = None
     password: SecretStr | None = None
     google_client_id: str | None = None
@@ -57,7 +55,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
-    @field_validator("admin_email", "admin_password", "email", "password",
+    @field_validator("email", "password",
                      "google_client_id", "google_client_secret", mode="before")
     @classmethod
     def empty_optional(cls, value):
@@ -138,19 +136,18 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def coherent_configuration(self):
-        for left, right in [(self.admin_email, self.admin_password),
-                            (self.email, self.password),
+        for left, right in [(self.email, self.password),
                             (self.google_client_id, self.google_client_secret)]:
             if bool(left) != bool(right):
                 raise ValueError("Configure both values of each credential pair")
-        if self.admin_password:
-            password = self.admin_password.get_secret_value()
+        if self.password:
+            password = self.password.get_secret_value()
             try:
                 valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
             except UnicodeError:
                 valid = False
             if not valid:
-                raise ValueError("ADMIN_PASSWORD must contain at least 12 characters and at most 72 UTF-8 bytes")
+                raise ValueError("PASSWORD must contain at least 12 characters and at most 72 UTF-8 bytes")
         if self.auth_cookie_name.startswith(("__Host-", "__Secure-")) and not self.cookie_secure:
             raise ValueError("Prefixed auth cookies require COOKIE_SECURE=true")
         if self.cookie_samesite == "none" and not self.cookie_secure:
@@ -158,8 +155,8 @@ class Settings(BaseSettings):
         if self.environment == "production":
             if not self.cookie_secure:
                 raise ValueError("Production requires COOKIE_SECURE=true")
-            if not self.admin_email or not self.admin_password:
-                raise ValueError("Production requires administrator credentials")
+            if not self.email or not self.password:
+                raise ValueError("Production requires EMAIL and PASSWORD for the administrator")
             urls = [self.frontend_url, *self.cors_origins]
             if self.google_client_id:
                 urls.append(self.google_redirect_uri)

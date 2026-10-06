@@ -17,8 +17,8 @@ DATA = {"name": "Ana", "phone": "11999999999", "email": "ana@example.com",
 def client(settings, local_redis_url, monkeypatch, tmp_path):
     settings.redis_url = SecretStr(local_redis_url)
     settings.upload_dir = tmp_path / "photos"
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     with TestClient(create_app(settings)) as client:
         yield client

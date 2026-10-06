@@ -11,8 +11,8 @@ from backend.service.runtime import RuntimeServices
 @pytest.fixture
 def runtime(settings, local_redis_url, monkeypatch):
     settings.redis_url = SecretStr(local_redis_url)
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     service = RuntimeServices(settings)
     service.initialize(settings)

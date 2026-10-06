@@ -19,10 +19,10 @@ nexo
 
 Também aceita `python -m backend.main`. O comando `create-tables` cria tabelas ausentes
 sem Redis/Gmail, preserva dados e não executa migrações nem cria administrador.
-A inicialização normal cria as tabelas e o administrador de ADMIN_EMAIL/ADMIN_PASSWORD.
+A inicialização normal cria as tabelas e o administrador de EMAIL/PASSWORD.
 Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mesmo e-mail.
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
-A senha do painel é independente da senha de aplicativo Gmail.
+Na criação inicial, a senha do painel é a mesma `PASSWORD` usada pelo yagmail.
 
 ## Arquitetura
 
@@ -124,9 +124,9 @@ SQL e filesystem não têm transação conjunta; crash pode deixar arquivos órf
 ## Ambiente e operação
 
 .env.example lista todas as variáveis. Ambiente sobrescreve dotenv.
-EMAIL/PASSWORD são o remetente Gmail e a senha de aplicativo; ADMIN_EMAIL/PASSWORD
-são as credenciais iniciais do painel. Redis sem senha usa redis://host:porta/0.
-GOOGLE_CLIENT_SECRET, PASSWORD, ADMIN_PASSWORD e JWT_SECRET_KEY ficam somente no backend.
+EMAIL/PASSWORD são usadas tanto para criar o administrador com senha bcrypt
+quanto para enviar e-mails via yagmail. Use o e-mail Gmail e sua senha de aplicativo. Redis sem senha usa redis://host:porta/0.
+GOOGLE_CLIENT_SECRET, PASSWORD e JWT_SECRET_KEY ficam somente no backend.
 
 Produção exige ENVIRONMENT=production, COOKIE_SECURE=true e URLs HTTPS.
 Para frontend/API em sites diferentes, configure COOKIE_SAMESITE=none e a origem exata

@@ -17,8 +17,8 @@ DATA = {"name": "Ana", "phone": "11999999999", "email": "ana@example.com",
 @pytest.fixture
 def app(settings, local_redis_url, monkeypatch):
     settings.redis_url = SecretStr(local_redis_url)
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     app = create_app(settings)
     app.get("/test/approved")(approved_user)

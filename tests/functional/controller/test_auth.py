@@ -85,8 +85,8 @@ def test_csrf_from_old_session_cannot_logout_new_session(client):
 def test_secure_cookie_and_admin_startup(settings, local_redis_url, monkeypatch):
     settings.redis_url = SecretStr(local_redis_url)
     settings.cookie_secure = True
-    settings.admin_email = "owner@example.com"
-    settings.admin_password = SecretStr("initial-admin-password")
+    settings.email = "owner@example.com"
+    settings.password = SecretStr("initial-admin-password")
     monkeypatch.setattr("backend.service.runtime.PasswordHasher", lambda: PasswordHasher(rounds=4))
     for _ in range(2):
         with TestClient(create_app(settings), base_url="https://testserver") as client:
