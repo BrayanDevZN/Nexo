@@ -26,14 +26,18 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
   const [rows, setRows] = useState<ChatMessage[]>([]); const [text, setText] = useState(""); const [loading, setLoading] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [hasOlder, setHasOlder] = useState(false); const [recording, setRecording] = useState(false); const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [unreadByMember, setUnreadByMember] = useState<Record<string, number>>({});
   const [lastActivity, setLastActivity] = useState<Record<string, string>>({});
+  const [lastSequence, setLastSequence] = useState<Record<string, number>>({});
+  const [messagesSentByMember, setMessagesSentByMember] = useState<Record<string, number>>({});
   const refreshConversationMeta = useCallback(async () => {
     try {
       const [counts, activity] = await Promise.all([
         api.request<{ chat_by_sender?: Record<string, number> }>("/notifications/unread-count"),
-        api.request<{ member_id: string; last_message_at: string }[]>("/chat/conversations"),
+        api.request<{ member_id: string; last_message_at: string; last_message_sequence: number; messages_sent: number }[]>("/chat/conversations"),
       ]);
       setUnreadByMember(counts.chat_by_sender || {});
       setLastActivity(Object.fromEntries(activity.map(row => [row.member_id, row.last_message_at])));
+      setLastSequence(Object.fromEntries(activity.map(row => [row.member_id, row.last_message_sequence])));
+      setMessagesSentByMember(Object.fromEntries(activity.map(row => [row.member_id, row.messages_sent])));
     } catch { /* Keep conversations usable while metadata refreshes. */ }
   }, [api]);
   useEffect(() => {
@@ -57,7 +61,7 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
   const loadRef = useRef(load); loadRef.current = load;
   useEffect(() => { onSelect(selected); return () => onSelect(null); }, [selected, onSelect]);
   useEffect(() => { setRows([]); setText(""); setHasOlder(false); setError(""); void loadRef.current(); return () => { serial.current++; }; }, [selected]);
-  useEffect(() => { const event = (event: Event) => { const value = (event as CustomEvent).detail; if (value.type === "ready") void loadRef.current(false, true); if (value.type === "presence.changed" && value.user_id) setMembers(old => old.map(member => member.id === value.user_id ? { ...member, online: value.online } : member)); const row: ChatMessage | undefined = value.message; if (row) { const peer = row.sender_id === actor.id ? row.recipient_id : row.sender_id; setLastActivity(old => ({ ...old, [peer]: row.created_at })); if (row.sender_id !== actor.id && row.recipient_id === actor.id && selected !== row.sender_id) setUnreadByMember(old => ({ ...old, [row.sender_id]: (old[row.sender_id] || 0) + 1 })); } if (row && ((row.sender_id === actor.id && row.recipient_id === selected) || (row.sender_id === selected && row.recipient_id === actor.id))) { setRows(old => merge(old, [row])); if (row.sender_id === selected && row.recipient_id === actor.id) void api.mutate("/notifications/chat/" + selected + "/read", "PATCH").then(() => { setUnreadByMember(old => ({ ...old, [selected]: 0 })); return onNotificationsRead?.(); }).catch(() => {}); } }; window.addEventListener("nexo:realtime", event); return () => window.removeEventListener("nexo:realtime", event); }, [actor.id, selected, api, onNotificationsRead]);
+  useEffect(() => { const event = (event: Event) => { const value = (event as CustomEvent).detail; if (value.type === "ready") void loadRef.current(false, true); if (value.type === "presence.changed" && value.user_id) setMembers(old => old.map(member => member.id === value.user_id ? { ...member, online: value.online } : member)); const row: ChatMessage | undefined = value.message; if (row) { const peer = row.sender_id === actor.id ? row.recipient_id : row.sender_id; setLastActivity(old => ({ ...old, [peer]: row.created_at })); setLastSequence(old => ({ ...old, [peer]: row.sequence })); if (row.sender_id !== actor.id) setMessagesSentByMember(old => ({ ...old, [peer]: (old[peer] || 0) + 1 })); if (row.sender_id !== actor.id && row.recipient_id === actor.id && selected !== row.sender_id) setUnreadByMember(old => ({ ...old, [row.sender_id]: (old[row.sender_id] || 0) + 1 })); } if (row && ((row.sender_id === actor.id && row.recipient_id === selected) || (row.sender_id === selected && row.recipient_id === actor.id))) { setRows(old => merge(old, [row])); if (row.sender_id === selected && row.recipient_id === actor.id) void api.mutate("/notifications/chat/" + selected + "/read", "PATCH").then(() => { setUnreadByMember(old => ({ ...old, [selected]: 0 })); return onNotificationsRead?.(); }).catch(() => {}); } }; window.addEventListener("nexo:realtime", event); return () => window.removeEventListener("nexo:realtime", event); }, [actor.id, selected, api, onNotificationsRead]);
   useEffect(() => { active.current = true; return () => { active.current = false; clearTimeout(recordingTimer.current); clearInterval(recordingClock.current); if (recorder.current?.state === "recording") { recorder.current.onstop = null; recorder.current.stop(); } stream.current?.getTracks().forEach(track => track.stop()); }; }, []);
   function onComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -84,7 +88,8 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
     } catch { stream.current?.getTracks().forEach(track => track.stop()); setError("Não foi possível acessar o microfone. Autorize no navegador ou envie um arquivo de áudio."); } finally { if (active.current) setBusy(false); }
   }
   const orderedMembers = [...members].sort((a, b) =>
-    (lastActivity[b.id] || "").localeCompare(lastActivity[a.id] || ""));
+    (lastSequence[b.id] || 0) - (lastSequence[a.id] || 0)
+    || (lastActivity[b.id] || "").localeCompare(lastActivity[a.id] || ""));
   const person = members.find(row => row.id === selected);
   return <section className="flex min-w-0 flex-col gap-6" aria-labelledby="chat-title"><div className="admin-section-head"><div><span className="admin-eyebrow">CONVERSAS DA EQUIPE</span><h1 id="chat-title">Chat</h1><p>Converse com os membros e compartilhe fotos e áudios.</p></div><Badge variant={realtime.status === "online" ? "default" : "secondary"}>{realtime.status === "online" ? "Conectado" : realtime.status === "connecting" ? "Conectando…" : "Reconectando…"}</Badge></div><Feedback error={error} />
     <div className="grid h-[calc(100dvh-11rem)] min-h-[30rem] min-w-0 items-stretch gap-6 md:h-[calc(100dvh-13rem)] md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
@@ -93,7 +98,7 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
         <CardContent className="min-h-0 flex-1 overflow-y-auto">
           {membersLoading ? <Loading /> : members.length ? <nav aria-label="Membros para conversar" className="flex flex-col gap-2">
             {orderedMembers.map(member => <Button key={member.id} type="button" variant={selected === member.id ? "secondary" : "ghost"} className="h-auto min-h-16 w-full justify-start gap-3 py-3" disabled={busy || recording} aria-label={"Conversar com " + member.name} aria-current={selected === member.id ? "true" : undefined} onClick={() => setSelected(member.id)}>
-              <MemberPhoto api={api} id={member.id} name={member.name} hasPhoto={member.has_photo} />{(unreadByMember[member.id] || 0) > 0 && <Badge aria-label={unreadByMember[member.id] + " mensagens novas"}>{unreadByMember[member.id]}</Badge>}<span className="min-w-0 flex-1 truncate text-left">{member.name}</span><Badge variant={member.online ? "default" : "outline"}>{member.online ? "Online" : "Offline"}</Badge>
+              <MemberPhoto api={api} id={member.id} name={member.name} hasPhoto={member.has_photo} /><span className="min-w-0 flex-1 truncate text-left">{member.name}</span><Badge variant="outline" aria-label={(messagesSentByMember[member.id] || 0) + " mensagens enviadas por " + member.name} title="Mensagens enviadas por este membro">{messagesSentByMember[member.id] || 0} enviadas</Badge>{(unreadByMember[member.id] || 0) > 0 && <Badge aria-label={unreadByMember[member.id] + " mensagens novas"}>{unreadByMember[member.id]}</Badge>}<Badge variant={member.online ? "default" : "outline"}>{member.online ? "Online" : "Offline"}</Badge>
             </Button>)}
           </nav> : <Empty><EmptyHeader><EmptyTitle>Nenhum membro disponível</EmptyTitle><EmptyDescription>Os outros membros aprovados aparecem aqui.</EmptyDescription></EmptyHeader></Empty>}
         </CardContent>
