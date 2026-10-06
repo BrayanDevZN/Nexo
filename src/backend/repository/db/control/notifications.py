@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import delete, exists, insert, literal, or_, select, update
+from sqlalchemy import delete, exists, func, insert, literal, or_, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Notification
@@ -53,6 +53,26 @@ class NotificationRepository(Repository[Notification]):
             self.session.add_all(rows)
             self.session.flush()
         return rows
+
+    def unread_counts(self, recipient_id: str) -> dict[str, int]:
+        rows = self.session.execute(
+            select(Notification.kind, func.count(Notification.id))
+            .where(Notification.recipient_id == recipient_id, Notification.read_at.is_(None))
+            .group_by(Notification.kind)
+        )
+        counts = {kind: count for kind, count in rows}
+        return {"total": sum(counts.values()), "chat_messages": counts.get("chat_message", 0)}
+
+    def mark_chat_read_for_sender(self, recipient_id: str, sender_id: str) -> int:
+        result = self.session.execute(update(Notification).where(
+            Notification.recipient_id == recipient_id,
+            Notification.requested_user_id == sender_id,
+            Notification.kind == "chat_message",
+            Notification.read_at.is_(None),
+        ).values(read_at=utc_now()), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        return result.rowcount
 
     def list_for_recipient(self, recipient_id: str, *, unresolved_only: bool = False,
                            kind: str | None = None, limit: int = 50, offset: int = 0) -> list[Notification]:
