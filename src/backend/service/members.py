@@ -40,7 +40,7 @@ class MemberService:
             authorize_read(repos.db, actor, approved=True)
             # Explicit allowlist: shared directory never contains contact or authentication data.
             rows = repos.users.list(status="approved", limit=limit, offset=offset)
-            online = self.presence.online_users([row.id for row in rows]) if self.presence else {}
+            online = self.presence.online_users([row["id"] for row in rows]) if self.presence else {}
             return [{**{key: row[key] for key in ("id", "name", "role")},
                      "has_photo": bool(row["profile_photo"]), "online": online.get(row["id"], False)}
                     for row in rows]
