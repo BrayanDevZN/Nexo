@@ -99,3 +99,19 @@ def test_failure_logs_category_without_credentials(settings, monkeypatch, caplog
         connection.close()
     assert "category=" + category in caplog.text
     assert not any(secret in caplog.text for secret in ["resend-sentinel", "receiver@example.com", "private-code"])
+
+
+def test_html_is_sent_alongside_text_fallback(settings, monkeypatch):
+    connection, client = sender(settings, monkeypatch)
+    try:
+        connection.send(
+            "receiver@example.com", "Nexo", "plain text",
+            html="<html><body><table><tr><td>Olá</td></tr></table></body></html>",
+        ).result(timeout=5)
+        client.post.assert_called_once_with("/emails", json={
+            "from": "verified@example.com", "to": ["receiver@example.com"],
+            "subject": "Nexo", "text": "plain text",
+            "html": "<html><body><table><tr><td>Olá</td></tr></table></body></html>",
+        })
+    finally:
+        connection.close()
