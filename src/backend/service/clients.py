@@ -113,7 +113,7 @@ class ClientService:
             elif was_closed and not is_closed:
                 event = ("Contrato cancelado", f"O contrato de {row.name} foi cancelado.")
             elif previous_stage != "lost" and row.pipeline_stage == "lost":
-                event = ("Oportunidade encerrada", f"A oportunidade de {row.name} foi marcada como perdida.")
+                event = ("Contrato cancelado", f"A oportunidade de {row.name} foi encerrada e retirada do funil.")
             else:
                 event = None
             if event:
