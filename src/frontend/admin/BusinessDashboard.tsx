@@ -10,8 +10,8 @@ import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, Cel
 import { PIPELINE_STAGES, type ClientRecord, type createApi } from "./api";
 import { Feedback, Loading, message } from "./shared";
 
-type ViewPeriod = { year: number; month?: number; day?: number };
-type Point = { key: string; label: string; value: number; contracts: number; month?: number; day?: number };
+type ViewPeriod = { year?: number; month?: number };
+type Point = { key: string; label: string; value: number; contracts: number; year?: number; month?: number; day?: number };
 type GroupMetric = { id: string; label: string; contracts: number; value: number };
 type ContractMetric = { id: string; name: string; niche: string; member: string; value: number; closedAt: Date };
 type TeamMember = { id: string; name: string };
@@ -46,7 +46,7 @@ function AreaChart({ points, canDrill, onDrill }: {
         <Area type="linear" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={2.5} fill="var(--color-value)" fillOpacity={0.3} activeDot={{ r: 6 }} isAnimationActive={false} />
       </RechartsAreaChart>
     </ChartContainer>
-    {canDrill && <p className="mt-1 text-xs text-muted-foreground">Clique em um mês ou dia para sincronizar o detalhamento de todos os gráficos.</p>}
+    {canDrill && <p className="mt-1 text-xs text-muted-foreground">Clique em um ano para abrir os meses; depois clique em um mês para abrir os dias.</p>}
   </div>;
 }
 
@@ -87,7 +87,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [period, setPeriod] = useState<ViewPeriod>({ year: new Date().getFullYear() });
+  const [period, setPeriod] = useState<ViewPeriod>({});
   const [selectedMember, setSelectedMember] = useState("all");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [selectedContract, setSelectedContract] = useState("all");
@@ -127,15 +127,16 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   const sales = useMemo(() => rows.filter(isWon), [rows]);
   const years = useMemo(() => {
     const available = sales.map(row => closedAt(row).getFullYear()).filter(Number.isFinite);
-    const first = available.length ? Math.min(...available) : period.year - 3;
-    return Array.from({ length: Math.max(1, period.year - first + 1) }, (_, index) => period.year - index);
-  }, [sales, period.year]);
+    const current = new Date().getFullYear();
+    const first = available.length ? Math.min(...available, current) : current - 3;
+    const last = available.length ? Math.max(...available, current) : current;
+    return Array.from({ length: last - first + 1 }, (_, index) => first + index);
+  }, [sales]);
 
   const timeSales = useMemo(() => sales.filter(row => {
     const date = closedAt(row);
-    return date.getFullYear() === period.year &&
-      (period.month === undefined || date.getMonth() === period.month) &&
-      (period.day === undefined || date.getDate() === period.day);
+    return (period.year === undefined || date.getFullYear() === period.year) &&
+      (period.month === undefined || date.getMonth() === period.month);
   }), [sales, period]);
 
   const filteredSales = useMemo(() => timeSales.filter(row =>
@@ -164,29 +165,26 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     .slice(0, 50), [rows]);
 
   const timeline = useMemo<Point[]>(() => {
-    let definitions: { key: string; label: string; month?: number; day?: number }[];
-    if (period.month === undefined) {
+    let definitions: { key: string; label: string; year?: number; month?: number; day?: number }[];
+    if (period.year === undefined) {
+      definitions = years.map(year => ({ key: String(year), label: String(year), year }));
+    } else if (period.month === undefined) {
       definitions = Array.from({ length: 12 }, (_, month) => ({
         key: String(month),
-        label: new Date(period.year, month, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        label: new Date(period.year!, month, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
         month,
       }));
-    } else if (period.day === undefined) {
-      const days = new Date(period.year, period.month + 1, 0).getDate();
+    } else {
+      const days = new Date(period.year!, period.month + 1, 0).getDate();
       definitions = Array.from({ length: days }, (_, index) => ({
         key: String(index + 1), label: String(index + 1), day: index + 1,
       }));
-    } else {
-      definitions = [{
-        key: String(period.day),
-        label: new Date(period.year, period.month, period.day).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", ""),
-        day: period.day,
-      }];
     }
     return definitions.map(definition => {
       const matching = filteredSales.filter(row => {
         const date = closedAt(row);
-        return definition.month !== undefined ? date.getMonth() === definition.month
+        return definition.year !== undefined ? date.getFullYear() === definition.year
+          : definition.month !== undefined ? date.getMonth() === definition.month
           : definition.day !== undefined ? date.getDate() === definition.day : true;
       });
       return {
@@ -195,7 +193,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         contracts: matching.length,
       };
     });
-  }, [filteredSales, period]);
+  }, [filteredSales, period, years]);
 
   const members = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
@@ -235,18 +233,18 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   const averageValue = filteredSales.length ? totalValue / filteredSales.length : 0;
   const selectedMemberName = members.find(row => row.id === selectedMember)?.label;
   const selectedNicheName = niches.find(row => row.id === selectedNiche)?.label;
-  const canDrill = period.day === undefined;
+  const canDrill = period.month === undefined;
 
   function drill(point: Point) {
-    if (period.month === undefined && point.month !== undefined) {
+    if (period.year === undefined && point.year !== undefined) {
+      setPeriod({ year: point.year });
+    } else if (period.year !== undefined && period.month === undefined && point.month !== undefined) {
       setPeriod({ year: period.year, month: point.month });
-    } else if (period.month !== undefined && period.day === undefined && point.day !== undefined) {
-      setPeriod({ year: period.year, month: period.month, day: point.day });
     }
   }
 
   function selectYear(value: string) {
-    setPeriod({ year: Number(value) });
+    setPeriod(value === "all" ? {} : { year: Number(value) });
     clearDimensions();
   }
 
@@ -257,12 +255,11 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   }
 
   function clearAll() {
-    setPeriod({ year: new Date().getFullYear() });
+    setPeriod({});
     clearDimensions();
   }
 
-  const periodTitle = period.day !== undefined
-    ? new Date(period.year, period.month!, period.day).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+  const periodTitle = period.year === undefined ? "Todos os anos"
     : period.month !== undefined ? monthLabel(period.year, period.month) + " de " + period.year
       : "Ano de " + period.year;
   const details = [...filteredSales].sort((a, b) =>
@@ -276,12 +273,13 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     <Feedback error={error} />
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-2"><label htmlFor="business-year" className="text-sm font-medium">Ano</label><NativeSelect id="business-year" value={String(period.year)} onChange={event => selectYear(event.target.value)}>{years.map(year => <NativeSelectOption key={year} value={String(year)}>{year}</NativeSelectOption>)}</NativeSelect></div>
-        {period.month !== undefined && <Button variant="ghost" onClick={() => setPeriod({ year: period.year })}><ChevronLeft data-icon="inline-start" /> {period.year}</Button>}
-        {period.month !== undefined && <Badge variant="secondary">{monthLabel(period.year, period.month)}</Badge>}
-        {period.day !== undefined && <Button variant="ghost" onClick={() => setPeriod({ year: period.year, month: period.month })}><ChevronLeft data-icon="inline-start" /> Voltar ao mês</Button>}
+        <div className="flex flex-col gap-2"><label htmlFor="business-year" className="text-sm font-medium">Período</label><NativeSelect id="business-year" value={period.year === undefined ? "all" : String(period.year)} onChange={event => selectYear(event.target.value)}><NativeSelectOption value="all">Todos os anos</NativeSelectOption>{[...years].reverse().map(year => <NativeSelectOption key={year} value={String(year)}>{year}</NativeSelectOption>)}</NativeSelect></div>
+        {period.year !== undefined && <Button variant="ghost" onClick={() => setPeriod({})}><ChevronLeft data-icon="inline-start" /> Todos os anos</Button>}
+        {period.year !== undefined && <Badge variant="secondary">{period.year}</Badge>}
+        {period.month !== undefined && <Button variant="ghost" onClick={() => setPeriod({ year: period.year })}><ChevronLeft data-icon="inline-start" /> Voltar ao ano</Button>}
+        {period.month !== undefined && <Badge variant="secondary">{monthLabel(period.year!, period.month)}</Badge>}
       </div>
-      {(period.month !== undefined || period.day !== undefined || selectedMember !== "all" || selectedNiche !== "all" || selectedContract !== "all") &&
+      {(period.year !== undefined || period.month !== undefined || selectedMember !== "all" || selectedNiche !== "all" || selectedContract !== "all") &&
         <Button variant="outline" onClick={clearAll}>Limpar drill-down</Button>}
     </div>
 
@@ -296,7 +294,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
 
       <Card>
         <CardHeader className="flex flex-wrap flex-row items-start justify-between gap-3">
-          <div><CardTitle className="flex items-center gap-2"><TrendingUp /> Vendas ao longo do tempo</CardTitle><CardDescription>Receita dos contratos fechados. Clique nos meses para abrir os dias, e nos dias para filtrar o dashboard inteiro.</CardDescription></div>
+          <div><CardTitle className="flex items-center gap-2"><TrendingUp /> Vendas ao longo do tempo</CardTitle><CardDescription>Receita dos contratos fechados. Comece pelos anos, clique em um ano para ver os meses e depois em um mês para ver os dias.</CardDescription></div>
           <Badge variant="outline"><CalendarDays data-icon="inline-start" /> {periodTitle}</Badge>
         </CardHeader>
         <CardContent><AreaChart points={timeline} canDrill={canDrill} onDrill={drill} />
