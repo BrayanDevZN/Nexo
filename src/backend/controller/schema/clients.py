@@ -29,6 +29,8 @@ class ClientFields(BaseModel):
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
     notes: str | None = Field(default=None, max_length=10000)
+    pain: str | None = Field(default=None, max_length=5000)
+    approach: str | None = Field(default=None, max_length=5000)
 
     @field_validator("name", "niche")
     @classmethod
