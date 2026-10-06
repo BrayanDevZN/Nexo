@@ -15,12 +15,20 @@ class NotificationRepository(Repository[Notification]):
         return self.add(Notification(recipient_id=recipient_id,
                                      requested_user_id=requested_user_id))
 
+    def create_announcement(self, *, announcement_id: str, recipient_id: str,
+                            creator_id: str, title: str, body: str) -> Notification:
+        return self.add(Notification(kind="announcement", announcement_id=announcement_id,
+                                     title=title, body=body, recipient_id=recipient_id,
+                                     requested_user_id=creator_id))
+
     def list_for_recipient(self, recipient_id: str, *, unresolved_only: bool = False,
-                           limit: int = 50, offset: int = 0) -> list[Notification]:
+                           kind: str | None = None, limit: int = 50, offset: int = 0) -> list[Notification]:
         pagination(limit, offset)
         query = select(Notification).where(Notification.recipient_id == recipient_id)
         if unresolved_only:
             query = query.where(Notification.resolved_at.is_(None))
+        if kind is not None:
+            query = query.where(Notification.kind == kind)
         return list(self.session.scalars(query.order_by(Notification.created_at, Notification.id)
                                         .limit(limit).offset(offset)))
 

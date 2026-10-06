@@ -22,6 +22,7 @@ from backend.repository.redis.oauth import OAuthRepository
 from backend.repository.redis.rate_limits import RateLimitRepository
 from backend.repository.redis.realtime import RealtimeRepository
 from backend.service.account_deletion import AccountDeletionService
+from backend.service.announcements import AnnouncementService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.chat import ChatService
@@ -76,6 +77,7 @@ class RuntimeServices:
             self.email = GmailConnection(settings)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
+            self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]

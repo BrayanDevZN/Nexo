@@ -18,3 +18,9 @@ class AccountMessages:
         except (EmailUnavailableError, EmailQueueFullError):
             # The committed account survives failures in best-effort welcome delivery.
             logger.warning("Welcome email could not be queued")
+
+    def announcement(self, user, title: str, body: str):
+        if not self.sender.configured:
+            return False
+        self.sender.send(user.email, "Novo aviso da Nexo: " + title, body)
+        return True
