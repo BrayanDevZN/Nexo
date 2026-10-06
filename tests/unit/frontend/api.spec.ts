@@ -49,3 +49,16 @@ test("sanitizes server failures and translates retry delays", async () => {
     expect(String(error)).not.toContain("secret-sentinel");
   }
 });
+
+
+test("profile image fetch includes cookies and returns a private blob", async () => {
+  let credentials: RequestCredentials | undefined;
+  const api = createApi("/api", async (_url, init) => {
+    credentials = init?.credentials;
+    return new Response("image-bytes", { headers: { "Content-Type": "image/jpeg" } });
+  });
+  const blob = await api.photo();
+  expect(credentials).toBe("include");
+  expect(blob.type).toBe("image/jpeg");
+  expect(await blob.text()).toBe("image-bytes");
+});

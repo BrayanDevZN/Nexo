@@ -15,7 +15,7 @@ def test_google_profile_cookie_supports_production_cross_site_requests():
         cookie = SimpleCookie(response.headers["set-cookie"])[name]
         assert cookie["samesite"] == expected
         assert cookie["secure"] and cookie["httponly"]
-        assert cookie["path"] == "/auth/google"
+        assert cookie["path"] == "/"
         response = Response()
         clear_google_cookie(response, settings, name)
         cleared = SimpleCookie(response.headers["set-cookie"])[name]
@@ -30,7 +30,7 @@ def test_google_cookies_use_browser_facing_proxy_path():
     for name in ["nexo_google_flow", "nexo_google_profile"]:
         response = Response()
         set_google_cookie(response, settings, name, "temporary-grant", 600)
-        assert SimpleCookie(response.headers["set-cookie"])[name]["path"] == "/api/auth/google"
+        assert SimpleCookie(response.headers["set-cookie"])[name]["path"] == "/"
         response = Response()
         clear_google_cookie(response, settings, name)
-        assert SimpleCookie(response.headers["set-cookie"])[name]["path"] == "/api/auth/google"
+        assert SimpleCookie(response.headers["set-cookie"])[name]["path"] == "/"

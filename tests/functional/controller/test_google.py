@@ -111,3 +111,29 @@ def test_rejected_google_account_cannot_login(client):
 def test_google_without_credentials_is_disabled(settings):
     with TestClient(create_app(settings)) as client:
         assert client.get("/auth/google/login", follow_redirects=False).status_code == 503
+
+
+def test_legacy_backend_callback_relays_before_consuming_state(client):
+    settings = client.app.state.settings
+    settings.environment = "production"
+    settings.frontend_url = "https://www.example.com"
+    settings.google_redirect_uri = "https://api.example.com/auth/google/callback"
+    settings.cookie_secure = True
+    response = client.get("https://www.example.com/auth/google/login", follow_redirects=False)
+    state = parse_qs(urlsplit(response.headers["location"]).query)["state"][0]
+    response = client.get("https://api.example.com/auth/google/callback",
+                          params={"state": state, "code": "test-code"}, follow_redirects=False)
+    assert response.status_code == 302
+    destination = urlsplit(response.headers["location"])
+    assert destination.netloc == "www.example.com" and destination.path == "/api/auth/google/callback"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    client.app.state.services.google.provider.exchange.assert_not_awaited()
+    # Simulate the /api reverse proxy stripping its prefix on the frontend host.
+    response = client.get("https://www.example.com/auth/google/callback?" + destination.query,
+                          follow_redirects=False)
+    assert response.status_code == 302 and response.headers["location"].endswith("/admin/complete-profile")
+    client.app.state.services.google.provider.exchange.assert_awaited_once()
+    client.cookies.clear()
+    response = client.get("https://www.example.com/auth/google/callback?" + destination.query,
+                          follow_redirects=False)
+    assert response.status_code == 401

@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
@@ -38,8 +39,18 @@ def login(request: Request):
 
 
 @router.get("/callback")
-async def callback(request: Request, state: str = "", code: str = ""):
+async def callback(request: Request, state: str = "", code: str = "", relay: bool = False):
     settings = request.app.state.settings
+    # Legacy Railway callbacks lack the frontend's host-only cookie. Return to
+    # that origin before consuming state; validation and PKCE stay mandatory.
+    if (not relay
+            and not request.cookies.get(FLOW_COOKIE)
+            and urlsplit(settings.google_redirect_uri).hostname != urlsplit(settings.frontend_url).hostname
+            and state and len(state) <= 512 and code and len(code) <= 4096):
+        destination = settings.frontend_url.rstrip("/") + "/api/auth/google/callback?" + urlencode(
+            {"state": state, "code": code, "relay": "true"})
+        return RedirectResponse(destination, status_code=302,
+                                headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
     try:
         kind, token = await request.app.state.services.google.callback(
             state, request.cookies.get(FLOW_COOKIE, ""), code)

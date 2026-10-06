@@ -29,7 +29,7 @@ export function apiBase(value: string): string {
 }
 
 export function createApi(base: string, fetcher: typeof fetch = fetch) {
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  async function request<T>(path: string, init: RequestInit = {}, format: "json" | "blob" = "json"): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
@@ -61,7 +61,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           (path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
       }
       if (response.status === 204) return undefined as T;
-      return await response.json() as T;
+      return await (format === "blob" ? response.blob() : response.json()) as T;
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(0, "Não foi possível conectar ao servidor. Confira sua conexão e tente novamente.");
@@ -77,5 +77,5 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
   function publicPost<T>(path: string, body: unknown) {
     return request<T>(path, { method: "POST", body: JSON.stringify(body) });
   }
-  return { request, mutate, publicPost, googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
+  return { request, mutate, publicPost, photo: () => request<Blob>("/auth/profile/photo", {}, "blob"), googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
 }

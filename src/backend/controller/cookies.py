@@ -1,9 +1,6 @@
-from urllib.parse import urlsplit
-
-
 def google_cookie_path(settings):
-    # Match the browser-facing callback path, including a reverse proxy prefix.
-    return urlsplit(settings.google_redirect_uri).path.rsplit("/", 1)[0] or "/auth/google"
+    # Flow can return via a different proxy path; JWT/CSRF still protect authentication.
+    return "/"
 
 
 def set_session_cookie(response, settings, token):
