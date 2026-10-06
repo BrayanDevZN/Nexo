@@ -7,7 +7,7 @@ from backend.repository.db.models import Client
 class ClientRepository(Repository[Client]):
     model = Client
 
-    def create(self, *, name: str, niche: str, created_by_id: str,
+    def create(self, *, name: str, niche: str, created_by_id: str, identifier: str | None = None,
                contract_closed: bool = False, phone: str | None = None,
                email: str | None = None, notes: str | None = None,
                contract_value=None, pipeline_stage: str = "lead",
@@ -18,7 +18,7 @@ class ClientRepository(Repository[Client]):
             pipeline_stage = "won"
         if pipeline_stage == "won":
             contract_closed = True
-        return self.add(Client(name=name.strip(), niche=niche.strip(),
+        return self.add(Client(id=identifier, name=name.strip(), niche=niche.strip(),
                                created_by_id=created_by_id, contract_closed=contract_closed,
                                phone=phone, email=email, notes=notes, contract_value=contract_value,
                                pipeline_stage=pipeline_stage, next_follow_up=next_follow_up))
