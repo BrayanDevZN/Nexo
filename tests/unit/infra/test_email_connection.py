@@ -14,6 +14,7 @@ from backend.infra.connections.email import (
 
 def sender(settings, monkeypatch):
     settings.email = "sender@example.com"
+    settings.resend_from = "verified@example.com"
     settings.resend_key = SecretStr("resend-sentinel")
     client = Mock()
     client.post.return_value = httpx.Response(200, json={"id": "email-id"})
@@ -26,7 +27,7 @@ def test_delivers_and_closes_http_client(settings, monkeypatch):
     try:
         connection.send("receiver@example.com", "Nexo", "/etc/passwd").result(timeout=5)
         client.post.assert_called_once_with("/emails", json={
-            "from": "sender@example.com", "to": ["receiver@example.com"],
+            "from": "verified@example.com", "to": ["receiver@example.com"],
             "subject": "Nexo", "text": "/etc/passwd",
         })
     finally:

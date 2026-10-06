@@ -22,6 +22,7 @@ def settings(tmp_path):
         environment="test",
         jwt_secret_key="test-only-key-" * 4,
         resend_key=SecretStr("test-resend-key"),
+        resend_from="sender@example.com",
         database_url="sqlite:///" + str(tmp_path / "nested" / "nexo.db"),
     )
 

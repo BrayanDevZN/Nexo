@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     email: EmailStr | None = None
     password: SecretStr | None = None
     resend_key: SecretStr | None = None
+    resend_from: EmailStr | None = None
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
@@ -60,7 +61,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
-    @field_validator("email", "password", "resend_key",
+    @field_validator("email", "resend_from", "password", "resend_key",
                      "google_client_id", "google_client_secret", mode="before")
     @classmethod
     def empty_optional(cls, value):

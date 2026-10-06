@@ -43,7 +43,11 @@ class ResendConnection:
 
     @property
     def configured(self) -> bool:
-        return bool(self.settings.email and self.settings.resend_key)
+        return bool(self.settings.email and self.sender and self.settings.resend_key)
+
+    @property
+    def sender(self) -> str | None:
+        return str(self.settings.resend_from or self.settings.email) if self.settings.email else None
 
     def send(self, recipient: str, subject: str, body: str) -> Future:
         if not self.configured:
@@ -67,7 +71,7 @@ class ResendConnection:
     def _deliver(self, recipient: str, subject: str, body: str):
         try:
             response = self._client.post("/emails", json={
-                "from": str(self.settings.email), "to": [recipient],
+                "from": self.sender, "to": [recipient],
                 "subject": subject, "text": body,
             })
             if 200 <= response.status_code < 300:

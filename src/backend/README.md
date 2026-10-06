@@ -23,7 +23,8 @@ A inicialização normal cria as tabelas e o administrador de EMAIL/PASSWORD.
 Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mesmo e-mail.
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
 Na criação inicial, a senha do painel vem de `PASSWORD`. O envio usa a chave
-`RESEND_KEY` e o endereço `EMAIL` como remetente verificado no Resend.
+`RESEND_KEY` e, opcionalmente, `RESEND_FROM` como remetente verificado no Resend.
+Se `RESEND_FROM` ficar vazio, `EMAIL` será usado como remetente.
 
 ## Arquitetura
 
@@ -134,8 +135,8 @@ SQL e filesystem não têm transação conjunta; crash pode deixar arquivos órf
 
 .env.example lista todas as variáveis. Ambiente sobrescreve dotenv.
 EMAIL/PASSWORD criam o administrador com senha bcrypt. `RESEND_KEY` autoriza o
-envio de e-mails pela API HTTPS do Resend; o `EMAIL` precisa ser um remetente
-verificado no Resend. Redis sem senha usa redis://host:porta/0.
+envio de e-mails pela API HTTPS do Resend; `RESEND_FROM` deve ser um remetente
+verificado no Resend (ou `EMAIL`, quando vazio). Redis sem senha usa redis://host:porta/0.
 GOOGLE_CLIENT_SECRET, PASSWORD e JWT_SECRET_KEY ficam somente no backend.
 
 Produção exige ENVIRONMENT=production, COOKIE_SECURE=true e URLs HTTPS.
