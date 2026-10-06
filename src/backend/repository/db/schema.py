@@ -21,6 +21,15 @@ def create_tables(engine: Engine) -> None:
     if "next_follow_up" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN next_follow_up DATETIME"))
+    if "contract_closed_at" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN contract_closed_at DATETIME"))
+            # Existing closed contracts have no closure timestamp. Use their last
+            # recorded update as the best available historical approximation.
+            connection.execute(text(
+                "UPDATE clients SET contract_closed_at = updated_at "
+                "WHERE (contract_closed = 1 OR pipeline_stage = 'won') AND updated_at IS NOT NULL"
+            ))
     if "pain" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN pain TEXT"))
