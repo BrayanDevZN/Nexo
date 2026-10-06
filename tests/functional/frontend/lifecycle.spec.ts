@@ -14,6 +14,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("Celular").fill("11999999999");
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Nova senha", { exact: true }).fill("browser-member-password");
+    await member.getByLabel("Confirmar senha", { exact: true }).fill("browser-member-password");
     await member.getByRole("button", { name: "Criar conta", exact: true }).click();
     await member.getByLabel("Código recebido por e-mail").fill("12345678");
     await member.getByRole("button", { name: "Confirmar cadastro" }).click();
@@ -91,11 +92,14 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Entrar no painel" }).click();
     await member.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
     await expect(member.getByRole("button", { name: "Excluir membro Ana Atualizada" })).toBeDisabled();
-    await admin.getByRole("button", { name: "Excluir membro Ana Atualizada" }).click();
-    await admin.getByRole("button", { name: "Confirmar exclusão do membro" }).click();
-    await expect(admin.getByText("Membro excluído. Os clientes foram preservados.")).toBeVisible();
-    await member.getByRole("button", { name: "Atualizar membros" }).click();
+    await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
+    await member.getByRole("button", { name: "Apagar minha conta" }).click();
+    await member.getByRole("button", { name: "Enviar código de exclusão" }).click();
+    await member.getByLabel("Código de exclusão recebido por e-mail").fill("87654321");
+    await member.getByRole("button", { name: "Confirmar exclusão da minha conta" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    await admin.getByRole("button", { name: "Atualizar membros" }).click();
+    await expect(admin.getByRole("button", { name: "Editar membro Ana Atualizada" })).toHaveCount(0);
     expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);
   } finally { await memberContext.close(); await adminContext.close(); }
 });

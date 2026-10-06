@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend.controller.handles.account_deletion import router as account_deletion_router
 from backend.controller.handles.approvals import notifications_router, users_router
 from backend.controller.handles.auth import router as auth_router
 from backend.controller.handles.clients import router as clients_router
@@ -55,7 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
-    routers = [health_router, auth_router, passwords_router, clients_router, profiles_router,
+    routers = [health_router, auth_router, account_deletion_router, passwords_router, clients_router, profiles_router,
                google_router, users_router, members_router, directory_router, notifications_router]
     # Public routes from our handles provide stable templates across FastAPI versions.
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]

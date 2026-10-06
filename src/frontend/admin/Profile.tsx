@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { DeleteAccount } from "./DeleteAccount";
 import { PhotoPicker } from "./PhotoPicker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +80,7 @@ export function Profile({ api, user, onUpdate, onLoggedOut }: {
         </FieldGroup><Button type="submit" disabled={busy}>Atualizar senha</Button></form></CardContent>
       </Card>
       <Card><CardHeader><CardTitle>Acesso à Nexo</CardTitle><CardDescription>O e-mail e as permissões são gerenciados pelo administrador.</CardDescription></CardHeader><CardContent><p className="text-sm text-muted-foreground">Contas criadas com Google continuam usando o Google. A alteração acima exige uma senha local já cadastrada.</p></CardContent></Card>
+      <DeleteAccount api={api} onDeleted={onLoggedOut} />
     </div>
   </section>;
 }

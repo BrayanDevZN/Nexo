@@ -43,7 +43,10 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 
 ## Fluxos
 
-- Cadastro local pede nome, celular, e-mail e senha; após cadastro, faça login.
+- Cadastro local pede nome, celular, e-mail, senha e confirmação da senha.
+  Senhas diferentes bloqueiam o envio. Confirmar o código de cadastro gera a
+  sessão HttpOnly automaticamente; após salvar ou pular a foto, entra no painel
+  sem novo login, aguardando aprovação.
 - Cadastro Google conclui nome/celular e recebe sessão pendente.
 - Pendentes acessam o próprio perfil e foto. A aprovação é consultada a cada
   15 segundos enquanto a aba está visível, ou manualmente.
@@ -64,6 +67,9 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 - Clientes têm filtros por nicho exato/contrato, páginas de 20 e confirmação para excluir.
 - Perfil permite atualizar nome/celular e foto; senha atual ou código de e-mail
   permite alteração. Sessões são revogadas pelo backend, exigindo novo login.
+- Perfil tem Apagar minha conta: primeiro envia código ao email da sessão;
+  só a confirmação válida exclui a conta. Falha de envio mantém a conta.
+  A exclusão encerra a sessão, preserva clientes e protege o admin principal.
 - Erros de rede, sessão expirada e rate limit têm mensagens em português.
 
 ## Verificar

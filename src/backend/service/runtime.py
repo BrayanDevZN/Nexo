@@ -18,6 +18,7 @@ from backend.repository.db.schema import create_tables
 from backend.repository.redis.email_codes import EmailCodeRepository
 from backend.repository.redis.oauth import OAuthRepository
 from backend.repository.redis.rate_limits import RateLimitRepository
+from backend.service.account_deletion import AccountDeletionService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.clients import ClientService
@@ -68,6 +69,14 @@ class RuntimeServices:
             self.registration = RegistrationService(
                 self.auth, EmailCodeService(settings.jwt_secret_key.get_secret_value(), "registration"),
                 EmailCodeRepository(self.redis.client, namespace + ":registration:" + database_namespace,
+                                    ttl=settings.email_code_ttl_seconds,
+                                    max_attempts=settings.email_code_max_attempts,
+                                    cooldown=settings.email_code_resend_cooldown_seconds), self.email,
+                delivery_timeout=min(settings.email_timeout_seconds + 2, 12))
+            self.account_deletion = AccountDeletionService(
+                self.repositories, self.members,
+                EmailCodeService(settings.jwt_secret_key.get_secret_value(), "account-deletion"),
+                EmailCodeRepository(self.redis.client, namespace + ":account-deletion:" + database_namespace,
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
                                     cooldown=settings.email_code_resend_cooldown_seconds), self.email,

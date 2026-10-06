@@ -39,6 +39,7 @@ if __name__ == "__main__":
                 done.set_result(None)
                 app.state.services.email.send = Mock(return_value=done)
                 app.state.services.registration.codes.create = Mock(return_value="12345678")
+                app.state.services.account_deletion.codes.create = Mock(return_value="87654321")
                 yield
 
         app.router.lifespan_context = test_lifespan

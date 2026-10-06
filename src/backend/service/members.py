@@ -57,19 +57,29 @@ class MemberService:
         except IntegrityError:
             raise ResourceConflict("Email already registered") from None
 
+    @staticmethod
+    def _remove(repos, user):
+        principal = repos.users.principal_admin()
+        if principal is None:
+            raise ResourceConflict("Principal administrator is unavailable")
+        if principal.id == user.id:
+            raise ResourceConflict("Principal administrator cannot be deleted")
+        repos.clients.transfer_creator(user.id, principal.id)
+        repos.notifications.delete_for_user(user.id)
+        repos.users.delete(user.id)
+        return user.profile_photo
+
+    def remove_self(self, actor):
+        with self.repositories.transaction() as repos:
+            user = authorize(repos, actor)
+            previous_photo = self._remove(repos, user)
+        self.profiles.cleanup_photo(previous_photo)
+
     def delete(self, actor, identifier):
         with self.repositories.transaction() as repos:
             self._authorize(repos, actor)
             user = self._target(repos, identifier)
-            principal = repos.users.principal_admin()
-            if principal is None:
-                raise ResourceConflict("Principal administrator is unavailable")
-            if principal.id == user.id:
-                raise ResourceConflict("Principal administrator cannot be deleted")
             if actor.id == user.id:
                 raise ResourceConflict("You cannot delete your own account")
-            previous_photo = user.profile_photo
-            repos.clients.transfer_creator(user.id, principal.id)
-            repos.notifications.delete_for_user(user.id)
-            repos.users.delete(user.id)
+            previous_photo = self._remove(repos, user)
         self.profiles.cleanup_photo(previous_photo)

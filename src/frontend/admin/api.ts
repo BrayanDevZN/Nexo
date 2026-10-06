@@ -55,14 +55,15 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           413: "A foto ultrapassa o tamanho ou a resolução permitidos.",
           422: "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
           429: "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
-          503: path === "/auth/register" ? "Não foi possível enviar o código por e-mail. O serviço de envio está indisponível."
+          503: path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
+            : path === "/auth/register" ? "Não foi possível enviar o código por e-mail. O serviço de envio está indisponível."
             : "Serviço temporariamente indisponível. Tente novamente em instantes.",
         };
         if (response.status === 401 && !["/auth/login", "/auth/google/profile", "/auth/password/recovery/confirm"].includes(path)) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
         throw new ApiError(response.status, messages[response.status] ||
-          (path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
+          (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
       }
       if (response.status === 204) return undefined as T;
       return await (format === "blob" ? response.blob() : response.json()) as T;

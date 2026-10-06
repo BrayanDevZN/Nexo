@@ -19,6 +19,12 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/auth/google/profile") body = { name: "Ana", email: member.email, csrf_token: "google-csrf" };
     else if (path === "/auth/google/complete") { user = member; body = member; status = 201; expect(request.headers()["x-csrf-token"]).toBe("google-csrf"); }
     else if (path === "/auth/logout" || path === "/auth/password/change") { user = undefined; status = 204; }
+    else if (path === "/auth/account/deletion/request") { status = 202; expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); }
+    else if (path === "/auth/account/deletion/confirm") {
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      if (request.postDataJSON().code === "12345678") { user = undefined; status = 204; }
+      else { status = 400; body = { detail: "Invalid or expired deletion code" }; }
+    }
     else if (path === "/auth/password/recovery/request") status = 202;
     else if (path === "/auth/password/recovery/confirm") status = 204;
     else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
@@ -155,6 +161,7 @@ for (const photoChoice of ["skip", "save"]) test("registration confirms email be
   await page.getByLabel("Celular").fill("11999999999");
   await page.getByLabel("E-mail", { exact: true }).fill(member.email);
   await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByLabel("Confirmar senha", { exact: true }).fill("new-password-123");
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
   await expect(page.getByText("Confirme seu e-mail", { exact: true })).toBeVisible();
   await page.getByLabel("Código recebido por e-mail").fill("12345678");
@@ -196,6 +203,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
   await page.getByLabel("Celular").fill("11999999999");
   await page.getByLabel("E-mail", { exact: true }).fill(member.email);
   await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByLabel("Confirmar senha", { exact: true }).fill("new-password-123");
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
   await expect(page.getByText(/Não foi possível enviar o código por e-mail/)).toBeVisible();
   await expect(page.getByLabel("Código recebido por e-mail")).toHaveCount(0);
@@ -285,4 +293,58 @@ test("profile pencil saves chosen photo automatically and rejects invalid upload
   expect(uploads).toBe(1);
   await page.setViewportSize({ width: 360, height: 780 });
   await page.screenshot({ path: "../../test-results/profile-pencil-mobile.png", fullPage: true });
+});
+
+
+test("signup requires matching passwords and enters panel without another login", async ({ page }) => {
+  await mock(page);
+  let registrations = 0, logins = 0;
+  page.on("request", req => { if (req.url().endsWith("/auth/register")) registrations++; if (req.url().endsWith("/auth/login")) logins++; });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Ainda não tem conta? Cadastre-se" }).click();
+  await page.getByLabel("Nome completo").fill("Ana Silva");
+  await page.getByLabel("Celular").fill("11999999999");
+  await page.getByLabel("E-mail", { exact: true }).fill(member.email);
+  await page.getByLabel("Nova senha", { exact: true }).fill("new-password-123");
+  await page.getByLabel("Confirmar senha", { exact: true }).fill("different-password-123");
+  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  await expect(page.getByText("As senhas não coincidem.")).toBeVisible();
+  expect(registrations).toBe(0);
+  await page.getByLabel("Confirmar senha", { exact: true }).fill("new-password-123");
+  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  await page.getByLabel("Código recebido por e-mail").fill("12345678");
+  await page.getByRole("button", { name: "Confirmar cadastro" }).click();
+  await page.getByRole("button", { name: "Pular por enquanto" }).click();
+  await expect(page.getByText("Seu acesso está em análise")).toBeVisible();
+  expect(registrations).toBe(1); expect(logins).toBe(0);
+});
+
+test("own account deletion requires explicit confirmation and valid email code", async ({ page }) => {
+  await mock(page, { user: member });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Meu perfil", exact: true }).click();
+  await page.getByRole("button", { name: "Apagar minha conta" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("Código de exclusão recebido por e-mail")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Enviar código de exclusão" }).click();
+  await dialog.getByLabel("Código de exclusão recebido por e-mail").fill("00000000");
+  await dialog.getByRole("button", { name: "Confirmar exclusão da minha conta" }).click();
+  await expect(dialog.getByText("Código de exclusão inválido ou expirado.")).toBeVisible();
+  await dialog.getByLabel("Código de exclusão recebido por e-mail").fill("12345678");
+  await dialog.getByRole("button", { name: "Confirmar exclusão da minha conta" }).click();
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+});
+
+test("deletion SMTP failure keeps account and does not advance to code entry", async ({ page }) => {
+  await mock(page, { user: member });
+  await page.route("**/api/auth/account/deletion/request", route => route.fulfill({ status: 503, contentType: "application/json", body: "{}" }));
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Meu perfil", exact: true }).click();
+  await page.getByRole("button", { name: "Apagar minha conta" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Enviar código de exclusão" }).click();
+  await expect(dialog.getByText("Não foi possível enviar o código de exclusão. Tente novamente mais tarde.")).toBeVisible();
+  await expect(dialog.getByLabel("Código de exclusão recebido por e-mail")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Cancelar" }).click();
+  await expect(page.getByRole("heading", { name: "Perfil e segurança" })).toBeVisible();
 });

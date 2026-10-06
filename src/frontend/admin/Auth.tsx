@@ -52,6 +52,7 @@ export function Auth({ api, complete, onLogin }: Props) {
         onLogin(await api.publicPost<User>("/auth/login", { email, password: values.password }));
       } else if (mode === "register") {
         if (!passwordValid(values.password)) throw new Error("Use pelo menos 12 caracteres e até 72 bytes na senha.");
+        if (values.password !== values.confirm_password) throw new Error("As senhas não coincidem.");
         await api.publicPost("/auth/register", { name: values.name, phone: values.phone, email, password: values.password });
         setRegistration({ name: values.name, phone: values.phone, email, password: values.password });
         setMode("verify"); setSuccess("Enviamos um código para seu e-mail. Confirme para criar sua conta. Confira também o spam.");
@@ -106,6 +107,7 @@ export function Auth({ api, complete, onLogin }: Props) {
             {!complete && mode !== "recovery" && mode !== "verify" && <TextField label={mode === "login" ? "Senha" : "Nova senha"} name="password" type="password" required
               autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "login" ? undefined : 12}
               help={mode === "login" ? undefined : "Pelo menos 12 caracteres. Use uma senha exclusiva."} />}
+            {!complete && mode === "register" && <TextField label="Confirmar senha" name="confirm_password" type="password" autoComplete="new-password" minLength={12} required />}
           </FieldGroup>
           <Button type="submit" size="lg" disabled={busy || (complete && !google)}>
             {busy ? <Busy>Enviando…</Busy> : <>{complete ? "Solicitar acesso" : mode === "login" ? "Entrar no painel" : mode === "register" ? "Criar conta" : mode === "verify" ? "Confirmar cadastro" : mode === "recovery" ? "Enviar código" : "Atualizar senha"}<ArrowRight data-icon="inline-end" /></>}

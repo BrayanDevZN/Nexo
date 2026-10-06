@@ -61,6 +61,8 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/password/change | current_password, new_password |
 | POST /auth/password/recovery/request | email; resposta genérica 202 |
 | POST /auth/password/recovery/confirm | email, code, new_password |
+| POST /auth/account/deletion/request | sessão e CSRF; envia código para o email da própria conta |
+| POST /auth/account/deletion/confirm | sessão e CSRF; código de uso único confirma exclusão e limpa cookie |
 | GET /members | usuários aprovados; lista paginada com apenas id, nome e cargo de contas aprovadas |
 | GET /admin/users | somente admin; filtro status, limit/offset e identificação da conta principal |
 | PATCH /admin/users/{id} | admin altera nome, email, celular e cargo; cargo exige usuário aprovado |
@@ -203,3 +205,21 @@ hash, identificador Google e versão de sessão não fazem parte desse retorno.
 A gestão `/admin/users` continua exclusiva de admins e permite contatos para
 edição, mas seus schemas e snapshots também excluem qualquer senha/hash.
 Ambas as listas respondem com `Cache-Control: no-store`.
+
+
+## Exclusão da própria conta
+
+`AccountDeletionService` usa yagmail no executor já existente, aguardando o
+SMTP aceitar o envio antes de responder 202. Redis guarda apenas HMAC do código
+com propósito `account-deletion`, ID e versão da sessão, separado dos códigos de
+cadastro e recuperação. Reutiliza TTL, tentativas máximas e cooldown configurados
+em `EMAIL_CODE_*`; as duas rotas também têm limite de autenticação.
+
+O código é de uso único e vinculado à identidade autenticada. Mudanças de email,
+senha ou cargo invalidam a confirmação antiga. Solicitar código não exclui conta;
+falha de SMTP invalida o código e permite nova tentativa. Contas pendentes e
+contas Google podem usar o fluxo, mas o admin principal permanece protegido.
+
+A exclusão usa a mesma transação de preservação de clientes e limpeza de
+notificações/foto da gestão de membros. Remove o usuário, revoga todas as sessões
+por ausência da conta no SQL e limpa o cookie HttpOnly após o commit.
