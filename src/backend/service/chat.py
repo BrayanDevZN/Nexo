@@ -30,7 +30,7 @@ class ChatService:
 
     def conversations(self, actor):
         with self.repositories.read_transaction() as repos:
-            authorize_read(repos.db, actor, approved=True)
+            authorize_read(repos, actor, approved=True)
             activity = repos.chat_messages.activity_by_member(actor.id)
             return [{"member_id": identifier, "last_message_at": created_at}
                     for identifier, created_at in activity.items()]
