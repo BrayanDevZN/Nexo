@@ -13,4 +13,4 @@ def test_server_receives_trusted_proxy_configuration(settings, monkeypatch):
     monkeypatch.setattr("sys.argv", ["nexo"])
     main()
     run.assert_called_once_with(application, host=settings.host, port=settings.port,
-                                forwarded_allow_ips="127.0.0.1,10.0.0.0/8")
+                                forwarded_allow_ips="127.0.0.1,10.0.0.0/8", ws_max_size=16384, ws_max_queue=16)

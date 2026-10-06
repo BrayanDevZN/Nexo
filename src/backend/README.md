@@ -226,3 +226,15 @@ contas Google podem usar o fluxo, mas o admin principal permanece protegido.
 A exclusão usa a mesma transação de preservação de clientes e limpeza de
 notificações/foto da gestão de membros. Remove o usuário, revoga todas as sessões
 por ausência da conta no SQL e limpa o cookie HttpOnly após o commit.
+
+## Chat e notificações em tempo real
+
+`POST /realtime/ticket` exige o cookie JWT HttpOnly e CSRF. Retorna um ticket de uso único com TTL de 30 segundos no Redis, vinculado à origem e à sessão. O navegador abre `/realtime` com os subprotocolos `nexo.v1` e o ticket. O servidor seleciona somente `nexo.v1`, verifica a origem em `CORS_ORIGINS`, revalida o usuário no SQL a cada comando/evento e no heartbeat de 15 segundos. Expiração, rejeição, exclusão, logout ou alteração de senha/cargo encerram a conexão; o JWT nunca é enviado ao JavaScript.
+
+Eventos `notifications.changed` atualizam as solicitações dos administradores; `account.changed` atualiza o acesso sem polling. Mensagens `chat.send` recebem `chat.ack` após persistência e `chat.message` nos sockets dos dois participantes. `client_id` UUID por remetente torna retries idempotentes. Pub/Sub Redis distribui eventos entre processos; consultas SQL com cache aside recuperam o histórico após reconexão. Pub/Sub não é histórico durável.
+
+`GET /chat/{member_id}/messages?before=<sequence>&limit=50` fornece paginação do histórico privado. `POST /chat/{member_id}/media` recebe multipart com `file`, `kind` (`image`/`audio`) e `client_id` UUID; arquivos usam HTTP autenticado e os eventos de novas mídias são entregues por WebSocket. `GET /chat/media/{id}` exige ser participante aprovado, inclusive para administradores. Fotos são normalizadas para JPEG sem metadados; áudio aceita WebM, Ogg, WAV, MP3 e M4A com validação de assinatura. Mídias ficam em `UPLOAD_DIR/chat`, no mesmo volume `/data` do banco. Excluir a conta remove suas conversas e respectivos arquivos, preservando clientes/documentos como antes.
+
+`CHAT_MEDIA_MAX_BYTES=10485760`, `WS_CONNECTIONS_PER_USER=3` e `WS_MESSAGE_LIMIT=60` são opcionais. O rate limit global também conta comandos WebSocket. Tickets usam SET/EX e GETDEL; conexões usam leases em ZSET com TTL e comandos usam contadores INCR/TTL; frames textuais são limitados a 16 KiB, filas são limitadas e consumidores lentos são desconectados. Uma indisponibilidade de Redis não desfaz uma mensagem já confirmada no SQLite.
+
+No frontend publicado, a conexão vai diretamente para `wss://nexo-production-60a0.up.railway.app/realtime`. Opcionalmente configure `VITE_WS_URL` na Vercel com a URL pública completa e refaça o build. Requisições HTTP continuam em `/api`; não é necessário compartilhar o cookie JWT com o domínio Railway. Mantenha a origem exata do site em `CORS_ORIGINS`. A gravação usa MediaRecorder, exige permissão de microfone e contexto seguro, limita clipes a dois minutos e permite escolher um arquivo caso a gravação não seja suportada. Não há criptografia ponta a ponta: o servidor armazena mensagens e mídias.

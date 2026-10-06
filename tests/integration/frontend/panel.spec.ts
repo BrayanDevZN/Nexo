@@ -146,8 +146,7 @@ test("expired session returns to login", async ({ page }) => {
   await mock(page, { user: { ...member, status: "approved" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
-  await page.unroute("**/api/**");
-  await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
+  await page.route("**/api/clients?**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
   await page.getByRole("button", { name: "Atualizar clientes" }).click();
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });
@@ -347,4 +346,17 @@ test("deletion SMTP failure keeps account and does not advance to code entry", a
   await expect(dialog.getByLabel("Código de exclusão recebido por e-mail")).toHaveCount(0);
   await dialog.getByRole("button", { name: "Cancelar" }).click();
   await expect(page.getByRole("heading", { name: "Perfil e segurança" })).toBeVisible();
+});
+
+
+test("chat shows a clear error when microphone access is denied", async ({ page }) => {
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.addInitScript(() => { Object.defineProperty(navigator.mediaDevices, "getUserMedia", { configurable: true, value: async () => { throw new DOMException("Denied", "NotAllowedError"); } }); });
+  await page.route("**/api/chat/*/messages?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await page.getByLabel("Membro", { exact: true }).selectOption({ label: "Principal" });
+  await page.getByRole("button", { name: "Gravar áudio", exact: true }).click();
+  await expect(page.getByText("Não foi possível acessar o microfone. Autorize no navegador ou envie um arquivo de áudio.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Gravar áudio", exact: true })).toBeEnabled();
 });

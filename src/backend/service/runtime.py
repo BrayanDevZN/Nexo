@@ -11,6 +11,7 @@ from backend.infra.connections.documents import DocumentStorage
 from backend.infra.connections.email import GmailConnection
 from backend.infra.connections.google import GoogleConnection
 from backend.infra.connections.photos import PhotoStorage
+from backend.infra.connections.realtime import RealtimeConnection
 from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
@@ -19,9 +20,11 @@ from backend.repository.db.schema import create_tables
 from backend.repository.redis.email_codes import EmailCodeRepository
 from backend.repository.redis.oauth import OAuthRepository
 from backend.repository.redis.rate_limits import RateLimitRepository
+from backend.repository.redis.realtime import RealtimeRepository
 from backend.service.account_deletion import AccountDeletionService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
+from backend.service.chat import ChatService
 from backend.service.clients import ClientService
 from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
@@ -30,6 +33,7 @@ from backend.service.members import MemberService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
 from backend.service.rate_limits import RateLimitService
+from backend.service.realtime import RealtimeService
 from backend.service.registration import RegistrationService
 from backend.service.security import SessionSecurity
 
@@ -56,6 +60,14 @@ class RuntimeServices:
             rate_namespace = "nexo:rate:" + hashlib.sha256(
                 (settings.database_url + settings.jwt_secret_key.get_secret_value()).encode()).hexdigest()[:32]
             self.rate_limits = RateLimitService(RateLimitRepository(self.redis.client), settings, rate_namespace)
+            self.events = RealtimeRepository(self.redis.client, "nexo:realtime:" + database_namespace + ":" + hashlib.sha256(
+                settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:16])
+            self.realtime = RealtimeService(self.events, self.repositories, settings, self.rate_limits)
+            self.repositories.on_change = self.realtime.changed
+            self.realtime_connection = RealtimeConnection(settings)
+            self.chat = ChatService(self.repositories, self.cached_repositories,
+                                    DocumentStorage(settings.upload_dir / "chat"), self.events, settings)
+            self.members.chat = self.chat
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
                                      expire_minutes=settings.jwt_expire_minutes)

@@ -96,3 +96,7 @@ relatórios/traces com dados sintéticos. Localmente, o padrão é o Chromium do
 Os componentes novos seguem a base Radix do shadcn. O acesso ao registry via CLI
 estava indisponível neste ambiente; os arquivos novos vieram da base oficial,
 com imports, ícones Lucide e estilos semânticos adaptados ao projeto.
+
+### Chat
+
+Nova aba Chat: seleção de membro aprovado, mensagens ao vivo, histórico paginado, foto, envio de áudio e gravação pelo microfone. O indicador mostra conexão/reconexão e avisos no painel permitem abrir a conversa de novas mensagens. Solicitações e aprovação de acesso usam eventos WebSocket, sem intervalos de polling. `VITE_WS_URL` é opcional e, em produção, usa o endereço Railway já configurado. A rolagem utiliza o componente oficial `@shadcn/react/message-scroller`; os elementos visuais de mensagem, bubble e attachment são composições locais com cores semânticas, pois o registry CLI estava inacessível.

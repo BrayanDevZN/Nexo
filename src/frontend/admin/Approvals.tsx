@@ -35,6 +35,10 @@ export function Approvals({ api, onChanged }: { api: ReturnType<typeof createApi
     } catch (e) { setError(message(e)); } finally { setLoading(false); }
   }, [api, offset]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const event = (event: Event) => { if (["ready", "notifications.changed"].includes((event as CustomEvent).detail.type)) void load(); };
+    window.addEventListener("nexo:realtime", event); return () => window.removeEventListener("nexo:realtime", event);
+  }, [load]);
   async function decide() {
     if (!confirm) return;
     setBusy(true); setError(""); setSuccess("");

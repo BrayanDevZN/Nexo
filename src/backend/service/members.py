@@ -78,15 +78,18 @@ class MemberService:
             raise ResourceConflict("Principal administrator cannot be deleted")
         repos.clients.transfer_creator(user.id, principal.id)
         repos.documents.transfer_creator(user.id, principal.id)
+        keys = repos.chat_messages.delete_for_user(user.id)
         repos.notifications.delete_for_user(user.id)
         repos.users.delete(user.id)
-        return user.profile_photo
+        return user.profile_photo, keys
 
     def remove_self(self, actor):
         with self.repositories.transaction() as repos:
             user = authorize(repos, actor)
-            previous_photo = self._remove(repos, user)
+            previous_photo, keys = self._remove(repos, user)
         self.profiles.cleanup_photo(previous_photo)
+        if keys:
+            self.chat.cleanup(keys)
 
     def delete(self, actor, identifier):
         with self.repositories.transaction() as repos:
@@ -94,5 +97,7 @@ class MemberService:
             user = self._target(repos, identifier)
             if actor.id == user.id:
                 raise ResourceConflict("You cannot delete your own account")
-            previous_photo = self._remove(repos, user)
+            previous_photo, keys = self._remove(repos, user)
         self.profiles.cleanup_photo(previous_photo)
+        if keys:
+            self.chat.cleanup(keys)

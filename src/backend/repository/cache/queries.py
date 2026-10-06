@@ -5,6 +5,8 @@ from backend.repository.db.control.base import pagination
 from backend.repository.db.control.manager import Repositories
 
 FIELDS = {
+    "chat_messages": ("id", "sequence", "sender_id", "recipient_id", "sender_name", "client_id",
+                      "text", "kind", "media_type", "size", "created_at"),
     "users": ("id", "name", "email", "phone", "profile_photo", "status", "role",
               "created_at", "updated_at"),
     "documents": ("id", "filename", "size", "created_by_id", "created_at", "updated_at"),

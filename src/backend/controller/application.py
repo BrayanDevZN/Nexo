@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from backend.controller.handles.account_deletion import router as account_deletion_router
 from backend.controller.handles.approvals import notifications_router, users_router
 from backend.controller.handles.auth import router as auth_router
+from backend.controller.handles.chat import router as chat_router
 from backend.controller.handles.clients import router as clients_router
 from backend.controller.handles.documents import router as documents_router
 from backend.controller.handles.google import router as google_router
@@ -17,6 +18,7 @@ from backend.controller.handles.members import directory_router
 from backend.controller.handles.members import router as members_router
 from backend.controller.handles.passwords import router as passwords_router
 from backend.controller.handles.profiles import router as profiles_router
+from backend.controller.handles.realtime import router as realtime_router
 from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.controller.middleware.rate_limits import RateLimitMiddleware
 from backend.infra.config.settings import Settings, get_settings
@@ -33,6 +35,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await asyncio.to_thread(services.initialize, config)
             yield
         finally:
+            await services.realtime_connection.close()
             await asyncio.to_thread(services.close)
 
     app = FastAPI(
@@ -57,7 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
-    routers = [health_router, auth_router, account_deletion_router, documents_router, passwords_router, clients_router, profiles_router,
+    routers = [chat_router, realtime_router, health_router, auth_router, account_deletion_router, documents_router, passwords_router, clients_router, profiles_router,
                google_router, users_router, members_router, directory_router, notifications_router]
     # Public routes from our handles provide stable templates across FastAPI versions.
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]

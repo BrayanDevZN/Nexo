@@ -32,7 +32,6 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByRole("button", { name: "Autorizar", exact: true }).click();
     await admin.getByRole("button", { name: "Confirmar decisão" }).click();
     await expect(admin.getByText("Acesso autorizado.")).toBeVisible();
-    await member.getByRole("button", { name: "Verificar aprovação" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await member.setViewportSize({ width: 360, height: 780 });
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
@@ -111,7 +110,6 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByRole("button", { name: "Salvar membro" }).click();
     await expect(admin.getByText("Membro atualizado.")).toBeVisible();
     // Changing privileges invalidates the previous HttpOnly session.
-    await member.getByRole("button", { name: "Atualizar clientes" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");

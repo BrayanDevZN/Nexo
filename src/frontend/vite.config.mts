@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": fileURLToPath(new URL("./", import.meta.url)) } },
 
-  server: { proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: false, rewrite: path => path.replace(/^\/api/, "") } } },
+  server: { proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: false, ws: true, rewrite: path => path.replace(/^\/api/, "") } } },
   preview: {
     host: "0.0.0.0",
     port: 8080,

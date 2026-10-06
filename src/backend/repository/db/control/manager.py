@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from sqlalchemy import event
 
 from backend.infra.connections.database import DatabaseConnection
+from backend.repository.db.control.chat import ChatRepository
 from backend.repository.db.control.clients import ClientRepository
 from backend.repository.db.control.documents import DocumentRepository
 from backend.repository.db.control.notifications import NotificationRepository
@@ -14,11 +15,13 @@ class Repositories:
         self.users = UserRepository(session, principal_email=principal_email)
         self.clients = ClientRepository(session)
         self.documents = DocumentRepository(session)
+        self.chat_messages = ChatRepository(session)
         self.notifications = NotificationRepository(session)
 
 
 class RepositoryManager:
-    def __init__(self, database: DatabaseConnection, cache=None, principal_email=None):
+    def __init__(self, database: DatabaseConnection, cache=None, principal_email=None, on_change=None):
+        self.on_change = on_change
         self.database, self.cache = database, cache
         self.principal_email = principal_email
 
@@ -29,7 +32,7 @@ class RepositoryManager:
         def track_changes(session, _context, _instances):
             for row in set(session.new) | set(session.dirty) | set(session.deleted):
                 table = getattr(row, "__tablename__", None)
-                if table in {"users", "clients", "notifications", "documents"}:
+                if table in {"users", "clients", "notifications", "documents", "chat_messages"}:
                     changed.add(table)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:
@@ -38,3 +41,5 @@ class RepositoryManager:
             yield Repositories(session, self.principal_email)
         if self.cache is not None:
             self.cache.invalidate(changed)  # reached only after successful SQL commit
+        if changed and self.on_change:
+            self.on_change(changed)

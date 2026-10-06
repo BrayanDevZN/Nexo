@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Bell, FileText, Building2, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bell, MessageCircle, FileText, Building2, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiBase, ApiError, createApi, type Approval, type User } from "./api";
 import { Auth } from "./Auth";
+import { Chat } from "./Chat";
+import { useRealtime, type RealtimeEvent, type ChatMessage } from "./realtime";
 import { Documents } from "./Documents";
 import { Clients } from "./Clients";
 import { Approvals } from "./Approvals";
@@ -17,19 +19,24 @@ import { Profile } from "./Profile";
 import { Feedback, Loading, message } from "./shared";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "documents" | "clients" | "approvals" | "members" | "directory" | "profile";
+type Page = "chat" | "documents" | "clients" | "approvals" | "members" | "directory" | "profile";
 export default function AdminApp() {
+  const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState<Page>("clients");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [incoming, setIncoming] = useState<ChatMessage | null>(null);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [chatMember, setChatMember] = useState<string>();
   const [hasRequests, setHasRequests] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const complete = window.location.pathname.replace(/\/$/, "") === "/admin/complete-profile";
   const refresh = useCallback(async () => {
-    try { setUser(await api.request<User>("/auth/me")); setError(""); }
-    catch (e) { if (e instanceof ApiError && e.status === 401) setUser(null); else setError(message(e)); }
+    const current = generation.current;
+    try { const person = await api.request<User>("/auth/me"); if (current === generation.current) { setUser(person); setError(""); } }
+    catch (e) { if (current !== generation.current) return; if (e instanceof ApiError && e.status === 401) setUser(null); else setError(message(e)); }
     finally { setLoading(false); }
   }, []);
   const requests = useCallback(async () => {
@@ -40,29 +47,26 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
   useEffect(() => {
-    const expired = () => { setUser(null); setPage("clients"); setHasRequests(false); setMobileOpen(false); };
+    const expired = () => { generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
     window.addEventListener("nexo:session-expired", expired);
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
-  useEffect(() => {
-    if (!user) return;
-    if (user.status === "pending") {
-      const timer = setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
-      return () => clearInterval(timer);
-    }
-    if (user.role === "admin") {
-      void requests();
-      const timer = setInterval(() => { if (!document.hidden) void requests(); }, 30000);
-      return () => clearInterval(timer);
-    }
-  }, [user?.id, user?.status, user?.role, refresh, requests]);
+  const event = useCallback((value: RealtimeEvent) => {
+    window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
+    if (["ready", "account.changed"].includes(value.type)) void refresh();
+    if (["ready", "notifications.changed"].includes(value.type) && user?.role === "admin" && user.status === "approved") void requests();
+    if (value.type === "chat.message" && value.message && value.message.recipient_id === user?.id && (page !== "chat" || activeChat !== value.message.sender_id)) setIncoming(value.message);
+  }, [refresh, requests, user?.id, user?.role, user?.status, page, activeChat]);
+  const realtime = useRealtime(api, user, event);
+  useEffect(() => { if (user?.role === "admin" && user.status === "approved") void requests(); }, [user?.id, user?.role, user?.status, requests]);
   function onLogin(person: User) {
+    generation.current++;
     if (complete) window.history.replaceState(null, "", "/admin");
     setUser(person); setError(""); setPage("clients");
   }
   async function logout() {
     setLoggingOut(true); setError("");
-    try { await api.mutate("/auth/logout", "POST"); setUser(null); setHasRequests(false); setPage("clients"); setMobileOpen(false); }
+    try { await api.mutate("/auth/logout", "POST"); generation.current++; setUser(null); setHasRequests(false); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
   if (loading) return <main className="admin-loading"><Loading /></main>;
@@ -73,6 +77,7 @@ export default function AdminApp() {
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
         {user.status === "approved" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {user.status === "approved" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
+        {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {incoming && <Badge>Nova</Badge>}</Button>}
         {user.role === "admin" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.role === "admin" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
@@ -96,9 +101,11 @@ export default function AdminApp() {
       </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></header>
       <main className="admin-content" id="painel">
         <Feedback error={error} />
+        {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
         {hasRequests && user.role === "admin" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
         {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
+          page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "members" && user.role === "admin" ? <Members api={api} actor={user} onUpdate={setUser} /> :
