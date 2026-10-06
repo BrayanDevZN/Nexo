@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from backend.controller.dependencies import approved_user
 from backend.controller.schema.clients import ClientCreate, ClientOutput, ClientPatch, PipelineStage
-from backend.service.access import AccessDenied, ResourceNotFound
+from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
 
 def fail(exc):
-    return HTTPException(status_code=403 if isinstance(exc, AccessDenied) else 404, detail=str(exc))
+    return HTTPException(status_code=403 if isinstance(exc, AccessDenied) else 409 if isinstance(exc, ResourceConflict) else 404, detail=str(exc))
 
 
 @router.get("", response_model=list[ClientOutput])
@@ -38,7 +38,7 @@ def get_client(identifier: str, request: Request, actor=Depends(approved_user)):
 def create_client(data: ClientCreate, request: Request, actor=Depends(approved_user)):
     try:
         return request.app.state.services.clients.create(actor, **data.model_dump(mode="json"))
-    except AccessDenied as exc:
+    except (AccessDenied, ResourceConflict) as exc:
         raise fail(exc) from None
 
 
