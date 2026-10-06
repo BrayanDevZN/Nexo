@@ -49,31 +49,36 @@ class ResendConnection:
     def sender(self) -> str | None:
         return str(self.settings.resend_from or self.settings.email) if self.settings.email else None
 
-    def send(self, recipient: str, subject: str, body: str) -> Future:
+    def send(self, recipient: str, subject: str, body: str, *, html: str | None = None) -> Future:
         if not self.configured:
             raise EmailUnavailableError("Resend credentials are not configured")
         recipient = str(address.validate_python(recipient))
         if not subject or "\r" in subject or "\n" in subject:
             raise ValueError("Subject must be nonempty and contain no line breaks")
+        if html is not None and not html.strip():
+            raise ValueError("HTML email body must be nonempty")
         with self._lock:
             if self._closed:
                 raise EmailUnavailableError("Email sender is closed")
             if not self._slots.acquire(blocking=False):
                 raise EmailQueueFullError("Email queue capacity reached")
             try:
-                future = self._executor.submit(self._deliver, recipient, subject, body)
+                future = self._executor.submit(self._deliver, recipient, subject, body, html)
             except BaseException:
                 self._slots.release()
                 raise
         future.add_done_callback(self._finished)
         return future
 
-    def _deliver(self, recipient: str, subject: str, body: str):
+    def _deliver(self, recipient: str, subject: str, body: str, html: str | None = None):
         try:
-            response = self._client.post("/emails", json={
+            payload = {
                 "from": self.sender, "to": [recipient],
                 "subject": subject, "text": body,
-            })
+            }
+            if html is not None:
+                payload["html"] = html
+            response = self._client.post("/emails", json=payload)
             if 200 <= response.status_code < 300:
                 return response.json()
             status = response.status_code
