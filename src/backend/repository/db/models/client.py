@@ -24,6 +24,7 @@ class Client(IdentityTimestampMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(32))
     email: Mapped[str | None] = mapped_column(String(254))
     contract_closed: Mapped[bool] = mapped_column(Boolean(create_constraint=True), default=False)
+    contract_closed_at: Mapped[datetime | None] = mapped_column(DateTime)
     contract_value: Mapped[float | None] = mapped_column(Numeric(12, 2))
     pipeline_stage: Mapped[str] = mapped_column(String(24), default="lead")
     next_follow_up: Mapped[datetime | None] = mapped_column(DateTime)
