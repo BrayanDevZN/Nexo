@@ -28,6 +28,8 @@ class Client(IdentityTimestampMixin, Base):
     pipeline_stage: Mapped[str] = mapped_column(String(24), default="lead")
     next_follow_up: Mapped[datetime | None] = mapped_column(DateTime)
     notes: Mapped[str | None] = mapped_column(Text)
+    pain: Mapped[str | None] = mapped_column(Text)
+    approach: Mapped[str | None] = mapped_column(Text)
     created_by_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False,
     )
