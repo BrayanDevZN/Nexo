@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Bell, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
+import { Activity, Bell, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,11 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Directory } from "./Directory";
 import { Members } from "./Members";
 import { Profile } from "./Profile";
+import { ApiKeys } from "./ApiKeys";
 import { Feedback, Loading, message } from "./shared";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile";
+type Page = "home" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -95,6 +96,7 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos</Button>}
         {user.role === "admin" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
+        {user.status === "approved" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> Chaves de API</Button>}
         <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>
       </nav>
   );
@@ -125,6 +127,7 @@ export default function AdminApp() {
           page === "announcements" ? <Announcements api={api} user={user} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
+          page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "members" && user.role === "admin" ? <Members api={api} actor={user} onUpdate={setUser} /> :
           page === "approvals" && user.role === "admin" ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
       </main>
