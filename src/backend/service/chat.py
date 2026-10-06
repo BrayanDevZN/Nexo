@@ -32,8 +32,8 @@ class ChatService:
         with self.repositories.read_transaction() as repos:
             authorize_read(repos, actor, approved=True)
             activity = repos.chat_messages.activity_by_member(actor.id)
-            return [{"member_id": identifier, "last_message_at": created_at}
-                    for identifier, created_at in activity.items()]
+            return [{"member_id": identifier, **details}
+                    for identifier, details in activity.items()]
 
     def history(self, actor, member_id, *, before=None, limit=50):
         with self.cached_repositories.read_transaction() as repos:
