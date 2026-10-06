@@ -67,6 +67,20 @@ def member_notifications(request: Request, kind: Literal["announcement", "member
         raise fail(exc) from None
 
 
+@member_notifications_router.get("/unread-count")
+def unread_counts(request: Request, actor=Depends(approved_user)):
+    return request.app.state.services.announcements.unread_counts(actor)
+
+
+@member_notifications_router.patch("/chat/{member_id}/read")
+def read_chat_notifications(member_id: str, request: Request, actor=Depends(approved_user)):
+    try:
+        count = request.app.state.services.announcements.mark_chat_read(actor, member_id)
+        return {"marked_read": count}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+
+
 @member_notifications_router.patch("/{identifier}/read", response_model=NotificationOutput)
 def member_read_notification(identifier: str, request: Request, actor=Depends(approved_user)):
     try:
