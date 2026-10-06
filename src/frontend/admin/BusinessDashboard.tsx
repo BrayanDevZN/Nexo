@@ -13,7 +13,6 @@ import { Feedback, Loading, message } from "./shared";
 type ViewPeriod = { year?: number; month?: number };
 type Point = { key: string; label: string; value: number; contracts: number; year?: number; month?: number; day?: number };
 type GroupMetric = { id: string; label: string; contracts: number; value: number };
-type ContractMetric = { id: string; name: string; niche: string; member: string; value: number; closedAt: Date };
 type TeamMember = { id: string; name: string };
 
 const currency = (value: number | string) =>
@@ -52,7 +51,7 @@ function AreaChart({ points, canDrill, onDrill }: {
   </div>;
 }
 
-function RankedBars({ title, description, icon, rows, selectedId, onSelect, emptyLabel, emptyTitle = "Sem vendas no período", onBack, backLabel, summary, angledLabels = false }: {
+function RankedBars({ title, description, icon, rows, selectedId, onSelect, emptyLabel, emptyTitle = "Sem vendas no período", onBack, backLabel, summary, angledLabels = false, horizontalBars = false }: {
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -65,22 +64,25 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
   backLabel?: string;
   summary?: string;
   angledLabels?: boolean;
+  horizontalBars?: boolean;
 }) {
+  const horizontalHeight = Math.max(220, rows.length * 52 + 36);
   return <Card>
     <CardHeader><div className="flex items-center gap-2">{onBack && <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label={backLabel || "Voltar"} title={backLabel || "Voltar"}><ChevronLeft /></Button>}{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
     <CardContent>
-      {rows.length ? <ChartContainer config={rankChartConfig} className="h-[20rem]" aria-label={`${title}, gráfico de colunas`}>
-        <BarChart data={rows} margin={{ top: 34, right: 18, bottom: angledLabels ? 70 : 18, left: 8 }} barCategoryGap="28%">
-          <CartesianGrid vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={angledLabels ? -28 : 0} textAnchor={angledLabels ? "end" : "middle"} height={angledLabels ? 80 : 30} tick={{ fontSize: 11 }} />
-          <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
+      {rows.length ? <ChartContainer config={rankChartConfig} className={horizontalBars ? "min-h-[13rem]" : "h-[20rem]"} style={horizontalBars ? { height: horizontalHeight } : undefined} aria-label={`${title}, gráfico de ${horizontalBars ? "barras horizontais" : "colunas"}`}>
+        <BarChart data={rows} layout={horizontalBars ? "vertical" : "horizontal"} margin={horizontalBars ? { top: 8, right: 88, bottom: 8, left: 8 } : { top: 34, right: 18, bottom: angledLabels ? 70 : 18, left: 8 }} barCategoryGap="28%">
+          <CartesianGrid vertical={horizontalBars} horizontal={!horizontalBars} />
+          {horizontalBars
+            ? <><XAxis type="number" tickLine={false} axisLine={false} tickFormatter={compactCurrency} /><YAxis type="category" dataKey="label" tickLine={false} axisLine={false} width={150} tick={{ fontSize: 11 }} /></>
+            : <><XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={angledLabels ? -28 : 0} textAnchor={angledLabels ? "end" : "middle"} height={angledLabels ? 80 : 30} tick={{ fontSize: 11 }} /><YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} /></>}
           <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} maxBarSize={72} minPointSize={3} isAnimationActive={false} onClick={entry => {
+          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={horizontalBars ? [0, 5, 5, 0] : [5, 5, 0, 0]} maxBarSize={horizontalBars ? 34 : 72} minPointSize={3} isAnimationActive={false} onClick={entry => {
             const item = entry as unknown as { payload?: GroupMetric };
             if (item.payload) onSelect(selectedId === item.payload.id ? "all" : item.payload.id);
           }}>
             {rows.map(row => <Cell key={row.id} fill="var(--color-value)" fillOpacity={selectedId === "all" || selectedId === row.id ? 1 : 0.38} />)}
-            <LabelList dataKey="value" position="top" formatter={value => compactCurrency(Number(value ?? 0))} className="fill-foreground text-[11px] font-medium" />
+            <LabelList dataKey="value" position={horizontalBars ? "right" : "top"} formatter={value => compactCurrency(Number(value ?? 0))} className="fill-foreground text-[11px] font-medium" />
           </Bar>
         </BarChart>
       </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>{emptyTitle}</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
@@ -162,11 +164,6 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     (selectedContract === "all" || row.id === selectedContract)
   ), [timeSales, selectedMember, selectedContract]);
 
-  const contractChartSales = useMemo(() => timeSales.filter(row =>
-    (selectedMember === "all" || row.created_by_id === selectedMember) &&
-    (selectedNiche === "all" || row.niche === selectedNiche)
-  ), [timeSales, selectedMember, selectedNiche]);
-
   const recentClients = useMemo(() => [...rows]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 50), [rows]);
@@ -239,14 +236,20 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       item.value += Number(row.contract_value || 0);
       grouped.set(id, item);
     }
-    return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts).slice(0, 8);
+    return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts || a.label.localeCompare(b.label, "pt-BR"));
   }, [nicheChartSales]);
 
-  const topContracts = useMemo<ContractMetric[]>(() => [...contractChartSales].map(row => ({
-    id: row.id, name: row.name, niche: row.niche,
-    member: row.created_by_name || "Membro removido",
-    value: Number(row.contract_value || 0), closedAt: closedAt(row),
-  })).sort((a, b) => b.value - a.value || b.closedAt.getTime() - a.closedAt.getTime()).slice(0, 10), [contractChartSales]);
+  const nicheContracts = useMemo<GroupMetric[]>(() => selectedNiche === "all" ? [] : timeSales
+    .filter(row => row.niche === selectedNiche &&
+      (selectedMember === "all" || row.created_by_id === selectedMember))
+    .map(row => ({
+      id: row.id,
+      label: row.name,
+      contracts: 1,
+      value: Number(row.contract_value || 0),
+    }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt-BR")),
+  [timeSales, selectedNiche, selectedMember]);
 
   const totalValue = filteredSales.reduce((sum, row) => sum + Number(row.contract_value || 0), 0);
   const averageValue = filteredSales.length ? totalValue / filteredSales.length : 0;
@@ -333,25 +336,9 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         {selectedMember === "all"
           ? <RankedBars title="Vendas por membro" description="Cada coluna representa um membro aprovado. Clique para ver os contratos vendidos por ele, do mais caro para o mais barato." icon={<Users className="text-primary" />} rows={members} selectedId="all" onSelect={id => { setSelectedMember(id); setSelectedContract("all"); }} emptyLabel="Os membros aprovados aparecerão aqui, mesmo antes da primeira venda." />
           : <RankedBars title={`Contratos de ${selectedMemberName || "membro"}`} description="Contratos vendidos por este membro no período selecionado, ordenados do maior valor para o menor." icon={<Users className="text-primary" />} rows={memberContracts} selectedId={selectedContract} onSelect={setSelectedContract} emptyTitle="Nenhum contrato vendido" emptyLabel="Este membro ainda não fechou contratos no período selecionado." onBack={() => { setSelectedMember("all"); setSelectedContract("all"); }} backLabel="Voltar para vendas por membro" summary="Clique em um contrato para aplicar esse filtro aos demais gráficos." angledLabels />}
-        <RankedBars title="Vendas por nicho" description="Nichos que geraram mais receita no período." icon={<Building2 className="text-primary" />} rows={niches} selectedId={selectedNiche} onSelect={setSelectedNiche} emptyLabel="Os nichos com contratos fechados aparecerão aqui." />
-        <Card>
-          <CardHeader><CardTitle>Contratos que mais faturaram</CardTitle><CardDescription>Colunas por contrato. Clique em uma coluna para cruzar o resultado nos outros gráficos.</CardDescription></CardHeader>
-          <CardContent>
-            {topContracts.length ? <ChartContainer config={rankChartConfig} className="h-[24rem] min-w-0" aria-label="Gráfico de colunas dos contratos que mais faturaram">
-              <BarChart data={topContracts} margin={{ top: 12, right: 12, bottom: 70, left: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={88} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
-                <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-                <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} isAnimationActive={false} onClick={entry => {
-                  const item = entry as unknown as { payload?: ContractMetric };
-                  if (item.payload) setSelectedContract(selectedContract === item.payload.id ? "all" : item.payload.id);
-                }} />
-              </BarChart>
-            </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum contrato fechado</EmptyTitle><EmptyDescription>Os contratos de maior valor aparecerão aqui.</EmptyDescription></EmptyHeader></Empty>}
-            {!!topContracts.length && <div className="mt-3 grid gap-x-4 gap-y-2 text-xs text-muted-foreground sm:grid-cols-2">{topContracts.map(contract => <button type="button" key={contract.id} onClick={() => setSelectedContract(selectedContract === contract.id ? "all" : contract.id)} className="flex min-w-0 items-center justify-between gap-2 rounded px-1 py-1 text-left hover:bg-muted/50" aria-pressed={selectedContract === contract.id}><span className="truncate">{contract.name} · {contract.member}</span><span className="shrink-0">{currency(contract.value)}</span></button>)}</div>}
-          </CardContent>
-        </Card>
+        {selectedNiche === "all"
+          ? <RankedBars title="Vendas por nicho" description="Cada barra representa o faturamento de um nicho. Clique para abrir todos os contratos desse nicho." icon={<Building2 className="text-primary" />} rows={niches} selectedId="all" onSelect={id => { setSelectedNiche(id); setSelectedContract("all"); }} emptyLabel="Os nichos com contratos fechados aparecerão aqui." horizontalBars />
+          : <RankedBars title={`Contratos de ${selectedNicheName || selectedNiche}`} description="Todos os contratos fechados neste nicho, ordenados do maior valor para o menor." icon={<Building2 className="text-primary" />} rows={nicheContracts} selectedId={selectedContract} onSelect={setSelectedContract} emptyTitle="Nenhum contrato neste nicho" emptyLabel="Não há contratos fechados neste nicho para os filtros selecionados." onBack={() => { setSelectedNiche("all"); setSelectedContract("all"); }} backLabel="Voltar para vendas por nicho" summary="Clique em um contrato para aplicar esse filtro aos demais gráficos." horizontalBars />}
       </div>
 
       <Card>
