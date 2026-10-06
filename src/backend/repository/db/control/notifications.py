@@ -61,7 +61,14 @@ class NotificationRepository(Repository[Notification]):
             .group_by(Notification.kind)
         )
         counts = {kind: count for kind, count in rows}
-        return {"total": sum(counts.values()), "chat_messages": counts.get("chat_message", 0)}
+        by_sender = self.session.execute(
+            select(Notification.requested_user_id, func.count(Notification.id))
+            .where(Notification.recipient_id == recipient_id,
+                   Notification.kind == "chat_message", Notification.read_at.is_(None))
+            .group_by(Notification.requested_user_id)
+        )
+        return {"total": sum(counts.values()), "chat_messages": counts.get("chat_message", 0),
+                "chat_by_sender": {sender_id: count for sender_id, count in by_sender}}
 
     def mark_chat_read_for_sender(self, recipient_id: str, sender_id: str) -> int:
         result = self.session.execute(update(Notification).where(
