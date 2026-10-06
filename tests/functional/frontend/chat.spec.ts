@@ -38,7 +38,7 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await member.getByRole("button", { name: "Conversar com Brayan", exact: true }).click();
     await expect(member.getByText("Conectado", { exact: true })).toBeVisible();
     await member.getByLabel("Mensagem", { exact: true }).fill("Mensagem ao vivo");
-    await member.getByRole("button", { name: "Enviar", exact: true }).click();
+    await member.getByLabel("Mensagem", { exact: true }).press("Enter");
     await expect(admin.getByText("Nova mensagem de Chat Realtime")).toBeVisible();
     await admin.getByRole("button", { name: "Abrir conversa" }).click();
     await expect(admin.getByText("Mensagem ao vivo", { exact: true })).toBeVisible();
