@@ -76,6 +76,7 @@ class ClientPatch(ClientFields):
 
 class ClientOutput(ClientFields):
     model_config = ConfigDict(from_attributes=True)
+    contract_closed_at: datetime | None
     id: str
     created_by_name: str
     created_by_id: str
