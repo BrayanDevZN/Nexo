@@ -2,6 +2,7 @@ from sqlalchemy import case, func, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
+from backend.repository.db.models.base import utc_now
 
 
 class ClientRepository(Repository[Client]):
@@ -21,6 +22,7 @@ class ClientRepository(Repository[Client]):
             contract_closed = True
         row = Client(name=name.strip(), niche=niche.strip(),
                      created_by_id=created_by_id, contract_closed=contract_closed,
+                     contract_closed_at=utc_now() if contract_closed else None,
                      phone=phone, email=email, notes=notes, pain=pain, approach=approach,
                      contract_value=contract_value,
                      pipeline_stage=pipeline_stage, next_follow_up=next_follow_up)
@@ -51,6 +53,7 @@ class ClientRepository(Repository[Client]):
                    "pipeline_stage", "next_follow_up", "notes", "pain", "approach"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
+        was_closed = bool(client.contract_closed or client.pipeline_stage == "won")
         for field, value in changes.items():
             if field in {"name", "niche"}:
                 if not isinstance(value, str) or not value.strip():
@@ -66,6 +69,11 @@ class ClientRepository(Repository[Client]):
             client.contract_closed = True
         if changes.get("pipeline_stage") == "lost" and changes.get("contract_closed") is not True:
             client.contract_closed = False
+        is_closed = bool(client.contract_closed or client.pipeline_stage == "won")
+        if not was_closed and is_closed:
+            client.contract_closed_at = utc_now()
+        elif was_closed and not is_closed:
+            client.contract_closed_at = None
         self.session.flush()
         return client
 
