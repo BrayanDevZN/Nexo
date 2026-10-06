@@ -90,7 +90,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       }
     } else {
       result = Array.from({ length: count }, (_, index) => ({
-        key: `week-${index}`, label: `Dia ${index * 7 + 1}–${Math.min(30, index * 7 + 7)}`, leads: 0, won: 0,
+        key: `week-${index}`, label: `Dias ${index * 6 + 1}–${Math.min(30, index * 6 + 6)}`, leads: 0, won: 0,
       }));
       const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       for (const row of filtered) {
@@ -106,7 +106,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
   const drillRows = useMemo(() => filtered.filter(row =>
     (selectedMember === "all" || row.created_by_id === selectedMember) &&
     (!selectedBucket || (selectedBucket.startsWith("week-")
-      ? (() => { const index = Number(selectedBucket.slice(5)); const cutoff = new Date(Date.now() - 30 * 86400000); const created = new Date(row.created_at); return created >= new Date(cutoff.getTime() + index * 7 * 86400000) && created < new Date(cutoff.getTime() + (index + 1) * 7 * 86400000); })()
+      ? (() => { const index = Number(selectedBucket.slice(5)); const cutoff = new Date(Date.now() - 30 * 86400000); const created = new Date(row.created_at); return created >= new Date(cutoff.getTime() + index * 6 * 86400000) && created < new Date(cutoff.getTime() + (index + 1) * 6 * 86400000); })()
       : row.created_at.slice(0, 7) === selectedBucket)),
   ), [filtered, selectedMember, selectedBucket]);
 
@@ -147,7 +147,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         <TabsList aria-label="Visualizações do dashboard"><TabsTrigger value="timeline">Evolução</TabsTrigger><TabsTrigger value="members">Por membro</TabsTrigger></TabsList>
         <TabsContent value="timeline">
           <Card>
-            <CardHeader><CardTitle>Oportunidades ao longo do tempo</CardTitle><CardDescription>Clique em uma coluna para abrir os registros daquele período. As colunas escuras mostram contratos ganhos.</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Oportunidades ao longo do tempo</CardTitle><CardDescription>Clique em uma coluna para abrir os registros daquele período. As colunas escuras mostram contratos ganhos.{period === "all" ? " A visão geral mostra os últimos 12 meses." : ""}</CardDescription></CardHeader>
             <CardContent>
               <div className="flex h-64 items-end gap-2 overflow-x-auto border-b px-2 pb-2 sm:gap-4" role="group" aria-label="Gráfico de oportunidades e contratos ganhos">
                 {buckets.map(bucket => <button key={bucket.key} type="button" onClick={() => setSelectedBucket(selectedBucket === bucket.key ? null : bucket.key)} aria-pressed={selectedBucket === bucket.key} aria-label={`${bucket.label}: ${bucket.leads} oportunidades, ${bucket.won} ganhos. Abrir detalhes`} className="group flex h-full min-w-12 flex-1 flex-col items-center justify-end gap-2 rounded-t-md px-1 text-xs hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
