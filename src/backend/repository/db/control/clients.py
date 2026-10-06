@@ -18,10 +18,13 @@ class ClientRepository(Repository[Client]):
             pipeline_stage = "won"
         if pipeline_stage == "won":
             contract_closed = True
-        return self.add(Client(id=identifier, name=name.strip(), niche=niche.strip(),
-                               created_by_id=created_by_id, contract_closed=contract_closed,
-                               phone=phone, email=email, notes=notes, contract_value=contract_value,
-                               pipeline_stage=pipeline_stage, next_follow_up=next_follow_up))
+        row = Client(name=name.strip(), niche=niche.strip(),
+                     created_by_id=created_by_id, contract_closed=contract_closed,
+                     phone=phone, email=email, notes=notes, contract_value=contract_value,
+                     pipeline_stage=pipeline_stage, next_follow_up=next_follow_up)
+        if identifier is not None:
+            row.id = identifier
+        return self.add(row)
 
     def list(self, *, niche: str | None = None, contract_closed: bool | None = None,
              name: str | None = None, created_by_id: str | None = None,
