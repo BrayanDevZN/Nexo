@@ -78,8 +78,10 @@ def _render_email(*, preheader: str, heading: str, paragraphs: list[str],
 class AccountMessages:
     def __init__(self, sender):
         self.sender = sender
-        self.frontend_url = getattr(getattr(sender, "settings", None), "frontend_url",
-                                    "https://www.nexoaicompany.com")
+        settings = getattr(sender, "settings", None)
+        frontend_url = getattr(settings, "frontend_url", None)
+        self.frontend_url = (frontend_url if isinstance(frontend_url, str)
+                             else "https://www.nexoaicompany.com")
 
     def _send(self, recipient, subject, preheader, heading, paragraphs, *, code=None,
               expires_in=None, action_label=None, action_url=None):
