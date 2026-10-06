@@ -29,7 +29,7 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/auth/password/recovery/confirm") status = 204;
     else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
     else if (path === "/admin/users") body = members;
-    else if (path === "/members") body = members.map(({ id, name, role }) => ({ id, name, role }));
+    else if (path === "/members") body = members.map(({ id, name, role }) => ({ id, name, role, has_photo: false }));
     else if (path.startsWith("/admin/users/") && method === "PATCH") {
       expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
       const target = members.find(row => row.id === path.split("/").pop())!;
@@ -41,7 +41,7 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     }
     else if (path.endsWith("/decision")) { expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); options.requests = false; body = member; }
     else if (path === "/clients" && method === "GET") body = rows;
-    else if (path === "/clients" && method === "POST") { const row = { ...request.postDataJSON(), id: "client", created_at: "2026-10-02", updated_at: "2026-10-02" }; rows.push(row); body = row; status = 201; }
+    else if (path === "/clients" && method === "POST") { const row = { ...request.postDataJSON(), id: "client", created_by_id: "member", created_by_name: "Ana Silva", created_at: "2026-10-02", updated_at: "2026-10-02" }; rows.push(row); body = row; status = 201; }
     else if (path === "/clients/client" && method === "PATCH") { Object.assign(rows[0], request.postDataJSON()); body = rows[0]; }
     else if (path === "/clients/client" && method === "DELETE") { rows.splice(0); status = 204; }
     else if (path === "/auth/profile/photo" && method === "PUT") {
@@ -237,7 +237,7 @@ test("admin edits approved member role and data, protects principal and confirms
   await expect(page.getByText("updated@example.com")).toBeVisible();
   await page.getByRole("button", { name: "Excluir membro Ana Administradora" }).click();
   await dialog.getByRole("button", { name: "Confirmar exclusão do membro" }).click();
-  await expect(page.getByText("Membro excluído. Os clientes foram preservados.")).toBeVisible();
+  await expect(page.getByText("Membro excluído. Os clientes e documentos foram preservados.")).toBeVisible();
   await expect(page.getByText("updated@example.com")).toHaveCount(0);
 });
 

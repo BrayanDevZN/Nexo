@@ -22,6 +22,15 @@ def fail(error):
     return HTTPException(status_code=status, detail=str(error))
 
 
+@directory_router.get("/{identifier}/photo")
+def member_photo(identifier: str, request: Request, actor=Depends(approved_user)):
+    try:
+        data = request.app.state.services.members.photo(actor, identifier)
+    except (AccessDenied, ResourceNotFound) as error:
+        raise fail(error) from None
+    return Response(content=data, media_type="image/jpeg", headers={"X-Content-Type-Options": "nosniff"})
+
+
 @router.patch("/{identifier}", response_model=MemberOutput)
 def update(identifier: str, data: MemberUpdateInput, request: Request, actor=Depends(admin_user)):
     changes = data.model_dump(exclude_unset=True)

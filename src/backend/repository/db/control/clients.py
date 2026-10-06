@@ -17,9 +17,14 @@ class ClientRepository(Repository[Client]):
                                phone=phone, email=email, notes=notes))
 
     def list(self, *, niche: str | None = None, contract_closed: bool | None = None,
+             name: str | None = None, created_by_id: str | None = None,
              limit: int = 50, offset: int = 0) -> list[Client]:
         pagination(limit, offset)
         query = select(Client).order_by(Client.created_at, Client.id)
+        if name:
+            query = query.where(Client.name.icontains(name, autoescape=True))
+        if created_by_id:
+            query = query.where(Client.created_by_id == created_by_id)
         if niche is not None:
             query = query.where(Client.niche == niche)
         if contract_closed is not None:

@@ -8,12 +8,28 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { type createApi, type ClientRecord, type ClientInput } from "./api";
+import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
   const [offset, setOffset] = useState(0);
-  const [filters, setFilters] = useState({ niche: "", status: "" });
+  const [filters, setFilters] = useState({ niche: "", status: "", name: "", created_by_id: "" });
+  const [members, setMembers] = useState<DirectoryMember[]>([]);
+  const [draftName, setDraftName] = useState("");
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const all: DirectoryMember[] = [];
+      for (let offset = 0; active; offset += 100) {
+        const page = await api.request<DirectoryMember[]>("/members?limit=100&offset=" + offset);
+        all.push(...page);
+        if (page.length < 100) break;
+      }
+      if (active) setMembers(all);
+    })().catch(e => { if (active) setError(message(e)); });
+    return () => { active = false; };
+  }, [api]);
   const [draftNiche, setDraftNiche] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,6 +42,8 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     const id = ++serial.current;
     setLoading(true); setError("");
     const params = new URLSearchParams({ limit: "20", offset: String(offset) });
+    if (filters.name) params.set("name", filters.name);
+    if (filters.created_by_id) params.set("created_by_id", filters.created_by_id);
     if (filters.niche) params.set("niche", filters.niche);
     if (filters.status) params.set("contract_closed", filters.status);
     try {
@@ -66,9 +84,11 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       <Button size="lg" onClick={() => { setError(""); setEditor("new"); }}><Plus data-icon="inline-start" /> Novo cliente</Button>
     </div>
     <Feedback error={editor || deleting ? "" : error} success={success} />
-    <Card><CardHeader><CardTitle>Encontre um contato</CardTitle><CardDescription>Filtre pelo nicho exato ou pela situação do contrato.</CardDescription></CardHeader>
-      <CardContent><form onSubmit={e => { e.preventDefault(); setOffset(0); setFilters({ ...filters, niche: draftNiche.trim() }); }}>
+    <Card><CardHeader><CardTitle>Encontre um contato</CardTitle><CardDescription>Pesquise pelo nome e combine filtros por nicho, criador e contrato.</CardDescription></CardHeader>
+      <CardContent><form onSubmit={e => { e.preventDefault(); setOffset(0); setFilters({ ...filters, niche: draftNiche.trim(), name: draftName.trim() }); }}>
         <FieldGroup className="admin-filters">
+          <TextField label="Nome do cliente" placeholder="Pesquisar nome" value={draftName} onChange={e => setDraftName(e.target.value)} maxLength={160} />
+          <Field><FieldLabel htmlFor="creator-filter">Criado por</FieldLabel><NativeSelect id="creator-filter" value={filters.created_by_id} onChange={e => { setOffset(0); setFilters({ ...filters, created_by_id: e.target.value }); }}><NativeSelectOption value="">Todos os membros</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field>
           <TextField label="Nicho" placeholder="Ex.: Contabilidade" value={draftNiche} onChange={e => setDraftNiche(e.target.value)} maxLength={120} />
           <Field><FieldLabel htmlFor="contract-filter">Contrato</FieldLabel><NativeSelect id="contract-filter" value={filters.status} onChange={e => { setOffset(0); setFilters({ ...filters, status: e.target.value }); }}>
             <NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption><NativeSelectOption value="false">Em negociação</NativeSelectOption>
@@ -83,6 +103,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     </Empty> : <div className="admin-client-grid">{rows.map(client => <Card key={client.id}>
       <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed ? "default" : "secondary"}>{client.contract_closed ? "Fechado" : "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
         {client.phone && <p className="text-sm">{client.phone}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}

@@ -13,10 +13,12 @@ def fail(exc):
 
 @router.get("", response_model=list[ClientOutput])
 def list_clients(request: Request, niche: str | None = Query(default=None, max_length=120),
+                 name: str | None = Query(default=None, max_length=160),
+                 created_by_id: str | None = Query(default=None, max_length=36),
                  contract_closed: bool | None = None, limit: int = Query(default=50, ge=1, le=100),
                  offset: int = Query(default=0, ge=0), actor=Depends(approved_user)):
     try:
-        return request.app.state.services.clients.list(actor, niche=niche,
+        return request.app.state.services.clients.list(actor, niche=niche, name=name, created_by_id=created_by_id,
                                                        contract_closed=contract_closed, limit=limit, offset=offset)
     except AccessDenied as exc:
         raise fail(exc) from None

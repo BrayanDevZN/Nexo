@@ -35,5 +35,5 @@ def test_member_outputs_exclude_passwords_and_private_directory_fields():
             "role": "member", "status": "approved", "profile_photo": None,
             "password": "secret", "password_hash": "bcrypt-secret", "google_sub": "private",
             "session_version": 12}
-    assert MemberDirectoryOutput(**data).model_dump() == {"id": "member", "name": "Ana", "role": "member"}
+    assert MemberDirectoryOutput(**data).model_dump() == {"id": "member", "name": "Ana", "role": "member", "has_photo": False}
     assert not {"password", "password_hash", "google_sub", "session_version"} & MemberOutput(**data).model_dump().keys()

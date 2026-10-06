@@ -2583,7 +2583,7 @@ main,
 .admin-section-head { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; }
 .admin-section-head h1 { font-size: clamp(1.9rem, 3vw, 2.5rem); font-weight: 600; letter-spacing: -.045em; margin: .3rem 0 .5rem; }
 .admin-section-head p { color: var(--muted-foreground); font-size: .9rem; }
-.admin-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; align-items: end; }
+.admin-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
 .admin-filters button { min-height: 44px; }
 .admin-client-grid, .admin-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .admin-client-grid [data-slot="card-title"] { overflow-wrap: anywhere; }

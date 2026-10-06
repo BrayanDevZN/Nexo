@@ -21,7 +21,7 @@ def test_tables_are_idempotent_and_defaults_persist(repositories):
         user = repos.users.create(name="Brayan", email="USER@Example.com", password_hash="hash")
         identifier = user.id
     create_tables(db.engine)
-    assert set(inspect(db.engine).get_table_names()) == {"users", "clients", "notifications"}
+    assert set(inspect(db.engine).get_table_names()) == {"users", "clients", "notifications", "documents"}
     with manager.transaction() as repos:
         user = repos.users.by_email("user@example.com")
         assert user.id == identifier

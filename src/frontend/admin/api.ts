@@ -6,7 +6,7 @@ export type User = {
 export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
-  notes: string | null; contract_closed: boolean; created_by_id: string;
+  notes: string | null; contract_closed: boolean; created_by_id: string; created_by_name: string;
   created_at: string; updated_at: string;
 };
 export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "contract_closed">;
@@ -52,7 +52,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             : detail.includes("Email") || detail.includes("email")
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
-          413: "A foto ultrapassa o tamanho ou a resolução permitidos.",
+          413: path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
           422: "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
           429: "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
           503: path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
@@ -82,5 +82,5 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
   function publicPost<T>(path: string, body: unknown) {
     return request<T>(path, { method: "POST", body: JSON.stringify(body) });
   }
-  return { request, mutate, publicPost, photo: () => request<Blob>("/auth/profile/photo", {}, "blob"), googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
+  return { request, mutate, publicPost, file: (path: string) => request<Blob>(path, {}, "blob"), photo: () => request<Blob>("/auth/profile/photo", {}, "blob"), googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
 }

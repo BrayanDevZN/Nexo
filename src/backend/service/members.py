@@ -25,8 +25,20 @@ class MemberService:
         with self.cached_repositories.transaction() as repos:
             authorize(repos.db, actor, approved=True)
             # Explicit allowlist: shared directory never contains contact or authentication data.
-            return [{key: row[key] for key in ("id", "name", "role")}
+            return [{**{key: row[key] for key in ("id", "name", "role")}, "has_photo": bool(row["profile_photo"])}
                     for row in repos.users.list(status="approved", limit=limit, offset=offset)]
+
+    def photo(self, actor, identifier):
+        with self.repositories.transaction() as repos:
+            current = authorize(repos, actor, approved=True)
+            user = self._target(repos, identifier)
+            if (user.status != "approved" and current.role != "admin") or not user.profile_photo:
+                raise ResourceNotFound("Profile photo not found")
+            photo = user.profile_photo
+        try:
+            return self.profiles.storage.read(photo)
+        except FileNotFoundError:
+            raise ResourceNotFound("Profile photo not found") from None
 
     def users(self, actor, **filters):
         with self.cached_repositories.transaction() as repos:
@@ -65,6 +77,7 @@ class MemberService:
         if principal.id == user.id:
             raise ResourceConflict("Principal administrator cannot be deleted")
         repos.clients.transfer_creator(user.id, principal.id)
+        repos.documents.transfer_creator(user.id, principal.id)
         repos.notifications.delete_for_user(user.id)
         repos.users.delete(user.id)
         return user.profile_photo

@@ -143,7 +143,7 @@ def test_shared_directory_uses_allowlist_approval_and_fresh_authorization(runtim
     approved = runtime.sessions.authenticate(token)
     rows = runtime.members.directory(approved)
     assert {row["id"] for row in rows} == {actor.id, user.id}
-    assert all(set(row) == {"id", "name", "role"} for row in rows)
+    assert all(set(row) == {"id", "name", "role", "has_photo"} for row in rows)
     assert len(runtime.members.directory(approved, limit=1, offset=1)) == 1
     runtime.members.update(actor, user.id, {"name": "Ana Edited"})
     assert next(row for row in runtime.members.directory(approved) if row["id"] == user.id)["name"] == "Ana Edited"

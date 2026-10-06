@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     auth_rate_limit: int = Field(default=10, ge=1)
     auth_rate_limit_window_seconds: int = Field(default=60, ge=1)
     upload_dir: Path = Path("data/uploads")
+    document_max_bytes: int = Field(default=10485760, ge=1, le=52428800)
     profile_photo_max_pixels: int = Field(default=10000000, ge=1, le=20000000)
     profile_photo_max_bytes: int = Field(default=2097152, ge=1)
     forwarded_allow_ips: str = "127.0.0.1"

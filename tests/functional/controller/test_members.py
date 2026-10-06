@@ -81,7 +81,7 @@ def test_shared_directory_filters_sensitive_fields_and_enforces_approval(app):
         response = client.get("/members")
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
         assert {row["name"] for row in response.json()} == {"Ana", app.state.settings.admin_name}
-        assert all(set(row) == {"id", "name", "role"} for row in response.json())
+        assert all(set(row) == {"id", "name", "role", "has_photo"} for row in response.json())
         assert DATA["email"] not in response.text and DATA["password"] not in response.text and hashed not in response.text
         assert client.get("/members", params={"limit": 101}).status_code == 422
         assert len(client.get("/members", params={"limit": 1, "offset": 1}).json()) == 1

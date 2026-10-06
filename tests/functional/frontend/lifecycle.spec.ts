@@ -41,7 +41,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await expect(member.getByText("Ana Browser", { exact: true })).toBeVisible();
     expect(await member.evaluate(async () => {
       const response = await fetch("/api/members");
-      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "id,name,role");
+      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,role");
     })).toBe(true);
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
     await member.getByRole("dialog").getByRole("button", { name: "Clientes", exact: true }).click();
@@ -52,6 +52,14 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await dialog.getByLabel("Nicho", { exact: true }).fill("Varejo");
     await dialog.getByRole("button", { name: "Salvar cliente" }).click();
     await expect(member.getByText("Cliente salvo.")).toBeVisible();
+    await expect(member.getByText("Criado por Ana Browser")).toBeVisible();
+    await member.getByLabel("Nome do cliente").fill("inexistente");
+    await member.getByRole("button", { name: "Filtrar", exact: true }).click();
+    await expect(member.getByText("Nenhum cliente nesta lista")).toBeVisible();
+    await member.getByLabel("Nome do cliente").fill("browser");
+    await member.getByLabel("Nicho", { exact: true }).fill("Varejo");
+    await member.getByLabel("Criado por", { exact: true }).selectOption({ label: "Ana Browser" });
+    await member.getByRole("button", { name: "Filtrar", exact: true }).click();
     await member.getByRole("button", { name: "Editar Loja Browser" }).click();
     await dialog.getByLabel("Situação do contrato").selectOption("true");
     await dialog.getByRole("button", { name: "Salvar cliente" }).click();
@@ -59,6 +67,21 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Excluir Loja Browser" }).click();
     await member.getByRole("button", { name: "Confirmar exclusão" }).click();
     await expect(member.getByText("Cliente removido.")).toBeVisible();
+    await member.getByRole("button", { name: "Documentos", exact: true }).click();
+    await member.getByLabel("Escolha um arquivo").setInputFiles({ name: "contrato.txt", mimeType: "text/plain", buffer: Buffer.from("Contrato da equipe") });
+    await member.getByRole("button", { name: "Salvar documento", exact: true }).click();
+    await expect(member.getByText("Enviado por Ana Browser")).toBeVisible();
+    const downloadEvent = member.waitForEvent("download");
+    await member.getByRole("button", { name: "Baixar contrato.txt", exact: true }).click();
+    expect((await downloadEvent).suggestedFilename()).toBe("contrato.txt");
+    await member.screenshot({ path: "../../test-results/documents-desktop.png", fullPage: true });
+    await member.setViewportSize({ width: 360, height: 780 });
+    expect(await member.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await member.screenshot({ path: "../../test-results/documents-mobile.png", fullPage: true });
+    await member.setViewportSize({ width: 1280, height: 720 });
+    await member.getByRole("button", { name: "Excluir documento contrato.txt" }).click();
+    await member.getByRole("button", { name: "Confirmar exclusão do documento" }).click();
+    await expect(member.getByText("Documento removido.")).toBeVisible();
     await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
     await member.getByLabel("Nome completo").fill("Ana Atualizada");
     await member.getByRole("button", { name: "Salvar perfil" }).click();
@@ -68,6 +91,9 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
       buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNsYGhgIAUwkaR6VMOohiGlAQBCPQEgiSD+iQAAAABJRU5ErkJggg==", "base64"),
     });
     await expect(member.getByRole("img", { name: "Foto de Ana Atualizada" })).toBeVisible();
+    await member.getByRole("button", { name: "Membros", exact: true }).click();
+    await expect(member.getByRole("img", { name: "Foto de Ana Atualizada" })).toBeVisible();
+    await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
     await member.getByRole("button", { name: "Remover foto" }).click();
     await expect(member.getByText("Foto removida.")).toBeVisible();
     await member.getByLabel("Senha atual", { exact: true }).fill("browser-member-password");

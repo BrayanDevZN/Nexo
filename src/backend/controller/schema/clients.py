@@ -59,6 +59,7 @@ class ClientPatch(ClientFields):
 class ClientOutput(ClientFields):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    created_by_name: str
     created_by_id: str
     created_at: datetime
     updated_at: datetime

@@ -7,6 +7,7 @@ from backend.domain.passwords import PasswordHasher
 from backend.domain.tokens import JWTService
 from backend.infra.config.settings import Settings
 from backend.infra.connections.database import DatabaseConnection
+from backend.infra.connections.documents import DocumentStorage
 from backend.infra.connections.email import GmailConnection
 from backend.infra.connections.google import GoogleConnection
 from backend.infra.connections.photos import PhotoStorage
@@ -22,6 +23,7 @@ from backend.service.account_deletion import AccountDeletionService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.clients import ClientService
+from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
 from backend.service.members import MemberService
@@ -46,6 +48,8 @@ class RuntimeServices:
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.clients = ClientService(self.repositories, self.cached_repositories)
+            self.documents = DocumentService(self.repositories, self.cached_repositories,
+                                             DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
             self.members = MemberService(self.repositories, self.cached_repositories, self.profiles)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories)

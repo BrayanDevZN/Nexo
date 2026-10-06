@@ -17,7 +17,7 @@ def test_create_tables_command_is_repeatable_and_preserves_data(tmp_path):
     assert result.returncode == 0, result.stderr
     with sqlite3.connect(database) as db:
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        assert tables == {"users", "clients", "notifications"}
+        assert tables == {"users", "clients", "notifications", "documents"}
         db.execute("INSERT INTO users (id,name,email,password_hash,status,role,session_version,created_at,updated_at) VALUES ('test','Test','test@example.com','hash','pending','member',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)")
     result = subprocess.run(command, env=env, cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
