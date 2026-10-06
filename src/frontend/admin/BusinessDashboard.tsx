@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, XAxis, YAxis } from "recharts";
 import { PIPELINE_STAGES, type ClientRecord, type createApi } from "./api";
 import { Feedback, Loading, message } from "./shared";
 
@@ -14,6 +14,7 @@ type ViewPeriod = { year: number; month?: number; day?: number };
 type Point = { key: string; label: string; value: number; contracts: number; month?: number; day?: number };
 type GroupMetric = { id: string; label: string; contracts: number; value: number };
 type ContractMetric = { id: string; name: string; niche: string; member: string; value: number; closedAt: Date };
+type TeamMember = { id: string; name: string };
 
 const currency = (value: number | string) =>
   Number(value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -38,12 +39,11 @@ function AreaChart({ points, canDrill, onDrill }: {
         const point = (event as unknown as { activePayload?: { payload?: Point }[] } | null)?.activePayload?.[0]?.payload;
         if (canDrill && point) onDrill(point);
       }}>
-        <defs><linearGradient id="sales-area-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.42} /><stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.03} /></linearGradient></defs>
         <CartesianGrid vertical={false} strokeDasharray="4 4" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={18} />
-        <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
+        <YAxis domain={[0, "auto"]} tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
         <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-        <Area type="monotone" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={3} fill="url(#sales-area-gradient)" activeDot={{ r: 6 }} isAnimationActive={false} />
+        <Area type="linear" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={2.5} fill="var(--color-value)" fillOpacity={0.3} activeDot={{ r: 6 }} isAnimationActive={false} />
       </RechartsAreaChart>
     </ChartContainer>
     {canDrill && <p className="mt-1 text-xs text-muted-foreground">Clique em um mês ou dia para sincronizar o detalhamento de todos os gráficos.</p>}
@@ -68,10 +68,11 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
           <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} tick={{ fontSize: 11 }} />
           <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} maxBarSize={72} isAnimationActive={false} onClick={entry => {
+          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} maxBarSize={72} minPointSize={3} isAnimationActive={false} onClick={entry => {
             const item = entry as unknown as { payload?: GroupMetric };
             if (item.payload) onSelect(selectedId === item.payload.id ? "all" : item.payload.id);
           }}>
+            {rows.map(row => <Cell key={row.id} fill="var(--color-value)" fillOpacity={selectedId === "all" || selectedId === row.id ? 1 : 0.38} />)}
             <LabelList dataKey="value" position="top" formatter={value => compactCurrency(Number(value ?? 0))} className="fill-foreground text-[11px] font-medium" />
           </Bar>
         </BarChart>
@@ -83,6 +84,7 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
 
 export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [period, setPeriod] = useState<ViewPeriod>({ year: new Date().getFullYear() });
@@ -103,7 +105,16 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         all.push(...page);
         if (page.length < 100) break;
       }
+      const allMembers: TeamMember[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.request<TeamMember[]>(
+          "/members?limit=100&offset=" + offset,
+        );
+        allMembers.push(...page);
+        if (page.length < 100) break;
+      }
       setRows(all);
+      setTeamMembers(allMembers);
     } catch (e) {
       setError(message(e));
     } finally {
@@ -188,6 +199,9 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
 
   const members = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
+    for (const member of teamMembers) {
+      grouped.set(member.id, { id: member.id, label: member.name, contracts: 0, value: 0 });
+    }
     for (const row of memberChartSales) {
       const item = grouped.get(row.created_by_id) || {
         id: row.created_by_id, label: row.created_by_name || "Membro removido", contracts: 0, value: 0,
@@ -196,8 +210,8 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       item.value += Number(row.contract_value || 0);
       grouped.set(row.created_by_id, item);
     }
-    return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts);
-  }, [memberChartSales]);
+    return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts || a.label.localeCompare(b.label, "pt-BR"));
+  }, [memberChartSales, teamMembers]);
 
   const niches = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
@@ -299,7 +313,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       </div>}
 
       <div className="flex flex-col gap-4">
-        <RankedBars title="Vendas por membro" description="Receita e quantidade de contratos fechados." icon={<Users className="text-primary" />} rows={members} selectedId={selectedMember} onSelect={setSelectedMember} emptyLabel="Os contratos fechados serão agrupados por responsável." />
+        <RankedBars title="Vendas por membro" description="Cada coluna representa um membro aprovado, incluindo quem ainda não realizou vendas." icon={<Users className="text-primary" />} rows={members} selectedId={selectedMember} onSelect={setSelectedMember} emptyLabel="Os membros aprovados aparecerão aqui, mesmo antes da primeira venda." />
         <RankedBars title="Vendas por nicho" description="Nichos que geraram mais receita no período." icon={<Building2 className="text-primary" />} rows={niches} selectedId={selectedNiche} onSelect={setSelectedNiche} emptyLabel="Os nichos com contratos fechados aparecerão aqui." />
         <Card>
           <CardHeader><CardTitle>Contratos que mais faturaram</CardTitle><CardDescription>Colunas por contrato. Clique em uma coluna para cruzar o resultado nos outros gráficos.</CardDescription></CardHeader>
