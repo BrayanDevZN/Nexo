@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { MessageScroller } from "@shadcn/react/message-scroller";
-import { ArrowDown, ImagePlus, Mic, Send, Square } from "lucide-react";
+import { ArrowLeft, ArrowDown, ImagePlus, Mic, Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
@@ -22,12 +22,12 @@ function Media({ api, row }: { api: ReturnType<typeof createApi>; row: ChatMessa
   return <Attachment state={error ? "error" : url ? "done" : "uploading"}><AttachmentMedia>{url ? row.kind === "image" ? <img src={url} alt={"Foto enviada por " + row.sender_name} className="max-h-72 max-w-full object-contain" /> : <audio src={url} controls preload="metadata" className="max-w-full" aria-label={"Áudio enviado por " + row.sender_name} /> : <AttachmentDescription>{error ? "Não foi possível carregar o arquivo." : "Carregando arquivo…"}</AttachmentDescription>}</AttachmentMedia></Attachment>;
 }
 export function Chat({ api, actor, realtime, initialMember, onSelect }: { api: ReturnType<typeof createApi>; actor: User; realtime: ReturnType<typeof useRealtime>; initialMember?: string; onSelect: (id: string | null) => void }) {
-  const [members, setMembers] = useState<DirectoryMember[]>([]); const [selected, setSelected] = useState(initialMember || "");
+  const [members, setMembers] = useState<DirectoryMember[]>([]); const [membersLoading, setMembersLoading] = useState(true); const [selected, setSelected] = useState(initialMember || "");
   const [rows, setRows] = useState<ChatMessage[]>([]); const [text, setText] = useState(""); const [loading, setLoading] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [hasOlder, setHasOlder] = useState(false); const [recording, setRecording] = useState(false);
   const active = useRef(true);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const serial = useRef(0); const attempt = useRef({ member: "", text: "", id: "" }); const recorder = useRef<MediaRecorder | null>(null); const stream = useRef<MediaStream | null>(null); const photo = useRef<HTMLInputElement>(null); const audio = useRef<HTMLInputElement>(null);
-  useEffect(() => { let active = true; void (async () => { const all: DirectoryMember[] = []; for (let offset = 0; active; offset += 100) { const page = await api.request<DirectoryMember[]>("/members?limit=100&offset=" + offset); all.push(...page); if (page.length < 100) break; } if (active) setMembers(all.filter(row => row.id !== actor.id)); })().catch(e => { if (active) setError(message(e)); }); return () => { active = false; }; }, [api, actor.id]);
+  useEffect(() => { let active = true; setMembersLoading(true); void (async () => { const all: DirectoryMember[] = []; for (let offset = 0; active; offset += 100) { const page = await api.request<DirectoryMember[]>("/members?limit=100&offset=" + offset); all.push(...page); if (page.length < 100) break; } if (active) setMembers(all.filter(row => row.id !== actor.id)); })().catch(e => { if (active) setError(message(e)); }).finally(() => { if (active) setMembersLoading(false); }); return () => { active = false; }; }, [api, actor.id]);
   const load = useCallback(async (older = false, reset = false) => {
     if (!selected) return; const current = ++serial.current; setLoading(true); setError("");
     try { const params = new URLSearchParams({ limit: "50" }); if (older && rows.length) params.set("before", String(rows[0].sequence)); const history = await api.request<ChatMessage[]>("/chat/" + selected + "/messages?" + params); if (current === serial.current) { setRows(old => reset ? history : merge(old, history)); if (older || reset || !rows.length) setHasOlder(history.length === 50); } }
@@ -58,12 +58,26 @@ export function Chat({ api, actor, realtime, initialMember, onSelect }: { api: R
   }
   const person = members.find(row => row.id === selected);
   return <section className="flex min-w-0 flex-col gap-6" aria-labelledby="chat-title"><div className="admin-section-head"><div><span className="admin-eyebrow">CONVERSAS DA EQUIPE</span><h1 id="chat-title">Chat</h1><p>Converse com os membros e compartilhe fotos e áudios.</p></div><Badge variant={realtime.status === "online" ? "default" : "secondary"}>{realtime.status === "online" ? "Conectado" : realtime.status === "connecting" ? "Conectando…" : "Reconectando…"}</Badge></div><Feedback error={error} />
-    <Card><CardHeader><CardTitle>Com quem você quer conversar?</CardTitle><CardDescription>Somente os participantes podem acessar esta conversa.</CardDescription></CardHeader><CardContent><FieldGroup><Field><FieldLabel htmlFor="chat-member">Membro</FieldLabel><NativeSelect id="chat-member" value={selected} disabled={busy || recording} onChange={event => setSelected(event.target.value)}><NativeSelectOption value="">Selecione um membro</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field></FieldGroup></CardContent></Card>
-    {selected ? <Card><CardHeader><div className="flex items-center gap-3">{person && <MemberPhoto api={api} id={person.id} name={person.name} hasPhoto={person.has_photo} />}<CardTitle>{person?.name || "Conversa"}</CardTitle></div></CardHeader><CardContent className="flex min-w-0 flex-col gap-4">
+    <div className="grid min-w-0 items-start gap-6 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+      <Card className={cn("min-w-0", selected && "hidden md:flex")}>
+        <CardHeader><CardTitle>Membros</CardTitle><CardDescription>Clique em alguém para abrir a conversa.</CardDescription></CardHeader>
+        <CardContent>
+          {membersLoading ? <Loading /> : members.length ? <nav aria-label="Membros para conversar" className="flex flex-col gap-2">
+            {members.map(member => <Button key={member.id} type="button" variant={selected === member.id ? "secondary" : "ghost"} className="h-auto min-h-16 w-full justify-start gap-3 py-3" disabled={busy || recording} aria-label={"Conversar com " + member.name} aria-current={selected === member.id ? "true" : undefined} onClick={() => setSelected(member.id)}>
+              <MemberPhoto api={api} id={member.id} name={member.name} hasPhoto={member.has_photo} /><span className="min-w-0 truncate">{member.name}</span>
+            </Button>)}
+          </nav> : <Empty><EmptyHeader><EmptyTitle>Nenhum membro disponível</EmptyTitle><EmptyDescription>Os outros membros aprovados aparecem aqui.</EmptyDescription></EmptyHeader></Empty>}
+        </CardContent>
+      </Card>
+      {selected ? <Card className="min-w-0"><CardHeader>
+        <Button type="button" variant="ghost" className="w-fit md:hidden" disabled={busy || recording} aria-label="Voltar aos membros" onClick={() => setSelected("")}><ArrowLeft data-icon="inline-start" /> Membros</Button>
+        <div className="flex items-center gap-3">{person && <MemberPhoto api={api} id={person.id} name={person.name} hasPhoto={person.has_photo} />}<CardTitle>{person?.name || "Conversa"}</CardTitle></div><CardDescription>Somente os participantes podem acessar esta conversa.</CardDescription>
+      </CardHeader><CardContent className="flex min-w-0 flex-col gap-4">
       <MessageScroller.Provider key={selected} autoScroll defaultScrollPosition="end"><MessageScroller.Root className="relative flex h-[min(50vh,420px)] min-h-64 flex-col"><MessageScroller.Viewport className="min-h-0 flex-1 overflow-y-auto" aria-label="Histórico da conversa"><MessageScroller.Content className="flex flex-col gap-4 py-2 pr-2">
         {hasOlder && <Button variant="outline" disabled={loading} onClick={() => void load(true)}>Carregar mensagens anteriores</Button>}{loading && !rows.length ? <Loading /> : !rows.length ? <Empty><EmptyHeader><EmptyTitle>A conversa começa aqui</EmptyTitle><EmptyDescription>Envie a primeira mensagem.</EmptyDescription></EmptyHeader></Empty> : rows.map(row => <MessageScroller.Item key={row.id} messageId={row.id}><Message align={row.sender_id === actor.id ? "end" : "start"}><MessageContent className="max-w-[85%]">{row.kind === "text" ? <Bubble variant={row.sender_id === actor.id ? "default" : "muted"}><BubbleContent>{row.text}</BubbleContent></Bubble> : <Media api={api} row={row} />}<MessageFooter>{row.sender_name} · {new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</MessageFooter></MessageContent></Message></MessageScroller.Item>)}
       </MessageScroller.Content></MessageScroller.Viewport><MessageScroller.Button render={<Button variant="outline" size="icon" className="absolute right-4 bottom-4" aria-label="Ir para última mensagem" />}><ArrowDown /></MessageScroller.Button></MessageScroller.Root></MessageScroller.Provider>
       <form onSubmit={send} className="flex flex-col gap-3"><FieldGroup><Field><FieldLabel htmlFor="chat-text">Mensagem</FieldLabel><Textarea id="chat-text" value={text} onChange={event => setText(event.target.value)} maxLength={4000} disabled={busy || recording} placeholder="Escreva sua mensagem…" /></Field></FieldGroup><div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || recording || !text.trim() || realtime.status !== "online"}>{busy ? <Busy /> : <><Send data-icon="inline-start" /> Enviar</>}</Button><Button type="button" variant="outline" disabled={busy || recording} onClick={() => photo.current?.click()}><ImagePlus data-icon="inline-start" /> Foto</Button><Button type="button" variant="outline" disabled={busy || recording} onClick={() => audio.current?.click()}><Mic data-icon="inline-start" /> Enviar áudio</Button><Button type="button" variant={recording ? "destructive" : "outline"} disabled={busy} onClick={() => void record()}>{recording ? <><Square data-icon="inline-start" /> Parar e enviar</> : <><Mic data-icon="inline-start" /> Gravar áudio</>}</Button></div><input ref={photo} aria-label="Escolher foto para conversa" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void upload(file, "image"); }} /><input ref={audio} aria-label="Escolher áudio para conversa" type="file" accept="audio/webm,audio/ogg,audio/wav,audio/mpeg,audio/mp4" hidden onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void upload(file, "audio"); }} /></form>
-    </CardContent></Card> : <Empty><EmptyHeader><EmptyTitle>Escolha alguém da equipe</EmptyTitle><EmptyDescription>Suas conversas ficam salvas e disponíveis quando você voltar.</EmptyDescription></EmptyHeader></Empty>}
+    </CardContent></Card> : <Empty className="hidden md:flex"><EmptyHeader><EmptyTitle>Escolha alguém da equipe</EmptyTitle><EmptyDescription>Suas conversas ficam salvas e disponíveis quando você voltar.</EmptyDescription></EmptyHeader></Empty>}
+    </div>
   </section>;
 }

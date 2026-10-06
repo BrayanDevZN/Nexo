@@ -355,8 +355,43 @@ test("chat shows a clear error when microphone access is denied", async ({ page 
   await page.route("**/api/chat/*/messages?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await page.goto("/admin");
   await page.getByRole("button", { name: "Chat", exact: true }).click();
-  await page.getByLabel("Membro", { exact: true }).selectOption({ label: "Principal" });
+  await page.getByRole("button", { name: "Conversar com Principal", exact: true }).click();
   await page.getByRole("button", { name: "Gravar áudio", exact: true }).click();
   await expect(page.getByText("Não foi possível acessar o microfone. Autorize no navegador ou envie um arquivo de áudio.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Gravar áudio", exact: true })).toBeEnabled();
+});
+
+test("chat lists members and switches private conversations on desktop and mobile", async ({ page }) => {
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.route("**/api/members?*", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: member.id, name: member.name, role: "member", has_photo: false },
+    { id: "owner", name: "Principal", role: "admin", has_photo: false },
+    { id: "other", name: "Joana", role: "member", has_photo: false },
+  ]) }));
+  await page.route("**/api/chat/*/messages?*", route => {
+    const sender = new URL(route.request().url()).pathname.split("/")[3];
+    const name = sender === "owner" ? "Principal" : "Joana";
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+      { id: sender + "-message", sequence: 1, sender_id: sender, recipient_id: member.id, sender_name: name, kind: "text", text: "Mensagem de " + name, created_at: "2026-10-06T12:00:00Z" },
+    ]) });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  const directory = page.getByRole("navigation", { name: "Membros para conversar" });
+  await expect(directory.getByRole("button", { name: "Conversar com Principal", exact: true })).toBeVisible();
+  await expect(directory.getByRole("button", { name: "Conversar com Joana", exact: true })).toBeVisible();
+  await expect(directory.getByRole("button", { name: "Conversar com Ana Silva", exact: true })).toHaveCount(0);
+  await directory.getByRole("button", { name: "Conversar com Principal", exact: true }).click();
+  await expect(page.getByText("Mensagem de Principal", { exact: true })).toBeVisible();
+  await expect(directory.getByRole("button", { name: "Conversar com Principal", exact: true })).toHaveAttribute("aria-current", "true");
+  await directory.getByRole("button", { name: "Conversar com Joana", exact: true }).click();
+  await expect(page.getByText("Mensagem de Joana", { exact: true })).toBeVisible();
+  await expect(page.getByText("Mensagem de Principal", { exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 780 });
+  await expect(directory).toBeHidden();
+  await page.getByRole("button", { name: "Voltar aos membros", exact: true }).click();
+  await expect(directory).toBeVisible();
+  await directory.getByRole("button", { name: "Conversar com Principal", exact: true }).click();
+  await expect(page.getByText("Mensagem de Principal", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

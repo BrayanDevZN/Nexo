@@ -35,7 +35,7 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await admin.getByRole("button", { name: "Confirmar decisão" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await member.getByRole("button", { name: "Chat", exact: true }).click();
-    await member.getByLabel("Membro", { exact: true }).selectOption({ label: "Brayan" });
+    await member.getByRole("button", { name: "Conversar com Brayan", exact: true }).click();
     await expect(member.getByText("Conectado", { exact: true })).toBeVisible();
     await member.getByLabel("Mensagem", { exact: true }).fill("Mensagem ao vivo");
     await member.getByRole("button", { name: "Enviar", exact: true }).click();
@@ -57,10 +57,15 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await expect(admin.locator("audio")).toHaveCount(2);
     await admin.reload();
     await admin.getByRole("button", { name: "Chat", exact: true }).click();
-    await admin.getByLabel("Membro", { exact: true }).selectOption({ label: "Chat Realtime" });
+    await admin.getByRole("button", { name: "Conversar com Chat Realtime", exact: true }).click();
     await expect(admin.getByText("Mensagem ao vivo", { exact: true })).toBeVisible();
     await expect(admin.locator("audio")).toHaveCount(2);
     await member.setViewportSize({ width: 360, height: 780 });
+    await member.getByRole("button", { name: "Voltar aos membros", exact: true }).click();
+    await expect(member.getByRole("button", { name: "Conversar com Brayan", exact: true })).toBeVisible();
+    await member.getByRole("button", { name: "Conversar com Brayan", exact: true }).click();
+    await expect(member.getByText("Resposta ao vivo", { exact: true })).toBeVisible();
+    await expect(member.locator("audio")).toHaveCount(2);
     expect(await member.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await member.screenshot({ path: "../../test-results/chat-mobile.png", fullPage: true });
   } finally { await adminContext.close(); await memberContext.close(); }
