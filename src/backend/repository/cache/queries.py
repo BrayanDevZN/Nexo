@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from backend.repository.cache.aside import CacheAside
 from backend.repository.db.control.base import pagination
@@ -10,7 +11,7 @@ FIELDS = {
     "users": ("id", "name", "email", "phone", "profile_photo", "status", "role",
               "created_at", "updated_at"),
     "documents": ("id", "filename", "size", "created_by_id", "created_at", "updated_at"),
-    "clients": ("id", "name", "niche", "phone", "email", "contract_closed", "notes",
+    "clients": ("id", "name", "niche", "phone", "email", "contract_closed", "contract_value", "notes",
                 "created_by_id", "created_at", "updated_at"),
     "notifications": ("id", "kind", "announcement_id", "title", "body", "recipient_id", "requested_user_id", "read_at",
                       "resolved_at", "decision", "created_at", "updated_at"),
@@ -23,7 +24,7 @@ def snapshot(table: str, row):
     result = {}
     for field in FIELDS[table]:
         value = getattr(row, field)
-        result[field] = value.isoformat() + "Z" if isinstance(value, datetime) else value
+        result[field] = value.isoformat() + "Z" if isinstance(value, datetime) else float(value) if isinstance(value, Decimal) else value
     return result
 
 

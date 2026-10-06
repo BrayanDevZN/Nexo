@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Megaphone, MessageCircle, FileText, Building2, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
+import { Activity, Bell, Megaphone, MessageCircle, FileText, Building2, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { Documents } from "./Documents";
 import { Clients } from "./Clients";
 import { Approvals } from "./Approvals";
 import { Announcements } from "./Announcements";
+import { Home } from "./Home";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Directory } from "./Directory";
 import { Members } from "./Members";
@@ -20,7 +21,7 @@ import { Profile } from "./Profile";
 import { Feedback, Loading, message } from "./shared";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile";
+type Page = "home" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -76,6 +77,7 @@ export default function AdminApp() {
   function navigate(next: Page) { setPage(next); setMobileOpen(false); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
+        {user.status === "approved" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {user.status === "approved" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {user.status === "approved" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
         {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {incoming && <Badge>Nova</Badge>}</Button>}
@@ -107,6 +109,7 @@ export default function AdminApp() {
         {hasRequests && user.role === "admin" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
         {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
+          page === "home" ? <Home api={api} user={user} /> :
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} /> :
           page === "announcements" ? <Announcements api={api} user={user} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :

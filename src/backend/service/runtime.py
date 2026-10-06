@@ -27,6 +27,7 @@ from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.chat import ChatService
 from backend.service.clients import ClientService
+from backend.service.dashboard import DashboardService
 from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
@@ -53,6 +54,7 @@ class RuntimeServices:
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.clients = ClientService(self.repositories, self.cached_repositories)
+            self.dashboard = DashboardService(self.repositories, self.cached_repositories)
             self.documents = DocumentService(self.repositories, self.cached_repositories,
                                              DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)

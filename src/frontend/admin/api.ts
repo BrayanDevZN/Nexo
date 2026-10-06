@@ -6,10 +6,10 @@ export type User = {
 export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
-  notes: string | null; contract_closed: boolean; created_by_id: string; created_by_name: string;
+  notes: string | null; contract_closed: boolean; contract_value: number | null; created_by_id: string; created_by_name: string;
   created_at: string; updated_at: string;
 };
-export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "contract_closed">;
+export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "contract_closed" | "contract_value">;
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;
 };

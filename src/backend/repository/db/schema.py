@@ -11,6 +11,10 @@ def create_tables(engine: Engine) -> None:
     # announcement fields in place so deploying this feature preserves history.
     columns = {column["name"] for column in inspect(engine).get_columns("notifications")}
     additions = {"announcement_id": "VARCHAR(36)", "title": "VARCHAR(160)", "body": "TEXT"}
+    client_columns = {column["name"] for column in inspect(engine).get_columns("clients")}
+    if "contract_value" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN contract_value NUMERIC(12, 2)"))
     missing = {name: definition for name, definition in additions.items() if name not in columns}
     if missing:
         with engine.begin() as connection:

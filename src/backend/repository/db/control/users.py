@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import User
@@ -38,6 +38,13 @@ class UserRepository(Repository[User]):
         if status is not None:
             query = query.where(User.status == status)
         return list(self.session.scalars(query.limit(limit).offset(offset)))
+
+
+    def count(self, *, status: str | None = None) -> int:
+        query = select(func.count()).select_from(User)
+        if status is not None:
+            query = query.where(User.status == status)
+        return int(self.session.scalar(query) or 0)
 
     def set_status(self, user: User, status: str) -> None:
         if status not in {"pending", "approved", "rejected"}:

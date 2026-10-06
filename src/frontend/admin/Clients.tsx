@@ -59,7 +59,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     const value = (key: string) => String(data.get(key) || "").trim();
     const body: ClientInput = {
       name: value("name"), niche: value("niche"), phone: value("phone") || null,
-      email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true",
+      email: value("email") || null, notes: value("notes") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
     };
     setBusy(true); setError(""); setSuccess("");
     try {
@@ -106,6 +106,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
         {client.phone && <p className="text-sm">{client.phone}</p>}
+        {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
         {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
@@ -125,6 +126,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <TextField label="Nicho" name="niche" required maxLength={120} defaultValue={row?.niche} />
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
+            <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
             <Field><FieldLabel htmlFor="client-contract">Situação do contrato</FieldLabel><NativeSelect id="client-contract" name="contract" defaultValue={String(row?.contract_closed || false)}>
               <NativeSelectOption value="false">Em negociação</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption>
             </NativeSelect></Field>

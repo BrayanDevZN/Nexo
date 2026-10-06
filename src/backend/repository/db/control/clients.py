@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
@@ -9,12 +9,13 @@ class ClientRepository(Repository[Client]):
 
     def create(self, *, name: str, niche: str, created_by_id: str,
                contract_closed: bool = False, phone: str | None = None,
-               email: str | None = None, notes: str | None = None) -> Client:
+               email: str | None = None, notes: str | None = None,
+               contract_value=None) -> Client:
         if not name.strip() or not niche.strip():
             raise ValueError("Name and niche are required")
         return self.add(Client(name=name.strip(), niche=niche.strip(),
                                created_by_id=created_by_id, contract_closed=contract_closed,
-                               phone=phone, email=email, notes=notes))
+                               phone=phone, email=email, notes=notes, contract_value=contract_value))
 
     def list(self, *, niche: str | None = None, contract_closed: bool | None = None,
              name: str | None = None, created_by_id: str | None = None,
@@ -32,7 +33,7 @@ class ClientRepository(Repository[Client]):
         return list(self.session.scalars(query.limit(limit).offset(offset)))
 
     def update(self, client: Client, **changes) -> Client:
-        allowed = {"name", "niche", "phone", "email", "contract_closed", "notes"}
+        allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value", "notes"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         for field, value in changes.items():
@@ -43,6 +44,15 @@ class ClientRepository(Repository[Client]):
             setattr(client, field, value)
         self.session.flush()
         return client
+
+
+    def count(self) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Client)) or 0)
+
+    def count_contracts_between(self, start, end) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Client).where(
+            Client.contract_closed.is_(True), Client.created_at >= start, Client.created_at < end
+        )) or 0)
 
     def transfer_creator(self, previous_id, owner_id):
         result = self.session.execute(update(Client).where(Client.created_by_id == previous_id).values(

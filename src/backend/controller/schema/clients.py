@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import (
     BaseModel,
@@ -18,6 +19,7 @@ class ClientFields(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     niche: str = Field(min_length=1, max_length=120)
     contract_closed: StrictBool = False
+    contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
     notes: str | None = Field(default=None, max_length=10000)
@@ -39,6 +41,7 @@ class ClientPatch(ClientFields):
     name: str | None = Field(default=None, min_length=1, max_length=160)
     niche: str | None = Field(default=None, min_length=1, max_length=120)
     contract_closed: StrictBool | None = None
+    contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
 
     @field_validator("name", "niche")
     @classmethod
