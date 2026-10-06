@@ -62,6 +62,8 @@ class ClientRepository(Repository[Client]):
             client.pipeline_stage = "won"
         if changes.get("pipeline_stage") == "won" and changes.get("contract_closed") is not False:
             client.contract_closed = True
+        if changes.get("pipeline_stage") == "lost" and changes.get("contract_closed") is not True:
+            client.contract_closed = False
         self.session.flush()
         return client
 
