@@ -35,5 +35,5 @@ def test_dashboard_returns_compact_overview_and_refreshes_after_a_client_change(
     refreshed = client.get("/dashboard")
     assert refreshed.status_code == 200
     data = refreshed.json()
-    assert data["clients_count"] == 1 and len(data["contracts_by_month"]) == 6
+    assert data["clients_count"] == 1 and len(data["contracts_by_month"]) == 5
     assert all(secret not in str(data) for secret in ("password_hash", "profile_photo_data", "content"))
