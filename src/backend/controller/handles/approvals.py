@@ -58,7 +58,7 @@ def create_announcement(data: AnnouncementInput, request: Request, actor=Depends
 
 
 @member_notifications_router.get("", response_model=list[NotificationOutput])
-def member_notifications(request: Request, kind: Literal["announcement"] = "announcement",
+def member_notifications(request: Request, kind: Literal["announcement", "member_joined"] | None = None,
                          limit: int = Query(default=50, ge=1, le=100),
                          offset: int = Query(default=0, ge=0), actor=Depends(approved_user)):
     try:

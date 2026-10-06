@@ -19,7 +19,7 @@ class AnnouncementService:
             raise AnnouncementPermissionError("Administrator access required")
         return current
 
-    def list_for_user(self, actor, *, limit=50, offset=0, kind="announcement"):
+    def list_for_user(self, actor, *, limit=50, offset=0, kind=None):
         with self.cached_repositories.transaction() as repos:
             authorize(repos.db, actor, approved=True)
             return repos.notifications.list_for_recipient(actor.id, kind=kind, limit=limit, offset=offset)

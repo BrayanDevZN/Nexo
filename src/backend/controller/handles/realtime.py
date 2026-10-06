@@ -86,7 +86,7 @@ async def realtime(socket: WebSocket):
                     if value:
                         actor = await asyncio.to_thread(services.realtime.authenticate, payload)
                         event = json.loads(value["data"])
-                        if event["type"] == "notifications.changed" and (actor.status != "approved" or actor.role != "admin"):
+                        if event["type"] == "notifications.changed" and actor.status != "approved":
                             continue
                         if event["type"] == "chat.message" and actor.status != "approved":
                             continue

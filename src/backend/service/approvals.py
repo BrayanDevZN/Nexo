@@ -23,6 +23,19 @@ class ApprovalService:
         if admin and admin.status == "approved" and user.role == "member" and user.status == "pending":
             repos.notifications.ensure_approval_request(recipient_id=admin.id,
                                                         requested_user_id=user.id)
+            # Approved members also receive a realtime notification about the new signup.
+            offset = 0
+            while True:
+                members = repos.users.list(status="approved", limit=100, offset=offset)
+                if not isinstance(members, list):
+                    break
+                for member in members:
+                    if member.id != user.id and member.role == "member":
+                        repos.notifications.create_member_joined(
+                            recipient_id=member.id, member_id=user.id, member_name=user.name)
+                if len(members) < 100:
+                    break
+                offset += 100
 
     def synchronize_pending(self):
         # Also covers accounts created in development before admin credentials were set.
@@ -54,7 +67,7 @@ class ApprovalService:
     def notifications(self, actor, **filters):
         with self.cached_repositories.transaction() as repos:
             self._authorize(repos.db, actor)
-            return repos.notifications.list_for_recipient(actor.id, **filters)
+            return repos.notifications.list_for_recipient(actor.id, kind="approval_request", **filters)
 
     @staticmethod
     def _notification(repos, actor, identifier):

@@ -21,6 +21,12 @@ class NotificationRepository(Repository[Notification]):
                                      title=title, body=body, recipient_id=recipient_id,
                                      requested_user_id=creator_id))
 
+    def create_member_joined(self, *, recipient_id: str, member_id: str,
+                             member_name: str) -> Notification:
+        return self.add(Notification(kind="member_joined", title="Novo membro na equipe",
+                                     body=f"{member_name} criou uma conta e aguarda aprovação.",
+                                     recipient_id=recipient_id, requested_user_id=member_id))
+
     def list_for_recipient(self, recipient_id: str, *, unresolved_only: bool = False,
                            kind: str | None = None, limit: int = 50, offset: int = 0) -> list[Notification]:
         pagination(limit, offset)

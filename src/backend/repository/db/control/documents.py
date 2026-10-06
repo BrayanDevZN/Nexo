@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Document
@@ -14,6 +14,9 @@ class DocumentRepository(Repository[Document]):
         pagination(limit, offset)
         return list(self.session.scalars(select(Document).order_by(Document.created_at.desc(), Document.id)
                                         .limit(limit).offset(offset)))
+
+    def count(self) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Document)) or 0)
 
     def transfer_creator(self, previous_id, owner_id):
         result = self.session.execute(update(Document).where(Document.created_by_id == previous_id)

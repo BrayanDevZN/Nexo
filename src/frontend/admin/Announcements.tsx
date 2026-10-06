@@ -8,7 +8,7 @@ import { type createApi, type User } from "./api";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 import { Textarea } from "@/components/ui/textarea";
 
-type Notice = { id: string; kind: "announcement"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
+type Notice = { id: string; kind: "announcement" | "member_joined"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
 
 export function Announcements({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -19,7 +19,7 @@ export function Announcements({ api, user }: { api: ReturnType<typeof createApi>
   const [showComposer, setShowComposer] = useState(false);
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setNotices(await api.request<Notice[]>("/notifications?kind=announcement&limit=100&offset=0")); }
+    try { setNotices(await api.request<Notice[]>("/notifications?limit=100&offset=0")); }
     catch (e) { setError(message(e)); } finally { setLoading(false); }
   }, [api]);
   useEffect(() => { void load(); }, [load]);

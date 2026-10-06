@@ -27,6 +27,14 @@ class DashboardService:
                 months.append({"month": f"{year:04d}-{month:02d}", "label": date(year, month, 1).strftime("%b/%y"),
                                "count": repos.clients.count_contracts_between(start, next_start)})
         with self.cached_repositories.transaction() as cached:
-            announcements = cached.notifications.list_for_recipient(actor.id, kind="announcement", limit=3, offset=0)
+            announcements = cached.notifications.list_for_recipient(actor.id, limit=3, offset=0)
+            documents = [self._document_with_creator(cached, row) for row in cached.documents.list(limit=3, offset=0)]
+            documents_count = cached.db.documents.count()
         return {"members_count": members, "clients_count": clients,
+                "documents_count": documents_count, "documents": documents,
                 "contracts_by_month": months, "announcements": announcements}
+
+    @staticmethod
+    def _document_with_creator(repos, row):
+        user = repos.users.get(row["created_by_id"])
+        return {**row, "created_by_name": user["name"] if user else "Membro removido"}
