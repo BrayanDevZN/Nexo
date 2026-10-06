@@ -132,16 +132,9 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     (selectedContract === "all" || row.id === selectedContract)
   ), [timeSales, selectedMember, selectedNiche, selectedContract]);
 
-  const createdClients = useMemo(() => rows.filter(row => {
-    const date = new Date(row.created_at);
-    return date.getFullYear() === period.year &&
-      (period.month === undefined || date.getMonth() === period.month) &&
-      (period.day === undefined || date.getDate() === period.day) &&
-      (selectedMember === "all" || row.created_by_id === selectedMember) &&
-      (selectedNiche === "all" || row.niche === selectedNiche) &&
-      (selectedContract === "all" || row.id === selectedContract);
-  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-  [rows, period, selectedMember, selectedNiche, selectedContract]);
+  const recentClients = useMemo(() => [...rows]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 50), [rows]);
 
   const timeline = useMemo<Point[]>(() => {
     let definitions: { key: string; label: string; month?: number; day?: number }[];
@@ -267,7 +260,7 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         <Card><CardHeader><CardDescription>Faturamento no período</CardDescription><CardTitle className="text-2xl">{currency(totalValue)}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Contratos fechados</CardDescription><CardTitle className="text-2xl">{filteredSales.length}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Ticket médio</CardDescription><CardTitle className="text-xl">{currency(averageValue)}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Clientes no funil</CardDescription><CardTitle className="text-2xl">{createdClients.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader><CardDescription>Clientes cadastrados</CardDescription><CardTitle className="text-2xl">{rows.length}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Período selecionado</CardDescription><CardTitle className="text-xl">{periodTitle}</CardTitle></CardHeader></Card>
       </div>
 
@@ -314,12 +307,12 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
 
       <Card>
         <CardHeader className="flex flex-wrap flex-row items-start justify-between gap-3">
-          <div><CardTitle>Clientes no funil</CardTitle><CardDescription>{createdClients.length} clientes cadastrados em {periodTitle.toLowerCase()}, incluindo negociações em andamento.</CardDescription></div>
-          <Badge variant="outline">{createdClients.length} clientes</Badge>
+          <div><CardTitle>Clientes recentes</CardTitle><CardDescription>Últimos {Math.min(50, rows.length)} cadastros do CRM, sem depender do período dos gráficos. As vendas acima consideram apenas contratos fechados.</CardDescription></div>
+          <Badge variant="outline">{rows.length} clientes no CRM</Badge>
         </CardHeader>
         <CardContent>
-          {createdClients.length ? <div className="overflow-x-auto"><table className="w-full min-w-[48rem] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-3 font-medium">Cliente</th><th className="p-3 font-medium">Responsável</th><th className="p-3 font-medium">Nicho</th><th className="p-3 font-medium">Etapa</th><th className="p-3 font-medium">Criado em</th><th className="p-3 text-right font-medium">Valor</th></tr></thead><tbody>{createdClients.map(row => <tr key={row.id} className="border-b last:border-0"><td className="p-3 font-medium">{row.name}</td><td className="p-3">{row.created_by_name}</td><td className="p-3">{row.niche}</td><td className="p-3"><Badge variant={row.pipeline_stage === "won" ? "default" : row.pipeline_stage === "lost" ? "destructive" : "secondary"}>{PIPELINE_STAGES.find(stage => stage.value === row.pipeline_stage)?.label || row.pipeline_stage}</Badge></td><td className="p-3 whitespace-nowrap">{new Date(row.created_at).toLocaleDateString("pt-BR")}</td><td className="p-3 text-right tabular-nums">{row.contract_value == null ? "—" : currency(row.contract_value)}</td></tr>)}</tbody></table></div>
-            : <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente no funil neste período</EmptyTitle><EmptyDescription>Os clientes cadastrados no período selecionado aparecerão aqui, mesmo que o contrato ainda não esteja fechado.</EmptyDescription></EmptyHeader></Empty>}
+          {recentClients.length ? <div className="overflow-x-auto"><table className="w-full min-w-[48rem] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-3 font-medium">Cliente</th><th className="p-3 font-medium">Responsável</th><th className="p-3 font-medium">Nicho</th><th className="p-3 font-medium">Etapa</th><th className="p-3 font-medium">Criado em</th><th className="p-3 text-right font-medium">Valor</th></tr></thead><tbody>{recentClients.map(row => <tr key={row.id} className="border-b last:border-0"><td className="p-3 font-medium">{row.name}</td><td className="p-3">{row.created_by_name}</td><td className="p-3">{row.niche}</td><td className="p-3"><Badge variant={row.pipeline_stage === "won" ? "default" : row.pipeline_stage === "lost" ? "destructive" : "secondary"}>{PIPELINE_STAGES.find(stage => stage.value === row.pipeline_stage)?.label || row.pipeline_stage}</Badge></td><td className="p-3 whitespace-nowrap">{new Date(row.created_at).toLocaleDateString("pt-BR")}</td><td className="p-3 text-right tabular-nums">{row.contract_value == null ? "—" : currency(row.contract_value)}</td></tr>)}</tbody></table></div>
+            : <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente cadastrado</EmptyTitle><EmptyDescription>Os clientes salvos no CRM aparecerão aqui, sem depender do período selecionado.</EmptyDescription></EmptyHeader></Empty>}
         </CardContent>
       </Card>
 
