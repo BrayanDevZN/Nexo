@@ -104,7 +104,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     {loading ? <Loading /> : rows.length === 0 && !error ? <Empty>
       <EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente nesta lista</EmptyTitle><EmptyDescription>Cadastre um cliente ou ajuste os filtros para encontrar seus contatos.</EmptyDescription></EmptyHeader>
     </Empty> : <div className="admin-client-grid">{rows.map(client => <Card key={client.id}>
-      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || client.pipeline_stage}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
+      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
