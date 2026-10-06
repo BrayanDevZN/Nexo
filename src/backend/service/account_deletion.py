@@ -2,7 +2,6 @@ from concurrent.futures import CancelledError, TimeoutError
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.service.access import ResourceConflict, authorize
-from backend.service.email_messages import AccountMessages
 
 
 class DeletionCodeError(ValueError):
