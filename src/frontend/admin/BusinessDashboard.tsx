@@ -34,16 +34,18 @@ function AreaChart({ points, canDrill, onDrill }: {
   onDrill: (point: Point) => void;
 }) {
   return <div className="min-w-0">
-    <ChartContainer config={salesChartConfig} className="h-[19rem]" aria-label="Gráfico de área de vendas ao longo do tempo">
+    <ChartContainer config={salesChartConfig} className={canDrill ? "h-[19rem] cursor-pointer" : "h-[19rem]"} aria-label="Gráfico de área de vendas ao longo do tempo">
       <RechartsAreaChart data={points} margin={{ top: 12, right: 16, left: 12, bottom: 0 }} onClick={event => {
-        const point = (event as unknown as { activePayload?: { payload?: Point }[] } | null)?.activePayload?.[0]?.payload;
+        const rawIndex = event?.activeTooltipIndex ?? event?.activeIndex;
+        const index = typeof rawIndex === "number" ? rawIndex : Number(rawIndex);
+        const point = Number.isInteger(index) ? points[index] : undefined;
         if (canDrill && point) onDrill(point);
       }}>
         <CartesianGrid vertical={false} strokeDasharray="4 4" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={18} />
         <YAxis domain={[0, "auto"]} tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
         <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
-        <Area type="linear" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={2.5} fill="var(--color-value)" fillOpacity={0.3} activeDot={{ r: 6 }} isAnimationActive={false} />
+        <Area type="linear" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={2.5} fill="var(--color-value)" fillOpacity={0.3} dot={canDrill ? { r: 4, cursor: "pointer" } : { r: 3 }} activeDot={{ r: 7, cursor: canDrill ? "pointer" : "default" }} isAnimationActive={false} />
       </RechartsAreaChart>
     </ChartContainer>
     {canDrill && <p className="mt-1 text-xs text-muted-foreground">Clique em um ano para abrir os meses; depois clique em um mês para abrir os dias.</p>}
