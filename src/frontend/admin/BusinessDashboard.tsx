@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Area, AreaChart as RechartsAreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { PIPELINE_STAGES, type ClientRecord, type createApi } from "./api";
 import { Feedback, Loading, message } from "./shared";
 
@@ -14,7 +16,7 @@ type GroupMetric = { id: string; label: string; contracts: number; value: number
 type ContractMetric = { id: string; name: string; niche: string; member: string; value: number; closedAt: Date };
 
 const currency = (value: number | string) =>
-  Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  Number(value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const compactCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 }).format(value);
 const monthLabel = (year: number, month: number) =>
@@ -22,61 +24,28 @@ const monthLabel = (year: number, month: number) =>
 const isWon = (row: ClientRecord) => row.contract_closed || row.pipeline_stage === "won";
 const closedAt = (row: ClientRecord) => new Date(row.contract_closed_at || row.updated_at);
 
+const salesChartConfig = { value: { label: "Vendas", color: "var(--primary)" } };
+const rankChartConfig = { value: { label: "Faturamento", color: "var(--primary)" } };
+
 function AreaChart({ points, canDrill, onDrill }: {
   points: Point[];
   canDrill: boolean;
   onDrill: (point: Point) => void;
 }) {
-  const width = 960, height = 320, left = 76, right = 24, top = 22, bottom = 264;
-  const plotWidth = width - left - right, plotHeight = bottom - top;
-  const [hoveredKey, setHoveredKey] = useState("");
-  const maxValue = Math.max(1, ...points.map(point => point.value));
-  const coordinates = points.map((point, index) => ({
-    point,
-    x: points.length === 1 ? left + plotWidth / 2 : left + index * plotWidth / (points.length - 1),
-    y: bottom - point.value / maxValue * plotHeight,
-  }));
-  const line = coordinates.map((item, index) =>
-    (index ? "L " : "M ") + item.x + " " + item.y).join(" ");
-  const area = coordinates.length
-    ? "M " + coordinates[0].x + " " + bottom + " " +
-      coordinates.map(item => "L " + item.x + " " + item.y).join(" ") +
-      " L " + coordinates[coordinates.length - 1].x + " " + bottom + " Z"
-    : "";
-  const lastWithSales = [...coordinates].reverse().find(item => item.point.contracts > 0);
-  const selected = (coordinates.find(item => item.point.key === hoveredKey) || lastWithSales || coordinates[coordinates.length - 1])?.point;
   return <div className="min-w-0">
-    {selected && <p className="mb-2 text-sm text-muted-foreground">Vendas em <span className="font-medium text-foreground">{selected.label}</span>: {currency(selected.value)} · {selected.contracts} contratos</p>}
-    <div className="overflow-x-auto">
-      <svg viewBox={"0 0 " + width + " " + height} role="group" aria-label="Vendas por período; selecione um ponto para detalhar" className="h-[19rem] min-w-[44rem] w-full">
-        <defs><linearGradient id="sales-mountain-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity="0.36" /><stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" /></linearGradient></defs>
-        {[0, 1, 2, 3, 4].map(index => {
-          const value = maxValue * (4 - index) / 4;
-          const y = top + plotHeight * index / 4;
-          return <g key={index}>
-            <line x1={left} x2={width - right} y1={y} y2={y} stroke="var(--border)" strokeDasharray={index === 4 ? undefined : "4 6"} />
-            <text x={left - 12} y={y + 4} textAnchor="end" fill="var(--muted-foreground)" fontSize="11">{compactCurrency(value)}</text>
-          </g>;
-        })}
-        {area && <path d={area} fill="url(#sales-mountain-fill)" />}
-        {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
-        {coordinates.map(({ point, x, y }, index) => <g key={point.key}>
-          <circle cx={x} cy={y} r={canDrill ? 10 : 7} fill="var(--primary)" fillOpacity={canDrill ? "0.2" : "0.1"} />
-          <circle cx={x} cy={y} r={5} fill="var(--primary)" stroke="var(--background)" strokeWidth="2" role={canDrill ? "button" : undefined} tabIndex={canDrill ? 0 : undefined}
-            aria-label={canDrill ? point.label + ": " + currency(point.value) + ", " + point.contracts + " contratos. Abrir detalhamento." : point.label + ": " + currency(point.value) + ", " + point.contracts + " contratos"}
-            onClick={canDrill ? () => onDrill(point) : undefined}
-            onKeyDown={canDrill ? event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onDrill(point); } } : undefined}
-            onMouseEnter={() => setHoveredKey(point.key)}
-            onMouseLeave={() => setHoveredKey("")}
-            onFocus={() => setHoveredKey(point.key)}
-            onBlur={() => setHoveredKey("")}
-          />
-          {(points.length < 15 || index % 3 === 0 || index === points.length - 1) &&
-            <text x={x} y={bottom + 28} textAnchor="middle" fill="var(--muted-foreground)" fontSize="11">{point.label}</text>}
-        </g>)}
-        {!points.length && <text x={width / 2} y={height / 2} textAnchor="middle" fill="var(--muted-foreground)" fontSize="14">Sem vendas neste período</text>}
-      </svg>
-    </div>
+    <ChartContainer config={salesChartConfig} className="h-[19rem]" aria-label="Gráfico de área de vendas ao longo do tempo">
+      <RechartsAreaChart data={points} margin={{ top: 12, right: 16, left: 12, bottom: 0 }} onClick={event => {
+        const point = (event as unknown as { activePayload?: { payload?: Point }[] } | null)?.activePayload?.[0]?.payload;
+        if (canDrill && point) onDrill(point);
+      }}>
+        <defs><linearGradient id="sales-area-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.42} /><stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.03} /></linearGradient></defs>
+        <CartesianGrid vertical={false} strokeDasharray="4 4" />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={18} />
+        <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
+        <Area type="monotone" dataKey="value" name="Vendas" stroke="var(--color-value)" strokeWidth={3} fill="url(#sales-area-gradient)" activeDot={{ r: 6 }} isAnimationActive={false} />
+      </RechartsAreaChart>
+    </ChartContainer>
     {canDrill && <p className="mt-1 text-xs text-muted-foreground">Clique em um mês ou dia para sincronizar o detalhamento de todos os gráficos.</p>}
   </div>;
 }
@@ -90,15 +59,23 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
   onSelect: (id: string) => void;
   emptyLabel: string;
 }) {
-  const max = Math.max(1, ...rows.map(row => row.value));
+  const height = Math.max(150, rows.length * 54 + 32);
   return <Card>
     <CardHeader><div className="flex items-center gap-2">{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
-    <CardContent className="flex flex-col gap-2">
-      {rows.length ? rows.map((row, index) => <button key={row.id} type="button" onClick={() => onSelect(selectedId === row.id ? "all" : row.id)}
-        aria-pressed={selectedId === row.id} className="flex min-w-0 flex-col gap-2 rounded-lg p-3 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="flex min-w-0 items-center justify-between gap-3"><span className="min-w-0 truncate font-medium">{index + 1}. {row.label}</span><span className="shrink-0 text-sm tabular-nums">{currency(row.value)}</span></span>
-        <span className="flex items-center gap-3"><span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: Math.max(row.value ? 3 : 0, row.value / max * 100) + "%" }} /></span><Badge variant="secondary">{row.contracts} contratos</Badge></span>
-      </button>) : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>Sem vendas no período</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
+    <CardContent>
+      {rows.length ? <ChartContainer config={rankChartConfig} className="min-h-[12rem]" style={{ height }} aria-label={`${title}, gráfico de barras horizontais`}>
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 8 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" tickLine={false} axisLine={false} tickFormatter={compactCurrency} />
+          <YAxis type="category" dataKey="label" width={140} tickLine={false} axisLine={false} />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
+          <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[0, 5, 5, 0]} isAnimationActive={false} onClick={entry => {
+            const item = entry as unknown as { payload?: GroupMetric };
+            if (item.payload) onSelect(selectedId === item.payload.id ? "all" : item.payload.id);
+          }} />
+        </BarChart>
+      </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>Sem vendas no período</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
+      {rows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Selecione uma barra para cruzar esse resultado nos outros gráficos. {rows.map(row => `${row.label}: ${row.contracts} contratos`).join(" · ")}</p>}
     </CardContent>
   </Card>;
 }
@@ -316,13 +293,21 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
         <RankedBars title="Vendas por membro" description="Receita e quantidade de contratos fechados." icon={<Users className="text-primary" />} rows={members} selectedId={selectedMember} onSelect={setSelectedMember} emptyLabel="Os contratos fechados serão agrupados por responsável." />
         <RankedBars title="Vendas por nicho" description="Nichos que geraram mais receita no período." icon={<Building2 className="text-primary" />} rows={niches} selectedId={selectedNiche} onSelect={setSelectedNiche} emptyLabel="Os nichos com contratos fechados aparecerão aqui." />
         <Card>
-          <CardHeader><CardTitle>Contratos que mais faturaram</CardTitle><CardDescription>Selecione um contrato para cruzar o resultado nos outros gráficos.</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {topContracts.length ? topContracts.map((contract, index) => <button key={contract.id} type="button" onClick={() => setSelectedContract(selectedContract === contract.id ? "all" : contract.id)} aria-pressed={selectedContract === contract.id}
-              className="flex min-w-0 flex-col gap-2 rounded-lg p-3 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <span className="flex min-w-0 items-center justify-between gap-3"><span className="min-w-0 truncate font-medium">{index + 1}. {contract.name}</span><span className="shrink-0 text-sm tabular-nums">{currency(contract.value)}</span></span>
-              <span className="flex flex-wrap gap-x-2 text-xs text-muted-foreground"><span>{contract.niche}</span><span>·</span><span>{contract.member}</span><span>·</span><span>{contract.closedAt.toLocaleDateString("pt-BR")}</span></span>
-            </button>) : <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum contrato fechado</EmptyTitle><EmptyDescription>Os contratos de maior valor aparecerão aqui.</EmptyDescription></EmptyHeader></Empty>}
+          <CardHeader><CardTitle>Contratos que mais faturaram</CardTitle><CardDescription>Colunas por contrato. Clique em uma coluna para cruzar o resultado nos outros gráficos.</CardDescription></CardHeader>
+          <CardContent>
+            {topContracts.length ? <ChartContainer config={rankChartConfig} className="h-[24rem] min-w-0" aria-label="Gráfico de colunas dos contratos que mais faturaram">
+              <BarChart data={topContracts} margin={{ top: 12, right: 12, bottom: 70, left: 8 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={88} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
+                <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} isAnimationActive={false} onClick={entry => {
+                  const item = entry as unknown as { payload?: ContractMetric };
+                  if (item.payload) setSelectedContract(selectedContract === item.payload.id ? "all" : item.payload.id);
+                }} />
+              </BarChart>
+            </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum contrato fechado</EmptyTitle><EmptyDescription>Os contratos de maior valor aparecerão aqui.</EmptyDescription></EmptyHeader></Empty>}
+            {!!topContracts.length && <div className="mt-3 grid gap-x-4 gap-y-2 text-xs text-muted-foreground sm:grid-cols-2">{topContracts.map(contract => <button type="button" key={contract.id} onClick={() => setSelectedContract(selectedContract === contract.id ? "all" : contract.id)} className="flex min-w-0 items-center justify-between gap-2 rounded px-1 py-1 text-left hover:bg-muted/50" aria-pressed={selectedContract === contract.id}><span className="truncate">{contract.name} · {contract.member}</span><span className="shrink-0">{currency(contract.value)}</span></button>)}</div>}
           </CardContent>
         </Card>
       </div>
