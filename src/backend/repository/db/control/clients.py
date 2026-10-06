@@ -106,10 +106,11 @@ class ClientRepository(Repository[Client]):
         funnel = {stage: int(count) for stage, count in self.session.execute(
             select(Client.pipeline_stage, func.count()).group_by(Client.pipeline_stage)
         )}
+        closed_date = func.coalesce(Client.contract_closed_at, Client.updated_at, Client.created_at)
         months = {month: int(count) for month, count in self.session.execute(
-            select(func.strftime("%Y-%m", Client.created_at), func.count()).where(
-                Client.contract_closed.is_(True), Client.created_at >= start, Client.created_at < end,
-            ).group_by(func.strftime("%Y-%m", Client.created_at))
+            select(func.strftime("%Y-%m", closed_date), func.count()).where(
+                Client.contract_closed.is_(True), closed_date >= start, closed_date < end,
+            ).group_by(func.strftime("%Y-%m", closed_date))
         )}
         return int(totals[0] or 0), float(totals[1] or 0), float(totals[2] or 0), funnel, months
 
