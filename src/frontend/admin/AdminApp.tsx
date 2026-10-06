@@ -62,7 +62,7 @@ export default function AdminApp() {
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
   const event = useCallback((value: RealtimeEvent) => {
-    if (["notifications.changed", "account.changed"].includes(value.type)) api.invalidate();
+    if (["notifications.changed", "account.changed", "chat.message"].includes(value.type)) api.invalidate();
     window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
     if (["ready", "account.changed"].includes(value.type)) void refresh();
     if (["ready", "notifications.changed", "chat.message"].includes(value.type)) void refreshUnreadCounts();
