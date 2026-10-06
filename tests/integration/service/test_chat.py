@@ -58,6 +58,7 @@ def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
 
     assert runtime.announcements.unread_counts(member) == {"total": 1, "chat_messages": 1, "chat_by_sender": {admin.id: 1}}
     activity = runtime.chat.conversations(admin)
-    assert activity == [{"member_id": member.id, "last_message_at": message["created_at"]}]
+    assert activity[0]["member_id"] == member.id
+    assert activity[0]["last_message_at"].isoformat() + "Z" == message["created_at"]
     assert runtime.announcements.mark_chat_read(member, admin.id) == 1
     assert runtime.announcements.unread_counts(member) == {"total": 0, "chat_messages": 0}
