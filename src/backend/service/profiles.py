@@ -30,9 +30,9 @@ class ProfileService:
                 if not repos.users.set_photo_if_current(user, previous=previous, photo=name):
                     raise ResourceConflict("Profile photo changed; try again")
         except BaseException:
-            self._cleanup(name)
+            self.cleanup_photo(name)
             raise
-        self._cleanup(previous)
+        self.cleanup_photo(previous)
         return user
 
     def delete_photo(self, actor):
@@ -41,7 +41,7 @@ class ProfileService:
             previous = user.profile_photo
             if not repos.users.set_photo_if_current(user, previous=previous, photo=None):
                 raise ResourceConflict("Profile photo changed; try again")
-        self._cleanup(previous)
+        self.cleanup_photo(previous)
 
     def read_photo(self, actor):
         with self.repositories.transaction() as repos:
@@ -54,7 +54,7 @@ class ProfileService:
         except FileNotFoundError:
             raise ResourceNotFound("Profile photo not found") from None
 
-    def _cleanup(self, name):
+    def cleanup_photo(self, name):
         if name:
             try:
                 self.storage.delete(name)

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import exists, insert, literal, select, update
+from sqlalchemy import delete, exists, insert, literal, or_, select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Notification
@@ -72,3 +72,10 @@ class NotificationRepository(Repository[Notification]):
         self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
         self.session.refresh(notification)
         return result.rowcount == 1
+
+    def delete_for_user(self, identifier):
+        result = self.session.execute(delete(Notification).where(or_(
+            Notification.recipient_id == identifier, Notification.requested_user_id == identifier
+        )), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")

@@ -4,6 +4,7 @@ const member = { id: "member", name: "Ana Silva", email: "ana@example.com", phon
 async function mock(page: Page, options: { user?: typeof member; requests?: boolean } = {}) {
   let user = options.user;
   const rows: Record<string, unknown>[] = [];
+  const members = [{ ...member, status: "approved", is_principal: false }, { ...member, id: "owner", name: "Principal", email: "owner@example.com", role: "admin", status: "approved", is_principal: true }];
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace("/api", "");
@@ -21,7 +22,16 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/auth/password/recovery/request") status = 202;
     else if (path === "/auth/password/recovery/confirm") status = 204;
     else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
-    else if (path === "/admin/users") body = [member];
+    else if (path === "/admin/users") body = members;
+    else if (path.startsWith("/admin/users/") && method === "PATCH") {
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      const target = members.find(row => row.id === path.split("/").pop())!;
+      Object.assign(target, request.postDataJSON()); body = target;
+    }
+    else if (path.startsWith("/admin/users/") && method === "DELETE") {
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      members.splice(members.findIndex(row => row.id === path.split("/").pop()), 1); status = 204;
+    }
     else if (path.endsWith("/decision")) { expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); options.requests = false; body = member; }
     else if (path === "/clients" && method === "GET") body = rows;
     else if (path === "/clients" && method === "POST") { const row = { ...request.postDataJSON(), id: "client", created_at: "2026-10-02", updated_at: "2026-10-02" }; rows.push(row); body = row; status = 201; }
@@ -189,4 +199,42 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
   await expect(page.getByText(/Não foi possível enviar o código por e-mail/)).toBeVisible();
   await expect(page.getByLabel("Código recebido por e-mail")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Criar conta", exact: true })).toBeEnabled();
+});
+
+
+test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Membros", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
+  await page.getByRole("button", { name: "Editar membro Principal" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("Cargo", { exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel("E-mail", { exact: true })).toHaveAttribute("readonly", "");
+  await dialog.getByRole("button", { name: "Cancelar" }).click();
+  await page.getByRole("button", { name: "Editar membro Ana Silva" }).click();
+  await dialog.getByLabel("Nome completo").fill("Ana Administradora");
+  await dialog.getByLabel("E-mail", { exact: true }).fill("updated@example.com");
+  await dialog.getByLabel("Cargo", { exact: true }).selectOption("admin");
+  await dialog.getByRole("button", { name: "Salvar membro" }).click();
+  await expect(page.getByText("Membro atualizado.")).toBeVisible();
+  await expect(page.getByText("updated@example.com")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Administrador", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 780 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../../test-results/members-mobile.png", fullPage: true });
+  await page.getByRole("button", { name: "Excluir membro Ana Administradora" }).click();
+  await dialog.getByRole("button", { name: "Cancelar" }).click();
+  await expect(page.getByText("updated@example.com")).toBeVisible();
+  await page.getByRole("button", { name: "Excluir membro Ana Administradora" }).click();
+  await dialog.getByRole("button", { name: "Confirmar exclusão do membro" }).click();
+  await expect(page.getByText("Membro excluído. Os clientes foram preservados.")).toBeVisible();
+  await expect(page.getByText("updated@example.com")).toHaveCount(0);
+});
+
+test("approved regular member cannot see member management", async ({ page }) => {
+  await mock(page, { user: { ...member, status: "approved" } });
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Membros", exact: true })).toHaveCount(0);
 });

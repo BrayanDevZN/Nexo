@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
@@ -38,3 +38,9 @@ class ClientRepository(Repository[Client]):
             setattr(client, field, value)
         self.session.flush()
         return client
+
+    def transfer_creator(self, previous_id, owner_id):
+        result = self.session.execute(update(Client).where(Client.created_by_id == previous_id).values(
+            created_by_id=owner_id), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("clients")

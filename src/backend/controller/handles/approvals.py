@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from backend.controller.dependencies import admin_user
 from backend.controller.schema.approvals import ApprovalInput, NotificationOutput
 from backend.controller.schema.auth import UserOutput
+from backend.controller.schema.members import MemberOutput
+from backend.service.access import AccessDenied
 from backend.service.approvals import ApprovalConflict, ApprovalNotFound, ApprovalPermissionError
 
 users_router = APIRouter(prefix="/admin/users", tags=["user approvals"])
@@ -18,14 +20,14 @@ def fail(exc):
     return HTTPException(status_code=status, detail=str(exc))
 
 
-@users_router.get("", response_model=list[UserOutput])
+@users_router.get("", response_model=list[MemberOutput])
 def users(request: Request, status: Literal["pending", "approved", "rejected"] | None = None,
           limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
           actor=Depends(admin_user)):
     try:
-        return request.app.state.services.approvals.users(actor, status=status, limit=limit, offset=offset)
-    except ApprovalPermissionError as exc:
-        raise fail(exc) from None
+        return request.app.state.services.members.users(actor, status=status, limit=limit, offset=offset)
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
 
 
 @notifications_router.get("", response_model=list[NotificationOutput])

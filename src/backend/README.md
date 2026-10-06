@@ -61,7 +61,9 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/password/change | current_password, new_password |
 | POST /auth/password/recovery/request | email; resposta genérica 202 |
 | POST /auth/password/recovery/confirm | email, code, new_password |
-| GET /admin/users | somente admin; filtro status, limit/offset |
+| GET /admin/users | somente admin; filtro status, limit/offset e identificação da conta principal |
+| PATCH /admin/users/{id} | admin altera nome, email, celular e cargo; cargo exige usuário aprovado |
+| DELETE /admin/users/{id} | admin exclui conta e preserva seus clientes |
 | GET /admin/notifications | somente admin; filtro unresolved_only, limit/offset |
 | PATCH /admin/notifications/{id}/read | somente admin destinatário |
 | POST /admin/notifications/{id}/decision | somente admin; decision approved/rejected |
@@ -173,3 +175,21 @@ No painel, `POST /auth/password/change` exige senha atual e nova senha. A opçã
 O cadastro só responde 202 depois que o SMTP aceita a mensagem. Falha ou timeout retorna 503, invalida o código e libera nova tentativa; o intervalo normal de reenvio retorna 429. Os logs classificam falhas de rede, autenticação e rejeição SMTP sem expor credenciais ou conteúdo. Railway Free, Trial e Hobby bloqueiam SMTP; yagmail exige Railway Pro (com redeploy após upgrade) ou hospedagem com saída SMTP liberada. Para permanecer nos planos inferiores, é necessário substituir o transporte por uma API HTTPS de email. Referência: https://docs.railway.com/networking/outbound-networking
 
 O retorno OAuth legado no domínio Railway é redirecionado uma única vez para o `/api/auth/google/callback` do frontend antes de consumir o state. O cookie fica no domínio do frontend com Path=/ e HttpOnly/Secure; a identidade continua exigindo state ligado ao navegador, PKCE e nonce. Isso permite a configuração atual cujo redirect URI aponta para Railway. A configuração preferida continua sendo o callback no domínio www, cadastrado também no Google Console. A foto é carregada por fetch autenticado e apresentada com um blob temporário, que é revogado ao sair do perfil.
+
+
+## Gestão de membros
+
+Os cargos são `member` (clientes) e `admin` (clientes e gestão de usuários).
+A conta principal é identificada pelo `EMAIL` do ambiente, mesmo após promover
+outros usuários. Seu email/cargo e sua exclusão são protegidos; administradores
+não podem excluir a própria conta nem remover o próprio cargo.
+
+Alterar email ou cargo incrementa `session_version`, revogando sessões antigas.
+Nome e celular podem ser corrigidos sem alterar senha ou aprovação.
+As mutações exigem sessão de administrador aprovado e CSRF. Não há edição de
+senhas, hashes, estado de aprovação ou identificadores Google por essas rotas.
+
+A exclusão transfere clientes ao principal e remove notificações relacionadas
+na mesma transação SQL. Após commit, invalida caches de usuários, clientes e
+notificações e remove o arquivo de foto, se houver. Falha SQL reverte tudo.
+Não são necessárias novas tabelas ou migração para esses cargos.

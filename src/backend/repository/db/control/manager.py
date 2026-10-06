@@ -9,15 +9,16 @@ from backend.repository.db.control.users import UserRepository
 
 
 class Repositories:
-    def __init__(self, session):
-        self.users = UserRepository(session)
+    def __init__(self, session, principal_email=None):
+        self.users = UserRepository(session, principal_email=principal_email)
         self.clients = ClientRepository(session)
         self.notifications = NotificationRepository(session)
 
 
 class RepositoryManager:
-    def __init__(self, database: DatabaseConnection, cache=None):
+    def __init__(self, database: DatabaseConnection, cache=None, principal_email=None):
         self.database, self.cache = database, cache
+        self.principal_email = principal_email
 
     @contextmanager
     def transaction(self):
@@ -32,6 +33,6 @@ class RepositoryManager:
         with self.database.session() as session:
             session.info["cache_dirty_tables"] = changed
             event.listen(session, "before_flush", track_changes)
-            yield Repositories(session)
+            yield Repositories(session, self.principal_email)
         if self.cache is not None:
             self.cache.invalidate(changed)  # reached only after successful SQL commit

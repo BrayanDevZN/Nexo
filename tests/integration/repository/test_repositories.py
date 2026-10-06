@@ -91,3 +91,17 @@ def test_approval_transaction_is_atomic(repositories):
         assert repos.users.get(user_id).session_version == 1
         assert repos.notifications.list_for_recipient(admin_id, unresolved_only=True) == []
         assert repos.users.by_google_sub("google-123").id == user_id
+
+
+def test_member_edit_rejects_stale_session_version(repositories):
+    _, manager = repositories
+    with manager.transaction() as repos:
+        user = repos.users.create(name="User", email="user@example.com", password_hash="hash",
+                                  status="approved")
+    with manager.transaction() as repos:
+        current = repos.users.get(user.id)
+        # Simulate an editor snapshot predating a security change.
+        from sqlalchemy.orm.attributes import set_committed_value
+        set_committed_value(current, "session_version", -1)
+        assert not repos.users.update_member_if_current(current, {"role": "admin"})
+        assert current.role == "member" and current.session_version == 0

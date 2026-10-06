@@ -7,6 +7,10 @@ from backend.repository.db.models import User
 class UserRepository(Repository[User]):
     model = User
 
+    def __init__(self, session, principal_email=None):
+        super().__init__(session)
+        self.principal_email = str(principal_email).lower() if principal_email else None
+
     def create(self, *, name: str, email: str, phone: str | None = None,
                password_hash: str | None = None, google_sub: str | None = None,
                role: str = "member", status: str = "pending") -> User:
@@ -20,7 +24,10 @@ class UserRepository(Repository[User]):
         return self.session.scalar(select(User).where(User.email == email.strip().lower()))
 
     def principal_admin(self) -> User | None:
-        return self.session.scalar(select(User).where(User.role == "admin"))
+        query = select(User).where(User.role == "admin")
+        if self.principal_email:
+            query = query.where(User.email == self.principal_email)
+        return self.session.scalar(query.order_by(User.created_at, User.id))
 
     def by_google_sub(self, subject: str) -> User | None:
         return self.session.scalar(select(User).where(User.google_sub == subject))
@@ -101,6 +108,20 @@ class UserRepository(Repository[User]):
             User.id == user.id, User.session_version == user.session_version,
             User.status.in_(["pending", "approved"]), User.profile_photo == previous
         ).values(profile_photo=photo), execution_options={"synchronize_session": False})
+        self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)
+        return result.rowcount == 1
+
+    def update_member_if_current(self, user, changes):
+        allowed = {"name", "email", "phone", "role"}
+        if not changes or set(changes) - allowed:
+            raise ValueError("Unsupported member fields")
+        values = dict(changes)
+        if any(field in changes and changes[field] != getattr(user, field) for field in ("email", "role")):
+            values["session_version"] = User.session_version + 1
+        result = self.session.execute(update(User).where(
+            User.id == user.id, User.session_version == user.session_version
+        ).values(**values), execution_options={"synchronize_session": False})
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
         return result.rowcount == 1

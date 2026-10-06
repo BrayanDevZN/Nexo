@@ -1,9 +1,10 @@
 import { test, expect } from "../../../src/frontend/test-kit";
 
 test("real API: signup, admin decision, cookie permissions, CRUD, profile and password", async ({ browser }) => {
+  test.setTimeout(60000);
   const email = "browser-" + Date.now() + "@example.com";
-  const memberContext = await browser.newContext();
-  const adminContext = await browser.newContext();
+  const memberContext = await browser.newContext({ reducedMotion: "reduce" });
+  const adminContext = await browser.newContext({ reducedMotion: "reduce" });
   const member = await memberContext.newPage();
   const admin = await adminContext.newPage();
   try {
@@ -66,7 +67,23 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
     await member.getByRole("button", { name: "Entrar no painel" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
-    await member.getByRole("button", { name: "Sair", exact: true }).click();
+    await admin.getByRole("button", { name: "Membros", exact: true }).click();
+    await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).click();
+    await admin.getByRole("dialog").getByLabel("Cargo", { exact: true }).selectOption("admin");
+    await admin.getByRole("button", { name: "Salvar membro" }).click();
+    await expect(admin.getByText("Membro atualizado.")).toBeVisible();
+    // Changing privileges invalidates the previous HttpOnly session.
+    await member.getByRole("button", { name: "Atualizar clientes" }).click();
+    await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    await member.getByLabel("E-mail", { exact: true }).fill(email);
+    await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
+    await member.getByRole("button", { name: "Entrar no painel" }).click();
+    await member.getByRole("button", { name: "Membros", exact: true }).click();
+    await expect(member.getByRole("button", { name: "Excluir membro Ana Atualizada" })).toBeDisabled();
+    await admin.getByRole("button", { name: "Excluir membro Ana Atualizada" }).click();
+    await admin.getByRole("button", { name: "Confirmar exclusão do membro" }).click();
+    await expect(admin.getByText("Membro excluído. Os clientes foram preservados.")).toBeVisible();
+    await member.getByRole("button", { name: "Atualizar membros" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);
   } finally { await memberContext.close(); await adminContext.close(); }

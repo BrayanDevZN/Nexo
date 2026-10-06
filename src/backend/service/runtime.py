@@ -23,6 +23,7 @@ from backend.service.auth import AuthService
 from backend.service.clients import ClientService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
+from backend.service.members import MemberService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
 from backend.service.rate_limits import RateLimitService
@@ -41,10 +42,11 @@ class RuntimeServices:
             database_namespace = hashlib.sha256(settings.database_url.encode()).hexdigest()[:16]
             self.cache = CacheAside(self.redis.client, ttl=settings.cache_ttl_seconds,
                                     prefix="nexo:cache:" + database_namespace)
-            self.repositories = RepositoryManager(self.database, cache=self.cache)
+            self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.clients = ClientService(self.repositories, self.cached_repositories)
             self.profiles = ProfileService(self.repositories, PhotoStorage(settings.upload_dir), settings)
+            self.members = MemberService(self.repositories, self.cached_repositories, self.profiles)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories)
             rate_namespace = "nexo:rate:" + hashlib.sha256(
                 (settings.database_url + settings.jwt_secret_key.get_secret_value()).encode()).hexdigest()[:32]

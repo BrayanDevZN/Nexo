@@ -3,6 +3,7 @@ export type User = {
   profile_photo: string | null; status: "pending" | "approved" | "rejected";
   role: "member" | "admin";
 };
+export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
   notes: string | null; contract_closed: boolean; created_by_id: string;
@@ -45,7 +46,10 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
           404: "Registro não encontrado.",
-          409: detail.includes("Email") || detail.includes("email")
+          409: detail.includes("Principal administrator") ? "A conta do administrador principal é protegida."
+            : detail.includes("Only approved") ? "Aprove o acesso antes de alterar o cargo."
+            : detail.includes("own") ? "Você não pode excluir ou retirar seu próprio acesso de administrador."
+            : detail.includes("Email") || detail.includes("email")
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
           413: "A foto ultrapassa o tamanho ou a resolução permitidos.",

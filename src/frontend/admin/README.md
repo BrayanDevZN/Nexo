@@ -50,6 +50,10 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 - Administrador recebe aviso de novos pedidos, consultados a cada 30 segundos;
   autorizar/recusar pede confirmação e usa decisão do backend.
 - Membros aprovados consultam e gerenciam todos os clientes.
+- A aba Membros é exclusiva de administradores: lista/filtro/paginação, edição
+  de nome/email/celular e cargos Membro/Administrador para usuários aprovados.
+  Excluir exige confirmação e preserva clientes. A conta principal é protegida.
+  Alterar email/cargo encerra as sessões da conta alterada, exigindo novo login.
 - Clientes têm filtros por nicho exato/contrato, páginas de 20 e confirmação para excluir.
 - Perfil permite atualizar nome/celular e foto; senha atual ou código de e-mail
   permite alteração. Sessões são revogadas pelo backend, exigindo novo login.
