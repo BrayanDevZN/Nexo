@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
+
+function whatsappUrl(phone: string, name: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+  const normalized = digits.startsWith("55") || digits.length > 11 ? digits : `55${digits}`;
+  const text = encodeURIComponent(`Olá, ${name}! Aqui é da Nexo. Podemos conversar?`);
+  return `https://wa.me/${normalized}?text=${text}`;
+}
 
 export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
@@ -103,19 +111,22 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     </Card>
     {loading ? <Loading /> : rows.length === 0 && !error ? <Empty>
       <EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente nesta lista</EmptyTitle><EmptyDescription>Cadastre um cliente ou ajuste os filtros para encontrar seus contatos.</EmptyDescription></EmptyHeader>
-    </Empty> : <div className="admin-client-grid">{rows.map(client => <Card key={client.id}>
+    </Empty> : <div className="admin-client-grid">{rows.map(client => {
+      const contactUrl = client.phone ? whatsappUrl(client.phone, client.name) : "";
+      return <Card key={client.id}>
       <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
-        {client.phone && <p className="text-sm">{client.phone}</p>}
+        {client.phone && <div className="flex flex-wrap items-center gap-2"><p className="text-sm">{client.phone}</p>{contactUrl && <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"><a href={contactUrl} target="_blank" rel="noreferrer" aria-label={"Entrar em contato com " + client.name + " pelo WhatsApp"}><MessageCircle data-icon="inline-start" /> WhatsApp</a></Button>}</div>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
         {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
       <CardFooter className="justify-between gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></CardFooter>
-    </Card>)}</div>}
+    </Card>;
+    })}</div>}
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-muted-foreground">{rows.length} contatos nesta página · Página {offset / 20 + 1}</p>
       <div className="flex gap-2"><Button variant="outline" disabled={loading || offset === 0} onClick={() => setOffset(offset - 20)}><ArrowLeft data-icon="inline-start" /> Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima<ArrowRight data-icon="inline-end" /></Button></div>
