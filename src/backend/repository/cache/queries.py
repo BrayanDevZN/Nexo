@@ -12,7 +12,8 @@ FIELDS = {
               "created_at", "updated_at"),
     "documents": ("id", "filename", "size", "created_by_id", "created_at", "updated_at"),
     "clients": ("id", "name", "niche", "phone", "email", "contract_closed", "contract_value",
-                "pipeline_stage", "next_follow_up", "notes", "created_by_id", "created_at", "updated_at"),
+                "pipeline_stage", "next_follow_up", "notes", "pain", "approach",
+                "created_by_id", "created_at", "updated_at"),
     "notifications": ("id", "kind", "announcement_id", "title", "body", "recipient_id", "requested_user_id", "read_at",
                       "resolved_at", "decision", "created_at", "updated_at"),
 }
