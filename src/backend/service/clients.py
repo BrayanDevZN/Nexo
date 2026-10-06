@@ -1,7 +1,9 @@
 import logging
 from uuid import uuid4
 
-from backend.service.access import ResourceNotFound, authorize, authorize_read
+from sqlalchemy.exc import IntegrityError
+
+from backend.service.access import ResourceConflict, ResourceNotFound, authorize, authorize_read
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +63,33 @@ class ClientService:
                 raise ResourceNotFound("Client not found")
             return self.with_creator(repos, client)
 
-    def create(self, actor, **fields):
-        with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
-            row = repos.clients.create(created_by_id=actor.id, **fields)
-            row.created_by_name = repos.users.get(actor.id).name
-            name, niche = row.name, row.niche
+    def create(self, actor, idempotency_key=None, **fields):
+        identifier = str(idempotency_key) if idempotency_key else None
+        try:
+            with self.repositories.transaction() as repos:
+                authorize(repos, actor, approved=True)
+                if identifier:
+                    existing = repos.clients.get(identifier)
+                    if existing is not None:
+                        if existing.created_by_id != actor.id:
+                            raise ResourceConflict("Client idempotency key already belongs to another member")
+                        existing.created_by_name = repos.users.get(actor.id).name
+                        return existing
+                row = repos.clients.create(created_by_id=actor.id, identifier=identifier, **fields)
+                row.created_by_name = repos.users.get(actor.id).name
+                name, niche = row.name, row.niche
+        except IntegrityError:
+            if not identifier:
+                raise
+            # Concurrent retries can both pass the initial lookup. The primary
+            # key ensures only one insert succeeds; the loser returns that row.
+            with self.repositories.read_transaction() as repos:
+                authorize_read(repos.db, actor, approved=True)
+                existing = repos.clients.get(identifier)
+                if existing is None or existing.created_by_id != actor.id:
+                    raise
+                existing.created_by_name = repos.users.get(actor.id).name
+                return existing
         self._notify_team(
             actor.id,
             "Novo cliente cadastrado",
