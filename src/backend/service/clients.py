@@ -78,6 +78,7 @@ class ClientService:
                 row = repos.clients.create(created_by_id=actor.id, identifier=identifier, **fields)
                 row.created_by_name = repos.users.get(actor.id).name
                 name, niche = row.name, row.niche
+                is_closed = bool(row.contract_closed or row.pipeline_stage == "won")
         except IntegrityError:
             if not identifier:
                 raise
@@ -95,6 +96,8 @@ class ClientService:
             "Novo cliente cadastrado",
             f"{name} foi adicionado ao funil na categoria {niche}.",
         )
+        if is_closed:
+            self._notify_team(actor.id, "Contrato fechado", f"O contrato de {name} foi cadastrado como fechado.")
         return row
 
     def update(self, actor, identifier, **changes):
