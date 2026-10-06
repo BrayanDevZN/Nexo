@@ -2,6 +2,7 @@ import logging
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.service.security import AuthenticationError
+from backend.service.email_messages import AccountMessages
 
 logger = logging.getLogger(__name__)
 
@@ -11,9 +12,10 @@ class PasswordRecoveryError(ValueError):
 
 
 class PasswordService:
-    def __init__(self, repositories, passwords, codes, code_repository, sender):
+    def __init__(self, repositories, passwords, codes, code_repository, sender, messages=None):
         self.repositories, self.passwords = repositories, passwords
         self.codes, self.code_repository, self.sender = codes, code_repository, sender
+        self.messages = messages
 
     def change(self, actor, current_password, new_password):
         with self.repositories.read_transaction() as repos:
@@ -43,10 +45,12 @@ class PasswordService:
         if not self.code_repository.issue(email, digest, record) or not eligible:
             return
         try:
-            future = self.sender.send(email, "Código para atualizar sua senha Nexo",
-                                      "Seu código de recuperação é: " + code +
-                                      "\nEle expira em " + str(self.code_repository.ttl) +
-                                      " segundos. Se você não pediu, ignore este e-mail.")
+            future = (self.messages.recovery_code(email, code, self.code_repository.ttl)
+                      if self.messages else self.sender.send(
+                          email, "Código para atualizar sua senha Nexo",
+                          "Seu código de recuperação é: " + code +
+                          "\nEle expira em " + str(self.code_repository.ttl) +
+                          " segundos. Se você não pediu, ignore este e-mail."))
         except (EmailUnavailableError, EmailQueueFullError):
             self._remove_failed_delivery(email, digest)
             logger.warning("Recovery email could not be queued")
