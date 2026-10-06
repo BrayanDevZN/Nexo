@@ -52,7 +52,7 @@ function AreaChart({ points, canDrill, onDrill }: {
   </div>;
 }
 
-function RankedBars({ title, description, icon, rows, selectedId, onSelect, emptyLabel }: {
+function RankedBars({ title, description, icon, rows, selectedId, onSelect, emptyLabel, emptyTitle = "Sem vendas no período", onBack, backLabel, summary, angledLabels = false }: {
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -60,14 +60,19 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
   selectedId: string;
   onSelect: (id: string) => void;
   emptyLabel: string;
+  emptyTitle?: string;
+  onBack?: () => void;
+  backLabel?: string;
+  summary?: string;
+  angledLabels?: boolean;
 }) {
   return <Card>
-    <CardHeader><div className="flex items-center gap-2">{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
+    <CardHeader><div className="flex items-center gap-2">{onBack && <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label={backLabel || "Voltar"} title={backLabel || "Voltar"}><ChevronLeft /></Button>}{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
     <CardContent>
       {rows.length ? <ChartContainer config={rankChartConfig} className="h-[20rem]" aria-label={`${title}, gráfico de colunas`}>
-        <BarChart data={rows} margin={{ top: 34, right: 18, bottom: 18, left: 8 }} barCategoryGap="28%">
+        <BarChart data={rows} margin={{ top: 34, right: 18, bottom: angledLabels ? 70 : 18, left: 8 }} barCategoryGap="28%">
           <CartesianGrid vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} tick={{ fontSize: 11 }} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={angledLabels ? -28 : 0} textAnchor={angledLabels ? "end" : "middle"} height={angledLabels ? 80 : 30} tick={{ fontSize: 11 }} />
           <YAxis tickLine={false} axisLine={false} tickFormatter={compactCurrency} width={76} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => currency(value)} />} />
           <Bar dataKey="value" name="Faturamento" fill="var(--color-value)" radius={[5, 5, 0, 0]} maxBarSize={72} minPointSize={3} isAnimationActive={false} onClick={entry => {
@@ -78,8 +83,8 @@ function RankedBars({ title, description, icon, rows, selectedId, onSelect, empt
             <LabelList dataKey="value" position="top" formatter={value => compactCurrency(Number(value ?? 0))} className="fill-foreground text-[11px] font-medium" />
           </Bar>
         </BarChart>
-      </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>Sem vendas no período</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
-      {rows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Selecione uma barra para cruzar esse resultado nos outros gráficos. {rows.map(row => `${row.label}: ${row.contracts} contratos`).join(" · ")}</p>}
+      </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>{emptyTitle}</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
+      {rows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">{summary || <>Selecione uma barra para cruzar esse resultado nos outros gráficos. {rows.map(row => `${row.label}: ${row.contracts} contratos`).join(" · ")}</>}</p>}
     </CardContent>
   </Card>;
 }
@@ -213,6 +218,18 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     return [...grouped.values()].sort((a, b) => b.value - a.value || b.contracts - a.contracts || a.label.localeCompare(b.label, "pt-BR"));
   }, [memberChartSales, teamMembers]);
 
+  const memberContracts = useMemo<GroupMetric[]>(() => selectedMember === "all" ? [] : timeSales
+    .filter(row => row.created_by_id === selectedMember &&
+      (selectedNiche === "all" || row.niche === selectedNiche))
+    .map(row => ({
+      id: row.id,
+      label: row.name,
+      contracts: 1,
+      value: Number(row.contract_value || 0),
+    }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt-BR"))
+    .slice(0, 10), [timeSales, selectedMember, selectedNiche]);
+
   const niches = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
     for (const row of nicheChartSales) {
@@ -313,7 +330,9 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
       </div>}
 
       <div className="flex flex-col gap-4">
-        <RankedBars title="Vendas por membro" description="Cada coluna representa um membro aprovado, incluindo quem ainda não realizou vendas." icon={<Users className="text-primary" />} rows={members} selectedId={selectedMember} onSelect={setSelectedMember} emptyLabel="Os membros aprovados aparecerão aqui, mesmo antes da primeira venda." />
+        {selectedMember === "all"
+          ? <RankedBars title="Vendas por membro" description="Cada coluna representa um membro aprovado. Clique para ver os contratos vendidos por ele, do mais caro para o mais barato." icon={<Users className="text-primary" />} rows={members} selectedId="all" onSelect={id => { setSelectedMember(id); setSelectedContract("all"); }} emptyLabel="Os membros aprovados aparecerão aqui, mesmo antes da primeira venda." />
+          : <RankedBars title={`Contratos de ${selectedMemberName || "membro"}`} description="Contratos vendidos por este membro no período selecionado, ordenados do maior valor para o menor." icon={<Users className="text-primary" />} rows={memberContracts} selectedId={selectedContract} onSelect={setSelectedContract} emptyTitle="Nenhum contrato vendido" emptyLabel="Este membro ainda não fechou contratos no período selecionado." onBack={() => { setSelectedMember("all"); setSelectedContract("all"); }} backLabel="Voltar para vendas por membro" summary="Clique em um contrato para aplicar esse filtro aos demais gráficos." angledLabels />}
         <RankedBars title="Vendas por nicho" description="Nichos que geraram mais receita no período." icon={<Building2 className="text-primary" />} rows={niches} selectedId={selectedNiche} onSelect={setSelectedNiche} emptyLabel="Os nichos com contratos fechados aparecerão aqui." />
         <Card>
           <CardHeader><CardTitle>Contratos que mais faturaram</CardTitle><CardDescription>Colunas por contrato. Clique em uma coluna para cruzar o resultado nos outros gráficos.</CardDescription></CardHeader>
