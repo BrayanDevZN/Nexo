@@ -55,7 +55,6 @@ class RuntimeServices:
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.api_keys = ApiKeyService(self.repositories)
-            self.clients = ClientService(self.repositories, self.cached_repositories)
             self.dashboard = DashboardService(self.repositories, self.cache)
             self.documents = DocumentService(self.repositories, self.cached_repositories,
                                              DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
@@ -81,6 +80,7 @@ class RuntimeServices:
             self.email = ResendConnection(settings)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
+            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
