@@ -23,6 +23,7 @@ from backend.repository.redis.rate_limits import RateLimitRepository
 from backend.repository.redis.realtime import RealtimeRepository
 from backend.service.account_deletion import AccountDeletionService
 from backend.service.announcements import AnnouncementService
+from backend.service.api_keys import ApiKeyService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
 from backend.service.chat import ChatService
@@ -53,6 +54,7 @@ class RuntimeServices:
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
+            self.api_keys = ApiKeyService(self.repositories)
             self.clients = ClientService(self.repositories, self.cached_repositories)
             self.dashboard = DashboardService(self.repositories, self.cache)
             self.documents = DocumentService(self.repositories, self.cached_repositories,

@@ -26,6 +26,13 @@ class UserRepository(Repository[User]):
     def by_email(self, email: str) -> User | None:
         return self.session.scalar(select(User).where(User.email == email.strip().lower()))
 
+    def for_auth(self, identifier: str) -> User | None:
+        """Load only fields required by a session/API-key authorization check."""
+        return self.session.scalar(select(User).options(load_only(
+            User.id, User.name, User.email, User.phone, User.profile_photo,
+            User.status, User.role, User.session_version,
+        )).where(User.id == identifier))
+
     def principal_admin(self) -> User | None:
         query = select(User).where(User.role == "admin")
         if self.principal_email:

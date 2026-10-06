@@ -15,8 +15,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
         response = None
+        # Server-to-server API-key requests are authenticated by the dependency
+        # layer and do not have a browser session/CSRF token.
+        api_key_request = (
+            request.headers.get("authorization", "").lower().startswith("bearer ")
+            and not request.url.path.startswith("/auth/")
+        )
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
-            if request.headers.get("origin") not in self.settings.cors_origins:
+            if api_key_request:
+                pass
+            elif request.headers.get("origin") not in self.settings.cors_origins:
                 response = JSONResponse({"detail": "Untrusted request origin"}, status_code=403)
             elif request.url.path not in {"/auth/login", "/auth/register", "/auth/register/confirm", "/auth/google/complete",
                                                 "/auth/password/recovery/request",

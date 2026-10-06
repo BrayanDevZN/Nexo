@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.controller.handles.account_deletion import router as account_deletion_router
+from backend.controller.handles.api_keys import router as api_keys_router
 from backend.controller.handles.approvals import (
     announcements_router,
     member_notifications_router,
@@ -64,9 +65,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=config.cors_origins, allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
+        allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
-    routers = [chat_router, realtime_router, health_router, auth_router, account_deletion_router, documents_router, passwords_router, clients_router, dashboard_router, profiles_router,
+    routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router, documents_router, passwords_router, clients_router, dashboard_router, profiles_router,
                google_router, users_router, members_router, directory_router, notifications_router, announcements_router, member_notifications_router]
     # Public routes from our handles provide stable templates across FastAPI versions.
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]

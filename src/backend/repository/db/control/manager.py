@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from sqlalchemy import event
 
 from backend.infra.connections.database import DatabaseConnection
+from backend.repository.db.control.api_keys import ApiKeyRepository
 from backend.repository.db.control.chat import ChatRepository
 from backend.repository.db.control.clients import ClientRepository
 from backend.repository.db.control.documents import DocumentRepository
@@ -13,6 +14,7 @@ from backend.repository.db.control.users import UserRepository
 class Repositories:
     def __init__(self, session, principal_email=None):
         self.users = UserRepository(session, principal_email=principal_email)
+        self.api_keys = ApiKeyRepository(session)
         self.clients = ClientRepository(session)
         self.documents = DocumentRepository(session)
         self.chat_messages = ChatRepository(session)
@@ -32,7 +34,7 @@ class RepositoryManager:
         def track_changes(session, _context, _instances):
             for row in set(session.new) | set(session.dirty) | set(session.deleted):
                 table = getattr(row, "__tablename__", None)
-                if table in {"users", "clients", "notifications", "documents", "chat_messages"}:
+                if table in {"users", "api_keys", "clients", "notifications", "documents", "chat_messages"}:
                     changed.add(table)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:
