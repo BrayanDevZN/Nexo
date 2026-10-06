@@ -22,6 +22,11 @@ from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFo
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
+@router.get("/conversations")
+def conversations(request: Request, actor=Depends(approved_user)):
+    return request.app.state.services.chat.conversations(actor)
+
+
 def fail(error):
     status = (403 if isinstance(error, AccessDenied) else 404 if isinstance(error, ResourceNotFound)
               else 409 if isinstance(error, ResourceConflict)
