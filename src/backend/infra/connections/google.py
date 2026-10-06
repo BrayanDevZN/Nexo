@@ -3,7 +3,6 @@ import hashlib
 import logging
 from urllib.parse import urlencode
 
-from authlib.integrations.httpx_client import AsyncOAuth2Client
 from httpx import AsyncClient
 
 logger = logging.getLogger(__name__)
@@ -34,11 +33,19 @@ class GoogleConnection:
     async def exchange(self, code, verifier, nonce):
         stage = "token_exchange"
         try:
-            async with AsyncOAuth2Client(
-                self.client_id, self.secret.get_secret_value(), redirect_uri=self.redirect_uri,
-                token_endpoint_auth_method="client_secret_post", timeout=10, trust_env=False,
-            ) as client:
-                token = await client.fetch_token(self.token_endpoint, code=code, code_verifier=verifier)
+            async with AsyncClient(timeout=10, trust_env=False) as client:
+                response = await client.post(self.token_endpoint, data={
+                    "client_id": self.client_id,
+                    "client_secret": self.secret.get_secret_value(),
+                    "code": code,
+                    "code_verifier": verifier,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.redirect_uri,
+                })
+                response.raise_for_status()
+                token = response.json()
+                if not token.get("id_token"):
+                    raise GoogleProviderError("Google did not return an identity token")
             stage = "signing_keys"
             async with AsyncClient(timeout=10, trust_env=False) as client:
                 response = await client.get(self.jwks_endpoint)
