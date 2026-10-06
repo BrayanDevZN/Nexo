@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from backend.repository.cache.queries import snapshot
-from backend.service.access import AccessDenied, authorize
+from backend.service.access import authorize
 
 
 class AnnouncementPermissionError(ValueError):

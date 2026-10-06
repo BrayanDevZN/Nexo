@@ -3,12 +3,17 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from backend.controller.dependencies import admin_user, approved_user
-from backend.controller.schema.approvals import AnnouncementInput, AnnouncementOutput, ApprovalInput, NotificationOutput
+from backend.controller.schema.approvals import (
+    AnnouncementInput,
+    AnnouncementOutput,
+    ApprovalInput,
+    NotificationOutput,
+)
 from backend.controller.schema.auth import UserOutput
 from backend.controller.schema.members import MemberOutput
 from backend.service.access import AccessDenied
-from backend.service.approvals import ApprovalConflict, ApprovalNotFound, ApprovalPermissionError
 from backend.service.announcements import AnnouncementPermissionError
+from backend.service.approvals import ApprovalConflict, ApprovalNotFound, ApprovalPermissionError
 
 users_router = APIRouter(prefix="/admin/users", tags=["user approvals"])
 notifications_router = APIRouter(prefix="/admin/notifications", tags=["admin notifications"])

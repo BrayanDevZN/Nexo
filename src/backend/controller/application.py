@@ -7,7 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.controller.handles.account_deletion import router as account_deletion_router
-from backend.controller.handles.approvals import announcements_router, member_notifications_router, notifications_router, users_router
+from backend.controller.handles.approvals import (
+    announcements_router,
+    member_notifications_router,
+    notifications_router,
+    users_router,
+)
 from backend.controller.handles.auth import router as auth_router
 from backend.controller.handles.chat import router as chat_router
 from backend.controller.handles.clients import router as clients_router
