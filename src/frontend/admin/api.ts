@@ -22,7 +22,7 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "negotiation", label: "Negociação" }, { value: "won", label: "Fechado" },
   { value: "lost", label: "Perdido" },
 ];
-export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up">;
+export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;
 };
