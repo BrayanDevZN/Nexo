@@ -24,6 +24,19 @@ class AnnouncementService:
             authorize_read(repos.db, actor, approved=True)
             return repos.notifications.list_for_recipient(actor.id, kind=kind, limit=limit, offset=offset)
 
+    def unread_counts(self, actor):
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            return repos.notifications.unread_counts(actor.id)
+
+    def mark_chat_read(self, actor, sender_id):
+        with self.repositories.transaction() as repos:
+            current = authorize(repos, actor, approved=True)
+            sender = repos.users.get(sender_id)
+            if sender is None or sender.status != "approved" or sender.id == current.id:
+                raise KeyError("Chat member not found")
+            return repos.notifications.mark_chat_read_for_sender(current.id, sender.id)
+
     def mark_read(self, actor, identifier):
         with self.repositories.transaction() as repos:
             current = authorize(repos, actor, approved=True)
