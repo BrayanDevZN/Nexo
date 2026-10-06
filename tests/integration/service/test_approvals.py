@@ -110,3 +110,16 @@ def test_concurrent_request_creation_does_not_duplicate_notifications(runtime):
         results = list(executor.map(lambda _: create_request(), range(2)))
     assert sorted(results) == [False, True]
     assert len(runtime.approvals.notifications(actor)) == 1
+
+
+def test_acceptance_and_rejection_send_email_after_decision(runtime, monkeypatch):
+    user = register(runtime)
+    actor = admin(runtime)
+    note = runtime.approvals.notifications(actor)[0]
+    send_email = Mock()
+    monkeypatch.setattr(runtime.messages, "access_decision", send_email)
+
+    result = runtime.approvals.decide(actor, note["id"], "approved")
+
+    assert result.status == "approved"
+    send_email.assert_called_once_with(user, "approved")
