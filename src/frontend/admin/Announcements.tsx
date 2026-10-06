@@ -29,9 +29,10 @@ export function Announcements({ api, user }: { api: ReturnType<typeof createApi>
   }, [load]);
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (busy) return;
-    const form = new FormData(event.currentTarget); const title = String(form.get("title") || "").trim(); const body = String(form.get("body") || "").trim();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement); const title = String(form.get("title") || "").trim(); const body = String(form.get("body") || "").trim();
     setBusy(true); setError(""); setSuccess("");
-    try { await api.mutate("/admin/announcements", "POST", { title, body }); setSuccess("Aviso publicado e enviado aos membros aprovados."); setShowComposer(false); event.currentTarget.reset(); await load(); }
+    try { await api.mutate("/admin/announcements", "POST", { title, body }); setSuccess("Aviso publicado e enviado aos membros aprovados."); setShowComposer(false); formElement.reset(); await load(); }
     catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
   async function markRead(notice: Notice) {
