@@ -21,6 +21,12 @@ def create_tables(engine: Engine) -> None:
     if "next_follow_up" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN next_follow_up DATETIME"))
+    if "pain" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN pain TEXT"))
+    if "approach" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN approach TEXT"))
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),
