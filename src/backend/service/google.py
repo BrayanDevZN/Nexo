@@ -47,13 +47,22 @@ class GoogleAuthService:
         return await asyncio.to_thread(self._resolve_identity, identity)
 
     def _resolve_identity(self, identity):
-        with self.repositories.transaction() as repos:
-            user = repos.users.by_google_sub(identity.subject)
-            if user:
-                return "session", self.sessions.issue(user)
-            if repos.users.by_email(identity.email):
-                # Linking needs explicit proof of the existing local account.
-                raise RegistrationConflict("Email already belongs to another account")
+        try:
+            with self.repositories.transaction() as repos:
+                user = repos.users.by_google_sub(identity.subject)
+                if user:
+                    return "session", self.sessions.issue(user)
+                user = repos.users.by_email(identity.email)
+                if user:
+                    if not user.password_hash or user.google_sub is not None:
+                        raise RegistrationConflict("Google identity belongs to another account")
+                    # Identity comes only from the verified ID token, never a browser email.
+                    token = self.sessions.issue(user)
+                    if not repos.users.link_google_if_local(user, identity.subject):
+                        raise RegistrationConflict("Account changed; sign in again")
+                    return "session", token
+        except IntegrityError:
+            raise RegistrationConflict("Google identity already registered; sign in again") from None
         return "profile", self.flows.save("profile", asdict(identity), 600)
 
     def profile(self, grant):

@@ -125,3 +125,16 @@ class UserRepository(Repository[User]):
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
         return result.rowcount == 1
+
+
+    def link_google_if_local(self, user, subject):
+        result = self.session.execute(update(User).where(
+            User.id == user.id, User.email == user.email,
+            User.session_version == user.session_version,
+            User.password_hash.is_not(None), User.google_sub.is_(None),
+            User.status.in_(["pending", "approved"])
+        ).values(google_sub=subject), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("users")
+        self.session.refresh(user)
+        return result.rowcount == 1

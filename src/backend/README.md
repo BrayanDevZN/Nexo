@@ -106,7 +106,10 @@ await fetch(API_URL + "/clients", {
 Google exige GOOGLE_CLIENT_ID/SECRET e callback exato GOOGLE_REDIRECT_URI no console.
 State de 300 segundos é ligado ao browser e consumido uma vez no Redis; PKCE, nonce,
 RS256/JWKS, issuer, audience, azp, validade e email_verified são verificados.
-Identidade existente usa Google sub; e-mail coincidente com cadastro local não vincula contas.
+Identidade existente usa Google sub. Se ainda não houver vínculo Google e o email
+verificado coincidir com uma conta local com senha, vincula o sub à mesma conta e
+emite sessão. Não altera senha, nome, celular, cargo ou aprovação. Contas criadas
+só pelo Google continuam sem senha local, inclusive na recuperação de senha.
 Nova identidade recebe cookie temporário de 600 segundos e só vira conta ao informar
 nome/celular. Redirecionamentos: FRONTEND_URL/admin e /admin/complete-profile.
 Cookies OAuth usam Lax. As telas administrativas ficam em src/frontend/admin e são acessadas em /admin.

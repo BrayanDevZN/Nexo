@@ -48,6 +48,9 @@ Fotos privadas são exibidas pela rota autenticada do backend.
   sessão HttpOnly automaticamente; após salvar ou pular a foto, entra no painel
   sem novo login, aguardando aprovação.
 - Cadastro Google conclui nome/celular e recebe sessão pendente.
+- Quem criou conta com email/senha também pode usar Continuar com Google com o
+  mesmo email verificado. O primeiro acesso vincula o Google à mesma conta sem
+  novo cadastro. Quem criou pelo Google continua acessando somente pelo Google.
 - Pendentes acessam o próprio perfil e foto. A aprovação é consultada a cada
   15 segundos enquanto a aba está visível, ou manualmente.
 - Administrador recebe aviso de novos pedidos, consultados a cada 30 segundos;

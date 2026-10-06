@@ -105,3 +105,15 @@ def test_member_edit_rejects_stale_session_version(repositories):
         set_committed_value(current, "session_version", -1)
         assert not repos.users.update_member_if_current(current, {"role": "admin"})
         assert current.role == "member" and current.session_version == 0
+
+
+def test_google_link_is_conditional_and_cannot_overwrite_existing_identity(repositories):
+    _, manager = repositories
+    with manager.transaction() as repos:
+        local = repos.users.create(name="Local", email="local@example.com", password_hash="bcrypt")
+        google = repos.users.create(name="Google", email="google@example.com", google_sub="google-only")
+        assert repos.users.link_google_if_local(local, "linked-google")
+        assert not repos.users.link_google_if_local(local, "replacement-google")
+        assert local.google_sub == "linked-google" and local.password_hash == "bcrypt"
+        assert not repos.users.link_google_if_local(google, "replacement-google")
+        assert google.google_sub == "google-only" and google.password_hash is None
