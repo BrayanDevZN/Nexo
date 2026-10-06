@@ -24,30 +24,26 @@ class ClientService:
         return [{**row, "created_by_name": names.get(row["created_by_id"], "Membro removido")}
                 for row in rows]
 
-    def _notify_team(self, actor_id, title, body):
-        try:
-            with self.repositories.transaction() as repos:
-                recipients = repos.users.approved_recipients()
-                repos.notifications.create_announcements(
-                    announcement_id=str(uuid4()),
-                    recipient_ids=[user.id for user in recipients],
-                    creator_id=actor_id,
-                    title=title,
-                    body=body,
-                )
-        except Exception:
-            # The client or contract update is already committed; notification failure
-            # must not make the user retry a successful write and create a duplicate.
-            logger.exception("Client event notice could not be persisted")
-            return
+    @staticmethod
+    def _record_team_notice(repos, actor_id, title, body):
+        recipients = repos.users.approved_recipients()
+        repos.notifications.create_announcements(
+            announcement_id=str(uuid4()),
+            recipient_ids=[user.id for user in recipients],
+            creator_id=actor_id,
+            title=title,
+            body=body,
+        )
+        return recipients
 
+    def _email_team(self, recipients, title, body):
         if self.messages is None:
             return
         for user in recipients:
             try:
                 self.messages.announcement(user, title, body)
             except Exception:
-                # Keep the durable in-app notice even when email delivery is unavailable.
+                # The in-app notice is already durable; email remains best-effort.
                 logger.warning("Client event email could not be queued", exc_info=True)
 
     def list(self, actor, **filters):
@@ -65,6 +61,7 @@ class ClientService:
 
     def create(self, actor, idempotency_key=None, **fields):
         identifier = str(idempotency_key) if idempotency_key else None
+        email_notices = []
         try:
             with self.repositories.transaction() as repos:
                 authorize(repos, actor, approved=True)
@@ -78,7 +75,11 @@ class ClientService:
                 row = repos.clients.create(created_by_id=actor.id, identifier=identifier, **fields)
                 row.created_by_name = repos.users.get(actor.id).name
                 name, niche = row.name, row.niche
-                is_closed = bool(row.contract_closed or row.pipeline_stage == "won")
+                title, body = "Novo cliente cadastrado", f"{name} foi adicionado ao funil na categoria {niche}."
+                email_notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
+                if row.contract_closed or row.pipeline_stage == "won":
+                    title, body = "Contrato fechado", f"O contrato de {name} foi cadastrado como fechado."
+                    email_notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
         except IntegrityError:
             if not identifier:
                 raise
@@ -91,17 +92,12 @@ class ClientService:
                     raise
                 existing.created_by_name = repos.users.get(actor.id).name
                 return existing
-        self._notify_team(
-            actor.id,
-            "Novo cliente cadastrado",
-            f"{name} foi adicionado ao funil na categoria {niche}.",
-        )
-        if is_closed:
-            self._notify_team(actor.id, "Contrato fechado", f"O contrato de {name} foi cadastrado como fechado.")
+        for recipients, title, body in email_notices:
+            self._email_team(recipients, title, body)
         return row
 
     def update(self, actor, identifier, **changes):
-        event = None
+        email_notice = None
         with self.repositories.transaction() as repos:
             authorize(repos, actor, approved=True)
             client = repos.clients.get(identifier)
@@ -118,8 +114,14 @@ class ClientService:
                 event = ("Contrato cancelado", f"O contrato de {row.name} foi cancelado.")
             elif previous_stage != "lost" and row.pipeline_stage == "lost":
                 event = ("Oportunidade encerrada", f"A oportunidade de {row.name} foi marcada como perdida.")
-        if event:
-            self._notify_team(actor.id, *event)
+            else:
+                event = None
+            if event:
+                title, body = event
+                recipients = self._record_team_notice(repos, actor.id, title, body)
+                email_notice = (recipients, title, body)
+        if email_notice:
+            self._email_team(*email_notice)
         return row
 
     def delete(self, actor, identifier):
