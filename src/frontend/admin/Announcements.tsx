@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type Notice = { id: string; kind: "announcement" | "member_joined" | "chat_message"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
 
-export function Announcements({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
+export function Announcements({ api, user, onNotificationsRead }: { api: ReturnType<typeof createApi>; user: User; onNotificationsRead?: () => Promise<void> }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -38,7 +38,7 @@ export function Announcements({ api, user }: { api: ReturnType<typeof createApi>
   async function markRead(notice: Notice) {
     if (notice.read_at) return;
     setNotices(rows => rows.map(row => row.id === notice.id ? { ...row, read_at: new Date().toISOString() } : row));
-    try { await api.mutate("/notifications/" + notice.id + "/read", "PATCH"); } catch { /* the notice remains visible if the read marker fails */ }
+    try { await api.mutate("/notifications/" + notice.id + "/read", "PATCH"); await onNotificationsRead?.(); } catch { /* the notice remains visible if the read marker fails */ }
   }
   return <section className="flex flex-col gap-6" aria-labelledby="announcements-title">
     <div className="admin-section-head"><div><span className="admin-eyebrow">COMUNICAÇÃO DA EQUIPE</span><h1 id="announcements-title">Avisos</h1><p>Atualizações importantes da Nexo para todos os membros.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={loading} onClick={() => void load()}><RefreshCw data-icon="inline-start" /> Atualizar</Button>{user.role === "admin" && <Button onClick={() => setShowComposer(value => !value)}><Megaphone data-icon="inline-start" /> Criar aviso</Button>}</div></div>
