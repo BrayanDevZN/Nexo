@@ -7,6 +7,7 @@ export type ApiKey = {
   id: string; name: string; key_prefix: string; created_at: string; last_used_at: string | null;
 };
 export type CreatedApiKey = ApiKey & { key: string };
+export type ApiKeyUsage = { date: string; count: number; api_key_id: string; api_key_name: string };
 export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;

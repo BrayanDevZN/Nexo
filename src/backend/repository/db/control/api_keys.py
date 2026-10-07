@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import select, update
 
 from backend.repository.db.control.base import Repository, pagination
-from backend.repository.db.models import ApiKey
+from backend.repository.db.models import ApiKey, ApiKeyUsage
 
 
 class ApiKeyRepository(Repository[ApiKey]):
@@ -30,6 +30,26 @@ class ApiKeyRepository(Repository[ApiKey]):
         self.session.execute(update(ApiKey).where(
             ApiKey.id == key.id, ApiKey.revoked_at.is_(None),
         ).values(last_used_at=used_at), execution_options={"synchronize_session": False})
+
+    def record_usage(self, key_id: str, usage_date: date) -> None:
+        usage = self.session.scalar(select(ApiKeyUsage).where(
+            ApiKeyUsage.api_key_id == key_id, ApiKeyUsage.usage_date == usage_date,
+        ))
+        if usage is None:
+            self.session.add(ApiKeyUsage(api_key_id=key_id, usage_date=usage_date, request_count=1))
+        else:
+            usage.request_count += 1
+
+    def usage_for_user(self, user_id: str, days: int) -> list[dict]:
+        start = date.today() - timedelta(days=days - 1)
+        rows = self.session.execute(
+            select(ApiKeyUsage.usage_date, ApiKeyUsage.request_count, ApiKey.id, ApiKey.name)
+            .join(ApiKey, ApiKey.id == ApiKeyUsage.api_key_id)
+            .where(ApiKey.user_id == user_id, ApiKeyUsage.usage_date >= start)
+            .order_by(ApiKeyUsage.usage_date.asc(), ApiKey.name.asc())
+        ).all()
+        return [{"date": item.usage_date, "count": item.request_count,
+                 "api_key_id": item.id, "api_key_name": item.name} for item in rows]
 
     def revoke(self, user_id: str, identifier: str, revoked_at: datetime) -> bool:
         result = self.session.execute(update(ApiKey).where(

@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Check, Copy, KeyRound, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Trash2, Activity } from "lucide-react";
+import { useMemo } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { type ApiKey, type createApi, type CreatedApiKey, type User } from "./api";
+import { type ApiKey, type ApiKeyUsage, type createApi, type CreatedApiKey, type User } from "./api";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Busy, Feedback, TextField, message } from "./shared";
 
 export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
@@ -15,10 +18,29 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [usage, setUsage] = useState<ApiKeyUsage[]>([]);
+  const [period, setPeriod] = useState<7 | 30 | 90>(30);
 
   useEffect(() => {
     void api.request<ApiKey[]>("/auth/api-keys").then(setApiKeys).catch(error => setError(message(error)));
   }, [api]);
+  useEffect(() => {
+    void api.request<ApiKeyUsage[]>(`/auth/api-keys/usage?days=${period}`).then(setUsage).catch(error => setError(message(error)));
+  }, [api, period]);
+
+  const chartData = useMemo(() => {
+    const byDate = new Map<string, number>();
+    for (const item of usage) byDate.set(item.date, (byDate.get(item.date) || 0) + item.count);
+    const today = new Date();
+    return Array.from({ length: period }, (_, index) => {
+      const date = new Date(today); date.setDate(today.getDate() - (period - index - 1));
+      const key = date.toISOString().slice(0, 10);
+      return { date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), requests: byDate.get(key) || 0 };
+    });
+  }, [period, usage]);
+  const totalUsage = usage.reduce((sum, item) => sum + item.count, 0);
+  const averageUsage = period ? Math.round(totalUsage / period) : 0;
+  const chartConfig: ChartConfig = { requests: { label: "Requisições", color: "var(--primary)" } };
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,9 +69,11 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
   }
 
   if (user.status !== "approved") return null;
-  return <section className="flex flex-col gap-6" aria-labelledby="api-keys-title">
-    <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-keys-title">Chaves de API</h1><p>Conecte sistemas externos ao painel com segurança.</p></div></div>
+  return <section className="flex flex-col gap-6" aria-labelledby="api-title">
+    <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais e acompanhe o uso das suas integrações.</p></div></div>
     <Feedback error={error} success={success} />
+    <div className="grid gap-4 md:grid-cols-3"><Card><CardHeader className="pb-2"><CardDescription>Requisições no período</CardDescription><CardTitle className="text-3xl">{totalUsage.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Últimos {period} dias</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Média diária</CardDescription><CardTitle className="text-3xl">{averageUsage.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Requisições por dia</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Chaves ativas</CardDescription><CardTitle className="text-3xl">{apiKeys.length}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Credenciais disponíveis</p></CardContent></Card></div>
+    <Card><CardHeader className="flex flex-row items-center justify-between gap-4"><div><CardTitle className="flex items-center gap-2"><Activity className="size-5" />Uso da API</CardTitle><CardDescription>Quantidade de requisições autenticadas por período.</CardDescription></div><div className="flex gap-1" role="group" aria-label="Período do gráfico">{([7, 30, 90] as const).map(value => <Button key={value} variant={period === value ? "secondary" : "outline"} size="sm" onClick={() => setPeriod(value)}>{value}d</Button>)}</div></CardHeader><CardContent><ChartContainer config={chartConfig} className="h-72" aria-label="Gráfico de uso da API"><LineChart data={chartData} margin={{ left: 8, right: 12, top: 8, bottom: 8 }}><CartesianGrid vertical={false} /><XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} /><ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value} requisições`} />} /><Line type="monotone" dataKey="requests" stroke="var(--color-requests)" strokeWidth={2} dot={false} /></LineChart></ChartContainer></CardContent></Card>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="size-5" /> Acesso por API</CardTitle><CardDescription>Use uma chave no header <code>Authorization: Bearer SUA_CHAVE</code> para consumir clientes, documentos e dashboards sem cookie. A chave completa aparece somente uma vez.</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-5">
         <Button className="w-fit" onClick={() => { setCreatedApiKey(null); setCopied(false); setCreateOpen(true); }}><KeyRound data-icon="inline-start" /> Criar nova chave</Button>

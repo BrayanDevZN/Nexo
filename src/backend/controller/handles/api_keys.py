@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from backend.controller.dependencies import current_user
 from backend.controller.schema.api_keys import ApiKeyCreatedOutput, ApiKeyCreateInput, ApiKeyOutput
@@ -23,6 +23,13 @@ def create(data: ApiKeyCreateInput, request: Request, actor=Depends(current_user
         return {**metadata, "key": secret}
     except (AccessDenied, ValueError) as error:
         raise HTTPException(status_code=403, detail=str(error)) from None
+
+
+@router.get("/usage")
+def usage(request: Request, days: int = Query(default=30, ge=7, le=90), actor=Depends(current_user)):
+    if actor.status != "approved":
+        raise HTTPException(status_code=403, detail="Account awaiting approval")
+    return request.app.state.services.api_keys.usage(actor, days)
 
 
 @router.delete("/{identifier}", status_code=204)

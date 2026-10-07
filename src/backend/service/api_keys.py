@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from backend.repository.db.models import ApiKey
 from backend.service.access import ResourceNotFound, authorize
@@ -57,4 +57,10 @@ class ApiKeyService:
             if user is None or user.status != "approved":
                 raise ApiKeyAuthenticationError("Invalid API key")
             repos.api_keys.touch(key, datetime.now(UTC).replace(tzinfo=None))
+            repos.api_keys.record_usage(key.id, date.today())
             return user
+
+    def usage(self, actor, days: int):
+        with self.repositories.read_transaction() as repos:
+            current = authorize(repos, actor, approved=True)
+            return repos.api_keys.usage_for_user(current.id, days)
