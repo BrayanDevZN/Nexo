@@ -18,7 +18,7 @@ class DocumentService:
             authorize_read(repos.db, actor, approved=True)
             return ClientService.with_creators(repos, repos.documents.list(**filters))
 
-    def upload(self, actor, filename, data):
+    def upload(self, actor, filename, data, client_id=None):
         with self.repositories.read_transaction() as repos:
             authorize_read(repos, actor, approved=True)
         filename = validate_document(filename, data, self.max_bytes)
@@ -26,8 +26,10 @@ class DocumentService:
         try:
             with self.repositories.transaction() as repos:
                 user = authorize(repos, actor, approved=True)
+                if client_id and repos.clients.get(client_id) is None:
+                    raise ResourceNotFound("Client not found")
                 row = repos.documents.create(filename=filename, storage_key=key,
-                                             content=data, size=len(data), created_by_id=user.id)
+                                             content=data, size=len(data), created_by_id=user.id, client_id=client_id)
                 return {**snapshot("documents", row), "created_by_name": user.name}
         except BaseException:
             self.cleanup(key)

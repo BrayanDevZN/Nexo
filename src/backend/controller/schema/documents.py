@@ -9,5 +9,6 @@ class DocumentOutput(BaseModel):
     size: int
     created_by_id: str
     created_by_name: str
+    client_id: str | None = None
     created_at: datetime
     updated_at: datetime

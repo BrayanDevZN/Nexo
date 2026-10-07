@@ -47,6 +47,9 @@ def create_tables(engine: Engine) -> None:
             columns_for_table = {item["name"] for item in inspector.get_columns(table)}
             if column not in columns_for_table:
                 connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        document_columns = {item["name"] for item in inspector.get_columns("documents")}
+        if "client_id" not in document_columns:
+            connection.execute(text("ALTER TABLE documents ADD COLUMN client_id VARCHAR(36)"))
     missing = {name: definition for name, definition in additions.items() if name not in columns}
     if missing:
         with engine.begin() as connection:
@@ -61,6 +64,7 @@ def create_tables(engine: Engine) -> None:
         "CREATE INDEX IF NOT EXISTS client_niche_created_at ON clients (niche, created_at)",
         "CREATE INDEX IF NOT EXISTS client_stage_created_at ON clients (pipeline_stage, created_at)",
         "CREATE INDEX IF NOT EXISTS document_created_at_id ON documents (created_at, id)",
+        "CREATE INDEX IF NOT EXISTS document_client_created_at ON documents (client_id, created_at, id)",
         "CREATE INDEX IF NOT EXISTS notification_recipient_kind_created ON notifications (recipient_id, kind, created_at, id)",
         "CREATE INDEX IF NOT EXISTS notification_recipient_resolved_created ON notifications (recipient_id, resolved_at, created_at, id)",
         "CREATE INDEX IF NOT EXISTS user_status_created_at_id ON users (status, created_at, id)",

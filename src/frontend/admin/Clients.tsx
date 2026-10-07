@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
@@ -22,6 +23,8 @@ function whatsappUrl(phone: string, name: string) {
   const text = encodeURIComponent(`Olá, ${name}! Aqui é da Nexo. Podemos conversar?`);
   return `https://wa.me/${normalized}?text=${text}`;
 }
+
+type ClientDocument = { id: string; filename: string; size: number; client_id: string | null };
 
 export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
@@ -49,6 +52,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [editor, setEditor] = useState<ClientRecord | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClientRecord | null>(null);
   const [viewing, setViewing] = useState<ClientRecord | null>(null);
+  const [attachments, setAttachments] = useState<ClientDocument[]>([]);
   const [busy, setBusy] = useState(false);
   const [createRequestId, setCreateRequestId] = useState("");
   const saveInFlight = useRef(false);
@@ -69,10 +73,24 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     finally { if (id === serial.current) setLoading(false); }
   }, [api, filters, offset]);
   useEffect(() => { void load(); return () => { serial.current++; }; }, [load]);
+  useEffect(() => {
+    if (!viewing) { setAttachments([]); return; }
+    void api.request<ClientDocument[]>("/documents?client_id=" + viewing.id + "&limit=50").then(setAttachments).catch(e => setError(message(e)));
+  }, [api, viewing?.id]);
+  async function downloadAttachment(item: ClientDocument) {
+    setBusy(true); setError("");
+    try {
+      const blob = await api.file("/documents/" + item.id + "/download");
+      const url = URL.createObjectURL(blob); const link = document.createElement("a");
+      link.href = url; link.download = item.filename; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) { setError(message(e)); } finally { setBusy(false); }
+  }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveInFlight.current) return;
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const value = (key: string) => String(data.get(key) || "").trim();
     const body: ClientInput = {
       name: value("name"), niche: value("niche"), phone: value("phone") || null,
@@ -84,9 +102,14 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     saveInFlight.current = true;
     setBusy(true); setError(""); setSuccess("");
     try {
-      await api.mutate(editor === "new" ? "/clients" : "/clients/" + editor!.id,
+      const saved = await api.mutate<ClientRecord>(editor === "new" ? "/clients" : "/clients/" + editor!.id,
         editor === "new" ? "POST" : "PATCH", body);
-      setEditor(null); setCreateRequestId(""); setSuccess("Cliente salvo."); await load();
+      const attachment = data.get("attachment");
+      if (attachment instanceof File && attachment.size > 0) {
+        const upload = new FormData(); upload.append("file", attachment);
+        await api.mutate("/documents?client_id=" + saved.id, "POST", upload);
+      }
+      setEditor(null); setCreateRequestId(""); setSuccess(attachment instanceof File && attachment.size > 0 ? "Cliente e documento salvos." : "Cliente salvo."); await load();
     } catch (e) { setError(message(e)); } finally { saveInFlight.current = false; setBusy(false); }
   }
   async function remove() {
@@ -156,6 +179,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Detail label="Possível dor do cliente" value={viewing.pain} multiline />
             <Detail label="Melhor forma de abordagem" value={viewing.approach} multiline />
             <Detail label="Observações" value={viewing.notes} multiline />
+            <div className="sm:col-span-2"><p className="text-xs font-medium text-muted-foreground">Documentos vinculados</p>{attachments.length ? <div className="mt-2 flex flex-wrap gap-2">{attachments.map(document => <Button key={document.id} variant="outline" size="sm" disabled={busy} onClick={() => void downloadAttachment(document)}><Download data-icon="inline-start" />{document.filename} ({Math.ceil(document.size / 1024)} KB)</Button>)}</div> : <p className="mt-1 text-sm">Nenhum documento anexado.</p>}</div>
             <Detail label="Criado em" value={new Date(viewing.created_at).toLocaleString("pt-BR")} />
             <Detail label="Atualizado em" value={new Date(viewing.updated_at).toLocaleString("pt-BR")} />
           </CardContent><CardFooter><Button variant="outline" onClick={() => { setViewing(null); setEditor(viewing); }}>Editar cliente</Button></CardFooter></Card>}
@@ -180,6 +204,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Field><FieldLabel htmlFor="client-pain">Possível dor do cliente (opcional)</FieldLabel><Textarea id="client-pain" name="pain" maxLength={5000} placeholder="Ex.: dificuldade para atrair novos clientes" defaultValue={row?.pain || ""} /></Field>
             <Field><FieldLabel htmlFor="client-approach">Melhor forma de abordagem (opcional)</FieldLabel><Textarea id="client-approach" name="approach" maxLength={5000} placeholder="Ex.: primeiro contato por WhatsApp, com uma conversa consultiva" defaultValue={row?.approach || ""} /></Field>
             <Field><FieldLabel htmlFor="client-notes">Observações (opcional)</FieldLabel><Textarea id="client-notes" name="notes" maxLength={10000} defaultValue={row?.notes || ""} /></Field>
+            {editor === "new" && <Field><FieldLabel htmlFor="client-attachment">Documento do cliente (opcional)</FieldLabel><Input id="client-attachment" name="attachment" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.rtf" disabled={busy} className="h-auto cursor-pointer py-3 file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-primary" /><p className="text-sm text-muted-foreground">O arquivo será vinculado a este cliente e salvo no banco.</p></Field>}
           </FieldGroup>
           <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={() => { setEditor(null); setCreateRequestId(""); setError(""); }}>Cancelar</Button><Button type="submit" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : <><Check data-icon="inline-start" /> Salvar cliente</>}</Button></DialogFooter>
         </form>

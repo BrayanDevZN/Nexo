@@ -17,20 +17,20 @@ def fail(error):
 
 
 @router.get("", response_model=list[DocumentOutput])
-def listing(request: Request, limit: int = Query(default=50, ge=1, le=100),
+def listing(request: Request, client_id: str | None = Query(default=None, max_length=36), limit: int = Query(default=50, ge=1, le=100),
             offset: int = Query(default=0, ge=0), actor=Depends(approved_user)):
     try:
-        return request.app.state.services.documents.list(actor, limit=limit, offset=offset)
+        return request.app.state.services.documents.list(actor, client_id=client_id, limit=limit, offset=offset)
     except AccessDenied as error:
         raise fail(error) from None
 
 
 @router.post("", response_model=DocumentOutput, status_code=201)
-async def upload(request: Request, file: UploadFile = File(), actor=Depends(approved_user)):
+async def upload(request: Request, file: UploadFile = File(), client_id: str | None = Query(default=None, max_length=36), actor=Depends(approved_user)):
     try:
         data = await file.read(request.app.state.settings.document_max_bytes + 1)
-        return await asyncio.to_thread(request.app.state.services.documents.upload, actor, file.filename, data)
-    except (AccessDenied, DocumentValidationError) as error:
+        return await asyncio.to_thread(request.app.state.services.documents.upload, actor, file.filename, data, client_id)
+    except (AccessDenied, DocumentValidationError, ResourceNotFound) as error:
         raise fail(error) from None
     finally:
         await file.close()

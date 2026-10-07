@@ -12,3 +12,4 @@ class Document(IdentityTimestampMixin, Base):
     content: Mapped[bytes | None] = mapped_column(LargeBinary)
     size: Mapped[int] = mapped_column(Integer, nullable=False)
     created_by_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
