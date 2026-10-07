@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 from datetime import UTC, date, datetime
+from concurrent.futures import ThreadPoolExecutor
 
 from backend.repository.db.models import ApiKey
 from backend.service.access import ResourceNotFound, authorize
@@ -15,6 +16,7 @@ class ApiKeyService:
 
     def __init__(self, repositories):
         self.repositories = repositories
+        self._usage_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="api-key-usage")
 
     @staticmethod
     def _hash(value: str) -> str:
@@ -56,9 +58,22 @@ class ApiKeyService:
             user = repos.users.for_auth(key.user_id)
             if user is None or user.status != "approved":
                 raise ApiKeyAuthenticationError("Invalid API key")
-            repos.api_keys.touch(key, datetime.now(UTC).replace(tzinfo=None))
-            repos.api_keys.record_usage(key.id, date.today())
-            return user
+            key_id = key.id
+        self._usage_executor.submit(self._record_access, key_id)
+        return user
+
+    def _record_access(self, key_id: str) -> None:
+        try:
+            used_at = datetime.now(UTC).replace(tzinfo=None)
+            with self.repositories.transaction() as repos:
+                repos.api_keys.touch_by_id(key_id, used_at)
+                repos.api_keys.record_usage(key_id, used_at.date())
+        except Exception:
+            # Usage metrics must never break a valid API request.
+            pass
+
+    def close(self) -> None:
+        self._usage_executor.shutdown(wait=False, cancel_futures=True)
 
     def usage(self, actor, days: int):
         with self.repositories.read_transaction() as repos:

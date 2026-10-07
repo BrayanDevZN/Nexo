@@ -31,6 +31,11 @@ class ApiKeyRepository(Repository[ApiKey]):
             ApiKey.id == key.id, ApiKey.revoked_at.is_(None),
         ).values(last_used_at=used_at), execution_options={"synchronize_session": False})
 
+    def touch_by_id(self, key_id: str, used_at: datetime) -> None:
+        self.session.execute(update(ApiKey).where(
+            ApiKey.id == key_id, ApiKey.revoked_at.is_(None),
+        ).values(last_used_at=used_at), execution_options={"synchronize_session": False})
+
     def record_usage(self, key_id: str, usage_date: date) -> None:
         usage = self.session.scalar(select(ApiKeyUsage).where(
             ApiKeyUsage.api_key_id == key_id, ApiKeyUsage.usage_date == usage_date,

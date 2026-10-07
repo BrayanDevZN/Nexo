@@ -57,6 +57,7 @@ class RuntimeServices:
             self.push = PushService(self.redis.client, settings)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.api_keys = ApiKeyService(self.repositories)
+            self._cleanup.callback(self.api_keys.close)
             self.dashboard = DashboardService(self.repositories, self.cache)
             self.documents = DocumentService(self.repositories, self.cached_repositories,
                                              DocumentStorage(settings.upload_dir / "documents"), settings.document_max_bytes)
