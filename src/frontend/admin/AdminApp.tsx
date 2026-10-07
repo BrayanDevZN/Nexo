@@ -22,7 +22,7 @@ import { Members } from "./Members";
 import { Profile } from "./Profile";
 import { ApiKeys } from "./ApiKeys";
 import { Feedback, Loading, message } from "./shared";
-import { enablePush, registerGrantedPush } from "./push";
+import { enablePush, isInstalledApp, isIosDevice, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
 type Page = "home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys";
@@ -44,7 +44,7 @@ export default function AdminApp() {
   }, []);
   const [loggingOut, setLoggingOut] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
+  const [pushEnabled, setPushEnabled] = useState(typeof Notification !== "undefined" && Notification.permission === "granted" && (!isIosDevice() || isInstalledApp()));
   const complete = window.location.pathname.replace(/\/$/, "") === "/admin/complete-profile";
   const refresh = useCallback(async () => {
     const current = generation.current;
@@ -88,7 +88,7 @@ export default function AdminApp() {
   useEffect(() => {
     if (!user || user.status !== "approved") return;
     void registerGrantedPush(api, user).catch(() => undefined);
-    setPushEnabled(typeof Notification !== "undefined" && Notification.permission === "granted");
+    setPushEnabled(typeof Notification !== "undefined" && Notification.permission === "granted" && (!isIosDevice() || isInstalledApp()));
   }, [user?.id, user?.status]);
   async function activatePush() {
     setPushBusy(true);
@@ -140,7 +140,7 @@ export default function AdminApp() {
       <header className="admin-topbar"><div className="flex min-w-0 items-center gap-3"><Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild><Button variant="outline" size="icon-lg" className="admin-mobile-menu" aria-label="Abrir menu do painel"><Menu /></Button></SheetTrigger>
         <SheetContent side="left" className="overflow-y-auto"><SheetHeader><SheetTitle>Menu do painel</SheetTitle><SheetDescription>Navegue pelo seu espaço na Nexo.</SheetDescription></SheetHeader><div className="px-4"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a></div><div className="px-4">{navigation}</div><SheetFooter>{account}</SheetFooter></SheetContent>
-      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && !pushEnabled && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void activatePush()}><Bell data-icon="inline-start" />{pushBusy ? "Ativando…" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
+      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && !pushEnabled && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void activatePush()}><Bell data-icon="inline-start" />{pushBusy ? "Ativando…" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
       <main className="admin-content" id="painel">
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
