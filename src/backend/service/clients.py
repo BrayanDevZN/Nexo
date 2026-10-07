@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class ClientService:
-    def __init__(self, repositories, cached_repositories, messages=None):
+    def __init__(self, repositories, cached_repositories, messages=None, push=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
-        self.messages = messages
+        self.messages, self.push = messages, push
 
     @staticmethod
     def with_creator(repos, row):
@@ -94,6 +94,8 @@ class ClientService:
                 return existing
         for recipients, title, body in email_notices:
             self._email_team(recipients, title, body)
+            if self.push:
+                self.push.notify_users([user.id for user in recipients], title, body)
         return row
 
     def update(self, actor, identifier, **changes):

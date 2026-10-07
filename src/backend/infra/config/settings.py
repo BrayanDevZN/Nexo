@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     password: SecretStr | None = None
     resend_key: SecretStr | None = None
     resend_from: EmailStr | None = None
+    vapid_subject: str | None = None
+    vapid_public_key: str | None = None
+    vapid_private_key: SecretStr | None = None
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"

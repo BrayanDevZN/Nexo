@@ -9,8 +9,8 @@ class AnnouncementPermissionError(ValueError):
 
 
 class AnnouncementService:
-    def __init__(self, repositories, cached_repositories, messages):
-        self.repositories, self.cached_repositories, self.messages = repositories, cached_repositories, messages
+    def __init__(self, repositories, cached_repositories, messages, push=None):
+        self.repositories, self.cached_repositories, self.messages, self.push = repositories, cached_repositories, messages, push
 
     @staticmethod
     def _authorize(repos, actor):
@@ -63,6 +63,8 @@ class AnnouncementService:
             except Exception:
                 # DB delivery is durable; a Resend outage must not roll back the notice.
                 continue
+        if self.push:
+            self.push.notify_users([user.id for user in recipients], title, body)
         created_at = min((note.created_at for note in notes), default=None)
         return {"id": announcement_id, "title": title, "body": body,
                 "recipients": len(notes), "email_queued": queued, "created_at": created_at}

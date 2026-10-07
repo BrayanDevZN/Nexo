@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
-    def __init__(self, repositories, cached_repositories, storage, events, settings):
+    def __init__(self, repositories, cached_repositories, storage, events, settings, push=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
-        self.storage, self.events, self.settings = storage, events, settings
+        self.storage, self.events, self.settings, self.push = storage, events, settings, push
 
     @staticmethod
     def participants(repos, actor, member_id, *, read=False):
@@ -79,6 +79,8 @@ class ChatService:
         if not isinstance(text, str) or not text.strip() or len(text) > 4000:
             raise ValueError("Message must have 1 to 4000 characters")
         row, _ = self.save(actor, member_id, client_id, text=text.strip(), kind="text")
+        if self.push:
+            self.push.notify_users([row["recipient_id"]], f"Nova mensagem de {row['sender_name']}", row["text"] or "Nova mensagem")
         self.broadcast(row)
         return row
 
@@ -95,6 +97,8 @@ class ChatService:
             raise
         if not created:
             self.cleanup([key])
+        if created and self.push:
+            self.push.notify_users([row["recipient_id"]], f"Nova mensagem de {row['sender_name']}", "Você recebeu uma nova mídia")
         self.broadcast(row)
         return row
 

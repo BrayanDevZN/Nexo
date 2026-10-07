@@ -34,6 +34,7 @@ from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
 from backend.service.members import MemberService
 from backend.service.passwords import PasswordService
+from backend.service.push import PushService
 from backend.service.profiles import ProfileService
 from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
@@ -53,6 +54,7 @@ class RuntimeServices:
             self.cache = CacheAside(self.redis.client, ttl=settings.cache_ttl_seconds,
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
+            self.push = PushService(self.redis.client, settings)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.api_keys = ApiKeyService(self.repositories)
             self.dashboard = DashboardService(self.repositories, self.cache)
@@ -70,7 +72,7 @@ class RuntimeServices:
             self.repositories.on_change = self.realtime.changed
             self.realtime_connection = RealtimeConnection(settings)
             self.chat = ChatService(self.repositories, self.cached_repositories,
-                                    DocumentStorage(settings.upload_dir / "chat"), self.events, settings)
+                                    DocumentStorage(settings.upload_dir / "chat"), self.events, settings, self.push)
             self.members.chat = self.chat
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
@@ -80,9 +82,9 @@ class RuntimeServices:
             self.email = ResendConnection(settings)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
-            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages)
+            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
-            self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages)
+            self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages, self.push)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]
