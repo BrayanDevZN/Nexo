@@ -8,7 +8,7 @@ import { type createApi } from "./api";
 import { MemberPhoto } from "./MemberPhoto";
 import { Feedback, Loading, message } from "./shared";
 
-export type DirectoryMember = { id: string; name: string; role: "member" | "admin"; has_photo: boolean; online: boolean };
+export type DirectoryMember = { id: string; name: string; role: "member" | "admin" | "owner"; has_photo: boolean; online: boolean };
 export function Directory({ api }: { api: ReturnType<typeof createApi> }) {
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [offset, setOffset] = useState(0);
