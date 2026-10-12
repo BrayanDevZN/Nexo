@@ -111,6 +111,12 @@ def unread_counts(request: Request, actor=Depends(approved_user)):
     return request.app.state.services.announcements.unread_counts(actor)
 
 
+@member_notifications_router.patch("/read")
+def read_all_notices(request: Request, actor=Depends(approved_user)):
+    count = request.app.state.services.announcements.mark_all_notices_read(actor)
+    return {"marked_read": count}
+
+
 @member_notifications_router.get("/{identifier}/image")
 def notification_image(identifier: str, request: Request, actor=Depends(approved_user)):
     try:
@@ -121,6 +127,12 @@ def notification_image(identifier: str, request: Request, actor=Depends(approved
         "Cache-Control": "private, max-age=300",
         "X-Content-Type-Options": "nosniff",
     })
+
+
+@member_notifications_router.patch("/chat/read")
+def read_all_chat_notifications(request: Request, actor=Depends(approved_user)):
+    count = request.app.state.services.announcements.mark_all_chat_read(actor)
+    return {"marked_read": count}
 
 
 @member_notifications_router.patch("/chat/{member_id}/read")
