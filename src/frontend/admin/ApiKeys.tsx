@@ -1,6 +1,5 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Check, Copy, KeyRound, Trash2, Activity } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Activity, Check, Copy, KeyRound, Trash2 } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +8,112 @@ import { type ApiKey, type ApiKeyUsage, type createApi, type CreatedApiKey, type
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Busy, Feedback, TextField, message } from "./shared";
 
+const PUBLIC_API_URL = "https://nexo-production-60a0.up.railway.app";
+const EXAMPLE_ENDPOINT = "/clients";
+
+type Language = "curl" | "javascript" | "python" | "go" | "java" | "php" | "csharp";
+
+const LANGUAGE_LABELS: Record<Language, string> = {
+  curl: "cURL",
+  javascript: "JavaScript",
+  python: "Python",
+  go: "Go",
+  java: "Java",
+  php: "PHP",
+  csharp: "C#",
+};
+
+function codeExamples(apiKey = "SUA_CHAVE_API"): Record<Language, string> {
+  const url = `${PUBLIC_API_URL}${EXAMPLE_ENDPOINT}`;
+  return {
+    curl: `curl -X GET "${url}" \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Accept: application/json"`,
+    javascript: `const response = await fetch("${url}", {
+  headers: {
+    Authorization: "Bearer ${apiKey}",
+    Accept: "application/json",
+  },
+});
+
+const data = await response.json();
+console.log(data);`,
+    python: `import requests
+
+response = requests.get(
+    "${url}",
+    headers={"Authorization": "Bearer ${apiKey}"},
+    timeout=30,
+)
+response.raise_for_status()
+print(response.json())`,
+    go: `package main
+
+import (
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "${url}", nil)
+    req.Header.Set("Authorization", "Bearer ${apiKey}")
+    req.Header.Set("Accept", "application/json")
+
+    res, err := http.DefaultClient.Do(req)
+    if err != nil { panic(err) }
+    defer res.Body.Close()
+
+    body, _ := io.ReadAll(res.Body)
+    fmt.Println(string(body))
+}`,
+    java: `import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+var client = HttpClient.newHttpClient();
+var request = HttpRequest.newBuilder()
+    .uri(URI.create("${url}"))
+    .header("Authorization", "Bearer ${apiKey}")
+    .header("Accept", "application/json")
+    .GET()
+    .build();
+
+var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+System.out.println(response.body());`,
+    php: `<?php
+$ch = curl_init("${url}");
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+        "Authorization: Bearer ${apiKey}",
+        "Accept: application/json",
+    ],
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;`,
+    csharp: `using System.Net.Http.Headers;
+
+using var client = new HttpClient();
+client.DefaultRequestHeaders.Authorization =
+    new AuthenticationHeaderValue("Bearer", "${apiKey}");
+client.DefaultRequestHeaders.Accept.Add(
+    new MediaTypeWithQualityHeaderValue("application/json"));
+
+var response = await client.GetAsync("${url}");
+response.EnsureSuccessStatusCode();
+Console.WriteLine(await response.Content.ReadAsStringAsync());`,
+  };
+}
+
 export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [apiKeyName, setApiKeyName] = useState("Minha integração");
   const [createdApiKey, setCreatedApiKey] = useState<CreatedApiKey | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedSnippet, setCopiedSnippet] = useState(false);
+  const [language, setLanguage] = useState<Language>("curl");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -41,6 +141,7 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
   const totalUsage = usage.reduce((sum, item) => sum + item.count, 0);
   const averageUsage = period ? Math.round(totalUsage / period) : 0;
   const chartConfig: ChartConfig = { requests: { label: "Requisições", color: "var(--primary)" } };
+  const examples = useMemo(() => codeExamples(), []);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,13 +169,51 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
     setCopied(true);
   }
 
+  async function copyValue(value: string, snippet = false) {
+    await navigator.clipboard.writeText(value);
+    if (snippet) {
+      setCopiedSnippet(true);
+      window.setTimeout(() => setCopiedSnippet(false), 1800);
+    }
+  }
+
   if (user.status !== "approved") return null;
   return <section className="flex flex-col gap-6" aria-labelledby="api-title">
-    <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais e acompanhe o uso das suas integrações.</p></div></div>
+    <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais, integre seus sistemas e acompanhe o uso da API.</p></div></div>
     <Feedback error={error} success={success} />
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Como usar a API</CardTitle>
+        <CardDescription>Você só precisa da URL base, de uma chave ativa e do header de autenticação. O resto é HTTP fazendo seu trabalho ancestral de transportar JSON.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border p-4"><p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">1. URL base</p><div className="flex items-center gap-2"><code className="min-w-0 flex-1 overflow-x-auto text-sm">{PUBLIC_API_URL}</code><Button type="button" size="icon" variant="ghost" aria-label="Copiar URL da API" onClick={() => void copyValue(PUBLIC_API_URL)}><Copy /></Button></div></div>
+          <div className="rounded-xl border p-4"><p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">2. Autenticação</p><code className="block overflow-x-auto text-sm">Authorization: Bearer SUA_CHAVE_API</code></div>
+          <div className="rounded-xl border p-4"><p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">3. Exemplo de endpoint</p><code className="block overflow-x-auto text-sm">GET {EXAMPLE_ENDPOINT}</code></div>
+        </div>
+
+        <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+          <p><strong className="text-foreground">Passo rápido:</strong> crie uma chave abaixo, guarde-a em variável de ambiente no seu sistema e envie a chave no header <code>Authorization</code> em cada requisição. Nunca coloque a chave no frontend público, em URL, query string ou Git.</p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Exemplos por linguagem">
+            {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopiedSnippet(false); }}>{LANGUAGE_LABELS[item]}</Button>)}
+          </div>
+          <div className="relative overflow-hidden rounded-xl border bg-zinc-950 text-zinc-100">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2"><span className="text-xs font-medium text-zinc-400">{LANGUAGE_LABELS[language]}</span><Button type="button" size="sm" variant="ghost" className="text-zinc-300 hover:bg-white/10 hover:text-white" onClick={() => void copyValue(examples[language], true)}>{copiedSnippet ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copiedSnippet ? "Copiado" : "Copiar"}</Button></div>
+            <pre className="overflow-x-auto p-4 text-xs leading-6"><code>{examples[language]}</code></pre>
+          </div>
+          <p className="text-xs text-muted-foreground">O exemplo usa <code>GET {EXAMPLE_ENDPOINT}</code>. Para outros recursos, mantenha a mesma URL base e autenticação e troque apenas o método, endpoint e corpo da requisição.</p>
+        </div>
+      </CardContent>
+    </Card>
+
     <div className="grid gap-4 md:grid-cols-3"><Card><CardHeader className="pb-2"><CardDescription>Requisições no período</CardDescription><CardTitle className="text-3xl">{totalUsage.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Últimos {period} dias</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Média diária</CardDescription><CardTitle className="text-3xl">{averageUsage.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Requisições por dia</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Chaves ativas</CardDescription><CardTitle className="text-3xl">{apiKeys.length}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Credenciais disponíveis</p></CardContent></Card></div>
     <Card><CardHeader className="flex flex-row items-center justify-between gap-4"><div><CardTitle className="flex items-center gap-2"><Activity className="size-5" />Uso da API</CardTitle><CardDescription>Quantidade de requisições autenticadas por período.</CardDescription></div><div className="flex gap-1" role="group" aria-label="Período do gráfico">{([7, 30, 90] as const).map(value => <Button key={value} variant={period === value ? "secondary" : "outline"} size="sm" onClick={() => setPeriod(value)}>{value}d</Button>)}</div></CardHeader><CardContent><ChartContainer config={chartConfig} className="h-72" aria-label="Gráfico de uso da API"><LineChart data={chartData} margin={{ left: 8, right: 12, top: 8, bottom: 8 }}><CartesianGrid vertical={false} /><XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} /><ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value} requisições`} />} /><Line type="monotone" dataKey="requests" stroke="var(--color-requests)" strokeWidth={2} dot={false} /></LineChart></ChartContainer></CardContent></Card>
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="size-5" /> Acesso por API</CardTitle><CardDescription>Use uma chave no header <code>Authorization: Bearer SUA_CHAVE</code> para consumir clientes, documentos e dashboards sem cookie. A chave completa aparece somente uma vez.</CardDescription></CardHeader>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="size-5" /> Acesso por API</CardTitle><CardDescription>Use uma chave no header <code>Authorization: Bearer SUA_CHAVE</code> para consumir os recursos permitidos sem cookie. A chave completa aparece somente uma vez.</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-5">
         <Button className="w-fit" onClick={() => { setCreatedApiKey(null); setCopied(false); setCreateOpen(true); }}><KeyRound data-icon="inline-start" /> Criar nova chave</Button>
         {apiKeys.length > 0 ? <div className="flex flex-col gap-2">{apiKeys.map(key => <div key={key.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-medium">{key.name}</p><p className="text-xs text-muted-foreground"><code>{key.key_prefix}••••••••</code> · criada em {new Date(key.created_at).toLocaleDateString("pt-BR")}{key.last_used_at ? " · usada por último em " + new Date(key.last_used_at).toLocaleDateString("pt-BR") : " · ainda não usada"}</p></div><Button type="button" variant="destructive" size="sm" disabled={busy} onClick={() => void revoke(key.id)}><Trash2 data-icon="inline-start" /> Revogar</Button></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhuma chave ativa.</p>}
