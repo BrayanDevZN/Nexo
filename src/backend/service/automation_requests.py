@@ -41,14 +41,14 @@ class AutomationRequestService:
 
     @staticmethod
     def _admin(user):
-        if user.role != "admin":
+        if user.role != "owner":
             raise AutomationRequestPermissionError("Administrator access required")
 
     def list(self, actor, *, limit=50, offset=0):
         with self.cached_repositories.read_transaction() as repos:
             current = authorize_read(repos.db, actor, approved=True)
             return repos.db.automation_requests.list(
-                requester_id=None if current.role == "admin" else current.id,
+                requester_id=None if current.role == "owner" else current.id,
                 limit=limit, offset=offset,
             )
 
