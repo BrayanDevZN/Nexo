@@ -79,6 +79,10 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | PATCH /admin/notifications/{id}/read | somente admin destinatário |
 | POST /admin/notifications/{id}/decision | somente admin; decision approved/rejected |
 | GET /clients | aprovado; filtros niche, contract_closed, limit/offset |
+| GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
+| POST /automations | membro aprovado ou API key; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
+| GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
+| GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
 | POST /clients | aprovado; name, niche, phone/email/notes opcionais, contract_closed |
 | GET/PATCH/DELETE /clients/{id} | aprovado; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |

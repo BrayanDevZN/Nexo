@@ -10,7 +10,7 @@ const BASE_URL = "https://nexo-production-60a0.up.railway.app";
 
 type Method = "GET" | "POST" | "PATCH" | "DELETE";
 type Language = "curl" | "javascript" | "python" | "go" | "java" | "php" | "csharp";
-type Route = "/dashboard" | "/clients" | "/documents" | "/notifications" | "/admin/announcements";
+type Route = "/dashboard" | "/clients" | "/documents" | "/automations" | "/notifications" | "/admin/announcements";
 
 type Endpoint = {
   method: Method;
@@ -124,6 +124,58 @@ const ENDPOINTS: Endpoint[] = [
     description: "Remove o cliente informado pelo identificador.",
     response: "HTTP 204 No Content",
     notifies: true,
+  },
+  {
+    method: "GET",
+    route: "/automations",
+    path: "/automations",
+    title: "Listar automações compartilhadas",
+    description: "Lista automações salvas na biblioteca. Qualquer membro aprovado pode consultar.",
+    query: ["limit", "offset"],
+    response: `[
+  {
+    "id": "uuid-da-automacao",
+    "name": "Captura de leads",
+    "description": "Importa e organiza novos contatos.",
+    "filename": "captura-leads.json",
+    "file_size": 24512,
+    "created_by_name": "Brayan",
+    "has_image": false
+  }
+]`,
+  },
+  {
+    method: "POST",
+    route: "/automations",
+    path: "/automations",
+    title: "Salvar automação",
+    description: "Envia nome, descrição e arquivo em multipart/form-data; foto é opcional. A criação gera um aviso para todos os membros aprovados.",
+    body: "name=Captura de leads\ndescription=Importa e organiza novos contatos.\nfile=@captura-leads.json\nimage=@capa.png (opcional)",
+    response: `{
+  "id": "uuid-da-automacao",
+  "name": "Captura de leads",
+  "filename": "captura-leads.json",
+  "file_size": 24512,
+  "has_image": true
+}`,
+    multipart: true,
+    notifies: true,
+  },
+  {
+    method: "GET",
+    route: "/automations",
+    path: "/automations/{identifier}/download",
+    title: "Baixar automação",
+    description: "Baixa o arquivo binário da automação. Exige sessão ou chave API de membro aprovado.",
+    response: "application/octet-stream",
+  },
+  {
+    method: "GET",
+    route: "/automations",
+    path: "/automations/{identifier}/image",
+    title: "Ver imagem da automação",
+    description: "Retorna a foto opcional da automação como JPEG.",
+    response: "image/jpeg",
   },
   {
     method: "GET",
@@ -248,7 +300,7 @@ const ENDPOINTS: Endpoint[] = [
   },
 ];
 
-const ROUTES: Route[] = ["/dashboard", "/clients", "/documents", "/notifications", "/admin/announcements"];
+const ROUTES: Route[] = ["/dashboard", "/clients", "/documents", "/automations", "/notifications", "/admin/announcements"];
 
 const METHOD_STYLE: Record<Method, string> = {
   GET: "border-sky-500/30 bg-sky-500/10 text-sky-600",
@@ -293,8 +345,8 @@ function headersFor(endpoint: Endpoint) {
   return {
     Authorization: "Bearer SUA_CHAVE_API",
     Accept: "application/json",
-    ...(endpoint.method !== "GET" && endpoint.method !== "DELETE" && endpoint.body
-      ? { "Content-Type": endpoint.multipart ? "multipart/form-data" : "application/json" }
+    ...(endpoint.method !== "GET" && endpoint.method !== "DELETE" && endpoint.body && !endpoint.multipart
+      ? { "Content-Type": "application/json" }
       : {}),
     ...endpoint.headers,
   };
@@ -308,6 +360,47 @@ function requestExample(endpoint: Endpoint, language: Language): string {
   const url = `${BASE_URL}${examplePath(endpoint.path)}`;
   const headers = headersFor(endpoint);
   const body = endpoint.body;
+
+  if (endpoint.multipart && endpoint.path === "/automations") {
+    const fields = [
+      ["name", "Captura de leads"],
+      ["description", "Importa e organiza novos contatos."],
+    ];
+    if (language === "curl") return [
+      `curl -X POST "${url}"`,
+      `  -H "Authorization: Bearer SUA_CHAVE_API"`,
+      `  -F "name=${fields[0][1]}"`,
+      `  -F "description=${fields[1][1]}"`,
+      `  -F "file=@captura-leads.json"`,
+      `  -F "image=@capa.png"  # opcional`,
+    ].join(" \\\n");
+    if (language === "javascript") return `const form = new FormData();
+form.append("name", "${fields[0][1]}");
+form.append("description", "${fields[1][1]}");
+form.append("file", document.querySelector("#automation-file").files[0]);
+const image = document.querySelector("#automation-image").files[0];
+if (image) form.append("image", image);
+
+const response = await fetch("${url}", {
+  method: "POST",
+  headers: { Authorization: "Bearer SUA_CHAVE_API", Accept: "application/json" },
+  body: form,
+});
+console.log(await response.json());`;
+    if (language === "python") return `import requests
+
+with open("captura-leads.json", "rb") as automation_file:
+    response = requests.post(
+        "${url}",
+        headers={"Authorization": "Bearer SUA_CHAVE_API"},
+        data={"name": "${fields[0][1]}", "description": "${fields[1][1]}"},
+        files={"file": automation_file},
+        timeout=30,
+    )
+response.raise_for_status()
+print(response.json())`;
+    return `# Esta rota recebe multipart/form-data. Use o exemplo cURL, JavaScript ou Python para enviar o arquivo.`;
+  }
 
   if (language === "curl") {
     const lines = [`curl -X ${endpoint.method} "${url}"`];

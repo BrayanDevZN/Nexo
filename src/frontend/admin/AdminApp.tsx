@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Bell, BellOff, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow } from "lucide-react";
+import { Activity, Bell, BellOff, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import { Home } from "./Home";
 import { BusinessDashboard } from "./BusinessDashboard";
 import { Funnel } from "./Funnel";
 import { AutomationRequests } from "./AutomationRequests";
+import { AutomationsLibrary } from "./AutomationsLibrary";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Directory } from "./Directory";
 import { Members } from "./Members";
@@ -34,6 +36,7 @@ export default function AdminApp() {
   const [error, setError] = useState("");
   const [page, setPage] = useState<Page>("clients");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("nexo:sidebar-collapsed") === "true");
   const [incoming, setIncoming] = useState<ChatMessage | null>(null);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [chatMember, setChatMember] = useState<string>();
@@ -130,6 +133,7 @@ export default function AdminApp() {
   if (!user && error) return <main className="admin-loading"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar novamente</Button><Button variant="link" asChild><a href="/">Voltar ao site</a></Button></main>;
   if (!user) return <Auth api={api} complete={complete} onLogin={onLogin} />;
   function navigate(next: Page) { setPage(next); setMobileOpen(false); }
+  function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
         {user.status === "approved" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
@@ -150,9 +154,10 @@ export default function AdminApp() {
   const account = (
       <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
   );
-  return <div className="admin-layout">
+  return <div className={`admin-layout${sidebarCollapsed ? " admin-layout-collapsed" : ""}`}>
     <aside className="admin-sidebar">
       <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
+      <Button variant="outline" size="sm" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expandir menu" : "Recolher menu"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}>{sidebarCollapsed ? <PanelLeftOpen data-icon="inline-start" /> : <PanelLeftClose data-icon="inline-start" />}<span>{sidebarCollapsed ? "Expandir menu" : "Recolher menu"}</span></Button>
       <p className="admin-eyebrow">PAINEL ADMINISTRATIVO</p>
       {navigation}
       {account}
@@ -171,7 +176,7 @@ export default function AdminApp() {
           page === "home" ? <Home api={api} user={user} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
-          page === "automations" ? <AutomationRequests api={api} user={user} /> :
+          page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger><TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger></TabsList><TabsContent value="library"><AutomationsLibrary api={api} /></TabsContent><TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent></Tabs></section> :
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :

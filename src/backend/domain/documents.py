@@ -10,7 +10,7 @@ class DocumentTooLarge(DocumentValidationError):
     pass
 
 
-EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".odt", ".ods", ".rtf"}
+EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".odt", ".ods", ".rtf", ".json", ".zip", ".yaml", ".yml"}
 
 
 def validate_document(filename, data, max_bytes):

@@ -5,6 +5,7 @@ from sqlalchemy import event
 from backend.infra.connections.database import DatabaseConnection
 from backend.repository.db.control.api_keys import ApiKeyRepository
 from backend.repository.db.control.automation_requests import AutomationRequestRepository
+from backend.repository.db.control.automations import AutomationRepository
 from backend.repository.db.control.chat import ChatRepository
 from backend.repository.db.control.clients import ClientRepository
 from backend.repository.db.control.documents import DocumentRepository
@@ -17,6 +18,7 @@ class Repositories:
         self.users = UserRepository(session, principal_email=principal_email)
         self.api_keys = ApiKeyRepository(session)
         self.automation_requests = AutomationRequestRepository(session)
+        self.automations = AutomationRepository(session)
         self.clients = ClientRepository(session)
         self.documents = DocumentRepository(session)
         self.chat_messages = ChatRepository(session)
@@ -36,7 +38,7 @@ class RepositoryManager:
         def track_changes(session, _context, _instances):
             for row in set(session.new) | set(session.dirty) | set(session.deleted):
                 table = getattr(row, "__tablename__", None)
-                if table in {"users", "api_keys", "automation_requests", "clients", "notifications", "documents", "chat_messages"}:
+                if table in {"users", "api_keys", "automation_requests", "automations", "clients", "notifications", "documents", "chat_messages"}:
                     changed.add(table)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:
@@ -47,7 +49,7 @@ class RepositoryManager:
             invalidations = set(changed)
             # The overview is a cross-table projection.  Its cache must be
             # invalidated together with any table it summarizes.
-            if changed & {"users", "clients", "notifications", "documents"}:
+            if changed & {"users", "clients", "notifications", "documents", "automations"}:
                 invalidations.add("dashboard")
             self.cache.invalidate(invalidations)  # reached only after successful SQL commit
         if changed and self.on_change:

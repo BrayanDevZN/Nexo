@@ -112,6 +112,7 @@ class MemberService:
             raise ResourceConflict("Principal administrator cannot be deleted")
         repos.clients.transfer_creator(user.id, principal.id)
         repos.documents.transfer_creator(user.id, principal.id)
+        repos.automations.transfer_creator(user.id, principal.id)
         keys = repos.chat_messages.delete_for_user(user.id)
         repos.notifications.delete_for_user(user.id)
         repos.users.delete(user.id)
