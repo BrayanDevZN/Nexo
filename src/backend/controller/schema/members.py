@@ -22,7 +22,7 @@ class MemberUpdateInput(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, min_length=10, max_length=30)
-    role: Literal["member", "admin"] | None = None
+    role: Literal["member", "admin", "owner"] | None = None
 
     @field_validator("name")
     @classmethod
