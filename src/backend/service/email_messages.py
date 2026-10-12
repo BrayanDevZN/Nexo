@@ -5,11 +5,14 @@ from backend.infra.connections.email import EmailQueueFullError, EmailUnavailabl
 
 logger = logging.getLogger(__name__)
 
-_BACKGROUND = "#f4f4f5"
-_FOREGROUND = "#18181b"
-_MUTED = "#71717a"
-_BORDER = "#e4e4e7"
-_PRIMARY = "#4f46e5"
+_BACKGROUND = "#f7f3fc"
+_SURFACE = "#ffffff"
+_FOREGROUND = "#21122f"
+_BODY = "#51465f"
+_MUTED = "#6f637c"
+_BORDER = "#e8def3"
+_PRIMARY = "#6d28d9"
+_PRIMARY_SOFT = "#f2ebff"
 
 
 def _paragraph(value: str) -> str:
@@ -18,59 +21,78 @@ def _paragraph(value: str) -> str:
 
 def _render_email(*, preheader: str, heading: str, paragraphs: list[str],
                   code: str | None = None, expires_in: int | None = None,
-                  action_label: str | None = None, action_url: str | None = None) -> str:
-    """Gmail-friendly one-column HTML: tables, inline CSS, no remote assets."""
+                  action_label: str | None = None, action_url: str | None = None,
+                  eyebrow: str = "PAINEL NEXO") -> str:
+    """Render responsive, shadcn-inspired email HTML with inline styles and table layout."""
     safe_preheader = html.escape(preheader, quote=True)
     safe_heading = html.escape(heading, quote=True)
+    safe_eyebrow = html.escape(eyebrow, quote=True)
     body = "".join(
-        '<tr><td style="padding:0 0 14px;color:#3f3f46;font:15px/1.65 Arial,Helvetica,sans-serif;">'
+        f'<tr><td style="padding:0 0 16px;color:{_BODY};font:15px/1.7 Arial,Helvetica,sans-serif;">'
         + _paragraph(paragraph) + "</td></tr>"
         for paragraph in paragraphs
     )
     code_block = ""
     if code is not None:
         safe_code = html.escape(code, quote=True)
-        expiry = (f'<div style="padding-top:8px;color:{_MUTED};font:12px/1.5 Arial,Helvetica,sans-serif;">'
-                  f'Este código expira em {int(expires_in or 0)} segundos.</div>')
+        expiry = (
+            '<tr><td align="center" style="padding:10px 8px 0;color:' + _MUTED +
+            ';font:12px/1.5 Arial,Helvetica,sans-serif;">Este código expira em ' +
+            str(int(expires_in or 0)) + ' segundos.</td></tr>'
+        )
         code_block = (
             '<tr><td style="padding:4px 0 22px;">'
             f'<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" '
-            f'style="border:1px solid {_BORDER};border-radius:12px;background:#fafafa;"><tr><td align="center" '
-            f'style="padding:20px 12px;color:{_FOREGROUND};font:bold 30px/1.2 Arial,Helvetica,sans-serif;'
-            f'letter-spacing:8px;">{safe_code}</td></tr></table>{expiry}</td></tr>'
+            f'style="border:1px solid {_BORDER};border-radius:12px;background:{_PRIMARY_SOFT};">'
+            f'<tr><td align="center" style="padding:22px 12px;color:{_PRIMARY};'
+            f'font:bold 30px/1.2 Arial,Helvetica,sans-serif;letter-spacing:8px;">{safe_code}</td></tr>'
+            f'{expiry}</table></td></tr>'
         )
     action = ""
     if action_label and action_url:
         safe_label = html.escape(action_label, quote=True)
         safe_url = html.escape(action_url, quote=True)
         action = (
-            '<tr><td align="left" style="padding:2px 0 22px;">'
-            f'<a href="{safe_url}" style="display:inline-block;border-radius:8px;background:{_PRIMARY};'
-            f'padding:12px 18px;color:#ffffff;text-decoration:none;font:bold 14px Arial,Helvetica,sans-serif;">'
-            f'{safe_label}</a></td></tr>'
+            '<tr><td align="left" style="padding:2px 0 24px;">'
+            '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td '
+            f'align="center" bgcolor="{_PRIMARY}" style="border-radius:8px;background:{_PRIMARY};">'
+            f'<a href="{safe_url}" style="display:inline-block;padding:13px 20px;border:1px solid {_PRIMARY};'
+            f'border-radius:8px;color:#ffffff;text-decoration:none;font:bold 14px/1 Arial,Helvetica,sans-serif;">'
+            f'{safe_label}</a></td></tr></table></td></tr>'
         )
     return (
         '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
         f'<body style="margin:0;padding:0;background:{_BACKGROUND};">'
-        f'<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;'
+        '<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;'
         f'overflow:hidden;mso-hide:all;">{safe_preheader}</div>'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{_BACKGROUND};"><tr><td align="center" style="padding:32px 12px;">'
+        f'style="width:100%;background:{_BACKGROUND};"><tr><td align="center" style="padding:32px 14px;">'
         '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" '
-        'style="width:100%;max-width:600px;border:1px solid #e4e4e7;border-radius:16px;background:#ffffff;">'
-        '<tr><td style="padding:26px 28px 18px;border-bottom:1px solid #e4e4e7;">'
-        f'<div style="color:{_PRIMARY};font:bold 13px/1.4 Arial,Helvetica,sans-serif;letter-spacing:2px;">NEXO</div>'
-        '<div style="padding-top:4px;color:#71717a;font:12px/1.5 Arial,Helvetica,sans-serif;">Painel da equipe</div>'
-        '</td></tr><tr><td style="padding:28px;">'
-        f'<div style="padding-bottom:8px;color:{_PRIMARY};font:bold 11px/1.4 Arial,Helvetica,sans-serif;'
-        f'letter-spacing:1.4px;text-transform:uppercase;">Atualização da Nexo</div>'
-        f'<h1 style="margin:0 0 18px;color:{_FOREGROUND};font:bold 25px/1.25 Arial,Helvetica,sans-serif;">'
-        f'{safe_heading}</h1><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+        f'style="width:100%;max-width:600px;border:1px solid {_BORDER};border-radius:16px;'
+        f'background:{_SURFACE};">'
+        f'<tr><td height="5" bgcolor="{_PRIMARY}" style="height:5px;background:{_PRIMARY};'
+        'font-size:0;line-height:0;border-radius:16px 16px 0 0;">&nbsp;</td></tr>'
+        '<tr><td style="padding:24px 28px 18px;border-bottom:1px solid ' + _BORDER + ';">'
+        f'<div style="color:{_PRIMARY};font:bold 16px/1.3 Arial,Helvetica,sans-serif;letter-spacing:2px;">NEXO</div>'
+        f'<div style="padding-top:5px;color:{_MUTED};font:12px/1.5 Arial,Helvetica,sans-serif;">'
+        'Automação inteligente para sua equipe</div>'
+        '</td></tr><tr><td style="padding:30px 28px 24px;">'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td bgcolor="{_PRIMARY_SOFT}" style="padding:5px 9px;border:1px solid {_BORDER};'
+        f'border-radius:999px;background:{_PRIMARY_SOFT};color:{_PRIMARY};'
+        f'font:bold 10px/1.3 Arial,Helvetica,sans-serif;letter-spacing:1px;">{safe_eyebrow}</td>'
+        '</tr></table>'
+        f'<h1 style="margin:16px 0 20px;color:{_FOREGROUND};font:bold 25px/1.3 Arial,Helvetica,sans-serif;">'
+        f'{safe_heading}</h1>'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
         f'{body}{code_block}{action}</table>'
-        f'<div style="border-top:1px solid {_BORDER};padding-top:16px;color:{_MUTED};'
-        'font:12px/1.6 Arial,Helvetica,sans-serif;">Esta mensagem foi enviada pela Nexo. '
-        'Se você não reconhece esta solicitação, pode ignorar este e-mail.</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border-top:1px solid {_BORDER};"><tr><td style="padding:18px 0 0;color:{_MUTED};'
+        'font:12px/1.6 Arial,Helvetica,sans-serif;">Esta é uma mensagem automática da Nexo. '
+        'Acesse o painel pelo endereço oficial: '
+        '<a href="https://www.nexoaicompany.com" style="color:' + _PRIMARY +
+        ';text-decoration:underline;">nexoaicompany.com</a></td></tr></table>'
         '</td></tr></table></td></tr></table></body></html>'
     )
 
@@ -84,7 +106,7 @@ class AccountMessages:
                              else "https://www.nexoaicompany.com")
 
     def _send(self, recipient, subject, preheader, heading, paragraphs, *, code=None,
-              expires_in=None, action_label=None, action_url=None):
+              expires_in=None, action_label=None, action_url=None, eyebrow="PAINEL NEXO"):
         plain_parts = list(paragraphs)
         if code is not None:
             plain_parts.append("Código: " + str(code))
@@ -96,7 +118,7 @@ class AccountMessages:
             recipient, subject, "\n\n".join(plain_parts),
             html=_render_email(preheader=preheader, heading=heading, paragraphs=paragraphs,
                                code=code, expires_in=expires_in,
-                               action_label=action_label, action_url=action_url),
+                               action_label=action_label, action_url=action_url, eyebrow=eyebrow),
         )
 
     def registration_code(self, recipient, code, expires_in):
@@ -105,7 +127,7 @@ class AccountMessages:
             "Confirme seu endereço de e-mail para concluir o cadastro.",
             "Confirme seu cadastro",
             ["Use o código abaixo para confirmar seu endereço de e-mail e continuar o cadastro da sua conta Nexo."],
-            code=code, expires_in=expires_in,
+            code=code, expires_in=expires_in, eyebrow="SEGURANÇA DA CONTA",
         )
 
     def recovery_code(self, recipient, code, expires_in):
@@ -114,7 +136,7 @@ class AccountMessages:
             "Use seu código para criar uma nova senha.",
             "Redefina sua senha",
             ["Use o código abaixo para confirmar a solicitação de troca de senha."],
-            code=code, expires_in=expires_in,
+            code=code, expires_in=expires_in, eyebrow="SEGURANÇA DA CONTA",
         )
 
     def deletion_code(self, recipient, code, expires_in):
@@ -123,7 +145,7 @@ class AccountMessages:
             "Confirme a solicitação de exclusão da sua conta.",
             "Confirme a exclusão da conta",
             ["Use o código abaixo para confirmar a exclusão da sua conta Nexo."],
-            code=code, expires_in=expires_in,
+            code=code, expires_in=expires_in, eyebrow="SEGURANÇA DA CONTA",
         )
 
     def welcome(self, user):
@@ -136,6 +158,7 @@ class AccountMessages:
                 "Seu cadastro foi recebido",
                 ["Olá, " + (getattr(user, "name", None) or "pessoa") + ". Seu cadastro foi recebido e aguarda aprovação do administrador.",
                  "Você receberá outro e-mail assim que a decisão sobre seu acesso for registrada."],
+                eyebrow="CADASTRO RECEBIDO",
             )
         except (EmailUnavailableError, EmailQueueFullError):
             # The committed account survives failures in best-effort welcome delivery.
@@ -162,7 +185,8 @@ class AccountMessages:
         try:
             self._send(user.email, subject, preheader, heading, paragraphs,
                        action_label=action_label,
-                       action_url=self.frontend_url.rstrip("/") + "/admin" if action_label else None)
+                       action_url=self.frontend_url.rstrip("/") + "/admin" if action_label else None,
+                       eyebrow="STATUS DA CONTA")
         except (EmailUnavailableError, EmailQueueFullError):
             logger.warning("Access decision email could not be queued")
             return False
@@ -174,7 +198,7 @@ class AccountMessages:
         self._send(
             user.email, "Novo aviso da Nexo: " + title,
             "A equipe compartilhou um novo aviso.",
-            title, [body],
+            title, [body], eyebrow="AVISO DA EQUIPE",
         )
         return True
 
@@ -191,5 +215,6 @@ class AccountMessages:
             "Seu acesso ao n8n está pronto. Use o link seguro para criar sua conta.",
             "Seu convite para o n8n chegou", paragraphs,
             action_label="Criar minha conta no n8n", action_url=invite_url,
+            eyebrow="AUTOMAÇÕES",
         )
         return True
