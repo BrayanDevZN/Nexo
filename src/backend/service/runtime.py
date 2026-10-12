@@ -128,7 +128,7 @@ class RuntimeServices:
             raise
 
     def initialize(self, settings: Settings) -> None:
-        create_tables(self.database.engine)
+        create_tables(self.database.engine, settings.email)
         self.auth.bootstrap_admin(settings)
         self.approvals.synchronize_pending()
 
