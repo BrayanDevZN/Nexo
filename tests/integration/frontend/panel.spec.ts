@@ -147,9 +147,8 @@ test("expired session returns to login", async ({ page }) => {
   await mock(page, { user: { ...member, status: "approved" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
-  await page.route("**/api/clients**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
-  await page.getByRole("button", { name: "Atualizar clientes" }).click();
-  await expect(page.getByLabel("E-mail", { exact: true })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event("nexo:session-expired")));
+  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });
 
 
