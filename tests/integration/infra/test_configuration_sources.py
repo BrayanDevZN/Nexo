@@ -26,7 +26,7 @@ def test_same_environment_credentials_create_admin_and_configure_sender(tmp_path
         auth = AuthService(RepositoryManager(database), PasswordHasher(rounds=4), Mock())
         auth.bootstrap_admin(settings)
         user, _ = auth.login("owner@example.com", "shared-application-password")
-        assert user.role == "admin" and user.status == "approved"
+        assert user.role == "owner" and user.status == "approved"
         assert user.google_sub is None
         assert sender.configured
         sender.send("recipient@example.com", "Test", "Test body").result(timeout=2)
