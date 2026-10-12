@@ -101,7 +101,6 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("Nova senha", { exact: true }).fill("browser-updated-password");
     await member.getByLabel("Confirmar nova senha").fill("browser-updated-password");
     await member.getByRole("button", { name: "Atualizar senha", exact: true }).click();
-    await member.getByRole("button", { name: "Atualizar clientes" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
@@ -113,7 +112,8 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByRole("option", { name: "Administrador" }).click();
     await admin.getByRole("button", { name: "Salvar membro" }).click();
     await expect(admin.getByText("Membro atualizado.")).toBeVisible();
-    // Changing privileges invalidates the previous HttpOnly session.
+    // The next request observes the incremented session version and logs out the previous session.
+    await member.getByRole("button", { name: "Atualizar clientes" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
