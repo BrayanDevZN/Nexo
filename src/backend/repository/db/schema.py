@@ -2,11 +2,13 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
 from backend.repository.db.models import Base
+from backend.repository.db.migrations.owner_role import migrate_owner_role
 
 
-def create_tables(engine: Engine) -> None:
+def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     """Create missing tables and apply additive, data-preserving schema changes."""
     Base.metadata.create_all(engine)
+    migrate_owner_role(engine, principal_email)
     # Existing Railway volumes already contain the notifications table. Add the
     # announcement fields in place so deploying this feature preserves history.
     columns = {column["name"] for column in inspect(engine).get_columns("notifications")}
