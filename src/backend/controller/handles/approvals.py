@@ -1,6 +1,7 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
+from pydantic import ValidationError
 
 from backend.controller.dependencies import admin_user, approved_user
 from backend.controller.schema.approvals import (
@@ -11,7 +12,9 @@ from backend.controller.schema.approvals import (
 )
 from backend.controller.schema.auth import UserOutput
 from backend.controller.schema.members import MemberOutput
+from backend.domain.photos import PhotoTooLarge, PhotoValidationError, normalize_photo
 from backend.service.access import AccessDenied
+from backend.service.access import ResourceNotFound
 from backend.service.announcements import AnnouncementPermissionError
 from backend.service.approvals import ApprovalConflict, ApprovalNotFound, ApprovalPermissionError
 
@@ -57,6 +60,40 @@ def create_announcement(data: AnnouncementInput, request: Request, actor=Depends
         raise fail(exc) from None
 
 
+@announcements_router.post("/with-image", response_model=AnnouncementOutput, status_code=201)
+async def create_announcement_with_image(
+    request: Request,
+    title: str = Form(min_length=1, max_length=160),
+    body: str = Form(min_length=1, max_length=5000),
+    image: UploadFile | None = File(default=None),
+    actor=Depends(admin_user),
+):
+    try:
+        data = AnnouncementInput(title=title, body=body)
+        image_data = None
+        if image is not None:
+            raw = await image.read(request.app.state.settings.profile_photo_max_bytes + 1)
+            image_data = normalize_photo(
+                raw,
+                max_bytes=request.app.state.settings.profile_photo_max_bytes,
+                max_pixels=request.app.state.settings.profile_photo_max_pixels,
+            )
+        return request.app.state.services.announcements.create(
+            actor, title=data.title, body=data.body, image_data=image_data,
+        )
+    except PhotoTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from None
+    except PhotoValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors(include_input=False)) from None
+    except (AnnouncementPermissionError, ValueError) as exc:
+        raise fail(exc) from None
+    finally:
+        if image is not None:
+            await image.close()
+
+
 @member_notifications_router.get("", response_model=list[NotificationOutput])
 def member_notifications(request: Request, kind: Literal["announcement", "member_joined", "chat_message",
                                                                     "automation_request", "automation_invitation",
@@ -72,6 +109,18 @@ def member_notifications(request: Request, kind: Literal["announcement", "member
 @member_notifications_router.get("/unread-count")
 def unread_counts(request: Request, actor=Depends(approved_user)):
     return request.app.state.services.announcements.unread_counts(actor)
+
+
+@member_notifications_router.get("/{identifier}/image")
+def notification_image(identifier: str, request: Request, actor=Depends(approved_user)):
+    try:
+        data = request.app.state.services.announcements.image(actor, identifier)
+    except (AccessDenied, ResourceNotFound) as exc:
+        raise fail(exc) from None
+    return Response(content=data, media_type="image/jpeg", headers={
+        "Cache-Control": "private, max-age=300",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 @member_notifications_router.patch("/chat/{member_id}/read")
