@@ -60,6 +60,16 @@ class AnnouncementService:
                 raise KeyError("Chat member not found")
             return repos.notifications.mark_chat_read_for_sender(current.id, sender.id)
 
+    def mark_all_chat_read(self, actor):
+        with self.repositories.transaction() as repos:
+            current = authorize(repos, actor, approved=True)
+            return repos.notifications.mark_all_chat_read(current.id)
+
+    def mark_all_notices_read(self, actor):
+        with self.repositories.transaction() as repos:
+            current = authorize(repos, actor, approved=True)
+            return repos.notifications.mark_all_notices_read(current.id)
+
     def mark_read(self, actor, identifier):
         with self.repositories.transaction() as repos:
             current = authorize(repos, actor, approved=True)
