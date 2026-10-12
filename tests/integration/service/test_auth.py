@@ -53,7 +53,7 @@ def test_bootstrap_preserves_changed_password(auth, settings):
     auth.bootstrap_admin(settings)
     with auth.repositories.transaction() as repos:
         admin = repos.users.by_email(settings.email)
-        assert admin.role == "admin" and admin.status == "approved"
+        assert admin.role == "owner" and admin.status == "approved"
         assert admin.google_sub is None
         assert auth.passwords.verify(settings.password.get_secret_value(), admin.password_hash)
         repos.users.set_password(admin, auth.passwords.hash("changed-admin-password"))
@@ -71,7 +71,7 @@ def test_bootstrap_does_not_promote_registered_member(auth, settings):
                   password="strong-password-123")
     settings.email = "owner@example.com"
     settings.password = SecretStr("initial-admin-password")
-    with pytest.raises(RuntimeError, match="not an approved administrator"):
+    with pytest.raises(RuntimeError, match="not an approved Owner"):
         auth.bootstrap_admin(settings)
     with auth.repositories.transaction() as repos:
         assert repos.users.by_email(settings.email).role == "member"
