@@ -91,6 +91,26 @@ class NotificationRepository(Repository[Notification]):
             self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
         return result.rowcount
 
+    def mark_all_chat_read(self, recipient_id: str) -> int:
+        result = self.session.execute(update(Notification).where(
+            Notification.recipient_id == recipient_id,
+            Notification.kind == "chat_message",
+            Notification.read_at.is_(None),
+        ).values(read_at=utc_now()), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        return result.rowcount
+
+    def mark_all_notices_read(self, recipient_id: str) -> int:
+        result = self.session.execute(update(Notification).where(
+            Notification.recipient_id == recipient_id,
+            Notification.kind != "chat_message",
+            Notification.read_at.is_(None),
+        ).values(read_at=utc_now()), execution_options={"synchronize_session": False})
+        if result.rowcount:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("notifications")
+        return result.rowcount
+
     def list_for_recipient(self, recipient_id: str, *, unresolved_only: bool = False,
                            kind: str | None = None, limit: int = 50, offset: int = 0) -> list[Notification]:
         pagination(limit, offset)
