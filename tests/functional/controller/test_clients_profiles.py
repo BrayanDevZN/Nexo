@@ -62,6 +62,36 @@ def test_clients_crud_filters_and_server_selected_creator(client):
     assert client.get("/clients").json() == []
 
 
+def test_api_key_client_creation_notifies_site_and_queues_email(client, monkeypatch):
+    from unittest.mock import Mock
+
+    session_headers = login(client)
+    key_response = client.post("/auth/api-keys", headers=session_headers,
+                               json={"name": "client notification test"})
+    assert key_response.status_code == 201
+    api_key = key_response.json()["key"]
+
+    services = client.app.state.services
+    email = Mock(return_value=True)
+    push = Mock()
+    monkeypatch.setattr(services.messages, "announcement", email)
+    monkeypatch.setattr(services.push, "notify_users", push)
+
+    response = client.post("/clients", headers={"Authorization": f"Bearer {api_key}"}, json={
+        "name": "Lead criado via API", "niche": "Contabilidade",
+    })
+    assert response.status_code == 201
+    created = response.json()
+
+    notices = client.get("/admin/notifications", headers=session_headers).json()
+    notice = next(item for item in notices if item["title"] == "Novo cliente cadastrado")
+    assert "Lead criado via API" in notice["body"]
+    assert email.call_count == 1
+    assert email.call_args.args[1] == "Novo cliente cadastrado"
+    push.assert_called_once_with([created["created_by_id"]], "Novo cliente cadastrado",
+                                 notice["body"])
+
+
 def test_pending_cannot_read_or_mutate_clients_and_approval_activates_session(client):
     assert verified_register(client, headers=ORIGIN, json=DATA).status_code == 201
     headers = login(client, DATA["email"], DATA["password"])
