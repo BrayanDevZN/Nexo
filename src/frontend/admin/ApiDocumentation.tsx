@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, BellRing, BookOpen, Check, Copy, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
@@ -10,10 +10,11 @@ const BASE_URL = "https://nexo-production-60a0.up.railway.app";
 
 type Method = "GET" | "POST" | "PATCH" | "DELETE";
 type Language = "curl" | "javascript" | "python" | "go" | "java" | "php" | "csharp";
+type Route = "/dashboard" | "/clients" | "/documents" | "/notifications" | "/admin/announcements";
 
 type Endpoint = {
   method: Method;
-  route: string;
+  route: Route;
   path: string;
   title: string;
   description: string;
@@ -23,6 +24,7 @@ type Endpoint = {
   response: string;
   notifies?: boolean;
   multipart?: boolean;
+  adminOnly?: boolean;
 };
 
 const ENDPOINTS: Endpoint[] = [
@@ -146,7 +148,7 @@ const ENDPOINTS: Endpoint[] = [
     title: "Enviar documento",
     description: "Envia um arquivo usando multipart/form-data.",
     query: ["client_id"],
-    body: `file=@contrato.pdf`,
+    body: "file=@contrato.pdf",
     response: `{
   "id": "uuid-do-documento",
   "filename": "contrato.pdf",
@@ -171,9 +173,81 @@ const ENDPOINTS: Endpoint[] = [
     description: "Remove o documento informado pelo identificador.",
     response: "HTTP 204 No Content",
   },
+  {
+    method: "GET",
+    route: "/notifications",
+    path: "/notifications",
+    title: "Listar notificações",
+    description: "Lista as notificações do usuário autenticado.",
+    query: ["kind", "limit", "offset"],
+    response: `[
+  {
+    "id": "uuid-da-notificacao",
+    "kind": "announcement",
+    "title": "Novo aviso",
+    "body": "Conteúdo do aviso",
+    "read_at": null,
+    "created_at": "2026-10-12T12:00:00"
+  }
+]`,
+  },
+  {
+    method: "GET",
+    route: "/notifications",
+    path: "/notifications/unread-count",
+    title: "Contar não lidas",
+    description: "Retorna a quantidade de notificações ainda não lidas.",
+    response: `{
+  "total": 4,
+  "chat_messages": 1
+}`,
+  },
+  {
+    method: "PATCH",
+    route: "/notifications",
+    path: "/notifications/{identifier}/read",
+    title: "Marcar notificação como lida",
+    description: "Marca uma notificação específica como lida.",
+    response: `{
+  "id": "uuid-da-notificacao",
+  "kind": "announcement",
+  "read_at": "2026-10-12T12:10:00"
+}`,
+  },
+  {
+    method: "PATCH",
+    route: "/notifications",
+    path: "/notifications/chat/{member_id}/read",
+    title: "Marcar chat como lido",
+    description: "Marca como lidas as notificações de chat de um membro.",
+    response: `{
+  "marked_read": 3
+}`,
+  },
+  {
+    method: "POST",
+    route: "/admin/announcements",
+    path: "/admin/announcements",
+    title: "Criar aviso",
+    description: "Cria um aviso para os membros. Esta rota exige uma chave pertencente a um administrador.",
+    body: `{
+  "title": "Manutenção programada",
+  "body": "O painel ficará indisponível às 22h por alguns minutos."
+}`,
+    response: `{
+  "id": "uuid-do-aviso",
+  "title": "Manutenção programada",
+  "body": "O painel ficará indisponível às 22h por alguns minutos.",
+  "recipients": 6,
+  "email_queued": 6,
+  "created_at": "2026-10-12T12:00:00"
+}`,
+    notifies: true,
+    adminOnly: true,
+  },
 ];
 
-const ROUTES = ["/dashboard", "/clients", "/documents"] as const;
+const ROUTES: Route[] = ["/dashboard", "/clients", "/documents", "/notifications", "/admin/announcements"];
 
 const METHOD_STYLE: Record<Method, string> = {
   GET: "border-sky-500/30 bg-sky-500/10 text-sky-600",
@@ -202,19 +276,35 @@ const LANGUAGE_COLORS: Record<Language, string> = {
   csharp: "#9B4F96",
 };
 
+const KEYWORDS: Record<Language, Set<string>> = {
+  curl: new Set(["curl"]),
+  javascript: new Set(["const", "let", "var", "await", "async", "new", "return", "throw", "if", "else", "true", "false", "null"]),
+  python: new Set(["import", "from", "as", "def", "class", "return", "raise", "if", "else", "elif", "for", "while", "in", "True", "False", "None", "with", "async", "await"]),
+  go: new Set(["package", "import", "func", "var", "const", "defer", "if", "else", "for", "range", "return", "go", "select", "switch", "case", "nil"]),
+  java: new Set(["import", "class", "public", "private", "protected", "static", "final", "new", "var", "return", "throws", "throw", "if", "else", "true", "false", "null"]),
+  php: new Set(["echo", "new", "function", "return", "if", "else", "foreach", "as", "true", "false", "null"]),
+  csharp: new Set(["using", "var", "new", "await", "async", "return", "if", "else", "true", "false", "null", "public", "private", "class"]),
+};
+
+const TYPES = new Set(["HttpClient", "HttpRequest", "HttpResponse", "URI", "AuthenticationHeaderValue", "StringContent", "Console", "System", "Header", "DefaultClient"]);
+
 function headersFor(endpoint: Endpoint) {
   return {
     Authorization: "Bearer SUA_CHAVE_API",
     Accept: "application/json",
-    ...(endpoint.method !== "GET" && endpoint.method !== "DELETE"
+    ...(endpoint.method !== "GET" && endpoint.method !== "DELETE" && endpoint.body
       ? { "Content-Type": endpoint.multipart ? "multipart/form-data" : "application/json" }
       : {}),
     ...endpoint.headers,
   };
 }
 
+function examplePath(path: string) {
+  return path.replace("{identifier}", "SEU_ID").replace("{member_id}", "ID_DO_MEMBRO");
+}
+
 function requestExample(endpoint: Endpoint, language: Language): string {
-  const url = `${BASE_URL}${endpoint.path.replace("{identifier}", "SEU_ID")}`;
+  const url = `${BASE_URL}${examplePath(endpoint.path)}`;
   const headers = headersFor(endpoint);
   const body = endpoint.body;
 
@@ -303,23 +393,66 @@ var response = await client.SendAsync(request);
 Console.WriteLine(await response.Content.ReadAsStringAsync());`;
 }
 
-function CodeBlock({ title, value, onCopy, copied }: { title: string; value: string; onCopy: () => void; copied: boolean }) {
-  return <div className="overflow-hidden rounded-xl border border-[#3c3c3c] bg-[#1e1e1e]">
+function highlightCode(code: string, language: Language): ReactNode[] {
+  const keywords = KEYWORDS[language];
+  const token = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*\b|\s+|.)/g;
+  const parts = code.match(token) || [code];
+
+  return parts.map((part, index) => {
+    let color = "#D4D4D4";
+    let fontStyle: "normal" | "italic" = "normal";
+    if (/^("|'|`)/.test(part)) color = "#CE9178";
+    else if (/^(\/\/|\/\*|#(?!\?php))/.test(part)) { color = "#6A9955"; fontStyle = "italic"; }
+    else if (/^\d/.test(part)) color = "#B5CEA8";
+    else if (keywords.has(part)) color = "#C586C0";
+    else if (TYPES.has(part) || /^[A-Z][A-Za-z0-9_]*$/.test(part)) color = "#4EC9B0";
+    else if (/^[A-Za-z_$][\w$]*$/.test(part)) {
+      const next = parts.slice(index + 1).find(value => !/^\s+$/.test(value));
+      color = next === "(" ? "#DCDCAA" : "#9CDCFE";
+    }
+    return <span key={`${index}-${part}`} style={{ color, fontStyle }}>{part}</span>;
+  });
+}
+
+function highlightJson(code: string): ReactNode[] {
+  const token = /("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?\b|\s+|.)/g;
+  return (code.match(token) || [code]).map((part, index) => {
+    let color = "#D4D4D4";
+    if (/^".*"\s*:$/.test(part)) color = "#9CDCFE";
+    else if (/^"/.test(part)) color = "#CE9178";
+    else if (/^(true|false|null)$/.test(part)) color = "#569CD6";
+    else if (/^-?\d/.test(part)) color = "#B5CEA8";
+    return <span key={`${index}-${part}`} style={{ color }}>{part}</span>;
+  });
+}
+
+function CodeBlock({ title, value, onCopy, copied, language, json = false }: {
+  title: string;
+  value: string;
+  onCopy: () => void;
+  copied: boolean;
+  language?: Language;
+  json?: boolean;
+}) {
+  return <div className="overflow-hidden rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] shadow-inner">
     <div className="flex items-center justify-between border-b border-[#3c3c3c] bg-[#252526] px-4 py-2">
-      <span className="text-xs font-medium text-[#cccccc]">{title}</span>
+      <span className="flex items-center gap-2 text-xs font-medium text-[#cccccc]">
+        {language && <span className="size-2 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[language] }} />}
+        {title}
+      </span>
       <Button type="button" size="sm" variant="ghost" className="text-[#cccccc] hover:bg-white/10 hover:text-white" onClick={onCopy}>
         {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copied ? "Copiado" : "Copiar"}
       </Button>
     </div>
-    <pre className="max-h-72 overflow-auto p-4 font-mono text-xs leading-6 text-[#d4d4d4]"><code>{value}</code></pre>
+    <pre className="max-h-80 overflow-auto p-4 font-mono text-xs leading-6"><code>{language ? highlightCode(value, language) : json ? highlightJson(value) : <span className="text-[#d4d4d4]">{value}</span>}</code></pre>
   </div>;
 }
 
 export function ApiDocumentation() {
-  const [route, setRoute] = useState<(typeof ROUTES)[number]>("/clients");
+  const [route, setRoute] = useState<Route>("/clients");
   const [selected, setSelected] = useState<Endpoint | null>(null);
   const [language, setLanguage] = useState<Language>("curl");
-  const [copied, setCopied] = useState<string>("");
+  const [copied, setCopied] = useState("");
 
   const methods = useMemo(() => ENDPOINTS.filter(endpoint => endpoint.route === route), [route]);
   const fullExample = selected ? requestExample(selected, language) : "";
@@ -348,9 +481,9 @@ export function ApiDocumentation() {
 
         <div className="flex flex-col gap-5 p-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex min-w-[15rem] flex-col gap-2">
+            <div className="flex min-w-[16rem] flex-col gap-2">
               <label htmlFor="api-doc-route" className="text-sm font-medium">Path</label>
-              <NativeSelect id="api-doc-route" value={route} onChange={event => setRoute(event.target.value as typeof route)}>
+              <NativeSelect id="api-doc-route" value={route} onChange={event => { setRoute(event.target.value as Route); setSelected(null); }}>
                 {ROUTES.map(item => <NativeSelectOption key={item} value={item}>{item}</NativeSelectOption>)}
               </NativeSelect>
             </div>
@@ -373,6 +506,7 @@ export function ApiDocumentation() {
                       <Badge variant="outline" className={METHOD_STYLE[endpoint.method]}>{endpoint.method}</Badge>
                       <code className="break-all text-sm font-semibold">{endpoint.path}</code>
                       {endpoint.notifies && <Badge variant="secondary" className="gap-1"><BellRing className="size-3" /> notifica</Badge>}
+                      {endpoint.adminOnly && <Badge variant="outline">admin</Badge>}
                     </div>
                     <CardTitle className="text-base">{endpoint.title}</CardTitle>
                     <CardDescription className="mt-1">{endpoint.description}</CardDescription>
@@ -388,7 +522,12 @@ export function ApiDocumentation() {
           <div className="flex items-start gap-3 pr-8">
             <Button type="button" variant="ghost" size="icon-sm" className="mt-0.5 shrink-0" onClick={() => setSelected(null)} aria-label="Voltar para os métodos"><ArrowLeft /></Button>
             <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="outline" className={METHOD_STYLE[selected.method]}>{selected.method}</Badge><code className="break-all text-sm font-semibold">{selected.path}</code>{selected.notifies && <Badge variant="secondary"><BellRing data-icon="inline-start" /> envia notificação</Badge>}</div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className={METHOD_STYLE[selected.method]}>{selected.method}</Badge>
+                <code className="break-all text-sm font-semibold">{selected.path}</code>
+                {selected.notifies && <Badge variant="secondary"><BellRing data-icon="inline-start" /> envia notificação</Badge>}
+                {selected.adminOnly && <Badge variant="outline">somente administrador</Badge>}
+              </div>
               <DialogTitle>{selected.title}</DialogTitle>
               <DialogDescription>{selected.description}</DialogDescription>
             </div>
@@ -399,11 +538,11 @@ export function ApiDocumentation() {
           {selected.query?.length ? <div className="rounded-xl border bg-muted/20 p-4"><p className="mb-2 text-sm font-medium">Query params</p><div className="flex flex-wrap gap-2">{selected.query.map(item => <Badge key={item} variant="outline"><code>{item}</code></Badge>)}</div></div> : null}
 
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-medium">Exemplo completo</p><p className="text-xs text-muted-foreground">Troque os valores de exemplo pelos dados da sua integração.</p></div></div>
+            <div><p className="text-sm font-medium">Exemplo completo</p><p className="text-xs text-muted-foreground">Escolha a linguagem. O código usa syntax highlighting inspirado no VS Code e pode ser copiado diretamente.</p></div>
             <div className="flex flex-wrap gap-2" role="tablist" aria-label="Linguagem do exemplo">
               {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopied(""); }}><span className="size-2 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[item] }} />{LANGUAGE_LABELS[item]}</Button>)}
             </div>
-            <CodeBlock title={LANGUAGE_LABELS[language]} value={fullExample} copied={copied === "example"} onCopy={() => copy("example", fullExample)} />
+            <CodeBlock title={LANGUAGE_LABELS[language]} language={language} value={fullExample} copied={copied === "example"} onCopy={() => copy("example", fullExample)} />
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
@@ -413,13 +552,13 @@ export function ApiDocumentation() {
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">Body</p>
-              <CodeBlock title={selected.multipart ? "multipart/form-data" : "application/json"} value={selected.body || "Este método não envia corpo na requisição."} copied={copied === "body"} onCopy={() => copy("body", selected.body || "")} />
+              <CodeBlock title={selected.multipart ? "multipart/form-data" : "application/json"} json={!selected.multipart && Boolean(selected.body)} value={selected.body || "Este método não envia corpo na requisição."} copied={copied === "body"} onCopy={() => copy("body", selected.body || "")} />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">Resposta de exemplo</p>
-            <CodeBlock title="Resposta" value={selected.response} copied={copied === "response"} onCopy={() => copy("response", selected.response)} />
+            <CodeBlock title="Resposta" json={selected.response.trim().startsWith("{") || selected.response.trim().startsWith("[")} value={selected.response} copied={copied === "response"} onCopy={() => copy("response", selected.response)} />
           </div>
         </div>
       </>}
