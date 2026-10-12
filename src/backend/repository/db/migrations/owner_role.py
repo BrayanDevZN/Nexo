@@ -1,8 +1,8 @@
 """One-time, idempotent migration that adds the Owner role to existing databases.
 
 SQLite cannot alter a CHECK constraint in place, so the users table is rebuilt
-with its data and indexes preserved. Foreign keys are disabled only for that
-transaction; SQLite's FK targets continue to point at the renamed users table.
+with its data and indexes preserved. Foreign keys are disabled only while the
+table is replaced; references continue to target the users table name.
 """
 from sqlalchemy import inspect, text
 
@@ -38,6 +38,7 @@ def _migrate_sqlite(engine) -> None:
     column_sql = ", ".join(f'"{name}"' for name in columns)
     with engine.connect() as connection:
         connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
         try:
             with connection.begin():
                 connection.execute(text("""
@@ -77,3 +78,4 @@ def _migrate_sqlite(engine) -> None:
                 ))
         finally:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
