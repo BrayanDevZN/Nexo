@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from backend.controller.dependencies import approved_user, admin_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.controller.schema.automation_requests import (
     AutomationInviteInput,
     AutomationRejectInput,
