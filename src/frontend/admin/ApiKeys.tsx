@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Activity, Check, Copy, KeyRound, Trash2 } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,31 @@ const LANGUAGE_LABELS: Record<Language, string> = {
   php: "PHP",
   csharp: "C#",
 };
+
+const LANGUAGE_COLORS: Record<Language, string> = {
+  curl: "#4EAA25",
+  javascript: "#F7DF1E",
+  python: "#3776AB",
+  go: "#00ADD8",
+  java: "#ED8B00",
+  php: "#777BB4",
+  csharp: "#9B4F96",
+};
+
+const KEYWORDS: Record<Language, Set<string>> = {
+  curl: new Set(["curl"]),
+  javascript: new Set(["const", "let", "var", "await", "async", "new", "return", "throw", "if", "else", "true", "false", "null"]),
+  python: new Set(["import", "from", "as", "def", "class", "return", "raise", "if", "else", "elif", "for", "while", "in", "True", "False", "None", "with", "async", "await"]),
+  go: new Set(["package", "import", "func", "var", "const", "defer", "if", "else", "for", "range", "return", "go", "select", "switch", "case", "nil"]),
+  java: new Set(["import", "class", "public", "private", "protected", "static", "final", "new", "var", "return", "throws", "throw", "if", "else", "true", "false", "null"]),
+  php: new Set(["echo", "new", "function", "return", "if", "else", "foreach", "as", "true", "false", "null"]),
+  csharp: new Set(["using", "var", "new", "await", "async", "return", "if", "else", "true", "false", "null", "public", "private", "class"]),
+};
+
+const TYPES = new Set([
+  "HttpClient", "HttpRequest", "HttpResponse", "URI", "AuthenticationHeaderValue",
+  "MediaTypeWithQualityHeaderValue", "Console", "String", "System", "Header", "DefaultClient",
+]);
 
 function codeExamples(apiKey = "SUA_CHAVE_API"): Record<Language, string> {
   const url = `${PUBLIC_API_URL}${EXAMPLE_ENDPOINT}`;
@@ -107,6 +132,34 @@ Console.WriteLine(await response.Content.ReadAsStringAsync());`,
   };
 }
 
+function highlightCode(code: string, language: Language): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const keywords = KEYWORDS[language];
+  const token = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*\b|\s+|.)/g;
+  const parts = code.match(token) || [code];
+
+  parts.forEach((part, index) => {
+    let color = "#D4D4D4";
+    let fontStyle: "normal" | "italic" = "normal";
+
+    if (/^("|'|`)/.test(part)) color = "#CE9178";
+    else if (/^(\/\/|\/\*|#(?!\?php))/.test(part)) { color = "#6A9955"; fontStyle = "italic"; }
+    else if (/^\d/.test(part)) color = "#B5CEA8";
+    else if (keywords.has(part)) color = "#C586C0";
+    else if (TYPES.has(part) || /^[A-Z][A-Za-z0-9_]*$/.test(part)) color = "#4EC9B0";
+    else if (/^[A-Za-z_$][\w$]*$/.test(part)) {
+      const next = parts.slice(index + 1).find(value => !/^\s+$/.test(value));
+      if (next === "(") color = "#DCDCAA";
+      else if (part.startsWith("$")) color = "#9CDCFE";
+      else color = "#9CDCFE";
+    }
+
+    nodes.push(<span key={`${index}-${part}`} style={{ color, fontStyle }}>{part}</span>);
+  });
+
+  return nodes;
+}
+
 export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [apiKeyName, setApiKeyName] = useState("Minha integração");
@@ -142,6 +195,7 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
   const averageUsage = period ? Math.round(totalUsage / period) : 0;
   const chartConfig: ChartConfig = { requests: { label: "Requisições", color: "var(--primary)" } };
   const examples = useMemo(() => codeExamples(), []);
+  const highlightedExample = useMemo(() => highlightCode(examples[language], language), [examples, language]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -202,11 +256,11 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium">Escolha sua linguagem:</p>
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Exemplos por linguagem">
-            {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopiedSnippet(false); }}>{LANGUAGE_LABELS[item]}</Button>)}
+            {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopiedSnippet(false); }}><span className="size-2 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[item] }} />{LANGUAGE_LABELS[item]}</Button>)}
           </div>
-          <div className="relative overflow-hidden rounded-xl border bg-zinc-950 text-zinc-100">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2"><span className="text-xs font-medium text-zinc-400">{LANGUAGE_LABELS[language]}</span><Button type="button" size="sm" variant="ghost" className="text-zinc-300 hover:bg-white/10 hover:text-white" onClick={() => void copyValue(examples[language], true)}>{copiedSnippet ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copiedSnippet ? "Copiado" : "Copiar"}</Button></div>
-            <pre className="overflow-x-auto p-4 text-xs leading-6"><code>{examples[language]}</code></pre>
+          <div className="relative overflow-hidden rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] text-[#d4d4d4] shadow-inner">
+            <div className="flex items-center justify-between border-b border-[#3c3c3c] bg-[#252526] px-4 py-2"><span className="flex items-center gap-2 text-xs font-medium text-[#cccccc]"><span className="size-2 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[language] }} />{LANGUAGE_LABELS[language]}</span><Button type="button" size="sm" variant="ghost" className="text-[#cccccc] hover:bg-white/10 hover:text-white" onClick={() => void copyValue(examples[language], true)}>{copiedSnippet ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copiedSnippet ? "Copiado" : "Copiar"}</Button></div>
+            <pre className="overflow-x-auto p-4 font-mono text-xs leading-6"><code>{highlightedExample}</code></pre>
           </div>
           <p className="text-xs text-muted-foreground">O exemplo usa <code>GET {EXAMPLE_ENDPOINT}</code>. Para outros recursos, mantenha a mesma URL base e autenticação e troque apenas o método, endpoint e corpo da requisição.</p>
         </div>
