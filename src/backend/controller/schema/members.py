@@ -10,7 +10,7 @@ class MemberDirectoryOutput(BaseModel):
     online: bool = False
     id: str
     name: str
-    role: Literal["member", "admin"]
+    role: Literal["member", "admin", "owner"]
 
 
 class MemberOutput(UserOutput):
