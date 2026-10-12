@@ -9,6 +9,7 @@ from backend.infra.connections.email import (
     EmailQueueFullError,
     EmailUnavailableError,
     INCREMENT_RESEND_COUNTER,
+    MARK_RESEND_QUOTA_EXHAUSTED,
     ResendConnection,
 )
 
@@ -174,5 +175,34 @@ def test_redis_quota_failure_does_not_send_email(settings, monkeypatch):
         assert error.value.category == "quota_counter"
         resend.post.assert_not_called()
         n8n.post.assert_not_called()
+    finally:
+        connection.close()
+
+
+def test_resend_429_marks_quota_exhausted_and_retries_through_n8n(settings, monkeypatch):
+    from unittest.mock import Mock
+
+    settings.email = "sender@example.com"
+    settings.resend_from = "verified@example.com"
+    settings.resend_key = SecretStr("resend-sentinel")
+    settings.url_email_n8n = "https://n8n.example.com/webhook/email"
+    settings.secret_email_n8n = SecretStr("jwt-sentinel")
+    resend, n8n, redis = Mock(), Mock(), Mock()
+    resend.post.return_value = httpx.Response(429, request=httpx.Request("POST", "https://api.resend.com/emails"))
+    n8n.post.return_value = httpx.Response(200, json={"ok": True})
+    redis.eval.side_effect = [1, 71]
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(side_effect=[resend, n8n]))
+    connection = ResendConnection(settings, redis_client=redis)
+    try:
+        result = connection.send("receiver@example.com", "Subject", "Body").result(timeout=5)
+
+        assert result == {"ok": True}
+        resend.post.assert_called_once()
+        n8n.post.assert_called_once_with(
+            settings.url_email_n8n,
+            headers={"Authorization": "Bearer jwt-sentinel"},
+            json={"to": "receiver@example.com", "type": "text", "subject": "Subject", "content": "Body"},
+        )
+        assert redis.eval.call_args_list[1].args[0] == MARK_RESEND_QUOTA_EXHAUSTED
     finally:
         connection.close()
