@@ -38,6 +38,9 @@ class NotificationOutput(BaseModel):
     announcement_id: str | None = None
     title: str | None = None
     body: str | None = None
+    sender_name: str | None = None
+    sender_has_photo: bool = False
+    has_image: bool = False
     recipient_id: str
     requested_user_id: str
     read_at: datetime | None
