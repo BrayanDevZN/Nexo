@@ -166,9 +166,9 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       <div className="flex gap-2"><Button variant="outline" disabled={loading || offset === 0} onClick={() => setOffset(offset - 20)}><ArrowLeft data-icon="inline-start" /> Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima<ArrowRight data-icon="inline-end" /></Button></div>
     </div>
     <Dialog open={!!viewing} onOpenChange={open => { if (!open) setViewing(null); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-scroll overscroll-y-contain touch-pan-y sm:max-w-2xl">
         <DialogHeader><DialogTitle>Dados do cliente</DialogTitle><DialogDescription>Informações completas do contato e acompanhamento.</DialogDescription></DialogHeader>
-        {viewing && <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{viewing.name}</CardTitle><CardDescription>{viewing.niche}</CardDescription></div><Badge variant={viewing.contract_closed || viewing.pipeline_stage === "won" ? "default" : viewing.pipeline_stage === "lost" ? "destructive" : "secondary"}>{viewing.contract_closed || viewing.pipeline_stage === "won" ? "Contrato fechado" : PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || "Em negociação"}</Badge></div></CardHeader>
+        {viewing && <Card className="shrink-0"><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{viewing.name}</CardTitle><CardDescription>{viewing.niche}</CardDescription></div><Badge variant={viewing.contract_closed || viewing.pipeline_stage === "won" ? "default" : viewing.pipeline_stage === "lost" ? "destructive" : "secondary"}>{viewing.contract_closed || viewing.pipeline_stage === "won" ? "Contrato fechado" : PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || "Em negociação"}</Badge></div></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
