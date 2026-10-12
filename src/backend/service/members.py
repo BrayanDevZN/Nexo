@@ -24,8 +24,8 @@ class MemberService:
     @staticmethod
     def _authorize_read(repos, actor):
         current = authorize_read(repos, actor, approved=True)
-        if current.role != "admin":
-            raise AccessDenied("Administrator access required")
+        if current.role != "owner":
+            raise AccessDenied("Owner access required")
         return current
 
     @staticmethod
@@ -64,7 +64,7 @@ class MemberService:
         with self.repositories.read_transaction() as repos:
             current = authorize_read(repos, actor, approved=True)
             user = self._target(repos, identifier)
-            if (user.status != "approved" and current.role != "admin") or not user.profile_photo:
+            if (user.status != "approved" and current.role != "owner") or not user.profile_photo:
                 raise ResourceNotFound("Profile photo not found")
             photo, data = user.profile_photo, user.profile_photo_data
         if data is not None:
