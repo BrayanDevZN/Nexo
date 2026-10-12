@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from backend.repository.cache.queries import snapshot
-from backend.service.access import authorize, authorize_read
+from backend.service.access import ResourceNotFound, authorize, authorize_read
 
 
 class AnnouncementPermissionError(ValueError):
@@ -9,8 +9,9 @@ class AnnouncementPermissionError(ValueError):
 
 
 class AnnouncementService:
-    def __init__(self, repositories, cached_repositories, messages, push=None):
+    def __init__(self, repositories, cached_repositories, messages, push=None, image_storage=None):
         self.repositories, self.cached_repositories, self.messages, self.push = repositories, cached_repositories, messages, push
+        self.image_storage = image_storage
 
     @staticmethod
     def _authorize(repos, actor):
@@ -22,7 +23,29 @@ class AnnouncementService:
     def list_for_user(self, actor, *, limit=50, offset=0, kind=None):
         with self.cached_repositories.read_transaction() as repos:
             authorize_read(repos.db, actor, approved=True)
-            return repos.notifications.list_for_recipient(actor.id, kind=kind, limit=limit, offset=offset)
+            rows = repos.db.notifications.list_for_recipient(actor.id, kind=kind, limit=limit, offset=offset)
+            profiles = repos.db.users.profile_summaries_by_ids(row.requested_user_id for row in rows)
+            result = []
+            for row in rows:
+                profile = profiles.get(row.requested_user_id)
+                result.append({**snapshot("notifications", row),
+                               "sender_name": profile["name"] if profile else "Membro removido",
+                               "sender_has_photo": bool(profile and profile["has_photo"]),
+                               "has_image": bool(row.image_storage_key)})
+            return result
+
+    def image(self, actor, identifier):
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            note = repos.db.notifications.get(identifier)
+            if (note is None or note.recipient_id != actor.id or note.kind != "announcement"
+                    or not note.image_storage_key or self.image_storage is None):
+                raise ResourceNotFound("Announcement image not found")
+            key = note.image_storage_key
+        try:
+            return self.image_storage.read(key)
+        except FileNotFoundError:
+            raise ResourceNotFound("Announcement image not found") from None
 
     def unread_counts(self, actor):
         with self.cached_repositories.read_transaction() as repos:
@@ -49,15 +72,28 @@ class AnnouncementService:
             repos.notifications.mark_read(note)
             return snapshot("notifications", note)
 
-    def create(self, actor, *, title: str, body: str):
-        with self.repositories.transaction() as repos:
-            current = self._authorize(repos, actor)
-            recipients = repos.users.approved_recipients()
-            announcement_id = str(uuid4())
-            notes = repos.notifications.create_announcements(
-                announcement_id=announcement_id, recipient_ids=[user.id for user in recipients],
-                creator_id=current.id, title=title, body=body,
-            )
+    def create(self, actor, *, title: str, body: str, image_data: bytes | None = None):
+        image_key = None
+        try:
+            with self.repositories.transaction() as repos:
+                current = self._authorize(repos, actor)
+                recipients = repos.users.approved_recipients()
+                announcement_id = str(uuid4())
+                if image_data and recipients:
+                    if self.image_storage is None:
+                        raise RuntimeError("Announcement image storage is unavailable")
+                    image_key = self.image_storage.write(image_data)
+                notes = repos.notifications.create_announcements(
+                    announcement_id=announcement_id, recipient_ids=[user.id for user in recipients],
+                    creator_id=current.id, title=title, body=body, image_storage_key=image_key,
+                )
+        except BaseException:
+            if image_key and self.image_storage:
+                try:
+                    self.image_storage.delete(image_key)
+                except OSError:
+                    pass
+            raise
         queued = 0
         for user in recipients:
             try:
