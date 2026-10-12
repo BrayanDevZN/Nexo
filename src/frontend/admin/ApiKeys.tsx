@@ -182,10 +182,11 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
     <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais, integre seus sistemas e acompanhe o uso da API.</p></div></div>
     <Feedback error={error} success={success} />
 
-    <Card>
+    <Card className="border-primary/30 shadow-sm">
       <CardHeader>
-        <CardTitle>Como usar a API</CardTitle>
-        <CardDescription>Você só precisa da URL base, de uma chave ativa e do header de autenticação. O resto é HTTP fazendo seu trabalho ancestral de transportar JSON.</CardDescription>
+        <div className="mb-1 w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">DOCUMENTAÇÃO RÁPIDA</div>
+        <CardTitle>Tutorial: como usar a API da Nexo</CardTitle>
+        <CardDescription>Use a URL base abaixo, crie uma chave e envie essa chave no header Authorization. Os exemplos já estão prontos para copiar.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-3">
@@ -195,10 +196,11 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
         </div>
 
         <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-          <p><strong className="text-foreground">Passo rápido:</strong> crie uma chave abaixo, guarde-a em variável de ambiente no seu sistema e envie a chave no header <code>Authorization</code> em cada requisição. Nunca coloque a chave no frontend público, em URL, query string ou Git.</p>
+          <p><strong className="text-foreground">Passo a passo:</strong> crie uma chave em “Acesso por API”, copie e salve em uma variável de ambiente no seu sistema. Depois faça a requisição para <code>{PUBLIC_API_URL}{EXAMPLE_ENDPOINT}</code> enviando <code>Authorization: Bearer SUA_CHAVE_API</code>. Nunca coloque a chave no frontend público, em URL, query string ou Git.</p>
         </div>
 
         <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium">Escolha sua linguagem:</p>
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Exemplos por linguagem">
             {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopiedSnippet(false); }}>{LANGUAGE_LABELS[item]}</Button>)}
           </div>
