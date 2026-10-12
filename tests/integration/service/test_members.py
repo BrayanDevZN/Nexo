@@ -47,7 +47,8 @@ def test_promotion_demotion_refresh_cache_and_revoke_old_sessions(runtime):
     with pytest.raises(AuthenticationError):
         runtime.sessions.authenticate(token)
     promoted, token = runtime.auth.login(user.email, "strong-password-123")
-    assert len(runtime.members.users(promoted)) == 2
+    with pytest.raises(AccessDenied):
+        runtime.members.users(promoted)
     assert next(row for row in runtime.members.users(actor) if row["id"] == user.id)["role"] == "admin"
     runtime.members.update(actor, user.id, {"role": "member"})
     with pytest.raises(AccessDenied):
