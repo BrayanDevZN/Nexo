@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
+
 from backend.infra.connections.email import EmailQueueFullError
 from backend.service.email_messages import AccountMessages
 
@@ -55,3 +57,40 @@ def test_rejection_is_emailed_without_an_access_button():
     assert args[1] == "Atualização sobre seu acesso à Nexo"
     assert "Acesso não aprovado" in kwargs["html"]
     assert "Acessar o painel" not in kwargs["html"]
+
+
+@pytest.mark.parametrize(
+    ("method_name", "eyebrow", "heading"),
+    [
+        ("registration_code", "SEGURANÇA DA CONTA", "Confirme seu cadastro"),
+        ("recovery_code", "SEGURANÇA DA CONTA", "Redefina sua senha"),
+        ("deletion_code", "SEGURANÇA DA CONTA", "Confirme a exclusão da conta"),
+    ],
+)
+def test_security_emails_share_the_branded_code_layout(method_name, eyebrow, heading):
+    sender = Mock(configured=True)
+    getattr(AccountMessages(sender), method_name)("ana@example.com", "12345678", 600)
+
+    _, kwargs = sender.send.call_args
+    rendered = kwargs["html"]
+    assert "#6d28d9" in rendered
+    assert eyebrow in rendered
+    assert heading in rendered
+    assert "12345678" in rendered
+    assert "600 segundos" in rendered
+    assert "role=\"presentation\"" in rendered
+
+
+def test_automation_invitation_has_a_branded_action_button_and_plain_text_link():
+    sender = Mock(configured=True)
+    user = SimpleNamespace(email="ana@example.com", name="Ana")
+    invite = "https://n8n.nexoaicompany.com/invite/example-token"
+
+    assert AccountMessages(sender).automation_invitation(user, invite, "Acesso aprovado.") is True
+
+    args, kwargs = sender.send.call_args
+    assert args[0] == user.email
+    assert "Criar minha conta no n8n: " + invite in args[2]
+    assert "AUTOMAÇÕES" in kwargs["html"]
+    assert 'href="' + invite + '"' in kwargs["html"]
+    assert "Acesso aprovado." in kwargs["html"]
