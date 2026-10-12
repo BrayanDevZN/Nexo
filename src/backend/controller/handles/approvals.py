@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from pydantic import ValidationError
 
-from backend.controller.dependencies import admin_user, approved_user
+from backend.controller.dependencies import owner_user, approved_user
 from backend.controller.schema.approvals import (
     AnnouncementInput,
     AnnouncementOutput,
