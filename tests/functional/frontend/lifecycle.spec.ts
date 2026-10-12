@@ -101,6 +101,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("Nova senha", { exact: true }).fill("browser-updated-password");
     await member.getByLabel("Confirmar nova senha").fill("browser-updated-password");
     await member.getByRole("button", { name: "Atualizar senha", exact: true }).click();
+    await member.getByRole("button", { name: "Atualizar clientes" }).click();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
