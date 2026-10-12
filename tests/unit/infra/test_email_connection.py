@@ -8,6 +8,7 @@ from pydantic import SecretStr
 from backend.infra.connections.email import (
     EmailQueueFullError,
     EmailUnavailableError,
+    INCREMENT_RESEND_COUNTER,
     ResendConnection,
 )
 
@@ -17,8 +18,10 @@ def sender(settings, monkeypatch):
     settings.resend_from = "verified@example.com"
     settings.resend_key = SecretStr("resend-sentinel")
     client = Mock()
+    n8n_client = Mock()
     client.post.return_value = httpx.Response(200, json={"id": "email-id"})
-    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(return_value=client))
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client",
+                        Mock(side_effect=[client, n8n_client]))
     return ResendConnection(settings), client
 
 
@@ -113,5 +116,63 @@ def test_html_is_sent_alongside_text_fallback(settings, monkeypatch):
             "subject": "Nexo", "text": "plain text",
             "html": "<html><body><table><tr><td>Olá</td></tr></table></body></html>",
         })
+    finally:
+        connection.close()
+
+
+def test_switches_from_resend_to_n8n_after_seventy_and_sends_contract(settings, monkeypatch):
+    from unittest.mock import Mock
+
+    from pydantic import SecretStr
+
+    settings.email = "sender@example.com"
+    settings.resend_from = "verified@example.com"
+    settings.resend_key = SecretStr("resend-sentinel")
+    settings.url_email_n8n = "https://n8n.example.com/webhook/email"
+    settings.secret_email_n8n = SecretStr("jwt-sentinel")
+    resend, n8n, redis = Mock(), Mock(), Mock()
+    resend.post.return_value = httpx.Response(200, json={"id": "resend-id"})
+    n8n.post.side_effect = [httpx.Response(200, json={"ok": True}),
+                           httpx.Response(200, json={"ok": True})]
+    redis.eval.side_effect = [70, 71, 72]
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(side_effect=[resend, n8n]))
+    connection = ResendConnection(settings, redis_client=redis)
+    try:
+        connection.send("receiver@example.com", "First", "plain").result(timeout=5)
+        connection.send("receiver@example.com", "Second", "plain", html="<p>html</p>").result(timeout=5)
+        connection.send("receiver@example.com", "Third", "plain").result(timeout=5)
+        resend.post.assert_called_once_with("/emails", json={
+            "from": "verified@example.com", "to": ["receiver@example.com"],
+            "subject": "First", "text": "plain",
+        })
+        assert n8n.post.call_args_list[0].args == (settings.url_email_n8n,)
+        assert n8n.post.call_args_list[0].kwargs["headers"] == {"Authorization": "Bearer jwt-sentinel"}
+        assert n8n.post.call_args_list[0].kwargs["json"] == {
+            "to": "receiver@example.com", "type": "html", "subject": "Second", "content": "<p>html</p>",
+        }
+        assert n8n.post.call_args_list[1].kwargs["json"] == {
+            "to": "receiver@example.com", "type": "text", "subject": "Third", "content": "plain",
+        }
+        assert all(args[0] == INCREMENT_RESEND_COUNTER
+                   for args in (call.args for call in redis.eval.call_args_list))
+    finally:
+        connection.close()
+
+
+def test_redis_quota_failure_does_not_send_email(settings, monkeypatch):
+    from unittest.mock import Mock
+
+    settings.email = "sender@example.com"
+    settings.resend_key = SecretStr("resend-sentinel")
+    resend, n8n, redis = Mock(), Mock(), Mock()
+    redis.eval.side_effect = RuntimeError("redis unavailable")
+    monkeypatch.setattr("backend.infra.connections.email.httpx.Client", Mock(side_effect=[resend, n8n]))
+    connection = ResendConnection(settings, redis_client=redis)
+    try:
+        with pytest.raises(EmailUnavailableError, match="quota counter") as error:
+            connection.send("receiver@example.com", "Subject", "Body").result(timeout=5)
+        assert error.value.category == "quota_counter"
+        resend.post.assert_not_called()
+        n8n.post.assert_not_called()
     finally:
         connection.close()

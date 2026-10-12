@@ -81,7 +81,7 @@ class RuntimeServices:
                                      expire_minutes=settings.jwt_expire_minutes)
             self.sessions = SessionSecurity(self.tokens, self.repositories)
             self.csrf = CSRFService(settings.jwt_secret_key.get_secret_value())
-            self.email = ResendConnection(settings)
+            self.email = ResendConnection(settings, redis_client=self.redis.client)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
             self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)

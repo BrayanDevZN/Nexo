@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     password: SecretStr | None = None
     resend_key: SecretStr | None = None
     resend_from: EmailStr | None = None
+    url_email_n8n: str | None = None
+    secret_email_n8n: SecretStr | None = None
     vapid_subject: str | None = None
     vapid_public_key: str | None = None
     vapid_private_key: SecretStr | None = None
@@ -64,7 +66,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
-    @field_validator("email", "resend_from", "password", "resend_key",
+    @field_validator("email", "resend_from", "password", "resend_key", "secret_email_n8n",
                      "google_client_id", "google_client_secret", mode="before")
     @classmethod
     def empty_optional(cls, value):
@@ -87,6 +89,21 @@ class Settings(BaseSettings):
             valid = False
         if not valid:
             raise ValueError("REDIS_URL must be a valid redis:// or rediss:// URL")
+        return value
+
+    @field_validator("url_email_n8n")
+    @classmethod
+    def secure_n8n_email_webhook(cls, value: str | None):
+        if value is None:
+            return None
+        try:
+            parsed = urlsplit(value)
+            valid = (parsed.scheme == "https" and parsed.hostname and not parsed.username
+                     and not parsed.password and not parsed.fragment)
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError("URL_EMAIL_N8N must be a valid HTTPS URL")
         return value
 
     @field_validator("database_url")
@@ -146,7 +163,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def coherent_configuration(self):
         for left, right in [(self.email, self.password),
-                            (self.google_client_id, self.google_client_secret)]:
+                            (self.google_client_id, self.google_client_secret),
+                            (self.url_email_n8n, self.secret_email_n8n)]:
             if bool(left) != bool(right):
                 raise ValueError("Configure both values of each credential pair")
         if self.password:

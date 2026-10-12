@@ -1,5 +1,7 @@
+import hashlib
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
+from datetime import datetime, timezone
 from threading import BoundedSemaphore, Lock
 
 import httpx
@@ -9,6 +11,14 @@ from backend.infra.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 address = TypeAdapter(EmailStr)
+RESEND_MONTHLY_LIMIT = 70
+RESEND_COUNTER_TTL_SECONDS = 70 * 24 * 60 * 60
+
+INCREMENT_RESEND_COUNTER = """
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1])) end
+return count
+"""
 
 
 class EmailUnavailableError(RuntimeError):
@@ -22,9 +32,11 @@ class EmailQueueFullError(RuntimeError):
 
 
 class ResendConnection:
-    """Bounded in-process delivery through Resend's HTTPS API."""
-    def __init__(self, settings: Settings):
+    """Bounded delivery through Resend, switching to the n8n webhook after its monthly quota."""
+    def __init__(self, settings: Settings, redis_client=None):
         self.settings = settings
+        self.redis = redis_client
+        self._quota_namespace = hashlib.sha256(settings.database_url.encode()).hexdigest()[:16]
         self._client = httpx.Client(
             base_url="https://api.resend.com", timeout=settings.email_timeout_seconds,
             trust_env=False,
@@ -34,6 +46,7 @@ class ResendConnection:
                 "Content-Type": "application/json",
             },
         )
+        self._n8n_client = httpx.Client(timeout=settings.email_timeout_seconds, trust_env=False)
         self._executor = ThreadPoolExecutor(
             max_workers=settings.email_max_workers, thread_name_prefix="nexo-email",
         )
@@ -43,7 +56,15 @@ class ResendConnection:
 
     @property
     def configured(self) -> bool:
+        return self.resend_configured or self.n8n_configured
+
+    @property
+    def resend_configured(self) -> bool:
         return bool(self.settings.email and self.sender and self.settings.resend_key)
+
+    @property
+    def n8n_configured(self) -> bool:
+        return bool(self.settings.url_email_n8n and self.settings.secret_email_n8n)
 
     @property
     def sender(self) -> str | None:
@@ -72,6 +93,42 @@ class ResendConnection:
 
     def _deliver(self, recipient: str, subject: str, body: str, html: str | None = None):
         try:
+            provider = self._delivery_provider()
+            if provider == "n8n":
+                return self._deliver_n8n(recipient, subject, body, html)
+            return self._deliver_resend(recipient, subject, body, html)
+        except EmailUnavailableError:
+            raise
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError, OSError) as error:
+            raise EmailUnavailableError("Email delivery failed", category="network") from error
+        except Exception as error:
+            raise EmailUnavailableError("Email delivery failed", category="unexpected") from error
+
+    def _delivery_provider(self) -> str:
+        if not self.resend_configured:
+            if self.n8n_configured:
+                return "n8n"
+            raise EmailUnavailableError("Email providers are not configured")
+        # Keep standalone callers/tests compatible; RuntimeServices always supplies Redis.
+        if self.redis is None:
+            return "resend"
+        now = datetime.now(timezone.utc)
+        key = f"nexo:email:resend:{self._quota_namespace}:{now:%Y-%m}"
+        try:
+            count = int(self.redis.eval(INCREMENT_RESEND_COUNTER, 1, key,
+                                        RESEND_COUNTER_TTL_SECONDS))
+        except Exception as error:
+            raise EmailUnavailableError("Email quota counter is unavailable",
+                                        category="quota_counter") from error
+        if count <= RESEND_MONTHLY_LIMIT:
+            return "resend"
+        if not self.n8n_configured:
+            raise EmailUnavailableError("Resend monthly email limit reached and n8n is not configured",
+                                        category="quota_exhausted")
+        return "n8n"
+
+    def _deliver_resend(self, recipient: str, subject: str, body: str, html: str | None):
+        try:
             payload = {
                 "from": self.sender, "to": [recipient],
                 "subject": subject, "text": body,
@@ -81,18 +138,37 @@ class ResendConnection:
             response = self._client.post("/emails", json=payload)
             if 200 <= response.status_code < 300:
                 return response.json()
-            status = response.status_code
-            category = ("authentication" if status in {401, 403} else
-                        "rate_limit" if status == 429 else
-                        "recipient_rejected" if 400 <= status < 500 else "provider")
-            raise EmailUnavailableError("Resend delivery failed", category=category,
-                                        smtp_code=status if 100 <= status <= 599 else None)
+            self._raise_provider_error("Resend", response.status_code)
         except EmailUnavailableError:
             raise
         except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError, OSError) as error:
             raise EmailUnavailableError("Resend delivery failed", category="network") from error
         except Exception as error:
             raise EmailUnavailableError("Resend delivery failed", category="unexpected") from error
+
+    def _deliver_n8n(self, recipient: str, subject: str, body: str, html: str | None):
+        response = self._n8n_client.post(
+            self.settings.url_email_n8n,
+            headers={"Authorization": "Bearer " + self.settings.secret_email_n8n.get_secret_value()},
+            json={"to": recipient, "type": "html" if html is not None else "text",
+                  "subject": subject, "content": html if html is not None else body},
+        )
+        if not 200 <= response.status_code < 300:
+            self._raise_provider_error("n8n", response.status_code)
+        if not response.content:
+            return {"status_code": response.status_code}
+        try:
+            return response.json()
+        except ValueError:
+            return {"status_code": response.status_code}
+
+    @staticmethod
+    def _raise_provider_error(provider: str, status: int):
+        category = ("authentication" if status in {401, 403} else
+                    "rate_limit" if status == 429 else
+                    "recipient_rejected" if 400 <= status < 500 else "provider")
+        raise EmailUnavailableError(f"{provider} delivery failed", category=category,
+                                    smtp_code=status if 100 <= status <= 599 else None)
 
     def _finished(self, future: Future) -> None:
         self._slots.release()
@@ -106,6 +182,7 @@ class ResendConnection:
             self._closed = True
         self._executor.shutdown(wait=True, cancel_futures=False)
         self._client.close()
+        self._n8n_client.close()
 
 
 # Source-compatible alias; the implementation no longer uses SMTP or yagmail.

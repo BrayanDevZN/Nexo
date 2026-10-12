@@ -36,6 +36,20 @@ def test_cookie_none_requires_secure():
 def test_credential_pair_is_required():
     with pytest.raises(ValidationError):
         config(google_client_id="client")
+    with pytest.raises(ValidationError):
+        config(url_email_n8n="https://n8n.example.com/webhook")
+    with pytest.raises(ValidationError):
+        config(url_email_n8n="http://n8n.example.com/webhook",
+               secret_email_n8n="jwt-sentinel")
+
+
+def test_lowercase_n8n_environment_variables_are_supported(monkeypatch):
+    monkeypatch.setenv("url_email_n8n", "https://n8n.example.com/webhook")
+    monkeypatch.setenv("secret_email_n8n", "jwt-sentinel")
+    settings = Settings(_env_file=None, jwt_secret_key=KEY)
+    assert settings.url_email_n8n == "https://n8n.example.com/webhook"
+    assert settings.secret_email_n8n.get_secret_value() == "jwt-sentinel"
+    assert "jwt-sentinel" not in repr(settings)
 
 
 def test_secret_values_are_not_exposed_in_repr():

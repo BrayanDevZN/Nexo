@@ -24,6 +24,12 @@ Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mes
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
 Na criação inicial, a senha do painel vem de `PASSWORD`. O envio usa a chave
 `RESEND_KEY` e, opcionalmente, `RESEND_FROM` como remetente verificado no Resend.
+Opcionalmente, `URL_EMAIL_N8N` e `SECRET_EMAIL_N8N` configuram o webhook de e-mail
+do n8n, com o token enviado como `Authorization: Bearer ...`. A aplicação conta
+no Redis as tentativas mensais do Resend (mês UTC): as primeiras 70 usam Resend e
+as seguintes usam o webhook n8n. O webhook recebe `to`, `type` (`html` ou `text`),
+`subject` e `content`. Configure as duas variáveis do n8n juntas; elas não devem
+ser commitadas.
 Se `RESEND_FROM` ficar vazio, `EMAIL` será usado como remetente.
 
 ## Arquitetura
