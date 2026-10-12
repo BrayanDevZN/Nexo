@@ -76,3 +76,21 @@ def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
     assert runtime.chat.conversations(member)[0]["messages_sent"] == 1
     assert runtime.announcements.mark_chat_read(member, admin.id) == 1
     assert runtime.announcements.unread_counts(member) == {"total": 0, "notices": 0, "chat_messages": 0, "chat_by_sender": {}}
+
+
+def test_opening_notices_and_chat_marks_each_category_read(runtime):
+    admin, (member, _) = owner(runtime), registered(runtime)
+    with runtime.repositories.transaction() as repos:
+        repos.notifications.create_announcement(
+            announcement_id=str(uuid4()), recipient_id=member.id, creator_id=admin.id,
+            title="Aviso", body="Conteúdo do aviso",
+        )
+    runtime.chat.send(admin, member.id, str(uuid4()), "Mensagem não lida")
+
+    assert runtime.announcements.unread_counts(member)["notices"] == 1
+    assert runtime.announcements.unread_counts(member)["chat_messages"] == 1
+    assert runtime.announcements.mark_all_notices_read(member) == 1
+    assert runtime.announcements.unread_counts(member)["notices"] == 0
+    assert runtime.announcements.unread_counts(member)["chat_messages"] == 1
+    assert runtime.announcements.mark_all_chat_read(member) == 1
+    assert runtime.announcements.unread_counts(member)["chat_messages"] == 0
