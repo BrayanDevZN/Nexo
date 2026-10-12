@@ -107,8 +107,9 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Entrar no painel" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await admin.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
-    await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).click();
-    await admin.getByRole("dialog").getByLabel("Cargo", { exact: true }).selectOption("admin");
+    await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).first().click();
+    await admin.getByRole("dialog").getByLabel("Cargo", { exact: true }).click();
+    await admin.getByRole("option", { name: "Administrador" }).click();
     await admin.getByRole("button", { name: "Salvar membro" }).click();
     await expect(admin.getByText("Membro atualizado.")).toBeVisible();
     // Changing privileges invalidates the previous HttpOnly session.
