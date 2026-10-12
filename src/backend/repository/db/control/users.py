@@ -65,6 +65,17 @@ class UserRepository(Repository[User]):
             select(User.id, User.name).where(User.id.in_(values))
         ).all())
 
+    def profile_summaries_by_ids(self, identifiers) -> dict[str, dict[str, str | bool]]:
+        values = sorted({str(identifier) for identifier in identifiers if identifier})
+        if not values:
+            return {}
+        return {
+            user_id: {"name": name, "has_photo": bool(photo)}
+            for user_id, name, photo in self.session.execute(
+                select(User.id, User.name, User.profile_photo).where(User.id.in_(values))
+            ).all()
+        }
+
     def approved_recipients(self) -> list[User]:
         """Minimal rows needed to fan out an announcement after the commit."""
         query = select(User).options(load_only(User.id, User.email)).where(User.status == "approved")
