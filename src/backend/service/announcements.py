@@ -50,7 +50,7 @@ class AnnouncementService:
     def unread_counts(self, actor):
         with self.cached_repositories.read_transaction() as repos:
             authorize_read(repos.db, actor, approved=True)
-            return repos.notifications.unread_counts(actor.id)
+            return repos.db.notifications.unread_counts(actor.id)
 
     def mark_chat_read(self, actor, sender_id):
         with self.repositories.transaction() as repos:
