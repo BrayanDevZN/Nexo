@@ -53,9 +53,21 @@ export function Announcements({ api, user, onNotificationsRead }: { api: ReturnT
   }, [selectedImage]);
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setNotices(newestFirst(await api.request<Notice[]>("/notifications?limit=100&offset=0"))); }
+    try {
+      const loaded = newestFirst(await api.request<Notice[]>("/notifications?limit=100&offset=0"));
+      setNotices(loaded);
+      if (loaded.some(notice => notice.kind !== "chat_message" && !notice.read_at)) {
+        try {
+          await api.mutate("/notifications/read", "PATCH");
+          const readAt = new Date().toISOString();
+          setNotices(loaded.map(notice => notice.kind !== "chat_message" && !notice.read_at
+            ? { ...notice, read_at: readAt } : notice));
+          await onNotificationsRead?.();
+        } catch { /* keep unread indicators if marking all notices fails */ }
+      }
+    }
     catch (e) { setError(message(e)); } finally { setLoading(false); }
-  }, [api]);
+  }, [api, onNotificationsRead]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const event = (value: Event) => { const type = (value as CustomEvent).detail.type; if (["ready", "notifications.changed"].includes(type)) void load(); };
