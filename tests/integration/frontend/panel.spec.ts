@@ -4,7 +4,7 @@ const member = { id: "member", name: "Ana Silva", email: "ana@example.com", phon
 async function mock(page: Page, options: { user?: typeof member; requests?: boolean } = {}) {
   let user = options.user;
   const rows: Record<string, unknown>[] = [];
-  const members = [{ ...member, status: "approved", is_principal: false }, { ...member, id: "owner", name: "Principal", email: "owner@example.com", role: "admin", status: "approved", is_principal: true }];
+  const members = [{ ...member, status: "approved", is_principal: false }, { ...member, id: "owner", name: "Principal", email: "owner@example.com", role: "owner", status: "approved", is_principal: true }];
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace("/api", "");
@@ -95,7 +95,8 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
   await expect(page.getByText("Cliente salvo.")).toBeVisible();
   await page.screenshot({ path: "../../test-results/clients-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Editar Loja Nexo" }).click();
-  await dialog.getByLabel("Situação do contrato").selectOption("true");
+  await dialog.getByLabel("Situação do contrato").click();
+  await page.getByRole("option", { name: "Fechado", exact: true }).click();
   await dialog.getByRole("button", { name: "Salvar cliente" }).click();
   await expect(page.locator("[data-slot=badge]").filter({ hasText: "Fechado" })).toBeVisible();
   await page.getByRole("button", { name: "Excluir Loja Nexo" }).click();
@@ -104,8 +105,8 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
   await expect(page.getByText("Cliente removido.")).toBeVisible();
 });
 
-test("principal admin sees notification and approves request", async ({ page }) => {
-  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" }, requests: true });
+test("Owner sees notification and approves request", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" }, requests: true });
   await page.goto("/admin");
   await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
   await page.getByRole("button", { name: "Ver solicitações" }).click();
@@ -146,8 +147,7 @@ test("expired session returns to login", async ({ page }) => {
   await mock(page, { user: { ...member, status: "approved" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
-  await page.route("**/api/clients?**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
-  await page.getByRole("button", { name: "Atualizar clientes" }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event("nexo:session-expired")));
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });
 
@@ -211,7 +211,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 
 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
-  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" } });
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
   await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
@@ -223,7 +223,8 @@ test("admin edits approved member role and data, protects principal and confirms
   await page.getByRole("button", { name: "Editar membro Ana Silva" }).click();
   await dialog.getByLabel("Nome completo").fill("Ana Administradora");
   await dialog.getByLabel("E-mail", { exact: true }).fill("updated@example.com");
-  await dialog.getByLabel("Cargo", { exact: true }).selectOption("admin");
+  await dialog.getByLabel("Cargo", { exact: true }).click();
+  await page.getByRole("option", { name: "Administrador" }).click();
   await dialog.getByRole("button", { name: "Salvar membro" }).click();
   await expect(page.getByText("Membro atualizado.")).toBeVisible();
   await expect(page.getByText("updated@example.com")).toBeVisible();

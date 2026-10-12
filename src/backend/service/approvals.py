@@ -56,15 +56,15 @@ class ApprovalService:
     def _authorize(repos, actor):
         # Revalidate authoritative SQL state inside the operation's transaction.
         current = repos.users.get(actor.id)
-        if (current is None or current.status != "approved" or current.role != "admin"
+        if (current is None or current.status != "approved" or current.role != "owner"
                 or current.session_version != actor.session_version):
-            raise ApprovalPermissionError("Administrator access required")
+            raise ApprovalPermissionError("Owner access required")
 
     @staticmethod
     def _authorize_read(repos, actor):
         current = authorize_read(repos, actor, approved=True)
-        if current.role != "admin":
-            raise ApprovalPermissionError("Administrator access required")
+        if current.role != "owner":
+            raise ApprovalPermissionError("Owner access required")
         return current
 
     def users(self, actor, **filters):

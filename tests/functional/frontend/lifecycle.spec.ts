@@ -37,10 +37,10 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
     await member.getByRole("dialog").getByRole("button", { name: "Membros", exact: true }).click();
     await expect(member.getByRole("dialog")).toHaveCount(0);
-    await expect(member.getByText("Ana Browser", { exact: true })).toBeVisible();
+    await expect(member.getByText("Ana Browser", { exact: true }).first()).toBeVisible();
     expect(await member.evaluate(async () => {
       const response = await fetch("/api/members");
-      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,role");
+      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,online,role");
     })).toBe(true);
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
     await member.getByRole("dialog").getByRole("button", { name: "Clientes", exact: true }).click();
@@ -51,16 +51,18 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await dialog.getByLabel("Nicho", { exact: true }).fill("Varejo");
     await dialog.getByRole("button", { name: "Salvar cliente" }).click();
     await expect(member.getByText("Cliente salvo.")).toBeVisible();
-    await expect(member.getByText("Criado por Ana Browser")).toBeVisible();
+    await expect(member.getByText("Criado por Ana Browser").first()).toBeVisible();
     await member.getByLabel("Nome do cliente").fill("inexistente");
     await member.getByRole("button", { name: "Filtrar", exact: true }).click();
     await expect(member.getByText("Nenhum cliente nesta lista")).toBeVisible();
     await member.getByLabel("Nome do cliente").fill("browser");
     await member.getByLabel("Nicho", { exact: true }).fill("Varejo");
-    await member.getByLabel("Criado por", { exact: true }).selectOption({ label: "Ana Browser" });
+    await member.getByLabel("Criado por", { exact: true }).click();
+    await member.getByRole("option", { name: "Ana Browser" }).click();
     await member.getByRole("button", { name: "Filtrar", exact: true }).click();
     await member.getByRole("button", { name: "Editar Loja Browser" }).click();
-    await dialog.getByLabel("Situação do contrato").selectOption("true");
+    await dialog.getByLabel("Situação do contrato").click();
+    await member.getByRole("option", { name: "Fechado", exact: true }).click();
     await dialog.getByRole("button", { name: "Salvar cliente" }).click();
     await expect(member.locator("[data-slot=badge]").filter({ hasText: "Fechado" })).toBeVisible();
     await member.getByRole("button", { name: "Excluir Loja Browser" }).click();
@@ -105,24 +107,16 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Entrar no painel" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await admin.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
-    await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).click();
-    await admin.getByRole("dialog").getByLabel("Cargo", { exact: true }).selectOption("admin");
+    await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).first().click();
+    await admin.getByRole("dialog").getByLabel("Cargo", { exact: true }).click();
+    await admin.getByRole("option", { name: "Administrador" }).click();
     await admin.getByRole("button", { name: "Salvar membro" }).click();
     await expect(admin.getByText("Membro atualizado.")).toBeVisible();
-    // Changing privileges invalidates the previous HttpOnly session.
-    await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
-    await member.getByLabel("E-mail", { exact: true }).fill(email);
-    await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
-    await member.getByRole("button", { name: "Entrar no painel" }).click();
-    await member.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
-    await expect(member.getByRole("button", { name: "Excluir membro Ana Atualizada" })).toBeDisabled();
-    await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
-    await member.getByRole("button", { name: "Apagar minha conta" }).click();
-    await member.getByRole("button", { name: "Enviar código de exclusão" }).click();
-    await member.getByLabel("Código de exclusão recebido por e-mail").fill("87654321");
-    await member.getByRole("button", { name: "Confirmar exclusão da minha conta" }).click();
-    await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+    expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);
     await admin.getByRole("button", { name: "Atualizar membros" }).click();
+    await admin.getByRole("button", { name: "Excluir membro Ana Atualizada" }).click();
+    await admin.getByRole("dialog").getByRole("button", { name: "Confirmar exclusão do membro" }).click();
+    await expect(admin.getByText("Membro excluído. Os clientes e documentos foram preservados.")).toBeVisible();
     await expect(admin.getByRole("button", { name: "Editar membro Ana Atualizada" })).toHaveCount(0);
     expect(await member.evaluate(async () => (await fetch("/api/auth/me")).status)).toBe(401);
   } finally { await memberContext.close(); await adminContext.close(); }

@@ -7,10 +7,10 @@ import pytest
 from pydantic import SecretStr
 
 from backend.infra.connections.email import (
-    EmailQueueFullError,
-    EmailUnavailableError,
     INCREMENT_RESEND_COUNTER,
     MARK_RESEND_QUOTA_EXHAUSTED,
+    EmailQueueFullError,
+    EmailUnavailableError,
     ResendConnection,
 )
 

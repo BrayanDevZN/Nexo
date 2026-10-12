@@ -1,7 +1,7 @@
 import hashlib
 import secrets
-from datetime import UTC, date, datetime
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 
 from backend.repository.db.models import ApiKey
 from backend.service.access import ResourceNotFound, authorize

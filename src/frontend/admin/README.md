@@ -25,7 +25,7 @@ encaminha esse caminho para a API Railway e desativa cache das respostas.
 VITE_API_URL só é usado em desenvolvimento; não configure acesso direto ao
 Railway no navegador, pois isso depende de cookies de terceiros.
 No backend, FRONTEND_URL e CORS_ORIGINS devem usar a origem exata do frontend,
-COOKIE_SECURE=true, ENVIRONMENT=production e EMAIL/PASSWORD para o administrador.
+COOKIE_SECURE=true, ENVIRONMENT=production e EMAIL/PASSWORD para a conta Owner principal.
 Se frontend/API forem sites diferentes, COOKIE_SAMESITE=none. Prefira domínios
 do mesmo site para evitar bloqueios de cookies de terceiros pelo navegador.
 Na produção atual, configure no Railway e cadastre no Google:
@@ -53,8 +53,7 @@ Fotos privadas são exibidas pela rota autenticada do backend.
   novo cadastro. Quem criou pelo Google continua acessando somente pelo Google.
 - Pendentes acessam o próprio perfil e foto. A aprovação é consultada a cada
   15 segundos enquanto a aba está visível, ou manualmente.
-- Administrador recebe aviso de novos pedidos, consultados a cada 30 segundos;
-  autorizar/recusar pede confirmação e usa decisão do backend.
+- Owner recebe aviso de novos pedidos; autorizar/recusar pede confirmação e usa decisão do backend.
 - Membros aprovados consultam e gerenciam todos os clientes.
 - A aba Membros é compartilhada pelos usuários aprovados e mostra apenas nome
   e cargo da equipe, sem contatos ou dados de autenticação. Usa GET /members.
@@ -63,9 +62,11 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 - O lápis sobre a foto abre o seletor de arquivos, tanto no cadastro quanto no
   perfil. No perfil, a seleção válida salva automaticamente. O cadastro mantém
   a opção de salvar e continuar ou pular a foto.
-- A aba Gerenciar membros é exclusiva de administradores: lista/filtro/paginação, edição
-  de nome/email/celular e cargos Membro/Administrador para usuários aprovados.
-  Excluir exige confirmação e preserva clientes. A conta principal é protegida.
+- A aba Gerenciar membros é exclusiva do Owner: lista/filtro/paginação, edição
+  de nome/email/celular e cargos Membro/Administrador/Owner para usuários aprovados.
+  Excluir exige confirmação e preserva clientes. A conta Owner principal é protegida.
+  Administradores mantêm as funções operacionais, sem aprovar acessos, alterar cargos,
+  gerenciar contas ou publicar avisos.
   Alterar email/cargo encerra as sessões da conta alterada, exigindo novo login.
 - Clientes têm filtros por nicho exato/contrato, páginas de 20 e confirmação para excluir.
 - Perfil permite atualizar nome/celular e foto; senha atual ou código de e-mail

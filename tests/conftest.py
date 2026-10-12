@@ -80,6 +80,7 @@ def verified_register(client, *, json, headers):
     done.set_result(None)
     with (
         patch.object(service, "sender", Mock(configured=True, send=Mock(return_value=done))),
+        patch.object(service, "messages", None),
         patch.object(service.codes, "create", return_value="12345678"),
     ):
         response = client.post("/auth/register", json=json, headers=headers)

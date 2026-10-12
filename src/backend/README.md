@@ -18,8 +18,8 @@ nexo
 ```
 
 Também aceita `python -m backend.main`. O comando `create-tables` cria tabelas ausentes
-sem Redis/Resend, preserva dados e não executa migrações nem cria administrador.
-A inicialização normal cria as tabelas e o administrador de EMAIL/PASSWORD.
+sem Redis/Resend, preserva dados e não executa migrações nem cria a conta Owner.
+A inicialização normal cria as tabelas, aplica migrações e garante a conta Owner de EMAIL/PASSWORD.
 Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mesmo e-mail.
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
 Na criação inicial, a senha do painel vem de `PASSWORD`. O envio usa a chave
@@ -72,12 +72,13 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/account/deletion/request | sessão e CSRF; envia código para o email da própria conta |
 | POST /auth/account/deletion/confirm | sessão e CSRF; código de uso único confirma exclusão e limpa cookie |
 | GET /members | usuários aprovados; lista paginada com apenas id, nome e cargo de contas aprovadas |
-| GET /admin/users | somente admin; filtro status, limit/offset e identificação da conta principal |
-| PATCH /admin/users/{id} | admin altera nome, email, celular e cargo; cargo exige usuário aprovado |
-| DELETE /admin/users/{id} | admin exclui conta e preserva seus clientes |
-| GET /admin/notifications | somente admin; filtro unresolved_only, limit/offset |
-| PATCH /admin/notifications/{id}/read | somente admin destinatário |
-| POST /admin/notifications/{id}/decision | somente admin; decision approved/rejected |
+| GET /admin/users | somente Owner; filtro status, limit/offset e identificação da conta principal |
+| PATCH /admin/users/{id} | Owner altera nome, email, celular e cargo; cargo exige usuário aprovado |
+| DELETE /admin/users/{id} | Owner exclui conta e preserva seus clientes |
+| GET /admin/notifications | somente Owner; filtro unresolved_only, limit/offset |
+| PATCH /admin/notifications/{id}/read | somente Owner destinatário |
+| POST /admin/notifications/{id}/decision | somente Owner; decision approved/rejected |
+| POST /admin/announcements | somente Owner; JSON `title`/`body`; publica um aviso a todas as contas aprovadas, inclusive com chave API Bearer de Owner |
 | GET /clients | aprovado; filtros niche, contract_closed, limit/offset |
 | GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
 | POST /automations | membro aprovado ou API key; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
@@ -88,10 +89,10 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | PUT /auth/profile | próprio name e phone, inclusive pendente |
 | PUT/GET/DELETE /auth/profile/photo | própria foto; upload multipart no campo file |
 
-Pendentes acessam o próprio perfil, sem clientes ou rotas de admin. Cadastro cria uma
-notificação para o administrador na mesma transação. Aprovação libera a sessão existente;
+Pendentes acessam o próprio perfil, sem clientes ou rotas exclusivas do Owner. Cadastro cria uma
+notificação para o Owner na mesma transação. Aprovação libera a sessão existente;
 rejeição revoga sessões e impede login. Decisão repetida retorna 409. Não existe promoção
-a administrador por essas rotas. Inicialização sincroniza pedidos pendentes faltantes.
+a Owner por essas rotas. Inicialização sincroniza pedidos pendentes faltantes.
 Listagens têm máximo de 100 por página. Membros aprovados gerenciam todos os clientes;
 created_by_id vem do servidor. PATCH limpa notes/email/phone com null.
 
@@ -144,7 +145,7 @@ SQL e filesystem não têm transação conjunta; crash pode deixar arquivos órf
 ## Ambiente e operação
 
 .env.example lista todas as variáveis. Ambiente sobrescreve dotenv.
-EMAIL/PASSWORD criam o administrador com senha bcrypt. `RESEND_KEY` autoriza o
+EMAIL/PASSWORD inicializam o Owner com senha bcrypt. `RESEND_KEY` autoriza o
 envio de e-mails pela API HTTPS do Resend; `RESEND_FROM` deve ser um remetente
 verificado no Resend (ou `EMAIL`, quando vazio). Redis sem senha usa redis://host:porta/0.
 GOOGLE_CLIENT_SECRET, PASSWORD e JWT_SECRET_KEY ficam somente no backend.
@@ -187,7 +188,7 @@ Redis é local real; Resend e endpoints Google são simulados. Não valida entre
 nem login Google real. GitHub Actions executa as três suítes e a suíte completa em
 Python 3.12/3.13, com relatórios JUnit anexados.
 
-O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo Resend e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o administrador só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O admin inicial continua sendo criado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
+O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo Resend e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o Owner só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O Owner inicial continua sendo configurado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
 
 No painel, `POST /auth/password/change` exige senha atual e nova senha. A opção “Esqueci minha senha” continua usando os endpoints `/auth/password/recovery/request` e `/auth/password/recovery/confirm`, com código por email. Após o cadastro local ou o preenchimento do perfil Google, o frontend oferece foto opcional ou pular; o upload usa `/auth/profile/photo`, protegido por sessão e CSRF, inclusive para contas pendentes.
 
@@ -198,14 +199,14 @@ O retorno OAuth legado no domínio Railway é redirecionado uma única vez para 
 
 ## Gestão de membros
 
-Os cargos são `member` (clientes) e `admin` (clientes e gestão de usuários).
+Os cargos são `member` (clientes), `admin` (clientes e funções operacionais) e `owner` (todas as funcionalidades e gestão administrativa).
 A conta principal é identificada pelo `EMAIL` do ambiente, mesmo após promover
-outros usuários. Seu email/cargo e sua exclusão são protegidos; administradores
-não podem excluir a própria conta nem remover o próprio cargo.
+outros usuários. O e-mail/cargo da conta principal e sua exclusão são protegidos. Administradores
+não podem aprovar contas, gerenciar membros, publicar avisos ou administrar pedidos de automação.
 
 Alterar email ou cargo incrementa `session_version`, revogando sessões antigas.
 Nome e celular podem ser corrigidos sem alterar senha ou aprovação.
-As mutações exigem sessão de administrador aprovado e CSRF. Não há edição de
+As mutações de gestão de membros exigem sessão de Owner aprovado e CSRF. Não há edição de
 senhas, hashes, estado de aprovação ou identificadores Google por essas rotas.
 
 A exclusão transfere clientes ao principal e remove notificações relacionadas
@@ -218,7 +219,7 @@ A lista compartilhada `/members` valida aprovação e sessão no SQL antes de le
 cache. O service aplica uma lista explícita de campos (`id`, `name`, `role`) e
 `MemberDirectoryOutput` restringe novamente a resposta. Email, telefone, senha,
 hash, identificador Google e versão de sessão não fazem parte desse retorno.
-A gestão `/admin/users` continua exclusiva de admins e permite contatos para
+A gestão `/admin/users` é exclusiva de Owners e permite contatos para
 edição, mas seus schemas e snapshots também excluem qualquer senha/hash.
 Ambas as listas respondem com `Cache-Control: no-store`.
 
@@ -234,7 +235,7 @@ em `EMAIL_CODE_*`; as duas rotas também têm limite de autenticação.
 O código é de uso único e vinculado à identidade autenticada. Mudanças de email,
 senha ou cargo invalidam a confirmação antiga. Solicitar código não exclui conta;
 falha do Resend invalida o código e permite nova tentativa. Contas pendentes e
-contas Google podem usar o fluxo, mas o admin principal permanece protegido.
+contas Google podem usar o fluxo, mas a conta Owner principal permanece protegida.
 
 A exclusão usa a mesma transação de preservação de clientes e limpeza de
 notificações/foto da gestão de membros. Remove o usuário, revoga todas as sessões
@@ -244,9 +245,9 @@ por ausência da conta no SQL e limpa o cookie HttpOnly após o commit.
 
 `POST /realtime/ticket` exige o cookie JWT HttpOnly e CSRF. Retorna um ticket de uso único com TTL de 30 segundos no Redis, vinculado à origem e à sessão. O navegador abre `/realtime` com os subprotocolos `nexo.v1` e o ticket. O servidor seleciona somente `nexo.v1`, verifica a origem em `CORS_ORIGINS`, revalida o usuário no SQL a cada comando/evento e no heartbeat de 15 segundos. Expiração, rejeição, exclusão, logout ou alteração de senha/cargo encerram a conexão; o JWT nunca é enviado ao JavaScript.
 
-Eventos `notifications.changed` atualizam as solicitações dos administradores; `account.changed` atualiza o acesso sem polling. Mensagens `chat.send` recebem `chat.ack` após persistência e `chat.message` nos sockets dos dois participantes. `client_id` UUID por remetente torna retries idempotentes. Pub/Sub Redis distribui eventos entre processos; consultas SQL com cache aside recuperam o histórico após reconexão. Pub/Sub não é histórico durável.
+Eventos `notifications.changed` atualizam as solicitações dos Owners; `account.changed` atualiza o acesso sem polling. Mensagens `chat.send` recebem `chat.ack` após persistência e `chat.message` nos sockets dos dois participantes. `client_id` UUID por remetente torna retries idempotentes. Pub/Sub Redis distribui eventos entre processos; consultas SQL com cache aside recuperam o histórico após reconexão. Pub/Sub não é histórico durável.
 
-`GET /chat/{member_id}/messages?before=<sequence>&limit=50` fornece paginação do histórico privado. `POST /chat/{member_id}/media` recebe multipart com `file`, `kind` (`image`/`audio`) e `client_id` UUID; arquivos usam HTTP autenticado e os eventos de novas mídias são entregues por WebSocket. `GET /chat/media/{id}` exige ser participante aprovado, inclusive para administradores. Fotos são normalizadas para JPEG sem metadados; áudio aceita WebM, Ogg, WAV, MP3 e M4A com validação de assinatura. Mídias ficam em `UPLOAD_DIR/chat`, no mesmo volume `/data` do banco. Excluir a conta remove suas conversas e respectivos arquivos, preservando clientes/documentos como antes.
+`GET /chat/{member_id}/messages?before=<sequence>&limit=50` fornece paginação do histórico privado. `POST /chat/{member_id}/media` recebe multipart com `file`, `kind` (`image`/`audio`) e `client_id` UUID; arquivos usam HTTP autenticado e os eventos de novas mídias são entregues por WebSocket. `GET /chat/media/{id}` exige ser participante aprovado, inclusive para Owners. Fotos são normalizadas para JPEG sem metadados; áudio aceita WebM, Ogg, WAV, MP3 e M4A com validação de assinatura. Mídias ficam em `UPLOAD_DIR/chat`, no mesmo volume `/data` do banco. Excluir a conta remove suas conversas e respectivos arquivos, preservando clientes/documentos como antes.
 
 `CHAT_MEDIA_MAX_BYTES=10485760`, `WS_CONNECTIONS_PER_USER=3` e `WS_MESSAGE_LIMIT=60` são opcionais. O rate limit global também conta comandos WebSocket. Tickets usam SET/EX e GETDEL; conexões usam leases em ZSET com TTL e comandos usam contadores INCR/TTL; frames textuais são limitados a 16 KiB, filas são limitadas e consumidores lentos são desconectados. Uma indisponibilidade de Redis não desfaz uma mensagem já confirmada no SQLite.
 

@@ -18,14 +18,14 @@ class MemberService:
     @staticmethod
     def _authorize(repos, actor):
         current = authorize(repos, actor, approved=True)
-        if current.role != "admin":
-            raise AccessDenied("Administrator access required")
+        if current.role != "owner":
+            raise AccessDenied("Owner access required")
 
     @staticmethod
     def _authorize_read(repos, actor):
         current = authorize_read(repos, actor, approved=True)
-        if current.role != "admin":
-            raise AccessDenied("Administrator access required")
+        if current.role != "owner":
+            raise AccessDenied("Owner access required")
         return current
 
     @staticmethod
@@ -64,7 +64,7 @@ class MemberService:
         with self.repositories.read_transaction() as repos:
             current = authorize_read(repos, actor, approved=True)
             user = self._target(repos, identifier)
-            if (user.status != "approved" and current.role != "admin") or not user.profile_photo:
+            if (user.status != "approved" and current.role != "owner") or not user.profile_photo:
                 raise ResourceNotFound("Profile photo not found")
             photo, data = user.profile_photo, user.profile_photo_data
         if data is not None:
@@ -91,12 +91,12 @@ class MemberService:
                 principal = repos.users.principal_admin()
                 if principal and principal.id == user.id:
                     if (("email" in changes and changes["email"] != user.email)
-                            or ("role" in changes and changes["role"] != "admin")):
+                            or ("role" in changes and changes["role"] != "owner")):
                         raise ResourceConflict("Principal administrator email and role are protected")
                 if "role" in changes and user.status != "approved":
                     raise ResourceConflict("Only approved members can change role")
-                if actor.id == user.id and changes.get("role", user.role) != "admin":
-                    raise ResourceConflict("You cannot remove your own administrator role")
+                if actor.id == user.id and changes.get("role", user.role) != "owner":
+                    raise ResourceConflict("You cannot remove your own Owner role")
                 if not repos.users.update_member_if_current(user, changes):
                     raise ResourceConflict("Member changed; try again")
                 return {**snapshot("users", user), "is_principal": bool(principal and user.id == principal.id)}

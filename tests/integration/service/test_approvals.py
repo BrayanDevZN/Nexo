@@ -4,7 +4,8 @@ import pytest
 from pydantic import SecretStr
 
 from backend.domain.passwords import PasswordHasher
-from backend.service.approvals import ApprovalConflict, ApprovalPermissionError
+from backend.service.access import AccessDenied
+from backend.service.approvals import ApprovalConflict
 from backend.service.runtime import RuntimeServices
 
 
@@ -91,7 +92,7 @@ def test_service_denies_stale_admin_without_using_cached_authorization(runtime):
     actor = admin(runtime)
     runtime.approvals.users(actor)
     runtime.sessions.revoke_all(actor.id)
-    with pytest.raises(ApprovalPermissionError):
+    with pytest.raises(AccessDenied):
         runtime.approvals.users(actor)
 
 
@@ -122,4 +123,6 @@ def test_acceptance_and_rejection_send_email_after_decision(runtime, monkeypatch
     result = runtime.approvals.decide(actor, note["id"], "approved")
 
     assert result.status == "approved"
-    send_email.assert_called_once_with(user, "approved")
+    send_email.assert_called_once()
+    assert send_email.call_args.args[0].id == user.id
+    assert send_email.call_args.args[1] == "approved"

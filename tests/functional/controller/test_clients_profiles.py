@@ -83,7 +83,7 @@ def test_api_key_client_creation_notifies_site_and_queues_email(client, monkeypa
     assert response.status_code == 201
     created = response.json()
 
-    notices = client.get("/admin/notifications", headers=session_headers).json()
+    notices = client.get("/notifications", headers=session_headers).json()
     notice = next(item for item in notices if item["title"] == "Novo cliente cadastrado")
     assert "Lead criado via API" in notice["body"]
     assert email.call_count == 1

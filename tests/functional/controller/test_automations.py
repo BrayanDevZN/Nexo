@@ -1,3 +1,5 @@
+# Ruff treats pytest fixture re-exports as duplicate arguments.
+# ruff: noqa: F811
 from tests.functional.controller.test_clients_profiles import client, login  # noqa: F401
 
 

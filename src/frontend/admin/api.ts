@@ -1,7 +1,7 @@
 export type User = {
   id: string; name: string; email: string; phone: string | null;
   profile_photo: string | null; status: "pending" | "approved" | "rejected";
-  role: "member" | "admin";
+  role: "member" | "admin" | "owner";
 };
 export type ApiKey = {
   id: string; name: string; key_prefix: string; created_at: string; last_used_at: string | null;

@@ -9,8 +9,6 @@ from backend.infra.connections.google import GoogleConnection, GoogleProviderErr
 
 
 def test_actual_oauth_client_with_mock_google_endpoints(settings, google_signer, monkeypatch):
-    from authlib.integrations.httpx_client import AsyncOAuth2Client
-
     sign, keys = google_signer
     settings.google_client_id = "test-google-client"
     settings.google_client_secret = SecretStr("test-google-secret")
@@ -30,8 +28,6 @@ def test_actual_oauth_client_with_mock_google_endpoints(settings, google_signer,
 
     transport = httpx.MockTransport(handle)
     real_http_client = httpx.AsyncClient
-    monkeypatch.setattr("backend.infra.connections.google.AsyncOAuth2Client",
-                        lambda *args, **kwargs: AsyncOAuth2Client(*args, transport=transport, **kwargs))
     monkeypatch.setattr("backend.infra.connections.google.AsyncClient",
                         lambda **kwargs: real_http_client(transport=transport, **kwargs))
     packet = asyncio.run(GoogleConnection(settings).exchange("test-code", "test-verifier", "test-nonce"))
@@ -46,7 +42,7 @@ def test_google_provider_error_hides_sensitive_response(settings, monkeypatch):
 
     def fail(*args, **kwargs):
         raise ValueError("secret-sentinel test-code")
-    monkeypatch.setattr("backend.infra.connections.google.AsyncOAuth2Client", fail)
+    monkeypatch.setattr("backend.infra.connections.google.AsyncClient", fail)
     with pytest.raises(GoogleProviderError) as exc:
         asyncio.run(GoogleConnection(settings).exchange("test-code", "verifier", "nonce"))
     assert "sentinel" not in str(exc.value) and "test-code" not in str(exc.value)

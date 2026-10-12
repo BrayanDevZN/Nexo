@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import admin_user, approved_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
@@ -32,7 +32,7 @@ def member_photo(identifier: str, request: Request, actor=Depends(approved_user)
 
 
 @router.patch("/{identifier}", response_model=MemberOutput)
-def update(identifier: str, data: MemberUpdateInput, request: Request, actor=Depends(admin_user)):
+def update(identifier: str, data: MemberUpdateInput, request: Request, actor=Depends(owner_user)):
     changes = data.model_dump(exclude_unset=True)
     if "email" in changes:
         changes["email"] = str(changes["email"]).lower()
@@ -43,7 +43,7 @@ def update(identifier: str, data: MemberUpdateInput, request: Request, actor=Dep
 
 
 @router.delete("/{identifier}", status_code=204)
-def delete(identifier: str, request: Request, actor=Depends(admin_user)):
+def delete(identifier: str, request: Request, actor=Depends(owner_user)):
     try:
         request.app.state.services.members.delete(actor, identifier)
     except (AccessDenied, ResourceConflict, ResourceNotFound) as error:

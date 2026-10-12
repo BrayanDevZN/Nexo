@@ -54,12 +54,12 @@ class AuthService:
         try:
             with self.repositories.transaction() as repos:
                 repos.users.create(name=settings.admin_name, email=email, password_hash=hashed,
-                                   role="admin", status="approved")
+                                   role="owner", status="approved")
         except IntegrityError:
             with self.repositories.transaction() as repos:
                 self._validate_admin(repos.users.by_email(email))
 
     @staticmethod
     def _validate_admin(user):
-        if user is None or user.role != "admin" or user.status != "approved":
-            raise RuntimeError("Configured email is not an approved administrator")
+        if user is None or user.role != "owner" or user.status != "approved":
+            raise RuntimeError("Configured email is not an approved Owner")

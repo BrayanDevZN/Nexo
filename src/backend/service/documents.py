@@ -55,7 +55,7 @@ class DocumentService:
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
-            if user.role != "admin" and row.created_by_id != user.id:
+            if user.role != "owner" and row.created_by_id != user.id:
                 raise AccessDenied("Only the creator or an administrator can delete this document")
             key = row.storage_key
             repos.documents.delete(identifier)

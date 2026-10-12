@@ -21,7 +21,7 @@ def test_tables_are_idempotent_and_defaults_persist(repositories):
         user = repos.users.create(name="Brayan", email="USER@Example.com", password_hash="hash")
         identifier = user.id
     create_tables(db.engine)
-    assert set(inspect(db.engine).get_table_names()) == {"users", "clients", "notifications", "documents", "chat_messages"}
+    assert set(inspect(db.engine).get_table_names()) == {"users", "clients", "notifications", "documents", "chat_messages", "api_keys", "api_key_usage", "automations", "automation_requests"}
     with manager.transaction() as repos:
         user = repos.users.by_email("user@example.com")
         assert user.id == identifier
@@ -41,7 +41,7 @@ def test_unique_identity_and_constraints(repositories):
             repos.users.create(name="C", email="c@example.com")
     with pytest.raises(IntegrityError):
         with manager.transaction() as repos:
-            repos.users.create(name="C", email="c@example.com", password_hash="hash", role="owner")
+            repos.users.create(name="C", email="c@example.com", password_hash="hash", role="root")
 
 
 def test_clients_crud_filters_and_ownership(repositories):

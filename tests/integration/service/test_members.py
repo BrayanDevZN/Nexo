@@ -47,7 +47,8 @@ def test_promotion_demotion_refresh_cache_and_revoke_old_sessions(runtime):
     with pytest.raises(AuthenticationError):
         runtime.sessions.authenticate(token)
     promoted, token = runtime.auth.login(user.email, "strong-password-123")
-    assert len(runtime.members.users(promoted)) == 2
+    with pytest.raises(AccessDenied):
+        runtime.members.users(promoted)
     assert next(row for row in runtime.members.users(actor) if row["id"] == user.id)["role"] == "admin"
     runtime.members.update(actor, user.id, {"role": "member"})
     with pytest.raises(AccessDenied):
@@ -61,23 +62,27 @@ def test_principal_identity_and_self_protection(runtime):
     user, _ = registered(runtime)
     runtime.members.update(actor, user.id, {"role": "admin"})
     second, _ = runtime.auth.login(user.email, "strong-password-123")
-    for caller in (actor, second):
-        with pytest.raises(ResourceConflict):
-            runtime.members.delete(caller, actor.id)
-        with pytest.raises(ResourceConflict):
-            runtime.members.update(caller, actor.id, {"email": "different@example.com"})
-        with pytest.raises(ResourceConflict):
-            runtime.members.update(caller, actor.id, {"role": "member"})
     with pytest.raises(ResourceConflict):
+        runtime.members.delete(actor, actor.id)
+    with pytest.raises(ResourceConflict):
+        runtime.members.update(actor, actor.id, {"email": "different@example.com"})
+    with pytest.raises(ResourceConflict):
+        runtime.members.update(actor, actor.id, {"role": "member"})
+    with pytest.raises(AccessDenied):
+        runtime.members.delete(second, actor.id)
+    with pytest.raises(AccessDenied):
+        runtime.members.update(second, actor.id, {"email": "different@example.com"})
+    with pytest.raises(AccessDenied):
         runtime.members.delete(second, second.id)
-    with pytest.raises(ResourceConflict):
+    with pytest.raises(AccessDenied):
         runtime.members.update(second, second.id, {"role": "member"})
     with runtime.repositories.transaction() as repos:
         # Even when another administrator predates the principal, EMAIL determines ownership.
         from datetime import datetime
         repos.users.get(second.id).created_at = datetime(2000, 1, 1)
         assert repos.users.principal_admin().id == actor.id
-    assert runtime.members.update(second, actor.id, {"name": "Owner edited"})["name"] == "Owner edited"
+    with pytest.raises(AccessDenied):
+        runtime.members.update(second, actor.id, {"name": "Owner edited"})
 
 
 def test_pending_role_and_duplicate_email_are_rejected_atomically(runtime):
@@ -143,7 +148,7 @@ def test_shared_directory_uses_allowlist_approval_and_fresh_authorization(runtim
     approved = runtime.sessions.authenticate(token)
     rows = runtime.members.directory(approved)
     assert {row["id"] for row in rows} == {actor.id, user.id}
-    assert all(set(row) == {"id", "name", "role", "has_photo"} for row in rows)
+    assert all(set(row) == {"id", "name", "role", "has_photo", "online"} for row in rows)
     assert len(runtime.members.directory(approved, limit=1, offset=1)) == 1
     runtime.members.update(actor, user.id, {"name": "Ana Edited"})
     assert next(row for row in runtime.members.directory(approved) if row["id"] == user.id)["name"] == "Ana Edited"

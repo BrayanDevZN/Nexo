@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
 from backend.controller.application import create_app
-from backend.controller.dependencies import admin_user, approved_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.domain.passwords import PasswordHasher
 from tests.conftest import verified_register
 
@@ -19,7 +19,7 @@ def client(settings, local_redis_url, monkeypatch):
     app = create_app(settings)
     # Protected probes verify dependencies without exposing business routes yet.
     app.get("/test/approved")(approved_user)
-    app.get("/test/admin")(admin_user)
+    app.get("/test/owner")(owner_user)
     with TestClient(app) as test_client:
         yield test_client
 
@@ -43,7 +43,7 @@ def test_cookie_login_pending_permissions_and_logout_revocation(client):
     token = client.cookies.get("nexo_access_token")
     assert client.get("/auth/me").status_code == 200
     assert client.get("/test/approved").status_code == 403
-    assert client.get("/test/admin").status_code == 403
+    assert client.get("/test/owner").status_code == 403
     assert client.post("/auth/logout", headers=ORIGIN).status_code == 403
     csrf = client.get("/auth/csrf").json()["csrf_token"]
     result = client.post("/auth/logout", headers={**ORIGIN, "X-CSRF-Token": csrf})
@@ -94,6 +94,6 @@ def test_secure_cookie_and_admin_startup(settings, local_redis_url, monkeypatch)
             response = client.post("/auth/login", headers=ORIGIN,
                                    json={"email": "owner@example.com", "password": "initial-admin-password"})
             assert response.status_code == 200
-            assert response.json()["role"] == "admin"
+            assert response.json()["role"] == "owner"
             assert "Secure" in response.headers["set-cookie"]
             assert client.get("/auth/me").status_code == 200

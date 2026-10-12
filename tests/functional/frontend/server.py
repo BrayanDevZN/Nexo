@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock
 
 import uvicorn
+from pydantic import SecretStr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 from backend.controller.application import create_app  # noqa: E402
@@ -24,6 +25,7 @@ if __name__ == "__main__":
             redis_url=os.environ["REDIS_TEST_URL"],
             email="owner@example.com",
             password="initial-admin-password",
+            resend_key=SecretStr("browser-test-resend-key"),
             frontend_url="http://127.0.0.1:4173",
             cors_origins=["http://127.0.0.1:4173"],
             auth_rate_limit=100,

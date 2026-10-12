@@ -34,7 +34,7 @@ class UserRepository(Repository[User]):
         )).where(User.id == identifier))
 
     def principal_admin(self) -> User | None:
-        query = select(User).where(User.role == "admin")
+        query = select(User).where(User.role.in_(["owner", "admin"]))
         if self.principal_email:
             query = query.where(User.email == self.principal_email)
         return self.session.scalar(query.options(load_only(
@@ -89,7 +89,7 @@ class UserRepository(Repository[User]):
     def approved_admins(self) -> list[User]:
         return list(self.session.scalars(select(User).options(load_only(
             User.id, User.email, User.name,
-        )).where(User.status == "approved", User.role == "admin")))
+        )).where(User.status == "approved", User.role == "owner")))
 
 
     def count(self, *, status: str | None = None) -> int:

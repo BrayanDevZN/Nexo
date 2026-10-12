@@ -1,3 +1,5 @@
+# Ruff treats pytest fixture re-exports as duplicate arguments.
+# ruff: noqa: F811
 from tests.integration.service.test_members import owner, registered, runtime  # noqa: F401
 
 
