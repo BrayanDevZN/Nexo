@@ -23,6 +23,7 @@ from backend.repository.redis.rate_limits import RateLimitRepository
 from backend.repository.redis.realtime import RealtimeRepository
 from backend.service.account_deletion import AccountDeletionService
 from backend.service.announcements import AnnouncementService
+from backend.service.automation_requests import AutomationRequestService
 from backend.service.api_keys import ApiKeyService
 from backend.service.approvals import ApprovalService
 from backend.service.auth import AuthService
@@ -86,6 +87,9 @@ class RuntimeServices:
             self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcements = AnnouncementService(self.repositories, self.cached_repositories, self.messages, self.push)
+            self.automation_requests = AutomationRequestService(
+                self.repositories, self.cached_repositories, self.messages, self.push,
+            )
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]

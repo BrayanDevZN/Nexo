@@ -33,6 +33,12 @@ class NotificationRepository(Repository[Notification]):
                                      body=body, recipient_id=recipient_id,
                                      requested_user_id=sender_id))
 
+    def create_automation_notice(self, *, recipient_id: str, user_id: str,
+                                 kind: str, title: str, body: str) -> Notification:
+        return self.add(Notification(kind=kind, title=title, body=body,
+                                     recipient_id=recipient_id,
+                                     requested_user_id=user_id))
+
     def create_announcements(self, *, announcement_id: str, recipient_ids,
                              creator_id: str, title: str, body: str) -> list[Notification]:
         rows = [Notification(kind="announcement", announcement_id=announcement_id,

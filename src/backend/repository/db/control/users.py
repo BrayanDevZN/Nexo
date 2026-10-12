@@ -75,6 +75,11 @@ class UserRepository(Repository[User]):
             User.status == "approved", User.role == "member",
         )))
 
+    def approved_admins(self) -> list[User]:
+        return list(self.session.scalars(select(User).options(load_only(
+            User.id, User.email, User.name,
+        )).where(User.status == "approved", User.role == "admin")))
+
 
     def count(self, *, status: str | None = None) -> int:
         query = select(func.count()).select_from(User)

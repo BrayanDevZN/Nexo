@@ -177,3 +177,19 @@ class AccountMessages:
             title, [body],
         )
         return True
+
+    def automation_invitation(self, user, invite_url: str, message: str):
+        if not self.sender.configured:
+            return False
+        paragraphs = [
+            "Olá, " + (getattr(user, "name", None) or "pessoa") + ". Sua solicitação de acesso ao n8n da Nexo foi aprovada.",
+        ]
+        if message:
+            paragraphs.append(message)
+        self._send(
+            user.email, "Seu convite para o n8n da Nexo",
+            "Seu acesso ao n8n está pronto. Use o link seguro para criar sua conta.",
+            "Seu convite para o n8n chegou", paragraphs,
+            action_label="Criar minha conta no n8n", action_url=invite_url,
+        )
+        return True
