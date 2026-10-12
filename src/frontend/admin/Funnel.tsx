@@ -39,7 +39,15 @@ export function Funnel({ api }: { api: ReturnType<typeof createApi> }) {
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setRows(await api.request<ClientRecord[]>("/clients?limit=100&offset=0")); }
+    try {
+      const all: ClientRecord[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.request<ClientRecord[]>("/clients?limit=100&offset=" + offset);
+        all.push(...page);
+        if (page.length < 100) break;
+      }
+      setRows(all);
+    }
     catch (e) { setError(message(e)); } finally { setLoading(false); }
   }, [api]);
   useEffect(() => { void load(); }, [load]);
