@@ -20,6 +20,15 @@ if count == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1])) end
 return count
 """
 
+MARK_RESEND_QUOTA_EXHAUSTED = """
+local count = tonumber(redis.call('GET', KEYS[1]) or '0')
+if count <= tonumber(ARGV[1]) then
+  redis.call('SET', KEYS[1], tonumber(ARGV[1]) + 1, 'EX', tonumber(ARGV[2]))
+  return tonumber(ARGV[1]) + 1
+end
+return count
+"""
+
 
 class EmailUnavailableError(RuntimeError):
     def __init__(self, message, *, category="unavailable", smtp_code=None):
@@ -96,7 +105,16 @@ class ResendConnection:
             provider = self._delivery_provider()
             if provider == "n8n":
                 return self._deliver_n8n(recipient, subject, body, html)
-            return self._deliver_resend(recipient, subject, body, html)
+            try:
+                return self._deliver_resend(recipient, subject, body, html)
+            except EmailUnavailableError as error:
+                # Resend may already be exhausted before this Redis counter existed.
+                # A 429 is an explicit rejection, so safely retry this message via n8n.
+                if error.category != "rate_limit" or not self.n8n_configured:
+                    raise
+                self._mark_resend_quota_exhausted()
+                logger.warning("Resend monthly quota exhausted; switching email delivery to n8n")
+                return self._deliver_n8n(recipient, subject, body, html)
         except EmailUnavailableError:
             raise
         except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError, OSError) as error:
@@ -126,6 +144,19 @@ class ResendConnection:
             raise EmailUnavailableError("Resend monthly email limit reached and n8n is not configured",
                                         category="quota_exhausted")
         return "n8n"
+
+    def _mark_resend_quota_exhausted(self) -> None:
+        if self.redis is None:
+            return
+        now = datetime.now(timezone.utc)
+        key = f"nexo:email:resend:{self._quota_namespace}:{now:%Y-%m}"
+        try:
+            self.redis.eval(MARK_RESEND_QUOTA_EXHAUSTED, 1, key,
+                            RESEND_MONTHLY_LIMIT, RESEND_COUNTER_TTL_SECONDS)
+        except Exception:
+            # The current message can still use n8n; a later message will retry the
+            # Redis increment and fall back again if Resend continues returning 429.
+            logger.warning("Could not persist Resend quota exhaustion in Redis")
 
     def _deliver_resend(self, recipient: str, subject: str, body: str, html: str | None):
         try:
