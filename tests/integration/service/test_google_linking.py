@@ -58,7 +58,7 @@ def test_bootstrap_admin_can_use_google_and_local_login_after_restart(runtime, s
     assert runtime.sessions.authenticate(token).id == owner.id
     runtime.auth.bootstrap_admin(settings)
     current = runtime.auth.login(owner.email, "initial-admin-password")[0]
-    assert current.id == owner.id and current.role == "admin" and current.status == "approved"
+    assert current.id == owner.id and current.role == "owner" and current.status == "approved"
 
 
 def test_different_email_creates_onboarding_and_google_only_cannot_use_password(runtime):
