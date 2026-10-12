@@ -74,10 +74,15 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
           413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
-          422: "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
+          422: path.startsWith("/push")
+            ? "Não foi possível registrar as notificações neste dispositivo. Atualize a página e tente novamente."
+            : path.startsWith("/clients")
+            ? "Confira os campos do cliente e tente novamente."
+            : "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
           429: "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
           503: path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
             : path === "/auth/register" ? "Não foi possível enviar o código por e-mail. O serviço de envio está indisponível."
+            : path.startsWith("/push") ? "As notificações push não estão configuradas no servidor."
             : "Serviço temporariamente indisponível. Tente novamente em instantes.",
         };
         if (response.status === 401 && !["/auth/login", "/auth/google/profile", "/auth/password/recovery/confirm"].includes(path)) {
