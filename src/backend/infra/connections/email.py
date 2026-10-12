@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from threading import BoundedSemaphore, Lock
 
 import httpx
+import jwt
 from pydantic import EmailStr, TypeAdapter
 
 from backend.infra.config.settings import Settings
@@ -178,9 +179,15 @@ class ResendConnection:
             raise EmailUnavailableError("Resend delivery failed", category="unexpected") from error
 
     def _deliver_n8n(self, recipient: str, subject: str, body: str, html: str | None):
+        now = int(datetime.now(timezone.utc).timestamp())
+        token = jwt.encode(
+            {"iat": now, "exp": now + 3600},
+            self.settings.secret_email_n8n.get_secret_value(),
+            algorithm="HS256",
+        )
         response = self._n8n_client.post(
             self.settings.url_email_n8n,
-            headers={"Authorization": "Bearer " + self.settings.secret_email_n8n.get_secret_value()},
+            headers={"Authorization": "Bearer " + token},
             json={"to": recipient, "type": "html" if html is not None else "text",
                   "subject": subject, "content": html if html is not None else body},
         )
