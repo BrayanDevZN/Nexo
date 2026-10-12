@@ -13,7 +13,7 @@ _MUTED = "#6f637c"
 _BORDER = "#e8def3"
 _PRIMARY = "#6d28d9"
 _PRIMARY_SOFT = "#f2ebff"
-_LOGO_URL = "https://www.nexoaicompany.com/images/nexo-symbol-purple.png"
+_LOGO_URL = "https://raw.githubusercontent.com/BrayanDevZN/Nexo/main/src/frontend/public/images/nexo-symbol-purple.png"
 
 
 def _paragraph(value: str) -> str:
