@@ -79,6 +79,8 @@ def test_security_emails_share_the_branded_code_layout(method_name, eyebrow, hea
     assert "12345678" in rendered
     assert "600 segundos" in rendered
     assert "role=\"presentation\"" in rendered
+    assert 'src="https://www.nexoaicompany.com/images/nexo-symbol-purple.png"' in rendered
+    assert 'alt="Símbolo da Nexo"' in rendered
 
 
 def test_automation_invitation_has_a_branded_action_button_and_plain_text_link():
