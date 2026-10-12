@@ -73,7 +73,9 @@ class NotificationRepository(Repository[Notification]):
                    Notification.kind == "chat_message", Notification.read_at.is_(None))
             .group_by(Notification.requested_user_id)
         )
-        return {"total": sum(counts.values()), "chat_messages": counts.get("chat_message", 0),
+        chat_messages = counts.get("chat_message", 0)
+        return {"total": sum(counts.values()), "notices": sum(counts.values()) - chat_messages,
+                "chat_messages": chat_messages,
                 "chat_by_sender": {sender_id: count for sender_id, count in by_sender}}
 
     def mark_chat_read_for_sender(self, recipient_id: str, sender_id: str) -> int:
@@ -95,7 +97,7 @@ class NotificationRepository(Repository[Notification]):
             query = query.where(Notification.resolved_at.is_(None))
         if kind is not None:
             query = query.where(Notification.kind == kind)
-        return list(self.session.scalars(query.order_by(Notification.created_at, Notification.id)
+        return list(self.session.scalars(query.order_by(Notification.created_at.desc(), Notification.id.desc())
                                         .limit(limit).offset(offset)))
 
     def resolve(self, notification: Notification, decision: str) -> None:
