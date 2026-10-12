@@ -16,8 +16,8 @@ class AnnouncementService:
     @staticmethod
     def _authorize(repos, actor):
         current = authorize(repos, actor, approved=True)
-        if current.role != "admin":
-            raise AnnouncementPermissionError("Administrator access required")
+        if current.role != "owner":
+            raise AnnouncementPermissionError("Owner access required")
         return current
 
     def list_for_user(self, actor, *, limit=50, offset=0, kind=None):
