@@ -25,12 +25,22 @@ def migrate_owner_role(engine, principal_email: str | None = None) -> None:
                     "CHECK (role IN ('member', 'admin', 'owner'))"
                 ))
 
-    if principal_email:
-        with engine.begin() as connection:
+    with engine.begin() as connection:
+        if principal_email:
             connection.execute(
                 text("UPDATE users SET role = 'owner' WHERE lower(email) = :email AND role = 'admin'"),
                 {"email": principal_email.strip().lower()},
             )
+        else:
+            # If deployment credentials are absent, preserve access by promoting
+            # the earliest legacy administrator as the initial Owner.
+            connection.execute(text("""
+                UPDATE users SET role = 'owner'
+                WHERE id = (
+                    SELECT id FROM users WHERE role = 'admin'
+                    ORDER BY created_at, id LIMIT 1
+                )
+            """))
 
 
 def _migrate_sqlite(engine) -> None:
