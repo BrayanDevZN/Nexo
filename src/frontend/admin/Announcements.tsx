@@ -10,6 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 
 type Notice = { id: string; kind: "announcement" | "member_joined" | "chat_message" | "automation_request" | "automation_invitation" | "automation_rejected"; announcement_id: string | null; title: string | null; body: string | null; read_at: string | null; created_at: string; updated_at: string };
 
+function newestFirst(rows: Notice[]) {
+  return [...rows].sort((a, b) => Date.parse(b.created_at.endsWith("Z") ? b.created_at : b.created_at + "Z") - Date.parse(a.created_at.endsWith("Z") ? a.created_at : a.created_at + "Z") || b.id.localeCompare(a.id));
+}
+
 export function Announcements({ api, user, onNotificationsRead }: { api: ReturnType<typeof createApi>; user: User; onNotificationsRead?: () => Promise<void> }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +23,7 @@ export function Announcements({ api, user, onNotificationsRead }: { api: ReturnT
   const [showComposer, setShowComposer] = useState(false);
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setNotices(await api.request<Notice[]>("/notifications?limit=100&offset=0")); }
+    try { setNotices(newestFirst(await api.request<Notice[]>("/notifications?limit=100&offset=0"))); }
     catch (e) { setError(message(e)); } finally { setLoading(false); }
   }, [api]);
   useEffect(() => { void load(); }, [load]);
