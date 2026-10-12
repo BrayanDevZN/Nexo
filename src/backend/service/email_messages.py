@@ -13,6 +13,7 @@ _MUTED = "#6f637c"
 _BORDER = "#e8def3"
 _PRIMARY = "#6d28d9"
 _PRIMARY_SOFT = "#f2ebff"
+_LOGO_URL = "https://www.nexoaicompany.com/images/nexo-symbol-purple.png"
 
 
 def _paragraph(value: str) -> str:
@@ -74,9 +75,15 @@ def _render_email(*, preheader: str, heading: str, paragraphs: list[str],
         f'<tr><td height="5" bgcolor="{_PRIMARY}" style="height:5px;background:{_PRIMARY};'
         'font-size:0;line-height:0;border-radius:16px 16px 0 0;">&nbsp;</td></tr>'
         '<tr><td style="padding:24px 28px 18px;border-bottom:1px solid ' + _BORDER + ';">'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td valign="middle" style="padding-right:11px;">'
+        f'<img src="{_LOGO_URL}" alt="Símbolo da Nexo" width="42" height="42" '
+        'style="display:block;width:42px;height:42px;border:0;outline:none;text-decoration:none;">'
+        '</td><td valign="middle">'
         f'<div style="color:{_PRIMARY};font:bold 16px/1.3 Arial,Helvetica,sans-serif;letter-spacing:2px;">NEXO</div>'
         f'<div style="padding-top:5px;color:{_MUTED};font:12px/1.5 Arial,Helvetica,sans-serif;">'
-        'Automação inteligente para sua equipe</div>'
+        'Automação inteligente para sua equipe</div></td>'
+        '</tr></table>'
         '</td></tr><tr><td style="padding:30px 28px 24px;">'
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
         f'<td bgcolor="{_PRIMARY_SOFT}" style="padding:5px 9px;border:1px solid {_BORDER};'
