@@ -2587,10 +2587,15 @@ main,
 .admin-mobile-menu { display: none; }
 .admin-layout { position: relative; min-height: 100dvh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
 .admin-sidebar { display: flex; flex-direction: column; gap: 2rem; padding: 2rem 1.25rem; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--background) 95%, transparent); position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 40; width: 248px; height: 100dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.admin-sidebar-header { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: space-between; gap: .5rem; }
+.admin-sidebar-header > a { min-width: 0; }
+.admin-sidebar-toggle { margin-inline-start: auto; flex: 0 0 auto; }
 .admin-layout-collapsed { grid-template-columns: 80px minmax(0, 1fr); }
 .admin-layout-collapsed > .admin-sidebar { width: 80px; padding-inline: .75rem; align-items: center; gap: 1.5rem; }
 .admin-layout-collapsed > .admin-sidebar > .admin-eyebrow { display: none; }
-.admin-layout-collapsed > .admin-sidebar > a .brand > span { display: none; }
+.admin-layout-collapsed > .admin-sidebar .admin-sidebar-header { gap: .25rem; }
+.admin-layout-collapsed > .admin-sidebar .admin-sidebar-header > a .brand > img { width: 24px; height: 24px; }
+.admin-layout-collapsed > .admin-sidebar .admin-sidebar-header > a .brand > span { display: none; }
 .admin-layout-collapsed > .admin-sidebar .admin-panel-nav { width: 100%; }
 .admin-layout-collapsed > .admin-sidebar .admin-panel-nav button { justify-content: center; overflow: hidden; font-size: 0; gap: 0; padding-inline: .5rem; }
 .admin-layout-collapsed > .admin-sidebar .admin-panel-nav button svg { flex: 0 0 auto; }

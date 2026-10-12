@@ -133,12 +133,7 @@ export default function AdminApp() {
   if (!user && error) return <main className="admin-loading"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar novamente</Button><Button variant="link" asChild><a href="/">Voltar ao site</a></Button></main>;
   if (!user) return <Auth api={api} complete={complete} onLogin={onLogin} />;
   function navigate(next: Page) { setPage(next); setMobileOpen(false); }
-  function toggleSidebar() {
-    if (window.matchMedia("(max-width: 760px)").matches) { setMobileOpen(value => !value); return; }
-    setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; });
-  }
-  const narrowSidebar = window.matchMedia("(max-width: 760px)").matches;
-  const sidebarActionExpands = narrowSidebar ? !mobileOpen : sidebarCollapsed;
+  function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
         {user.status === "approved" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
@@ -159,9 +154,17 @@ export default function AdminApp() {
   const account = (
       <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
   );
+  const sidebarHeader = (
+    <div className="admin-sidebar-header">
+      <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
+      <Button variant="ghost" size="icon-sm" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>
+        {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+      </Button>
+    </div>
+  );
   return <div className={`admin-layout${sidebarCollapsed ? " admin-layout-collapsed" : ""}`}>
     <aside className="admin-sidebar">
-      <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
+      {sidebarHeader}
       <p className="admin-eyebrow">PAINEL ADMINISTRATIVO</p>
       {navigation}
       {account}
@@ -170,7 +173,7 @@ export default function AdminApp() {
       <header className="admin-topbar"><div className="flex min-w-0 items-center gap-3"><Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild><Button variant="outline" size="icon-lg" className="admin-mobile-menu" aria-label="Abrir menu do painel"><Menu /></Button></SheetTrigger>
         <SheetContent side="left" className="overflow-y-auto"><SheetHeader><SheetTitle>Menu do painel</SheetTitle><SheetDescription>Navegue pelo seu espaço na Nexo.</SheetDescription></SheetHeader><div className="px-4"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a></div><div className="px-4">{navigation}</div><SheetFooter>{account}</SheetFooter></SheetContent>
-      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button><Button variant="outline" size="icon-lg" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={narrowSidebar ? mobileOpen ? "Fechar menu lateral" : "Abrir menu lateral" : sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={narrowSidebar ? mobileOpen ? "Fechar menu lateral" : "Abrir menu lateral" : sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>{sidebarActionExpands ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></div></header>
+      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
       <main className="admin-content" id="painel">
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
