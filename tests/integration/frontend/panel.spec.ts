@@ -4,7 +4,7 @@ const member = { id: "member", name: "Ana Silva", email: "ana@example.com", phon
 async function mock(page: Page, options: { user?: typeof member; requests?: boolean } = {}) {
   let user = options.user;
   const rows: Record<string, unknown>[] = [];
-  const members = [{ ...member, status: "approved", is_principal: false }, { ...member, id: "owner", name: "Principal", email: "owner@example.com", role: "admin", status: "approved", is_principal: true }];
+  const members = [{ ...member, status: "approved", is_principal: false }, { ...member, id: "owner", name: "Principal", email: "owner@example.com", role: "owner", status: "approved", is_principal: true }];
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace("/api", "");
@@ -104,8 +104,8 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
   await expect(page.getByText("Cliente removido.")).toBeVisible();
 });
 
-test("principal admin sees notification and approves request", async ({ page }) => {
-  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" }, requests: true });
+test("Owner sees notification and approves request", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" }, requests: true });
   await page.goto("/admin");
   await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
   await page.getByRole("button", { name: "Ver solicitações" }).click();
