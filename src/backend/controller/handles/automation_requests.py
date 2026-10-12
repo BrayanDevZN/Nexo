@@ -59,7 +59,7 @@ def create_request(data: AutomationRequestCreate, request: Request,
 
 @router.post("/{identifier}/invite", response_model=AutomationRequestDecision)
 def send_invite(identifier: str, data: AutomationInviteInput, request: Request,
-                actor=Depends(admin_user)):
+                actor=Depends(owner_user)):
     try:
         return request.app.state.services.automation_requests.invite(
             actor, identifier, invite_url=str(data.invite_url), message=data.message,
@@ -72,7 +72,7 @@ def send_invite(identifier: str, data: AutomationInviteInput, request: Request,
 
 @router.post("/{identifier}/reject", response_model=AutomationRequestDecision)
 def reject_request(identifier: str, data: AutomationRejectInput, request: Request,
-                   actor=Depends(admin_user)):
+                   actor=Depends(owner_user)):
     try:
         return request.app.state.services.automation_requests.reject(
             actor, identifier, message=data.message,
