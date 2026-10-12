@@ -41,7 +41,7 @@ def code_from_mail(resend, futures):
     for future in futures:
         future.result(timeout=5)
     messages = [call.kwargs["json"] for call in resend.post.call_args_list
-                if call.kwargs["json"]["subject"].startswith("Código")]
+                if call.kwargs["json"]["subject"].startswith("Código para atualizar sua senha")]
     assert len(messages) == 1
     assert messages[0]["to"] == [EMAIL]
     assert isinstance(messages[0]["text"], str)

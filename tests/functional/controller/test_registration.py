@@ -31,8 +31,8 @@ def test_email_confirmation_precedes_creation_notification_and_login(
         futures = []
         send = services.email.send
 
-        def tracked(*args):
-            future = send(*args)
+        def tracked(*args, **kwargs):
+            future = send(*args, **kwargs)
             futures.append(future)
             return future
 

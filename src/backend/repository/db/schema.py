@@ -1,8 +1,8 @@
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-from backend.repository.db.models import Base
 from backend.repository.db.migrations.owner_role import migrate_owner_role
+from backend.repository.db.models import Base
 
 
 def create_tables(engine: Engine, principal_email: str | None = None) -> None:

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import owner_user, approved_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 

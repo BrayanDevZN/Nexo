@@ -23,6 +23,7 @@ def runtime(settings, local_redis_url, monkeypatch):
     done = Future()
     done.set_result(None)
     runtime.account_deletion.sender = Mock(configured=True, send=Mock(return_value=done))
+    runtime.account_deletion.messages = None
     runtime.account_deletion.codes.create = Mock(return_value="12345678")
     yield runtime
     runtime.close()

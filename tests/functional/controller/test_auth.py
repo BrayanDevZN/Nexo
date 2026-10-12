@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
 from backend.controller.application import create_app
-from backend.controller.dependencies import owner_user, approved_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.domain.passwords import PasswordHasher
 from tests.conftest import verified_register
 

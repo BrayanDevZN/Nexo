@@ -29,6 +29,7 @@ def test_deletion_requires_email_confirmation_session_and_csrf(app):
         done.set_result(None)
         deletion = app.state.services.account_deletion
         deletion.sender = Mock(configured=True, send=Mock(return_value=done))
+        deletion.messages = None
         deletion.codes.create = Mock(return_value="12345678")
         headers = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
         assert client.post("/auth/account/deletion/request", headers=ORIGIN).status_code == 403

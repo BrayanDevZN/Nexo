@@ -14,7 +14,6 @@ from backend.service.automation_requests import (
     AutomationRequestConflict,
     AutomationRequestNotFound,
     AutomationRequestPermissionError,
-    AutomationRequestService,
     AutomationRequestValidationError,
 )
 

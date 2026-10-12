@@ -130,3 +130,20 @@ def test_google_registration_also_notifies_admin(app, google_signer):
         notes = client.get("/admin/notifications").json()
         assert len(notes) == 1
         assert notes[0]["requested_user_id"] == client.get("/admin/users", params={"status": "pending"}).json()[0]["id"]
+
+
+def test_owner_api_key_can_publish_announcement(app):
+    with TestClient(app) as client:
+        session = login(client, "owner@example.com", "initial-admin-password")
+        key_response = client.post("/auth/api-keys", headers=session, json={"name": "announcement"})
+        assert key_response.status_code == 201
+        api_key = key_response.json()["key"]
+        response = client.post(
+            "/admin/announcements",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"title": "Atualização do painel", "body": "O cargo Owner e a migração de permissões foram adicionados."},
+        )
+        assert response.status_code == 201, response.text
+        notice = next(item for item in client.get("/notifications", headers=session).json()
+                      if item["announcement_id"] == response.json()["id"])
+        assert notice["title"] == "Atualização do painel"

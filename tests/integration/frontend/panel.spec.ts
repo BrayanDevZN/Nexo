@@ -95,7 +95,8 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
   await expect(page.getByText("Cliente salvo.")).toBeVisible();
   await page.screenshot({ path: "../../test-results/clients-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Editar Loja Nexo" }).click();
-  await dialog.getByLabel("Situação do contrato").selectOption("true");
+  await dialog.getByLabel("Situação do contrato").click();
+  await page.getByRole("option", { name: "Fechado", exact: true }).click();
   await dialog.getByRole("button", { name: "Salvar cliente" }).click();
   await expect(page.locator("[data-slot=badge]").filter({ hasText: "Fechado" })).toBeVisible();
   await page.getByRole("button", { name: "Excluir Loja Nexo" }).click();
@@ -146,7 +147,7 @@ test("expired session returns to login", async ({ page }) => {
   await mock(page, { user: { ...member, status: "approved" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
-  await page.route("**/api/clients?**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
+  await page.route("**/api/clients**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
   await page.getByRole("button", { name: "Atualizar clientes" }).click();
   await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
 });
@@ -211,7 +212,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 
 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
-  await mock(page, { user: { ...member, id: "owner", role: "admin", status: "approved" } });
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
   await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
