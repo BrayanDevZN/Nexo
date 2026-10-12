@@ -18,6 +18,7 @@ class Notification(IdentityTimestampMixin, Base):
     announcement_id: Mapped[str | None] = mapped_column(String(36), index=True)
     title: Mapped[str | None] = mapped_column(String(160))
     body: Mapped[str | None] = mapped_column(Text)
+    image_storage_key: Mapped[str | None] = mapped_column(String(64))
     recipient_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False,
     )
