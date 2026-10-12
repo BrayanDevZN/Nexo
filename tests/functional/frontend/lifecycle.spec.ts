@@ -113,7 +113,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByRole("button", { name: "Salvar membro" }).click();
     await expect(admin.getByText("Membro atualizado.")).toBeVisible();
     // The next request observes the incremented session version and logs out the previous session.
-    await member.getByRole("button", { name: "Atualizar clientes" }).click();
+    await member.reload();
     await expect(member.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
