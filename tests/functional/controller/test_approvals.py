@@ -1,8 +1,10 @@
+from io import BytesIO
 from unittest.mock import AsyncMock
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from pydantic import SecretStr
 
 from backend.controller.application import create_app
@@ -83,6 +85,33 @@ def test_notifications_are_owned_and_pagination_is_bounded(app):
         assert client.patch(path + "/read", headers=headers).status_code == 404
         assert client.post(path + "/decision", json={"decision": "approved"}, headers=headers).status_code == 404
         assert client.get("/admin/notifications").json() == []
+
+
+def test_announcement_can_include_an_image_and_exposes_author(app, monkeypatch):
+    with TestClient(app) as client:
+        headers = login(client, "owner@example.com", "initial-admin-password")
+        monkeypatch.setattr(app.state.services.messages, "announcement", lambda *args: True)
+        image = BytesIO()
+        Image.new("RGB", (12, 8), color="purple").save(image, format="PNG")
+
+        response = client.post(
+            "/admin/announcements/with-image",
+            headers=headers,
+            data={"title": "Aviso com foto", "body": "Confira a imagem."},
+            files={"image": ("aviso.png", image.getvalue(), "image/png")},
+        )
+
+        assert response.status_code == 201
+        notice = next(item for item in client.get("/notifications").json()
+                      if item["announcement_id"] == response.json()["id"])
+        assert notice["sender_name"] == client.get("/auth/me").json()["name"]
+        assert notice["sender_has_photo"] is False
+        assert notice["has_image"] is True
+
+        rendered = client.get(f"/notifications/{notice['id']}/image")
+        assert rendered.status_code == 200
+        assert rendered.headers["content-type"] == "image/jpeg"
+        assert rendered.content.startswith(b"\xff\xd8")
 
 
 def test_google_registration_also_notifies_admin(app, google_signer):
