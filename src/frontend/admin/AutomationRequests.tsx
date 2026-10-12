@@ -13,6 +13,15 @@ import { Busy, Feedback, Loading, message } from "./shared";
 
 const N8N_URL = "https://n8n.nexoaicompany.com";
 
+function N8nLogo({ compact = false }: { compact?: boolean }) {
+  return <span className="inline-flex items-center gap-1.5" role="img" aria-label="n8n">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0 text-[#EA4B71]" fill="currentColor">
+      <path d="M21.4737 5.6842c-1.1772 0-2.1663.8051-2.4468 1.8947h-2.8955c-1.235 0-2.289.893-2.492 2.111l-.1038.623a1.263 1.263 0 0 1-1.246 1.0555H11.289c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947s-2.1663.8051-2.4467 1.8947H4.973c-.2804-1.0896-1.2696-1.8947-2.4468-1.8947C1.1311 9.4737 0 10.6047 0 12s1.1311 2.5263 2.5263 2.5263c1.1772 0 2.1664-.8051 2.4468-1.8947h1.4224c.2804 1.0896 1.2695 1.8947 2.4467 1.8947s2.1664-.8051 2.4468-1.8947h1.0008a1.263 1.263 0 0 1 1.2459 1.0555l.1038.623c.203 1.218 1.257 2.111 2.492 2.111h.3692c.2804 1.0895 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.1311 2.5263-2.5263s-1.1311-2.5263-2.5263-2.5263c-1.1772 0-2.1664.805-2.4468 1.8947h-.3692a1.263 1.263 0 0 1-1.246-1.0555l-.1037-.623A2.52 2.52 0 0 0 13.9607 12a2.52 2.52 0 0 0 .821-1.4794l.1038-.623a1.263 1.263 0 0 1 1.2459-1.0555h2.8955c.2804 1.0895 1.2696 1.8947 2.4468 1.8947C22.8689 10.7368 24 9.6057 24 8.2105s-1.1311-2.5263-2.5263-2.5263ZM2.5263 10.7368A1.263 1.263 0 0 1 3.7895 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 1.2632 12a1.263 1.263 0 0 1 1.2631-1.2632Zm6.3158 0A1.263 1.263 0 0 1 10.1053 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 7.579 12a1.263 1.263 0 0 1 1.2631-1.2632Zm10.1053 3.7895a1.263 1.263 0 0 1 1.2631 1.2632 1.263 1.263 0 0 1-1.2631 1.2631 1.263 1.263 0 0 1-1.2632-1.2631 1.263 1.263 0 0 1 1.2632-1.2632ZM21.4737 6.9474a1.263 1.263 0 0 1 1.2631 1.2631 1.263 1.263 0 0 1-1.2631 1.2632 1.263 1.263 0 0 1-1.2632-1.2632 1.263 1.263 0 0 1 1.2632-1.2631Z" />
+    </svg>
+    {!compact && <span className="font-semibold lowercase tracking-tight">n8n</span>}
+  </span>;
+}
+
 type AutomationRequest = {
   id: string;
   requested_by_id: string;
@@ -108,17 +117,17 @@ export function AutomationRequests({ api, user }: { api: ReturnType<typeof creat
 
   return <section className="flex flex-col gap-6" aria-labelledby="automations-title">
     <div className="admin-section-head">
-      <div><span className="admin-eyebrow">AUTOMAÇÃO DE PROCESSOS</span><h1 id="automations-title">Automações</h1><p>Acesse o n8n e solicite uma conta para criar fluxos de trabalho.</p></div>
+      <div><span className="admin-eyebrow">AUTOMAÇÃO DE PROCESSOS</span><h1 id="automations-title" className="flex items-center gap-2">Automações <N8nLogo /></h1><p>Acesse o n8n e solicite uma conta para criar fluxos de trabalho.</p></div>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={loading} onClick={() => void load()}><RefreshCw data-icon="inline-start" /> Atualizar</Button>
-        <Button asChild><a href={N8N_URL} target="_blank" rel="noreferrer">Abrir n8n <ExternalLink data-icon="inline-end" /></a></Button>
+        <Button asChild><a href={N8N_URL} target="_blank" rel="noreferrer"><N8nLogo /> Abrir n8n <ExternalLink data-icon="inline-end" /></a></Button>
       </div>
     </div>
     <Feedback error={error} success={success} />
 
     <Tabs defaultValue={user.role === "admin" ? "requests" : "access"}>
       <TabsList className="w-full sm:w-fit">
-        <TabsTrigger value="access">Acesso ao n8n</TabsTrigger>
+        <TabsTrigger value="access"><N8nLogo compact /> Acesso ao n8n</TabsTrigger>
         {user.role === "admin" && <TabsTrigger value="requests">Solicitações {pending > 0 && <Badge>{pending}</Badge>}</TabsTrigger>}
       </TabsList>
 
