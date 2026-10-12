@@ -41,14 +41,23 @@ export function Chat({ api, actor, realtime, initialMember, onSelect, onNotifica
     } catch { /* Keep conversations usable while metadata refreshes. */ }
   }, [api]);
   useEffect(() => {
-    void refreshConversationMeta();
+    let active = true;
+    void (async () => {
+      try {
+        await api.mutate("/notifications/chat/read", "PATCH");
+        if (!active) return;
+        setUnreadByMember({});
+        await onNotificationsRead?.();
+      } catch { /* Keep chat usable if the read marker fails. */ }
+      if (active) await refreshConversationMeta();
+    })();
     const event = (value: Event) => {
       const type = (value as CustomEvent).detail.type;
       if (type === "ready" || type === "notifications.changed") void refreshConversationMeta();
     };
     window.addEventListener("nexo:realtime", event);
-    return () => window.removeEventListener("nexo:realtime", event);
-  }, [refreshConversationMeta]);
+    return () => { active = false; window.removeEventListener("nexo:realtime", event); };
+  }, [api, onNotificationsRead, refreshConversationMeta]);
   const active = useRef(true);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined); const recordingClock = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const serial = useRef(0); const attempt = useRef({ member: "", text: "", id: "" }); const recorder = useRef<MediaRecorder | null>(null); const stream = useRef<MediaStream | null>(null); const photo = useRef<HTMLInputElement>(null); const audio = useRef<HTMLInputElement>(null);
