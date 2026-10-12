@@ -149,7 +149,7 @@ test("expired session returns to login", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
   await page.route("**/api/clients**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
   await page.getByRole("button", { name: "Atualizar clientes" }).click();
-  await expect(page.getByRole("button", { name: "Entrar no painel" })).toBeVisible();
+  await expect(page.getByLabel("E-mail", { exact: true })).toBeVisible();
 });
 
 
@@ -224,7 +224,8 @@ test("admin edits approved member role and data, protects principal and confirms
   await page.getByRole("button", { name: "Editar membro Ana Silva" }).click();
   await dialog.getByLabel("Nome completo").fill("Ana Administradora");
   await dialog.getByLabel("E-mail", { exact: true }).fill("updated@example.com");
-  await dialog.getByLabel("Cargo", { exact: true }).selectOption("admin");
+  await dialog.getByLabel("Cargo", { exact: true }).click();
+  await page.getByRole("option", { name: "Administrador" }).click();
   await dialog.getByRole("button", { name: "Salvar membro" }).click();
   await expect(page.getByText("Membro atualizado.")).toBeVisible();
   await expect(page.getByText("updated@example.com")).toBeVisible();
