@@ -2,6 +2,7 @@ from threading import Event
 from unittest.mock import Mock
 
 import httpx
+import jwt
 import pytest
 from pydantic import SecretStr
 
@@ -147,7 +148,9 @@ def test_switches_from_resend_to_n8n_after_seventy_and_sends_contract(settings, 
             "subject": "First", "text": "plain",
         })
         assert n8n.post.call_args_list[0].args == (settings.url_email_n8n,)
-        assert n8n.post.call_args_list[0].kwargs["headers"] == {"Authorization": "Bearer jwt-sentinel"}
+        first_token = n8n.post.call_args_list[0].kwargs["headers"]["Authorization"].removeprefix("Bearer ")
+        first_claims = jwt.decode(first_token, "jwt-sentinel", algorithms=["HS256"])
+        assert first_claims["exp"] - first_claims["iat"] == 3600
         assert n8n.post.call_args_list[0].kwargs["json"] == {
             "to": "receiver@example.com", "type": "html", "subject": "Second", "content": "<p>html</p>",
         }
@@ -198,9 +201,12 @@ def test_resend_429_marks_quota_exhausted_and_retries_through_n8n(settings, monk
 
         assert result == {"ok": True}
         resend.post.assert_called_once()
+        token = n8n.post.call_args.kwargs["headers"]["Authorization"].removeprefix("Bearer ")
+        claims = jwt.decode(token, "jwt-sentinel", algorithms=["HS256"])
+        assert claims["exp"] - claims["iat"] == 3600
         n8n.post.assert_called_once_with(
             settings.url_email_n8n,
-            headers={"Authorization": "Bearer jwt-sentinel"},
+            headers=n8n.post.call_args.kwargs["headers"],
             json={"to": "receiver@example.com", "type": "text", "subject": "Subject", "content": "Body"},
         )
         assert redis.eval.call_args_list[1].args[0] == MARK_RESEND_QUOTA_EXHAUSTED
