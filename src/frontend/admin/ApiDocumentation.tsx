@@ -1,74 +1,80 @@
 import { useMemo, useState } from "react";
-import { BellRing, BookOpen, Braces, ChevronDown, ChevronUp, Code2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, BellRing, BookOpen, Check, Copy, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 const BASE_URL = "https://nexo-production-60a0.up.railway.app";
 
 type Method = "GET" | "POST" | "PATCH" | "DELETE";
-type RouteGroup = "/dashboard" | "/clients" | "/documents";
+type Language = "curl" | "javascript" | "python" | "go" | "java" | "php" | "csharp";
 
 type Endpoint = {
-  group: RouteGroup;
   method: Method;
+  route: string;
   path: string;
   title: string;
   description: string;
-  details?: string;
-  headers: Record<string, string>;
+  query?: string[];
+  headers?: Record<string, string>;
   body?: string;
-  response?: string;
+  response: string;
   notifies?: boolean;
-};
-
-const JSON_HEADERS = {
-  Authorization: "Bearer SUA_CHAVE_API",
-  Accept: "application/json",
-  "Content-Type": "application/json",
-};
-
-const READ_HEADERS = {
-  Authorization: "Bearer SUA_CHAVE_API",
-  Accept: "application/json",
+  multipart?: boolean;
 };
 
 const ENDPOINTS: Endpoint[] = [
   {
-    group: "/dashboard",
     method: "GET",
+    route: "/dashboard",
     path: "/dashboard",
     title: "Resumo do negócio",
-    description: "Retorna os indicadores usados pelo dashboard administrativo.",
-    headers: READ_HEADERS,
-    response: "JSON com métricas agregadas do negócio.",
+    description: "Retorna os indicadores agregados usados no dashboard administrativo.",
+    response: `{
+  "clients": 42,
+  "won_contracts": 8,
+  "revenue": 18500,
+  "pipeline": { "lead": 12, "proposal": 4, "won": 8 }
+}`,
   },
   {
-    group: "/clients",
     method: "GET",
+    route: "/clients",
     path: "/clients",
     title: "Listar clientes",
     description: "Lista clientes com paginação e filtros opcionais.",
-    details: "Query params: niche, name, created_by_id, pipeline_stage, contract_closed, limit (1-100) e offset.",
-    headers: READ_HEADERS,
-    response: "Lista de clientes.",
+    query: ["niche", "name", "created_by_id", "pipeline_stage", "contract_closed", "limit", "offset"],
+    response: `[
+  {
+    "id": "uuid-do-cliente",
+    "name": "Empresa Exemplo",
+    "niche": "Contabilidade",
+    "pipeline_stage": "lead",
+    "contract_closed": false
+  }
+]`,
   },
   {
-    group: "/clients",
     method: "GET",
+    route: "/clients",
     path: "/clients/{identifier}",
     title: "Buscar cliente",
-    description: "Retorna um cliente pelo ID.",
-    headers: READ_HEADERS,
-    response: "Objeto do cliente.",
+    description: "Retorna um cliente específico pelo identificador.",
+    response: `{
+  "id": "uuid-do-cliente",
+  "name": "Empresa Exemplo",
+  "niche": "Contabilidade",
+  "pipeline_stage": "lead"
+}`,
   },
   {
-    group: "/clients",
     method: "POST",
+    route: "/clients",
     path: "/clients",
     title: "Criar cliente",
     description: "Cria um cliente e registra a alteração no painel.",
-    headers: JSON_HEADERS,
     body: `{
   "name": "Empresa Exemplo",
   "niche": "Contabilidade",
@@ -77,269 +83,346 @@ const ENDPOINTS: Endpoint[] = [
   "pipeline_stage": "lead",
   "contract_closed": false,
   "contract_value": 1500,
-  "next_follow_up": null,
-  "notes": "Lead vindo pela API",
-  "pain": null,
-  "approach": null,
-  "idempotency_key": "550e8400-e29b-41d4-a716-446655440000"
+  "notes": "Lead vindo pela API"
 }`,
-    response: "Cliente criado. HTTP 201.",
+    response: `{
+  "id": "uuid-do-cliente",
+  "name": "Empresa Exemplo",
+  "niche": "Contabilidade",
+  "pipeline_stage": "lead",
+  "contract_closed": false,
+  "contract_value": 1500
+}`,
     notifies: true,
   },
   {
-    group: "/clients",
     method: "PATCH",
+    route: "/clients",
     path: "/clients/{identifier}",
     title: "Atualizar cliente",
     description: "Atualiza somente os campos enviados no corpo da requisição.",
-    details: "Pode alterar etapa do funil, valor, follow-up, contato, contrato e demais campos do cliente.",
-    headers: JSON_HEADERS,
     body: `{
   "pipeline_stage": "won",
   "contract_closed": true,
-  "contract_value": 2500,
-  "next_follow_up": null
+  "contract_value": 2500
 }`,
-    response: "Cliente atualizado.",
+    response: `{
+  "id": "uuid-do-cliente",
+  "pipeline_stage": "won",
+  "contract_closed": true,
+  "contract_value": 2500
+}`,
     notifies: true,
   },
   {
-    group: "/clients",
     method: "DELETE",
+    route: "/clients",
     path: "/clients/{identifier}",
     title: "Excluir cliente",
-    description: "Remove o cliente pelo ID.",
-    headers: READ_HEADERS,
-    response: "Sem conteúdo. HTTP 204.",
+    description: "Remove o cliente informado pelo identificador.",
+    response: "HTTP 204 No Content",
     notifies: true,
   },
   {
-    group: "/documents",
     method: "GET",
+    route: "/documents",
     path: "/documents",
     title: "Listar documentos",
     description: "Lista documentos enviados para o painel.",
-    details: "Query params: client_id, limit (1-100) e offset.",
-    headers: READ_HEADERS,
-    response: "Lista de documentos.",
+    query: ["client_id", "limit", "offset"],
+    response: `[
+  {
+    "id": "uuid-do-documento",
+    "filename": "contrato.pdf",
+    "size": 248112,
+    "client_id": "uuid-do-cliente"
+  }
+]`,
   },
   {
-    group: "/documents",
     method: "POST",
+    route: "/documents",
     path: "/documents",
     title: "Enviar documento",
     description: "Envia um arquivo usando multipart/form-data.",
-    details: "Campo obrigatório: file. Query param opcional: client_id.",
-    headers: {
-      Authorization: "Bearer SUA_CHAVE_API",
-      Accept: "application/json",
-      "Content-Type": "multipart/form-data",
-    },
-    body: `file: <arquivo binário>
-client_id: opcional, enviado como query param
-
-Exemplo:
-POST /documents?client_id=ID_DO_CLIENTE`,
-    response: "Metadados do documento criado. HTTP 201.",
+    query: ["client_id"],
+    body: `file=@contrato.pdf`,
+    response: `{
+  "id": "uuid-do-documento",
+  "filename": "contrato.pdf",
+  "size": 248112,
+  "client_id": "uuid-do-cliente"
+}`,
+    multipart: true,
   },
   {
-    group: "/documents",
     method: "GET",
+    route: "/documents",
     path: "/documents/{identifier}/download",
     title: "Baixar documento",
-    description: "Baixa o conteúdo binário de um documento.",
-    headers: {
-      Authorization: "Bearer SUA_CHAVE_API",
-      Accept: "application/octet-stream",
-    },
-    response: "Arquivo binário em application/octet-stream.",
+    description: "Baixa o conteúdo binário do documento.",
+    response: "application/octet-stream",
   },
   {
-    group: "/documents",
     method: "DELETE",
+    route: "/documents",
     path: "/documents/{identifier}",
     title: "Excluir documento",
-    description: "Remove o documento pelo ID.",
-    headers: READ_HEADERS,
-    response: "Sem conteúdo. HTTP 204.",
+    description: "Remove o documento informado pelo identificador.",
+    response: "HTTP 204 No Content",
   },
 ];
 
-const GROUPS: { value: RouteGroup; label: string }[] = [
-  { value: "/dashboard", label: "/dashboard" },
-  { value: "/clients", label: "/clients" },
-  { value: "/documents", label: "/documents" },
-];
+const ROUTES = ["/dashboard", "/clients", "/documents"] as const;
 
 const METHOD_STYLE: Record<Method, string> = {
-  GET: "bg-sky-500/10 text-sky-600 border-sky-500/30",
-  POST: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
-  PATCH: "bg-amber-500/10 text-amber-600 border-amber-500/30",
-  DELETE: "bg-rose-500/10 text-rose-600 border-rose-500/30",
+  GET: "border-sky-500/30 bg-sky-500/10 text-sky-600",
+  POST: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
+  PATCH: "border-amber-500/30 bg-amber-500/10 text-amber-600",
+  DELETE: "border-rose-500/30 bg-rose-500/10 text-rose-600",
 };
 
-function CodeBlock({ children }: { children: string }) {
-  return (
-    <pre className="overflow-x-auto rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] p-4 font-mono text-xs leading-6 text-[#d4d4d4]">
-      <code>{children}</code>
-    </pre>
-  );
+const LANGUAGE_LABELS: Record<Language, string> = {
+  curl: "cURL",
+  javascript: "JavaScript",
+  python: "Python",
+  go: "Go",
+  java: "Java",
+  php: "PHP",
+  csharp: "C#",
+};
+
+const LANGUAGE_COLORS: Record<Language, string> = {
+  curl: "#4EAA25",
+  javascript: "#F7DF1E",
+  python: "#3776AB",
+  go: "#00ADD8",
+  java: "#ED8B00",
+  php: "#777BB4",
+  csharp: "#9B4F96",
+};
+
+function headersFor(endpoint: Endpoint) {
+  return {
+    Authorization: "Bearer SUA_CHAVE_API",
+    Accept: "application/json",
+    ...(endpoint.method !== "GET" && endpoint.method !== "DELETE"
+      ? { "Content-Type": endpoint.multipart ? "multipart/form-data" : "application/json" }
+      : {}),
+    ...endpoint.headers,
+  };
+}
+
+function requestExample(endpoint: Endpoint, language: Language): string {
+  const url = `${BASE_URL}${endpoint.path.replace("{identifier}", "SEU_ID")}`;
+  const headers = headersFor(endpoint);
+  const body = endpoint.body;
+
+  if (language === "curl") {
+    const lines = [`curl -X ${endpoint.method} "${url}"`];
+    for (const [key, value] of Object.entries(headers)) lines.push(`  -H "${key}: ${value}"`);
+    if (body) lines.push(endpoint.multipart ? `  -F "${body}"` : `  -d '${body.replace(/\n/g, " ")}'`);
+    return lines.join(" \\\n");
+  }
+
+  if (language === "javascript") {
+    return `const response = await fetch("${url}", {
+  method: "${endpoint.method}",
+  headers: ${JSON.stringify(headers, null, 4).replace(/^/gm, "  ").trim()},${body && !endpoint.multipart ? `
+  body: JSON.stringify(${body}),` : ""}
+});
+
+${endpoint.method === "DELETE" ? "console.log(response.status);" : "const data = await response.json();\nconsole.log(data);"}`;
+  }
+
+  if (language === "python") {
+    const requestMethod = endpoint.method.toLowerCase();
+    return `import requests
+
+response = requests.${requestMethod}(
+    "${url}",
+    headers=${JSON.stringify(headers, null, 4).replace(/"/g, "'")},${body && !endpoint.multipart ? `
+    json=${body.replace(/true/g, "True").replace(/false/g, "False").replace(/null/g, "None")},` : ""}
+    timeout=30,
+)
+response.raise_for_status()
+${endpoint.method === "DELETE" ? "print(response.status_code)" : "print(response.json())"}`;
+  }
+
+  if (language === "go") {
+    return `package main
+
+import (
+  "fmt"
+  "net/http"${body && !endpoint.multipart ? "\n  \"strings\"" : ""}
+)
+
+func main() {
+  ${body && !endpoint.multipart ? `body := strings.NewReader(\`${body}\`)\n  ` : ""}req, _ := http.NewRequest("${endpoint.method}", "${url}", ${body && !endpoint.multipart ? "body" : "nil"})
+${Object.entries(headers).map(([key, value]) => `  req.Header.Set("${key}", "${value}")`).join("\n")}
+  res, err := http.DefaultClient.Do(req)
+  if err != nil { panic(err) }
+  defer res.Body.Close()
+  fmt.Println(res.StatusCode)
+}`;
+  }
+
+  if (language === "java") {
+    return `var request = HttpRequest.newBuilder()
+    .uri(URI.create("${url}"))
+${Object.entries(headers).map(([key, value]) => `    .header("${key}", "${value}")`).join("\n")}
+    .method("${endpoint.method}", ${body && !endpoint.multipart ? `HttpRequest.BodyPublishers.ofString(${JSON.stringify(body)})` : "HttpRequest.BodyPublishers.noBody()"})
+    .build();
+
+var response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+System.out.println(response.body());`;
+  }
+
+  if (language === "php") {
+    return `<?php
+$ch = curl_init("${url}");
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "${endpoint.method}");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+${Object.entries(headers).map(([key, value]) => `    "${key}: ${value}",`).join("\n")}
+]);${body && !endpoint.multipart ? `
+curl_setopt($ch, CURLOPT_POSTFIELDS, ${JSON.stringify(body)});` : ""}
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;`;
+  }
+
+  return `using System.Net.Http.Headers;
+using System.Text;
+
+using var client = new HttpClient();
+using var request = new HttpRequestMessage(HttpMethod.${endpoint.method === "PATCH" ? "Patch" : endpoint.method === "DELETE" ? "Delete" : endpoint.method === "POST" ? "Post" : "Get"}, "${url}");
+request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "SUA_CHAVE_API");${body && !endpoint.multipart ? `
+request.Content = new StringContent(${JSON.stringify(body)}, Encoding.UTF8, "application/json");` : ""}
+var response = await client.SendAsync(request);
+Console.WriteLine(await response.Content.ReadAsStringAsync());`;
+}
+
+function CodeBlock({ title, value, onCopy, copied }: { title: string; value: string; onCopy: () => void; copied: boolean }) {
+  return <div className="overflow-hidden rounded-xl border border-[#3c3c3c] bg-[#1e1e1e]">
+    <div className="flex items-center justify-between border-b border-[#3c3c3c] bg-[#252526] px-4 py-2">
+      <span className="text-xs font-medium text-[#cccccc]">{title}</span>
+      <Button type="button" size="sm" variant="ghost" className="text-[#cccccc] hover:bg-white/10 hover:text-white" onClick={onCopy}>
+        {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}{copied ? "Copiado" : "Copiar"}
+      </Button>
+    </div>
+    <pre className="max-h-72 overflow-auto p-4 font-mono text-xs leading-6 text-[#d4d4d4]"><code>{value}</code></pre>
+  </div>;
 }
 
 export function ApiDocumentation() {
-  const [group, setGroup] = useState<RouteGroup>("/clients");
-  const [openBody, setOpenBody] = useState<string | null>(null);
-  const [openHeaders, setOpenHeaders] = useState<string | null>(null);
+  const [route, setRoute] = useState<(typeof ROUTES)[number]>("/clients");
+  const [selected, setSelected] = useState<Endpoint | null>(null);
+  const [language, setLanguage] = useState<Language>("curl");
+  const [copied, setCopied] = useState<string>("");
 
-  const endpoints = useMemo(() => ENDPOINTS.filter(endpoint => endpoint.group === group), [group]);
+  const methods = useMemo(() => ENDPOINTS.filter(endpoint => endpoint.route === route), [route]);
+  const fullExample = selected ? requestExample(selected, language) : "";
 
-  function endpointKey(endpoint: Endpoint) {
-    return `${endpoint.method}:${endpoint.path}`;
+  function copy(label: string, value: string) {
+    void navigator.clipboard.writeText(value);
+    setCopied(label);
+    window.setTimeout(() => setCopied(current => current === label ? "" : current), 1600);
   }
 
-  function selectGroup(next: RouteGroup) {
-    setGroup(next);
-    setOpenBody(null);
-    setOpenHeaders(null);
+  function openMethod(endpoint: Endpoint) {
+    setSelected(endpoint);
+    setCopied("");
   }
 
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <BookOpen className="size-4" />
-          Ver documentação
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[92vh] max-w-6xl overflow-hidden p-0">
-        <div className="flex max-h-[92vh] flex-col">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle>Documentação da API</DialogTitle>
-            <DialogDescription>
-              Selecione uma rota para ver os métodos disponíveis, headers, corpo da requisição e resposta.
-            </DialogDescription>
-          </DialogHeader>
+  return <Dialog onOpenChange={open => { if (!open) setSelected(null); }}>
+    <DialogTrigger asChild>
+      <Button variant="outline" className="gap-2"><BookOpen className="size-4" />Ver documentação</Button>
+    </DialogTrigger>
+    <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto p-0">
+      {!selected ? <>
+        <DialogHeader className="border-b px-6 pb-5 pt-6">
+          <DialogTitle>Documentação da API</DialogTitle>
+          <DialogDescription>Escolha um path e abra um método para ver requisição, headers, body e resposta.</DialogDescription>
+        </DialogHeader>
 
-          <div className="border-b bg-muted/20 px-6 py-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">URL base</p>
-                <code className="mt-1 block overflow-x-auto text-sm">{BASE_URL}</code>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Autenticação padrão</p>
-                <code className="mt-1 block overflow-x-auto text-sm">Authorization: Bearer SUA_CHAVE_API</code>
-              </div>
+        <div className="flex flex-col gap-5 p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex min-w-[15rem] flex-col gap-2">
+              <label htmlFor="api-doc-route" className="text-sm font-medium">Path</label>
+              <NativeSelect id="api-doc-route" value={route} onChange={event => setRoute(event.target.value as typeof route)}>
+                {ROUTES.map(item => <NativeSelectOption key={item} value={item}>{item}</NativeSelectOption>)}
+              </NativeSelect>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Base:</span> <code>{BASE_URL}</code>
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-            <aside className="shrink-0 border-b bg-muted/10 p-3 md:w-52 md:border-b-0 md:border-r">
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paths</p>
-              <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible" role="tablist" aria-label="Paths da API">
-                {GROUPS.map(item => (
-                  <Button
-                    key={item.value}
-                    type="button"
-                    variant={group === item.value ? "secondary" : "ghost"}
-                    className="justify-start font-mono"
-                    onClick={() => selectGroup(item.value)}
-                    aria-selected={group === item.value}
-                    role="tab"
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </div>
-            </aside>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Métodos disponíveis</p><h3 className="mt-1 font-semibold">{route}</h3></div>
+              <Badge variant="secondary">{methods.length} {methods.length === 1 ? "método" : "métodos"}</Badge>
+            </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Path selecionado</p>
-                  <h3 className="font-mono text-xl font-semibold">{group}</h3>
-                </div>
-                <Badge variant="secondary">{endpoints.length} {endpoints.length === 1 ? "método" : "métodos"}</Badge>
-              </div>
-
-              <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-                <div className="flex items-start gap-3">
-                  <BellRing className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <p>
-                    Operações marcadas com “envia notificação” criam o aviso interno e também enviam push para os dispositivos com notificações ativadas, inclusive quando a alteração foi feita usando chave API.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                {endpoints.map(endpoint => {
-                  const key = endpointKey(endpoint);
-                  const bodyOpen = openBody === key;
-                  const headersOpen = openHeaders === key;
-                  const headerText = Object.entries(endpoint.headers).map(([name, value]) => `${name}: ${value}`).join("\n");
-
-                  return (
-                    <article key={key} className="overflow-hidden rounded-xl border bg-background">
-                      <div className="p-4 md:p-5">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className={METHOD_STYLE[endpoint.method]}>{endpoint.method}</Badge>
-                              <code className="break-all text-sm font-semibold">{endpoint.path}</code>
-                              {endpoint.notifies && <Badge variant="secondary" className="gap-1"><BellRing className="size-3" /> envia notificação</Badge>}
-                            </div>
-                            <h4 className="font-semibold">{endpoint.title}</h4>
-                            <p className="mt-1 text-sm text-muted-foreground">{endpoint.description}</p>
-                            {endpoint.details && <p className="mt-2 text-xs text-muted-foreground">{endpoint.details}</p>}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <Button type="button" size="sm" variant={headersOpen ? "secondary" : "outline"} onClick={() => setOpenHeaders(headersOpen ? null : key)}>
-                            <Code2 data-icon="inline-start" />
-                            {headersOpen ? "Ocultar headers" : "Ver headers"}
-                            {headersOpen ? <ChevronUp /> : <ChevronDown />}
-                          </Button>
-                          <Button type="button" size="sm" variant={bodyOpen ? "secondary" : "outline"} onClick={() => setOpenBody(bodyOpen ? null : key)}>
-                            <Braces data-icon="inline-start" />
-                            {bodyOpen ? "Ocultar corpo" : "Ver corpo"}
-                            {bodyOpen ? <ChevronUp /> : <ChevronDown />}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {(headersOpen || bodyOpen) && (
-                        <div className="border-t bg-muted/10 p-4 md:p-5">
-                          {headersOpen && (
-                            <div className={bodyOpen ? "mb-5" : ""}>
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Headers</p>
-                              <CodeBlock>{headerText}</CodeBlock>
-                            </div>
-                          )}
-
-                          {bodyOpen && (
-                            <div>
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Corpo da requisição</p>
-                              <CodeBlock>{endpoint.body || "Este método não envia corpo na requisição."}</CodeBlock>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {endpoint.response && (
-                        <div className="border-t px-4 py-3 text-sm md:px-5">
-                          <span className="font-medium">Resposta: </span>
-                          <span className="text-muted-foreground">{endpoint.response}</span>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
+            <div className="grid gap-3">
+              {methods.map(endpoint => <Card key={`${endpoint.method}-${endpoint.path}`} className="shadow-none transition-colors hover:border-primary/40">
+                <CardHeader className="flex flex-row items-center justify-between gap-4 py-4">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={METHOD_STYLE[endpoint.method]}>{endpoint.method}</Badge>
+                      <code className="break-all text-sm font-semibold">{endpoint.path}</code>
+                      {endpoint.notifies && <Badge variant="secondary" className="gap-1"><BellRing className="size-3" /> notifica</Badge>}
+                    </div>
+                    <CardTitle className="text-base">{endpoint.title}</CardTitle>
+                    <CardDescription className="mt-1">{endpoint.description}</CardDescription>
+                  </div>
+                  <Button type="button" size="sm" onClick={() => openMethod(endpoint)}>Ver <ExternalLink data-icon="inline-end" /></Button>
+                </CardHeader>
+              </Card>)}
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
+      </> : <>
+        <DialogHeader className="border-b px-6 pb-5 pt-6">
+          <div className="flex items-start gap-3 pr-8">
+            <Button type="button" variant="ghost" size="icon-sm" className="mt-0.5 shrink-0" onClick={() => setSelected(null)} aria-label="Voltar para os métodos"><ArrowLeft /></Button>
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="outline" className={METHOD_STYLE[selected.method]}>{selected.method}</Badge><code className="break-all text-sm font-semibold">{selected.path}</code>{selected.notifies && <Badge variant="secondary"><BellRing data-icon="inline-start" /> envia notificação</Badge>}</div>
+              <DialogTitle>{selected.title}</DialogTitle>
+              <DialogDescription>{selected.description}</DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-6 p-6">
+          {selected.query?.length ? <div className="rounded-xl border bg-muted/20 p-4"><p className="mb-2 text-sm font-medium">Query params</p><div className="flex flex-wrap gap-2">{selected.query.map(item => <Badge key={item} variant="outline"><code>{item}</code></Badge>)}</div></div> : null}
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-medium">Exemplo completo</p><p className="text-xs text-muted-foreground">Troque os valores de exemplo pelos dados da sua integração.</p></div></div>
+            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Linguagem do exemplo">
+              {(Object.keys(LANGUAGE_LABELS) as Language[]).map(item => <Button key={item} type="button" size="sm" variant={language === item ? "secondary" : "outline"} onClick={() => { setLanguage(item); setCopied(""); }}><span className="size-2 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[item] }} />{LANGUAGE_LABELS[item]}</Button>)}
+            </div>
+            <CodeBlock title={LANGUAGE_LABELS[language]} value={fullExample} copied={copied === "example"} onCopy={() => copy("example", fullExample)} />
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Headers</p>
+              <CodeBlock title="Headers da requisição" value={Object.entries(headersFor(selected)).map(([key, value]) => `${key}: ${value}`).join("\n")} copied={copied === "headers"} onCopy={() => copy("headers", Object.entries(headersFor(selected)).map(([key, value]) => `${key}: ${value}`).join("\n"))} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Body</p>
+              <CodeBlock title={selected.multipart ? "multipart/form-data" : "application/json"} value={selected.body || "Este método não envia corpo na requisição."} copied={copied === "body"} onCopy={() => copy("body", selected.body || "")} />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">Resposta de exemplo</p>
+            <CodeBlock title="Resposta" value={selected.response} copied={copied === "response"} onCopy={() => copy("response", selected.response)} />
+          </div>
+        </div>
+      </>}
+    </DialogContent>
+  </Dialog>;
 }
