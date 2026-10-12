@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type ApiKey, type ApiKeyUsage, type createApi, type CreatedApiKey, type User } from "./api";
+import { ApiDocumentation } from "./ApiDocumentation";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Busy, Feedback, TextField, message } from "./shared";
 
@@ -233,7 +234,10 @@ export function ApiKeys({ api, user }: { api: ReturnType<typeof createApi>; user
 
   if (user.status !== "approved") return null;
   return <section className="flex flex-col gap-6" aria-labelledby="api-title">
-    <div className="admin-section-head"><div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais, integre seus sistemas e acompanhe o uso da API.</p></div></div>
+    <div className="admin-section-head flex flex-wrap items-start justify-between gap-4">
+      <div><span className="admin-eyebrow">INTEGRAÇÕES</span><h1 id="api-title">API</h1><p>Crie credenciais, integre seus sistemas e acompanhe o uso da API.</p></div>
+      <ApiDocumentation />
+    </div>
     <Feedback error={error} success={success} />
 
     <Card className="border-primary/30 shadow-sm">
