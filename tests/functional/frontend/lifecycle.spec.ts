@@ -40,7 +40,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await expect(member.getByText("Ana Browser", { exact: true }).first()).toBeVisible();
     expect(await member.evaluate(async () => {
       const response = await fetch("/api/members");
-      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,role");
+      return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,online,role");
     })).toBe(true);
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
     await member.getByRole("dialog").getByRole("button", { name: "Clientes", exact: true }).click();
