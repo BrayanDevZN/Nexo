@@ -8,7 +8,7 @@ class User(IdentityTimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="user_status"),
-        CheckConstraint("role IN ('member', 'admin')", name="user_role"),
+        CheckConstraint("role IN ('member', 'admin', 'owner')", name="user_role"),
         CheckConstraint("session_version >= 0", name="session_version_nonnegative"),
         CheckConstraint("password_hash IS NOT NULL OR google_sub IS NOT NULL", name="user_identity"),
         Index("user_status_created_at_id", "status", "created_at", "id"),
