@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Bell, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
+import { Activity, Bell, BellOff, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import { Members } from "./Members";
 import { Profile } from "./Profile";
 import { ApiKeys } from "./ApiKeys";
 import { Feedback, Loading, message } from "./shared";
-import { enablePush, isInstalledApp, isIosDevice, pushNeedsInstall, registerGrantedPush } from "./push";
+import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
 type Page = "home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys";
@@ -44,7 +44,7 @@ export default function AdminApp() {
   }, []);
   const [loggingOut, setLoggingOut] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(typeof Notification !== "undefined" && Notification.permission === "granted" && (!isIosDevice() || isInstalledApp()));
+  const [pushEnabled, setPushEnabled] = useState(false);
   const complete = window.location.pathname.replace(/\/$/, "") === "/admin/complete-profile";
   const refresh = useCallback(async () => {
     const current = generation.current;
@@ -60,7 +60,7 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
   useEffect(() => {
-    const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setMobileOpen(false); };
+    const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setMobileOpen(false); setPushEnabled(false); };
     window.addEventListener("nexo:session-expired", expired);
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
@@ -80,20 +80,39 @@ export default function AdminApp() {
   }, [user?.id, user?.status, refreshUnreadCounts]);
   useEffect(() => {
     if (user?.status !== "approved") return;
-    // Warm the overview while Clientes is visible.  Navigation to Início can
+    // Warm the overview while Clientes is visible. Navigation to Início can
     // then reuse the short-lived client cache instead of waiting on the API.
     const timer = window.setTimeout(() => { void api.prefetch("/dashboard"); }, 150);
     return () => window.clearTimeout(timer);
   }, [user?.id, user?.status]);
   useEffect(() => {
-    if (!user || user.status !== "approved") return;
-    void registerGrantedPush(api, user).catch(() => undefined);
-    setPushEnabled(typeof Notification !== "undefined" && Notification.permission === "granted" && (!isIosDevice() || isInstalledApp()));
+    if (!user || user.status !== "approved") { setPushEnabled(false); return; }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await registerGrantedPush(api, user);
+        const enabled = await hasActivePush();
+        if (!cancelled) setPushEnabled(enabled);
+      } catch {
+        if (!cancelled) setPushEnabled(await hasActivePush());
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user?.id, user?.status]);
   async function activatePush() {
-    setPushBusy(true);
-    try { await enablePush(api); setPushEnabled(true); setError(""); }
-    catch (e) { setError(message(e)); }
+    setPushBusy(true); setError("");
+    try {
+      await enablePush(api);
+      setPushEnabled(await hasActivePush());
+    } catch (e) { setError(message(e)); }
+    finally { setPushBusy(false); }
+  }
+  async function deactivatePush() {
+    setPushBusy(true); setError("");
+    try {
+      await disablePush(api);
+      setPushEnabled(false);
+    } catch (e) { setError(message(e)); }
     finally { setPushBusy(false); }
   }
   function onLogin(person: User) {
@@ -103,7 +122,7 @@ export default function AdminApp() {
   }
   async function logout() {
     setLoggingOut(true); setError("");
-    try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); }
+    try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setUnreadCounts({ total: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setPage("clients"); setMobileOpen(false); setPushEnabled(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
   if (loading) return <main className="admin-loading"><Loading /></main>;
@@ -140,7 +159,7 @@ export default function AdminApp() {
       <header className="admin-topbar"><div className="flex min-w-0 items-center gap-3"><Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild><Button variant="outline" size="icon-lg" className="admin-mobile-menu" aria-label="Abrir menu do painel"><Menu /></Button></SheetTrigger>
         <SheetContent side="left" className="overflow-y-auto"><SheetHeader><SheetTitle>Menu do painel</SheetTitle><SheetDescription>Navegue pelo seu espaço na Nexo.</SheetDescription></SheetHeader><div className="px-4"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a></div><div className="px-4">{navigation}</div><SheetFooter>{account}</SheetFooter></SheetContent>
-      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && !pushEnabled && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void activatePush()}><Bell data-icon="inline-start" />{pushBusy ? "Ativando…" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
+      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
       <main className="admin-content" id="painel">
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
