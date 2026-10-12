@@ -52,11 +52,11 @@ def test_realtime_tickets_single_use_origin_limits_and_revocation(runtime):
 
 def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
     admin, (member, _) = owner(runtime), registered(runtime)
-    assert runtime.announcements.unread_counts(member) == {"total": 0, "chat_messages": 0, "chat_by_sender": {}}
+    assert runtime.announcements.unread_counts(member) == {"total": 0, "notices": 0, "chat_messages": 0, "chat_by_sender": {}}
 
     message = runtime.chat.send(admin, member.id, str(uuid4()), "Nova mensagem")
 
-    assert runtime.announcements.unread_counts(member) == {"total": 1, "chat_messages": 1, "chat_by_sender": {admin.id: 1}}
+    assert runtime.announcements.unread_counts(member) == {"total": 1, "notices": 0, "chat_messages": 1, "chat_by_sender": {admin.id: 1}}
     activity = runtime.chat.conversations(admin)
     assert activity[0]["member_id"] == member.id
     assert activity[0]["last_message_at"].isoformat() + "Z" == message["created_at"]
@@ -75,4 +75,4 @@ def test_unread_chat_count_clears_when_conversation_is_opened(runtime):
     assert activity[0]["messages_sent"] == 1
     assert runtime.chat.conversations(member)[0]["messages_sent"] == 1
     assert runtime.announcements.mark_chat_read(member, admin.id) == 1
-    assert runtime.announcements.unread_counts(member) == {"total": 0, "chat_messages": 0, "chat_by_sender": {}}
+    assert runtime.announcements.unread_counts(member) == {"total": 0, "notices": 0, "chat_messages": 0, "chat_by_sender": {}}
