@@ -46,6 +46,15 @@ class ClientService:
                 # The in-app notice is already durable; email remains best-effort.
                 logger.warning("Client event email could not be queued", exc_info=True)
 
+    def _deliver_team_notice(self, recipients, title, body):
+        self._email_team(recipients, title, body)
+        if self.push:
+            try:
+                self.push.notify_users([user.id for user in recipients], title, body)
+            except Exception:
+                # Push delivery must never make a successful mutation fail.
+                logger.warning("Client event push could not be delivered", exc_info=True)
+
     def list(self, actor, **filters):
         with self.cached_repositories.read_transaction() as repos:
             authorize_read(repos.db, actor, approved=True)
@@ -61,7 +70,7 @@ class ClientService:
 
     def create(self, actor, idempotency_key=None, **fields):
         identifier = str(idempotency_key) if idempotency_key else None
-        email_notices = []
+        notices = []
         try:
             with self.repositories.transaction() as repos:
                 authorize(repos, actor, approved=True)
@@ -76,10 +85,10 @@ class ClientService:
                 row.created_by_name = repos.users.get(actor.id).name
                 name, niche = row.name, row.niche
                 title, body = "Novo cliente cadastrado", f"{name} foi adicionado ao funil na categoria {niche}."
-                email_notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
+                notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
                 if row.contract_closed or row.pipeline_stage == "won":
                     title, body = "Contrato fechado", f"O contrato de {name} foi cadastrado como fechado."
-                    email_notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
+                    notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
         except IntegrityError:
             if not identifier:
                 raise
@@ -92,14 +101,12 @@ class ClientService:
                     raise
                 existing.created_by_name = repos.users.get(actor.id).name
                 return existing
-        for recipients, title, body in email_notices:
-            self._email_team(recipients, title, body)
-            if self.push:
-                self.push.notify_users([user.id for user in recipients], title, body)
+        for notice in notices:
+            self._deliver_team_notice(*notice)
         return row
 
     def update(self, actor, identifier, **changes):
-        email_notice = None
+        notice = None
         with self.repositories.transaction() as repos:
             authorize(repos, actor, approved=True)
             client = repos.clients.get(identifier)
@@ -121,13 +128,23 @@ class ClientService:
             if event:
                 title, body = event
                 recipients = self._record_team_notice(repos, actor.id, title, body)
-                email_notice = (recipients, title, body)
-        if email_notice:
-            self._email_team(*email_notice)
+                notice = (recipients, title, body)
+        if notice:
+            self._deliver_team_notice(*notice)
         return row
 
     def delete(self, actor, identifier):
+        notice = None
         with self.repositories.transaction() as repos:
             authorize(repos, actor, approved=True)
+            client = repos.clients.get(identifier)
+            if client is None:
+                raise ResourceNotFound("Client not found")
+            name = client.name
             if not repos.clients.delete(identifier):
                 raise ResourceNotFound("Client not found")
+            title, body = "Cliente removido", f"{name} foi removido do cadastro de clientes."
+            recipients = self._record_team_notice(repos, actor.id, title, body)
+            notice = (recipients, title, body)
+        if notice:
+            self._deliver_team_notice(*notice)
