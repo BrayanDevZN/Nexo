@@ -73,11 +73,11 @@ export default function AdminApp() {
     window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
     if (["ready", "account.changed"].includes(value.type)) void refresh();
     if (["ready", "notifications.changed", "chat.message"].includes(value.type)) void refreshUnreadCounts();
-    if (["ready", "notifications.changed"].includes(value.type) && user?.role === "admin" && user.status === "approved") void requests();
+    if (["ready", "notifications.changed"].includes(value.type) && user?.role === "owner" && user.status === "approved") void requests();
     if (value.type === "chat.message" && value.message && value.message.recipient_id === user?.id && (page !== "chat" || activeChat !== value.message.sender_id)) setIncoming(value.message);
   }, [refresh, requests, refreshUnreadCounts, user?.id, user?.role, user?.status, page, activeChat]);
   const realtime = useRealtime(api, user, event);
-  useEffect(() => { if (user?.role === "admin" && user.status === "approved") void requests(); }, [user?.id, user?.role, user?.status, requests]);
+  useEffect(() => { if (user?.role === "owner" && user.status === "approved") void requests(); }, [user?.id, user?.role, user?.status, requests]);
   useEffect(() => {
     if (user?.status === "approved") void refreshUnreadCounts();
     else setUnreadCounts({ total: 0, notices: 0, chat_messages: 0 });
@@ -143,16 +143,16 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {user.status === "approved" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
         {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
-        {user.role === "admin" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
+        {user.role === "owner" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.notices > 0 && <Badge aria-label={`${unreadCounts.notices} avisos novos`}>{unreadCounts.notices}</Badge>}</Button>}
-        {user.role === "admin" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
+        {user.role === "owner" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
         {user.status === "approved" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
         <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>
       </nav>
   );
   const account = (
-      <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
+      <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "owner" ? "Owner" : user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
   );
   const sidebarHeader = (
     <div className="admin-sidebar-header">
@@ -177,7 +177,7 @@ export default function AdminApp() {
       <main className="admin-content" id="painel">
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
-        {hasRequests && user.role === "admin" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
+        {hasRequests && user.role === "owner" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
         {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { api.resetSession(); setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
           page === "home" ? <Home api={api} user={user} /> :
@@ -189,8 +189,8 @@ export default function AdminApp() {
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
-          page === "members" && user.role === "admin" ? <Members api={api} actor={user} onUpdate={setUser} /> :
-          page === "approvals" && user.role === "admin" ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
+          page === "members" && user.role === "owner" ? <Members api={api} actor={user} onUpdate={setUser} /> :
+          page === "approvals" && user.role === "owner" ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
       </main>
     </div>
   </div>;
