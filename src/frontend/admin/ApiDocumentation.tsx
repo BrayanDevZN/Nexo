@@ -196,9 +196,10 @@ const ENDPOINTS: Endpoint[] = [
     route: "/notifications",
     path: "/notifications/unread-count",
     title: "Contar não lidas",
-    description: "Retorna a quantidade de notificações ainda não lidas.",
+    description: "Retorna as quantidades de notificações não lidas, separando avisos de mensagens do chat.",
     response: `{
   "total": 4,
+  "notices": 3,
   "chat_messages": 1
 }`,
   },
