@@ -40,10 +40,12 @@ class NotificationRepository(Repository[Notification]):
                                      requested_user_id=user_id))
 
     def create_announcements(self, *, announcement_id: str, recipient_ids,
-                             creator_id: str, title: str, body: str) -> list[Notification]:
+                             creator_id: str, title: str, body: str,
+                             image_storage_key: str | None = None) -> list[Notification]:
         rows = [Notification(kind="announcement", announcement_id=announcement_id,
                              title=title, body=body, recipient_id=identifier,
-                             requested_user_id=creator_id) for identifier in recipient_ids]
+                             requested_user_id=creator_id,
+                             image_storage_key=image_storage_key) for identifier in recipient_ids]
         if rows:
             self.session.add_all(rows)
             self.session.flush()
