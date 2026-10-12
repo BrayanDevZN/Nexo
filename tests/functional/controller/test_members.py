@@ -25,7 +25,7 @@ def login(client, email="owner@example.com", password="initial-admin-password"):
     return {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
 
 
-def test_admin_member_lifecycle_and_access_boundaries(app):
+def test_owner_member_lifecycle_and_access_boundaries(app):
     with TestClient(app) as client:
         assert client.get("/admin/users").status_code == 401
         assert verified_register(client, json=DATA, headers=ORIGIN).status_code == 201
@@ -48,12 +48,12 @@ def test_admin_member_lifecycle_and_access_boundaries(app):
         assert result.json()["name"] == "Ana Admin" and result.json()["phone"] is None
         assert "password_hash" not in result.json()
         headers = login(client, DATA["email"], DATA["password"])
-        assert client.get("/admin/users").status_code == 200
-        assert client.delete("/admin/users/" + principal["id"], headers=headers).status_code == 409
-        assert client.delete(path, headers=headers).status_code == 409
-        assert client.patch(path, json={"role": "member"}, headers=headers).status_code == 409
+        assert client.get("/admin/users").status_code == 403
+        assert client.delete(path, headers=headers).status_code == 403
         headers = login(client)
-        assert client.patch(path, json={"email": "new@example.com"}, headers=headers).status_code == 200
+        assert client.get("/admin/users").status_code == 200
+        assert client.patch(path, json={"role": "owner"}, headers=headers).status_code == 200
+        assert client.patch("/admin/users/" + principal["id"], json={"email": "new@example.com"}, headers=headers).status_code == 409
         assert client.patch("/admin/users/missing", json={"name": "Missing"}, headers=headers).status_code == 404
         assert client.delete(path, headers=headers).status_code == 204
         assert client.get("/admin/users", params={"status": "approved"}).json()[0]["is_principal"]
@@ -81,7 +81,7 @@ def test_shared_directory_filters_sensitive_fields_and_enforces_approval(app):
         response = client.get("/members")
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
         assert {row["name"] for row in response.json()} == {"Ana", app.state.settings.admin_name}
-        assert all(set(row) == {"id", "name", "role", "has_photo"} for row in response.json())
+        assert all(set(row) == {"id", "name", "role", "has_photo", "online"} for row in response.json())
         assert DATA["email"] not in response.text and DATA["password"] not in response.text and hashed not in response.text
         assert client.get("/members", params={"limit": 101}).status_code == 422
         assert len(client.get("/members", params={"limit": 1, "offset": 1}).json()) == 1
