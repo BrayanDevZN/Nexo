@@ -74,8 +74,8 @@ const operationOptions = {
 	notifications: [
 		{ name: 'Listar', value: 'list' },
 		{ name: 'Contar não lidas', value: 'unreadCount' },
-		{ name: 'Marcar notificação como lida', value: 'markRead' },
-		{ name: 'Marcar chat como lido', value: 'markChatRead' },
+		{ name: 'Marcar como lida', value: 'markRead' },
+		{ name: 'Marcar conversa como lida', value: 'markChatRead' },
 	],
 	dashboard: [{ name: 'Obter resumo', value: 'get' }],
 	announcements: [{ name: 'Criar aviso', value: 'create' }],
@@ -90,9 +90,10 @@ addField('Recurso', 'resource', 'options', 'clients', { options: resourceOptions
 addField('Operação', 'operation', 'options', 'list', {
 	// Keep a non-empty static list: n8n versions used in production inject
 	// their proxy-auth option by reading the final option's `name`.
-	options: [...new Map(Object.values(operationOptions).flat().map((option) => [option.value, option])).values()],
+	options: [{ name: 'Selecione uma operação', value: '__select' }],
 	noDataExpression: true,
 	displayOptions: { show: { resource: Object.keys(operationOptions) } },
+	typeOptions: { loadOptionsMethod: 'getOperations', loadOptionsDependsOn: ['resource'] },
 });
 
 function add(displayName, name, type, defaultValue, resource, operations, extra = {}) {
@@ -187,12 +188,21 @@ class Nexo {
 			subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
 			description: 'Consuma os recursos da API da Nexo em workflows.',
 			defaults: { name: 'Nexo', color: '#6D4AFF' },
+			usableAsTool: true,
 			inputs: ['main'],
 			outputs: ['main'],
 			credentials: [{ name: 'nexoApi', required: true }],
 			properties: fields,
 		};
 	}
+
+	methods = {
+		loadOptions: {
+			getOperations() {
+				return operationOptions[this.getCurrentNodeParameter('resource')] || [];
+			},
+		},
+	};
 
 	async execute() {
 		const items = this.getInputData();

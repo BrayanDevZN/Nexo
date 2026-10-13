@@ -25,6 +25,20 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 | Dashboard | Obter resumo |
 | Avisos administrativos | Criar aviso |
 
+O node **Nexo** também pode ser conectado à porta de ferramentas do **AI Agent**.
+O agente recebe os nomes das operações em linguagem clara e os campos do recurso;
+restrinja a chave API e as instruções do agente às ações que ele realmente deve executar.
+
+O **Nexo Trigger** inicia workflows por polling de notificações da API. Ele pode
+filtrar avisos da equipe, novos clientes, contratos fechados, novos membros, mensagens
+do chat e eventos de automação. Como a API não oferece um webhook de saída, o trigger
+consulta a lista a cada ciclo de polling do n8n. A primeira consulta cria uma referência
+e não dispara todo o histórico; em teste manual, retorna uma notificação existente como amostra.
+
+Conecte a credencial **Nexo API** ao node de ação, ao **Nexo Trigger** e ao node Nexo
+usado como ferramenta do **AI Agent**. Para habilitar o node como ferramenta, ligue-o
+à entrada **Tool** do agente.
+
 Uploads recebem o arquivo de uma propriedade binária do item de entrada. Para salvar
 uma automação, informe também nome e descrição; a propriedade binária de imagem é opcional.
 Downloads retornam os dados em uma propriedade binária `data`.
@@ -63,3 +77,4 @@ Os caminhos e campos seguem a documentação visual em
 `src/frontend/admin/ApiDocumentation.tsx` e as rotas correspondentes em
 `src/backend/controller/handles/`. A API está em produção com OpenAPI desativado;
 para mudar operações, mantenha esta integração alinhada com esses dois pontos.
+

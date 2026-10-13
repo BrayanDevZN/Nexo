@@ -13,7 +13,9 @@ RUN mkdir -p /opt/n8n-custom/nodes /opt/n8n-custom/credentials \
 
 COPY --chown=node:node n8n/nodes/ /opt/n8n-custom/nodes/
 COPY --chown=node:node n8n/credentials/ /opt/n8n-custom/credentials/
+COPY --chown=node:node n8n/package.json /opt/n8n-custom/package.json
 
 USER node
 
 # Preserve the official image's entrypoint and default n8n start command.
+

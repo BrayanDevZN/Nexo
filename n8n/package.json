@@ -5,7 +5,13 @@
   "description": "Node privado do n8n para integrar workflows com a API da Nexo.",
   "license": "UNLICENSED",
   "n8n": {
-    "nodes": ["nodes/Nexo/Nexo.node.js"],
-    "credentials": ["credentials/NexoApi.credentials.js"]
+    "nodes": [
+      "nodes/Nexo/Nexo.node.js",
+      "nodes/Nexo/NexoTrigger.node.js"
+    ],
+    "credentials": [
+      "credentials/NexoApi.credentials.js"
+    ]
   }
 }
+
