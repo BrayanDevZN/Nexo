@@ -101,7 +101,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
         const message = reason === "csrf" ? "Sua sessão precisa ser atualizada. Recarregue a página e tente novamente."
-          : reason === "origin" ? "Não foi possível validar esta solicitação. Recarregue a página e tente novamente."
+          : reason === "origin" ? "O endereço deste site não está autorizado. Confira CORS_ORIGINS e tente novamente."
           : reason === "auth" ? "Sua sessão não está válida. Saia da Nexo e entre novamente."
           : reason === "approval" ? "Sua conta ainda está aguardando aprovação."
           : reason === "admin" ? "Seu perfil não tem acesso a esta área. Um Owner ou administrador pode revisar o cargo da conta."
