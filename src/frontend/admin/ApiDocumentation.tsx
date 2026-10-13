@@ -178,6 +178,35 @@ const ENDPOINTS: Endpoint[] = [
     notifies: true,
   },
   {
+    method: "PATCH",
+    route: "/automations",
+    path: "/automations/{identifier}",
+    title: "Atualizar automação",
+    description: "Atualiza nome, descrição, arquivo JSON e/ou imagem via multipart/form-data. Campos omitidos permanecem iguais. Permitido ao criador ou Owner; a alteração gera um aviso para os membros aprovados.",
+    body: "name=ChatBot Interno Nexo\ndescription=Chatbot interno com suporte a texto, áudio e imagem.\nfile=@chatbot-nexo-interno.json (opcional)\nimage=@chatbot-nexo-capa.jpg (opcional)",
+    response: `{
+  "id": "uuid-da-automacao",
+  "name": "ChatBot Interno Nexo",
+  "filename": "chatbot-nexo-interno.json",
+  "has_image": true,
+  "can_manage": true
+}`,
+    multipart: true,
+    notifies: true,
+  },
+  {
+    method: "DELETE",
+    route: "/automations",
+    path: "/automations/{identifier}",
+    title: "Excluir automação",
+    description: "Remove a automação da biblioteca. Permitido somente ao criador ou Owner; todos os membros aprovados recebem um aviso, incluindo a imagem cadastrada.",
+    response: `{
+  "id": "uuid-da-automacao",
+  "deleted": true
+}`,
+    notifies: true,
+  },
+  {
     method: "GET",
     route: "/automations",
     path: "/automations/{identifier}/download",
@@ -405,40 +434,49 @@ function requestExample(endpoint: Endpoint, language: Language): string {
   const headers = headersFor(endpoint);
   const body = endpoint.body;
 
-  if (endpoint.multipart && endpoint.path === "/automations") {
+  if (endpoint.multipart && (endpoint.path === "/automations" || endpoint.path === "/automations/{identifier}")) {
     const fields = [
-      ["name", "Captura de leads"],
-      ["description", "Importa e organiza novos contatos."],
+      ["name", endpoint.method === "POST" ? "Captura de leads" : "ChatBot Interno Nexo"],
+      ["description", endpoint.method === "POST" ? "Importa e organiza novos contatos." : "Chatbot interno com suporte a texto, áudio e imagem."],
     ];
     if (language === "curl") return [
-      `curl -X POST "${url}"`,
+      `curl -X ${endpoint.method} "${url}"`,
       `  -H "Authorization: Bearer SUA_CHAVE_API"`,
-      `  -F "name=${fields[0][1]}"`,
-      `  -F "description=${fields[1][1]}"`,
-      `  -F "file=@captura-leads.json"`,
-      `  -F "image=@capa.png"  # opcional`,
+      ...(endpoint.method === "PATCH" ? [`  -F "name=${fields[0][1]}"`, `  -F "description=${fields[1][1]}"`] : [`  -F "name=${fields[0][1]}"`, `  -F "description=${fields[1][1]}"`]),
+      `  -F "file=@${endpoint.method === "POST" ? "captura-leads.json" : "chatbot-nexo-interno.json"}"${endpoint.method === "PATCH" ? "  # opcional" : ""}`,
+      `  -F "image=@${endpoint.method === "POST" ? "capa.png" : "chatbot-nexo-capa.jpg"}"  # opcional`,
     ].join(" \\\n");
     if (language === "javascript") return `const form = new FormData();
 form.append("name", "${fields[0][1]}");
 form.append("description", "${fields[1][1]}");
-form.append("file", document.querySelector("#automation-file").files[0]);
+${endpoint.method === "POST" ? "form.append(\"file\", document.querySelector(\"#automation-file\").files[0]);" : "const file = document.querySelector(\"#automation-file\").files[0];\nif (file) form.append(\"file\", file);"}
 const image = document.querySelector("#automation-image").files[0];
 if (image) form.append("image", image);
 
 const response = await fetch("${url}", {
-  method: "POST",
+  method: "${endpoint.method}",
   headers: { Authorization: "Bearer SUA_CHAVE_API", Accept: "application/json" },
   body: form,
 });
 console.log(await response.json());`;
     if (language === "python") return `import requests
 
-with open("captura-leads.json", "rb") as automation_file:
-    response = requests.post(
+files = {}
+try:
+    with open("${endpoint.method === "POST" ? "captura-leads.json" : "chatbot-nexo-interno.json"}", "rb") as automation_file:
+        files["file"] = automation_file
+        response = requests.${endpoint.method.toLowerCase()}(
+            "${url}",
+            headers={"Authorization": "Bearer SUA_CHAVE_API"},
+            data={"name": "${fields[0][1]}", "description": "${fields[1][1]}"},
+            files=files,
+            timeout=30,
+        )
+except FileNotFoundError:
+    response = requests.${endpoint.method.toLowerCase()}(
         "${url}",
         headers={"Authorization": "Bearer SUA_CHAVE_API"},
         data={"name": "${fields[0][1]}", "description": "${fields[1][1]}"},
-        files={"file": automation_file},
         timeout=30,
     )
 response.raise_for_status()

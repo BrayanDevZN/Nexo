@@ -1,6 +1,16 @@
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from pydantic import ValidationError
 
 from backend.controller.dependencies import approved_user
@@ -64,6 +74,61 @@ async def create(request: Request, name: str = Form(min_length=1, max_length=120
         await file.close()
         if image is not None:
             await image.close()
+
+
+@router.patch("/{identifier}", response_model=AutomationOutput)
+async def update(identifier: str, request: Request, name: str | None = Form(default=None, max_length=120),
+                 description: str | None = Form(default=None, max_length=5000),
+                 file: UploadFile | None = File(default=None), image: UploadFile | None = File(default=None),
+                 actor=Depends(approved_user)):
+    try:
+        if name is None and description is None and file is None and image is None:
+            raise HTTPException(status_code=422, detail="Send at least one field to update")
+        if name is not None and not name.strip():
+            raise HTTPException(status_code=422, detail="Name cannot be empty")
+        if description is not None and not description.strip():
+            raise HTTPException(status_code=422, detail="Description cannot be empty")
+        raw = filename = None
+        if file is not None:
+            raw = await file.read(request.app.state.settings.document_max_bytes + 1)
+            filename = validate_document(file.filename, raw, request.app.state.settings.document_max_bytes)
+        image_data = None
+        if image is not None:
+            image_data = normalize_photo(await image.read(request.app.state.settings.profile_photo_max_bytes + 1),
+                                         max_bytes=request.app.state.settings.profile_photo_max_bytes,
+                                         max_pixels=request.app.state.settings.profile_photo_max_pixels)
+        return request.app.state.services.automations.update(
+            actor, identifier, name=name.strip() if name is not None else None,
+            description=description.strip() if description is not None else None,
+            filename=filename, file_content=raw, image_data=image_data,
+        )
+    except DocumentTooLarge as error:
+        raise HTTPException(status_code=413, detail=str(error)) from None
+    except PhotoTooLarge as error:
+        raise HTTPException(status_code=413, detail=str(error)) from None
+    except (DocumentValidationError, PhotoValidationError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from None
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors(include_input=False)) from None
+    except AccessDenied as error:
+        raise HTTPException(status_code=403, detail=str(error)) from None
+    except ResourceNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from None
+    finally:
+        if file is not None:
+            await file.close()
+        if image is not None:
+            await image.close()
+
+
+@router.delete("/{identifier}")
+def delete_automation(identifier: str, request: Request, actor=Depends(approved_user)):
+    try:
+        return request.app.state.services.automations.delete(actor, identifier)
+    except AccessDenied as error:
+        raise HTTPException(status_code=403, detail=str(error)) from None
+    except ResourceNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from None
 
 
 @router.get("/{identifier}/download")

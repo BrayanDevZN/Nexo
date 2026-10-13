@@ -12,6 +12,31 @@ class AutomationRepository(Repository[Automation]):
                                    file_size=len(file_content), file_content=file_content,
                                    image_data=image_data, created_by_id=created_by_id))
 
+    def update(self, identifier, *, name=None, description=None, filename=None,
+               file_content=None, image_data=None):
+        row = self.get(identifier)
+        if row is None:
+            return None
+        if name is not None:
+            row.name = name
+        if description is not None:
+            row.description = description
+        if filename is not None and file_content is not None:
+            row.filename = filename
+            row.file_content = file_content
+            row.file_size = len(file_content)
+        if image_data is not None:
+            row.image_data = image_data
+        self.session.flush()
+        self.session.info.setdefault("cache_dirty_tables", set()).add("automations")
+        return row
+
+    def delete(self, identifier):
+        deleted = super().delete(identifier)
+        if deleted:
+            self.session.info.setdefault("cache_dirty_tables", set()).add("automations")
+        return deleted
+
     def list(self, *, limit=50, offset=0):
         pagination(limit, offset)
         query = select(

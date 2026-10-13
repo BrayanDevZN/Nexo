@@ -89,15 +89,16 @@ class RuntimeServices:
             self.messages = AccountMessages(self.email)
             self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
+            self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
-                DocumentStorage(settings.upload_dir / "announcements"),
+                self.announcement_storage,
             )
             self.automation_requests = AutomationRequestService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
             )
             self.automations = AutomationService(
-                self.repositories, self.cached_repositories, self.push,
+                self.repositories, self.cached_repositories, self.push, self.announcement_storage,
             )
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
