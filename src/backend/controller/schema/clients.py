@@ -9,11 +9,13 @@ from pydantic import (
     EmailStr,
     Field,
     StrictBool,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
 
 from backend.controller.schema.auth import ProfileInput
+from backend.domain.client_niches import validate_client_niche
 
 PipelineStage = Literal["lead", "contacted", "diagnosis", "proposal", "negotiation", "won", "lost"]
 
@@ -34,10 +36,14 @@ class ClientFields(BaseModel):
 
     @field_validator("name", "niche")
     @classmethod
-    def trim_required(cls, value):
+    def trim_required(cls, value, info: ValidationInfo):
         if not value.strip():
             raise ValueError("Field cannot be blank")
-        return value.strip()
+        value = value.strip()
+        # Keep historical records readable; create and patch inputs remain strict.
+        if cls.__name__ == "ClientOutput" and info.field_name == "niche":
+            return value
+        return validate_client_niche(value) if info.field_name == "niche" else value
 
     @field_validator("phone")
     @classmethod
@@ -60,10 +66,11 @@ class ClientPatch(ClientFields):
 
     @field_validator("name", "niche")
     @classmethod
-    def trim_required(cls, value):
+    def trim_required(cls, value, info: ValidationInfo):
         if value is None or not value.strip():
             raise ValueError("Field cannot be null or blank")
-        return value.strip()
+        value = value.strip()
+        return validate_client_niche(value) if info.field_name == "niche" else value
 
     @model_validator(mode="after")
     def valid_patch(self):

@@ -25,6 +25,12 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "negotiation", label: "Negociação" }, { value: "won", label: "Fechado" },
   { value: "lost", label: "Perdido" },
 ];
+export const CLIENT_NICHES = [
+  "Contabilidade", "Saúde", "Beleza e estética", "Imobiliário", "Advocacia",
+  "Educação", "Varejo", "Comércio", "Alimentação", "Tecnologia",
+  "Construção civil", "Indústria", "Logística", "Serviços profissionais",
+  "Marketing e publicidade", "Automotivo", "Outro",
+] as const;
 export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;

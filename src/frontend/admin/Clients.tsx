@@ -8,7 +8,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
+import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -133,7 +133,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <FieldGroup className="admin-filters">
           <TextField label="Nome do cliente" placeholder="Pesquisar nome" value={draftName} onChange={e => setDraftName(e.target.value)} maxLength={160} />
           <Field><FieldLabel htmlFor="creator-filter">Criado por</FieldLabel><NativeSelect id="creator-filter" value={filters.created_by_id} onChange={e => { setOffset(0); setFilters({ ...filters, created_by_id: e.target.value }); }}><NativeSelectOption value="">Todos os membros</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field>
-          <TextField label="Nicho" placeholder="Ex.: Contabilidade" value={draftNiche} onChange={e => setDraftNiche(e.target.value)} maxLength={120} />
+          <Field><FieldLabel htmlFor="niche-filter">Nicho</FieldLabel><NativeSelect id="niche-filter" value={draftNiche} onChange={e => setDraftNiche(e.target.value)}><NativeSelectOption value="">Todos os nichos</NativeSelectOption>{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="stage-filter">Etapa</FieldLabel><NativeSelect id="stage-filter" value={filters.stage} onChange={e => { setOffset(0); setFilters({ ...filters, stage: e.target.value }); }}><NativeSelectOption value="">Todas</NativeSelectOption>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="contract-filter">Contrato</FieldLabel><NativeSelect id="contract-filter" value={filters.status} onChange={e => { setOffset(0); setFilters({ ...filters, status: e.target.value }); }}>
             <NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption><NativeSelectOption value="false">Em negociação</NativeSelectOption>
@@ -192,7 +192,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <form onSubmit={save} className="flex flex-col gap-5">
           <FieldGroup>
             <TextField label="Nome / empresa" name="name" required maxLength={160} defaultValue={row?.name} />
-            <TextField label="Nicho" name="niche" required maxLength={120} defaultValue={row?.niche} />
+            <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row && CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) ? row.niche : ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />

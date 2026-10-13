@@ -3,6 +3,7 @@ from sqlalchemy import case, func, select, update
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
 from backend.repository.db.models.base import utc_now
+from backend.domain.client_niches import validate_client_niche
 
 
 class ClientRepository(Repository[Client]):
@@ -16,6 +17,7 @@ class ClientRepository(Repository[Client]):
                next_follow_up=None) -> Client:
         if not name.strip() or not niche.strip():
             raise ValueError("Name and niche are required")
+        niche = validate_client_niche(niche.strip())
         if contract_closed and pipeline_stage == "lead":
             pipeline_stage = "won"
         if pipeline_stage == "won":
@@ -59,6 +61,8 @@ class ClientRepository(Repository[Client]):
                 if not isinstance(value, str) or not value.strip():
                     raise ValueError("Name and niche are required")
                 value = value.strip()
+                if field == "niche":
+                    value = validate_client_niche(value)
             setattr(client, field, value)
         if changes.get("contract_closed") is False and client.pipeline_stage == "won":
             # A closed contract cannot remain in the won stage after cancellation.
