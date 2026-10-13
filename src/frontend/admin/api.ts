@@ -38,7 +38,7 @@ export type Approval = {
 export type GoogleProfile = { name: string; email: string; csrf_token: string };
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public reason?: "csrf" | "origin" | "auth") { super(message); }
 }
 
 export function apiBase(value: string): string {
@@ -69,6 +69,9 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         const detail = typeof body.detail === "string" ? body.detail : "";
+        const reason = detail === "Invalid CSRF token" ? "csrf"
+          : detail === "Untrusted request origin" ? "origin"
+          : detail === "Access denied" ? "auth" : undefined;
         const messages: Record<number, string> = {
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
@@ -94,8 +97,12 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
         if (response.status === 401 && !["/auth/login", "/auth/google/profile", "/auth/password/recovery/confirm"].includes(path)) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
-        throw new ApiError(response.status, messages[response.status] ||
+        const message = reason === "csrf" ? "A proteção da sessão ficou desatualizada. Atualizando…"
+          : reason === "origin" ? "O domínio do site não está autorizado no backend (CORS_ORIGINS)."
+          : reason === "auth" ? "Sua sessão ou permissão foi alterada. Saia e entre novamente."
+          : messages[response.status] ||
           (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
+        throw new ApiError(response.status, message, reason);
       }
       if (response.status === 204) return undefined as T;
       return await (format === "blob" ? response.blob() : response.json()) as T;
@@ -122,10 +129,20 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
       token = (await request<{ csrf_token: string }>("/auth/csrf")).csrf_token;
       csrfToken = token;
     }
-    const result = await request<T>(path, {
+    const send = () => request<T>(path, {
       method, headers: { "X-CSRF-Token": token },
       body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body),
     });
+    let result: T;
+    try {
+      result = await send();
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.reason !== "csrf" || csrf !== undefined) throw error;
+      csrfToken = "";
+      token = (await request<{ csrf_token: string }>("/auth/csrf")).csrf_token;
+      csrfToken = token;
+      result = await send();
+    }
     clearReadCache();
     if (["/auth/logout", "/auth/password/change", "/auth/account/deletion/confirm"].includes(path)) csrfToken = "";
     return result;

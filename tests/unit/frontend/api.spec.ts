@@ -10,6 +10,36 @@ test("validates public backend URLs", () => {
   }
 });
 
+
+test("refreshes a stale CSRF token once before retrying a mutation", async () => {
+  const calls: { url: string; token: string | null }[] = [];
+  let csrfCount = 0;
+  const fake: typeof fetch = async (input, init) => {
+    const url = String(input);
+    const token = new Headers(init?.headers).get("X-CSRF-Token");
+    calls.push({ url, token });
+    if (url.endsWith("/auth/csrf")) {
+      csrfCount++;
+      return Response.json({ csrf_token: `csrf-${csrfCount}` });
+    }
+    if (token === "csrf-1") return Response.json({ detail: "Invalid CSRF token" }, { status: 403 });
+    return new Response(null, { status: 204 });
+  };
+  await createApi("/api", fake).mutate("/clients", "POST", { name: "Teste" });
+  expect(calls.map(call => call.url)).toEqual([
+    "/api/auth/csrf", "/api/clients", "/api/auth/csrf", "/api/clients",
+  ]);
+  expect(calls.filter(call => call.url.endsWith("/clients")).map(call => call.token))
+    .toEqual(["csrf-1", "csrf-2"]);
+});
+
+test("shows actionable messages for CSRF and origin 403 responses", async () => {
+  const invalidCsrf: typeof fetch = async () => Response.json({ detail: "Invalid CSRF token" }, { status: 403 });
+  const invalidOrigin: typeof fetch = async () => Response.json({ detail: "Untrusted request origin" }, { status: 403 });
+  await expect(createApi("/api", invalidCsrf).request("/clients")).rejects.toThrow("proteção da sessão");
+  await expect(createApi("/api", invalidOrigin).request("/clients")).rejects.toThrow("CORS_ORIGINS");
+});
+
 test("credentials stay in cookies and CSRF precedes mutations", async () => {
   const calls: { url: string; init: RequestInit }[] = [];
   const fake: typeof fetch = async (input, init) => {
