@@ -33,14 +33,12 @@ function NoticeImage({ api, notice }: { api: ReturnType<typeof createApi>; notic
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [api, notice.has_image, notice.id]);
   return url ? (
-    <figure className="mx-auto flex w-full max-w-2xl items-center justify-center overflow-hidden rounded-xl border bg-muted/30 p-2">
-      <img
-        src={url}
-        alt={`Imagem do aviso: ${notice.title || "Aviso da Nexo"}`}
-        className="max-h-96 w-auto max-w-full rounded-lg object-contain"
-        loading="lazy"
-      />
-    </figure>
+    <img
+      src={url}
+      alt={`Imagem do aviso: ${notice.title || "Aviso da Nexo"}`}
+      className="mx-auto block max-h-64 w-auto max-w-full rounded-lg object-contain"
+      loading="lazy"
+    />
   ) : null;
 }
 
