@@ -22,8 +22,12 @@ CLIENT_NICHES = (
 
 
 def validate_client_niche(value: str) -> str:
-    """Return a supported niche or raise a useful validation error."""
-    if value not in CLIENT_NICHES:
+    """Return a canonical supported niche or raise a useful validation error."""
+    normalized = next(
+        (niche for niche in CLIENT_NICHES if niche.casefold() == value.strip().casefold()),
+        None,
+    )
+    if normalized is None:
         options = ", ".join(CLIENT_NICHES)
         raise ValueError(f"Nicho inválido. Escolha uma das opções: {options}")
-    return value
+    return normalized

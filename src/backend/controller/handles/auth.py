@@ -4,9 +4,8 @@ from redis.exceptions import RedisError
 from backend.controller.cookies import set_session_cookie
 from backend.controller.dependencies import current_user
 from backend.controller.schema.auth import (
-    LoginInput,
-    GoogleCompleteInput,
     InvitationRegistrationInput,
+    LoginInput,
     RegistrationConfirmInput,
     RegistrationInput,
     UserOutput,

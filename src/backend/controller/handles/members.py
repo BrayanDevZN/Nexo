@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from backend.controller.dependencies import admin_or_owner_user, approved_user, owner_user
-from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.controller.schema.invitations import InvitationCreateInput, InvitationOutput
+from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
 router = APIRouter(prefix="/admin/users", tags=["members"])

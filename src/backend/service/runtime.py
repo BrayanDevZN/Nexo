@@ -18,8 +18,8 @@ from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
 from backend.repository.db.schema import create_tables
 from backend.repository.redis.email_codes import EmailCodeRepository
-from backend.repository.redis.oauth import OAuthRepository
 from backend.repository.redis.invitations import InvitationRepository
+from backend.repository.redis.oauth import OAuthRepository
 from backend.repository.redis.rate_limits import RateLimitRepository
 from backend.repository.redis.realtime import RealtimeRepository
 from backend.service.account_deletion import AccountDeletionService
@@ -35,8 +35,8 @@ from backend.service.dashboard import DashboardService
 from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
-from backend.service.members import MemberService
 from backend.service.invitations import InvitationService
+from backend.service.members import MemberService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
 from backend.service.push import PushService

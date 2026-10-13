@@ -8,10 +8,10 @@ from redis.exceptions import RedisError
 from backend.controller.cookies import clear_google_cookie, set_google_cookie, set_session_cookie
 from backend.controller.schema.auth import GoogleCompleteInput, UserOutput
 from backend.infra.connections.google import GoogleProviderError
+from backend.repository.redis.invitations import InvitationError
 from backend.repository.redis.oauth import OAuthStateError
 from backend.service.auth import RegistrationConflict
 from backend.service.google import GoogleUnavailable
-from backend.repository.redis.invitations import InvitationError
 from backend.service.security import AuthenticationError
 
 router = APIRouter(prefix="/auth/google", tags=["google authentication"])

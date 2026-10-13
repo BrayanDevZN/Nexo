@@ -1,7 +1,8 @@
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
-from urllib.parse import parse_qs, urlparse
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
