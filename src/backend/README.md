@@ -85,8 +85,12 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | GET /clients | aprovado; filtros niche, contract_closed, limit/offset |
 | GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
 | POST /automations | membro aprovado ou API key; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
+| PATCH /automations/{id} | membro aprovado ou API key; criador da automação ou Owner atualiza nome, descrição e, opcionalmente, arquivo/imagem; envia aviso com a imagem atualizada |
+| DELETE /automations/{id} | membro aprovado ou API key; criador da automação ou Owner exclui; envia aviso preservando a imagem da automação |
 | GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
 | GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
+
+Os avisos de criação, atualização e exclusão de automações aparecem na área de Avisos para os membros aprovados. Quando houver capa, ela é copiada para o armazenamento dos avisos e continua acessível mesmo após a automação ser excluída. A lista inclui `can_manage`, calculado pelo servidor para o criador ou Owner.
 | POST /clients | aprovado; name, niche, phone/email/notes opcionais, contract_closed |
 | GET/PATCH/DELETE /clients/{id} | aprovado; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |

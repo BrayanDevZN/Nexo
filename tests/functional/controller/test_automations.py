@@ -23,6 +23,15 @@ def test_automation_library_endpoints_support_session_and_api_key(client):
 
     notices = client.get("/notifications", headers=session).json()
     assert any(note["title"] == "Nova automação disponível: Leads" for note in notices)
+    update = client.patch(f"/automations/{automation['id']}", headers=headers, data={
+        "name": "Leads atualizados", "description": "Atualização via API."})
+    assert update.status_code == 200, update.text
+    assert update.json()["name"] == "Leads atualizados"
+    delete = client.delete(f"/automations/{automation['id']}", headers=headers)
+    assert delete.status_code == 200 and delete.json()["deleted"] is True
+    notices = client.get("/notifications", headers=session).json()
+    assert any(note["title"] == "Automação atualizada: Leads atualizados" for note in notices)
+    assert any(note["title"] == "Automação excluída: Leads atualizados" for note in notices)
     client.cookies.clear()
     assert client.get("/automations").status_code == 401
 
