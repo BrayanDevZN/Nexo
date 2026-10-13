@@ -38,7 +38,7 @@ export type Approval = {
 export type GoogleProfile = { name: string; email: string; csrf_token: string };
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public reason?: "csrf" | "origin" | "auth") { super(message); }
+  constructor(public status: number, message: string, public reason?: "csrf" | "origin" | "auth" | "approval" | "admin" | "owner") { super(message); }
 }
 
 export function apiBase(value: string): string {
@@ -71,7 +71,10 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
         const detail = typeof body.detail === "string" ? body.detail : "";
         const reason: ApiError["reason"] = detail === "Invalid CSRF token" ? "csrf"
           : detail === "Untrusted request origin" ? "origin"
-          : detail === "Access denied" ? "auth" : undefined;
+          : detail === "Access denied" || detail === "Invalid or expired session" ? "auth"
+          : detail === "Account awaiting approval" ? "approval"
+          : detail === "Administrator access required" ? "admin"
+          : detail === "Owner access required" ? "owner" : undefined;
         const messages: Record<number, string> = {
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
@@ -99,7 +102,11 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
         }
         const message = reason === "csrf" ? "A proteção da sessão ficou desatualizada. Atualizando…"
           : reason === "origin" ? "O domínio do site não está autorizado no backend (CORS_ORIGINS)."
-          : reason === "auth" ? "Sua sessão ou permissão foi alterada. Saia e entre novamente."
+          : reason === "auth" ? "O backend recusou sua sessão. Saia da Nexo, entre novamente e teste de novo."
+          : reason === "approval" ? "O backend está tratando sua conta como pendente de aprovação. O selo Owner da tela não confirma o status de aprovação."
+          : reason === "admin" ? "O backend exige cargo de administrador para esta ação."
+          : reason === "owner" ? "O backend exige cargo Owner para esta ação."
+          : response.status === 403 ? "Ação recusada pelo backend" + (detail ? ": " + detail : " (403 sem detalhe)") + "."
           : messages[response.status] ||
           (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação.");
         throw new ApiError(response.status, message, reason);
