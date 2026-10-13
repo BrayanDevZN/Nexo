@@ -53,27 +53,30 @@ const resourceOptions = [
 
 const operationOptions = {
 	clients: [
-		{ name: 'Listar', value: 'list' },
-		{ name: 'Buscar por ID', value: 'get' },
+		{ name: 'Get Many', value: 'getMany' },
+		{ name: 'Get', value: 'get' },
 		{ name: 'Buscar por ID ou nome', value: 'search' },
 		{ name: 'Criar', value: 'create' },
 		{ name: 'Atualizar', value: 'update' },
 		{ name: 'Excluir', value: 'delete' },
 	],
 	automations: [
-		{ name: 'Listar', value: 'list' },
+		{ name: 'Get Many', value: 'getMany' },
+		{ name: 'Get', value: 'get' },
 		{ name: 'Salvar arquivo', value: 'create' },
 		{ name: 'Baixar arquivo', value: 'download' },
 		{ name: 'Baixar imagem', value: 'image' },
 	],
 	documents: [
-		{ name: 'Listar', value: 'list' },
+		{ name: 'Get Many', value: 'getMany' },
+		{ name: 'Get', value: 'get' },
 		{ name: 'Enviar arquivo', value: 'upload' },
 		{ name: 'Baixar arquivo', value: 'download' },
 		{ name: 'Excluir', value: 'delete' },
 	],
 	notifications: [
-		{ name: 'Listar', value: 'list' },
+		{ name: 'Get Many', value: 'getMany' },
+		{ name: 'Get', value: 'get' },
 		{ name: 'Contar não lidas', value: 'unreadCount' },
 		{ name: 'Marcar como lida', value: 'markRead' },
 		{ name: 'Marcar conversa como lida', value: 'markChatRead' },
@@ -88,7 +91,7 @@ function addField(displayName, name, type, defaults, extra = {}) {
 }
 
 addField('Recurso', 'resource', 'options', 'clients', { options: resourceOptions, noDataExpression: true });
-addField('Operação', 'operation', 'options', 'list', {
+addField('Operação', 'operation', 'options', 'getMany', {
 	// Keep a non-empty static list: n8n versions used in production inject
 	// their proxy-auth option by reading the final option's `name`.
 	options: [{ name: 'Selecione uma operação', value: '__select' }],
@@ -130,7 +133,7 @@ add('Nicho', 'niche', 'options', '', 'clients', ['create', 'update'], {
 });
 add('Telefone', 'phone', 'string', '', 'clients', ['create', 'update']);
 add('E-mail', 'email', 'string', '', 'clients', ['create', 'update']);
-add('Etapa do funil', 'pipelineStage', 'options', '', 'clients', ['list', 'create', 'update'], {
+add('Etapa do funil', 'pipelineStage', 'options', '', 'clients', ['getMany', 'create', 'update'], {
 	options: [
 		{ name: 'Não alterar / sem filtro', value: '' },
 		{ name: 'Lead', value: 'lead' },
@@ -154,7 +157,7 @@ add('Observações', 'notes', 'string', '', 'clients', ['create', 'update'], { t
 add('Próximo acompanhamento', 'nextFollowUp', 'dateTime', '', 'clients', ['create', 'update']);
 add('Dor identificada', 'pain', 'string', '', 'clients', ['create', 'update'], { typeOptions: { rows: 3 } });
 add('Abordagem', 'approach', 'string', '', 'clients', ['create', 'update'], { typeOptions: { rows: 3 } });
-add('Filtrar por nicho', 'filterNiche', 'options', '', 'clients', ['list'], {
+add('Filtrar por nicho', 'filterNiche', 'options', '', 'clients', ['getMany'], {
 	options: [
 		{ name: 'Todos os nichos', value: '' },
 		{ name: 'Contabilidade', value: 'Contabilidade' },
@@ -176,7 +179,7 @@ add('Filtrar por nicho', 'filterNiche', 'options', '', 'clients', ['list'], {
 		{ name: 'Outro', value: 'Outro' },
 	],
 });
-add('Filtrar por nome', 'filterName', 'string', '', 'clients', ['list']);
+add('Filtrar por nome', 'filterName', 'string', '', 'clients', ['getMany']);
 add('ID ou nome para busca', 'searchTerm', 'string', '', 'clients', ['search'], { required: true });
 add('Buscar como', 'searchBy', 'options', 'auto', 'clients', ['search'], {
 	options: [
@@ -185,33 +188,26 @@ add('Buscar como', 'searchBy', 'options', 'auto', 'clients', ['search'], {
 		{ name: 'Nome', value: 'name' },
 	],
 });
-add('ID do criador', 'createdById', 'string', '', 'clients', ['list']);
-add('Filtrar por contrato fechado', 'filterContractClosed', 'options', 'all', 'clients', ['list'], {
+add('ID do criador', 'createdById', 'string', '', 'clients', ['getMany']);
+add('Filtrar por contrato fechado', 'filterContractClosed', 'options', 'all', 'clients', ['getMany'], {
 	options: [{ name: 'Todos', value: 'all' }, { name: 'Sim', value: 'true' }, { name: 'Não', value: 'false' }],
 });
 
 for (const resource of ['clients', 'automations', 'documents', 'notifications']) {
-	for (const operation of operationOptions[resource]) {
-		if (['list', 'create', 'upload'].includes(operation.value)) {
-			const visibleOps = resource === 'clients' ? ['list'] : [operation.value];
-			if (visibleOps.includes('list')) {
-				add('Limite', 'limit', 'number', 50, resource, ['list'], { typeOptions: { minValue: 1, maxValue: 100 } });
-				add('Deslocamento', 'offset', 'number', 0, resource, ['list'], { typeOptions: { minValue: 0 } });
-			}
-		}
-	}
+	add('Limite', 'limit', 'number', 50, resource, ['getMany'], { typeOptions: { minValue: 1, maxValue: 100 } });
+	add('Deslocamento', 'offset', 'number', 0, resource, ['getMany'], { typeOptions: { minValue: 0 } });
 }
-add('ID da automação', 'identifier', 'string', '', 'automations', ['download', 'image'], { required: true });
+add('ID da automação', 'identifier', 'string', '', 'automations', ['get', 'download', 'image'], { required: true });
 add('Nome', 'automationName', 'string', '', 'automations', ['create'], { required: true });
 add('Descrição', 'automationDescription', 'string', '', 'automations', ['create'], { required: true, typeOptions: { rows: 3 } });
 add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'automations', ['create'], { required: true });
 add('Propriedade binária da imagem', 'imageBinaryProperty', 'string', '', 'automations', ['create']);
 
-add('ID do cliente', 'documentClientId', 'string', '', 'documents', ['list', 'upload']);
+add('ID do cliente', 'documentClientId', 'string', '', 'documents', ['getMany', 'upload']);
 add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'documents', ['upload'], { required: true });
-add('ID do documento', 'identifier', 'string', '', 'documents', ['download', 'delete'], { required: true });
+add('ID do documento', 'identifier', 'string', '', 'documents', ['get', 'download', 'delete'], { required: true });
 
-add('Tipo', 'notificationKind', 'options', 'all', 'notifications', ['list'], {
+add('Tipo', 'notificationKind', 'options', 'all', 'notifications', ['getMany'], {
 	options: [
 		{ name: 'Todas', value: 'all' },
 		{ name: 'Avisos', value: 'announcement' },
@@ -222,7 +218,7 @@ add('Tipo', 'notificationKind', 'options', 'all', 'notifications', ['list'], {
 		{ name: 'Solicitações rejeitadas', value: 'automation_rejected' },
 	],
 });
-add('ID da notificação', 'identifier', 'string', '', 'notifications', ['markRead'], { required: true });
+add('ID da notificação', 'identifier', 'string', '', 'notifications', ['get', 'markRead'], { required: true });
 add('ID do membro do chat', 'memberId', 'string', '', 'notifications', ['markChatRead'], { required: true });
 
 add('Título', 'title', 'string', '', 'announcements', ['create'], { required: true });
@@ -276,7 +272,7 @@ class Nexo {
 				path = '/dashboard';
 			} else if (resource === 'clients') {
 				const identifier = this.getNodeParameter('identifier', i, '');
-				if (operation === 'list') {
+				if (operation === 'getMany') {
 					path = '/clients';
 					qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) };
 					const queryFields = {
@@ -326,9 +322,11 @@ class Nexo {
 					method = 'DELETE'; path = `/clients/${encodedPath(identifier)}`;
 				}
 			} else if (resource === 'automations') {
-				if (operation === 'list') {
+				if (operation === 'getMany') {
 					path = '/automations';
 					qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) };
+				} else if (operation === 'get') {
+					path = `/automations/${encodedPath(this.getNodeParameter('identifier', i))}`;
 				} else if (operation === 'create') {
 					method = 'POST'; path = '/automations';
 					const fileField = this.getNodeParameter('fileBinaryProperty', i, 'data');
@@ -353,7 +351,7 @@ class Nexo {
 					fallbackFilename = operation === 'image' ? 'automation-image.jpg' : 'automation.json';
 				}
 			} else if (resource === 'documents') {
-				if (operation === 'list') {
+				if (operation === 'getMany') {
 					path = '/documents';
 					qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) };
 					const clientId = this.getNodeParameter('documentClientId', i, '');
@@ -367,6 +365,8 @@ class Nexo {
 					body = form.body; headers['Content-Type'] = form.contentType;
 					const clientId = this.getNodeParameter('documentClientId', i, '');
 					if (clientId) qs.client_id = clientId;
+				} else if (operation === 'get') {
+					path = `/documents/${encodedPath(this.getNodeParameter('identifier', i))}`;
 				} else if (operation === 'download') {
 				path = `/documents/${encodedPath(this.getNodeParameter('identifier', i))}/download`;
 				binaryResult = true; fallbackFilename = 'document';
@@ -374,11 +374,13 @@ class Nexo {
 				method = 'DELETE'; path = `/documents/${encodedPath(this.getNodeParameter('identifier', i))}`;
 			}
 		} else if (resource === 'notifications') {
-			if (operation === 'list') {
+			if (operation === 'getMany') {
 				path = '/notifications';
 				qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) };
 				const kind = this.getNodeParameter('notificationKind', i, 'all');
 				if (kind !== 'all') qs.kind = kind;
+			} else if (operation === 'get') {
+				path = `/notifications/${encodedPath(this.getNodeParameter('identifier', i))}`;
 			} else if (operation === 'unreadCount') {
 				path = '/notifications/unread-count';
 			} else if (operation === 'markRead') {
@@ -409,20 +411,16 @@ class Nexo {
 			const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
 			const fileName = parseFilename(response?.headers, fallbackFilename);
 			const binary = await this.helpers.prepareBinaryData(buffer, fileName, response?.headers?.['content-type']);
-			returnData.push({ json: { success: true, resource, operation, file: { fileName, mimeType: binary.mimeType } }, binary: { data: binary }, pairedItem: { item: i } });
+			returnData.push({ json: { fileName, mimeType: binary.mimeType }, binary: { data: binary }, pairedItem: { item: i } });
 			continue;
 		}
 
 		if (Array.isArray(response)) {
-			if (response.length === 0) {
-				returnData.push({ json: { success: true, resource, operation, count: 0, data: [] }, pairedItem: { item: i } });
-			} else {
-				for (const row of response) returnData.push({ json: { success: true, resource, operation, count: response.length, data: row }, pairedItem: { item: i } });
-			}
+			for (const row of response) returnData.push({ json: row, pairedItem: { item: i } });
 		} else if (response === undefined || response === null) {
-			returnData.push({ json: { success: true, resource, operation, data: null }, pairedItem: { item: i } });
+			returnData.push({ json: {}, pairedItem: { item: i } });
 		} else {
-			returnData.push({ json: { success: true, resource, operation, data: response }, pairedItem: { item: i } });
+			returnData.push({ json: response, pairedItem: { item: i } });
 		}
 		}
 

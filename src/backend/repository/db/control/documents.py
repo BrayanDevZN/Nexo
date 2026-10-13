@@ -25,6 +25,14 @@ class DocumentRepository(Repository[Document]):
         query = query.order_by(Document.created_at.desc(), Document.id)
         return list(self.session.scalars(query.limit(limit).offset(offset)))
 
+    def get_summary(self, identifier: str):
+        query = select(
+            Document.id, Document.filename, Document.size, Document.created_by_id,
+            Document.client_id, Document.created_at, Document.updated_at,
+        ).where(Document.id == identifier)
+        row = self.session.execute(query).mappings().first()
+        return dict(row) if row is not None else None
+
     def count(self) -> int:
         return int(self.session.scalar(select(func.count()).select_from(Document)) or 0)
 

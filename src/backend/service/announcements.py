@@ -16,8 +16,8 @@ class AnnouncementService:
     @staticmethod
     def _authorize(repos, actor):
         current = authorize(repos, actor, approved=True)
-        if current.role != "owner":
-            raise AnnouncementPermissionError("Owner access required")
+        if current.role != "admin":
+            raise AnnouncementPermissionError("Administrator access required")
         return current
 
     def list_for_user(self, actor, *, limit=50, offset=0, kind=None):
@@ -33,6 +33,20 @@ class AnnouncementService:
                                "sender_has_photo": bool(profile and profile["has_photo"]),
                                "has_image": bool(row.image_storage_key)})
             return result
+
+    def get_for_user(self, actor, identifier):
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            row = repos.db.notifications.get(identifier)
+            if row is None or row.recipient_id != actor.id:
+                raise ResourceNotFound("Notification not found")
+            profile = repos.db.users.profile_summaries_by_ids([row.requested_user_id]).get(row.requested_user_id)
+            return {
+                **snapshot("notifications", row),
+                "sender_name": profile["name"] if profile else "Membro removido",
+                "sender_has_photo": bool(profile and profile["has_photo"]),
+                "has_image": bool(row.image_storage_key),
+            }
 
     def image(self, actor, identifier):
         with self.cached_repositories.read_transaction() as repos:

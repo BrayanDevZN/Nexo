@@ -30,18 +30,7 @@ function matchesEvent(note, event) {
 }
 
 function formatTriggerItem(note, event) {
-	return {
-		json: {
-			success: true,
-			source: 'Nexo Trigger',
-			event: {
-				filter: event,
-				kind: note.kind || null,
-				createdAt: note.created_at || null,
-			},
-			data: note,
-		},
-	};
+	return { json: { ...note } };
 }
 
 class NexoTrigger {

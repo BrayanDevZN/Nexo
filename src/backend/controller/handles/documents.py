@@ -25,6 +25,14 @@ def listing(request: Request, client_id: str | None = Query(default=None, max_le
         raise fail(error) from None
 
 
+@router.get("/{identifier}", response_model=DocumentOutput)
+def get_document(identifier: str, request: Request, actor=Depends(approved_user)):
+    try:
+        return request.app.state.services.documents.get(actor, identifier)
+    except (AccessDenied, ResourceNotFound) as error:
+        raise fail(error) from None
+
+
 @router.post("", response_model=DocumentOutput, status_code=201)
 async def upload(request: Request, file: UploadFile = File(), client_id: str | None = Query(default=None, max_length=36), actor=Depends(approved_user)):
     try:

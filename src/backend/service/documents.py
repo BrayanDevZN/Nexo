@@ -18,6 +18,15 @@ class DocumentService:
             authorize_read(repos.db, actor, approved=True)
             return ClientService.with_creators(repos, repos.documents.list(**filters))
 
+    def get(self, actor, identifier):
+        with self.cached_repositories.read_transaction() as repos:
+            authorize_read(repos.db, actor, approved=True)
+            row = repos.db.documents.get_summary(identifier)
+            if row is None:
+                raise ResourceNotFound("Document not found")
+            creator = repos.db.users.profile_summaries_by_ids([row["created_by_id"]]).get(row["created_by_id"])
+            return {**row, "created_by_name": creator.get("name", "Membro removido") if creator else "Membro removido"}
+
     def upload(self, actor, filename, data, client_id=None):
         with self.repositories.read_transaction() as repos:
             authorize_read(repos, actor, approved=True)
@@ -55,7 +64,7 @@ class DocumentService:
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
-            if user.role != "owner" and row.created_by_id != user.id:
+            if user.role != "admin" and row.created_by_id != user.id:
                 raise AccessDenied("Only the creator or an administrator can delete this document")
             key = row.storage_key
             repos.documents.delete(identifier)

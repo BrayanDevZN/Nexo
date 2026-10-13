@@ -18,19 +18,19 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 
 | Recurso | Operações |
 | --- | --- |
-| Clientes | Listar com filtro de nicho fechado, contrato fechado e nome; buscar por ID ou nome; criar, atualizar e excluir |
-| Automações | Listar, salvar arquivo, baixar arquivo e baixar imagem |
-| Documentos | Listar, enviar arquivo, baixar arquivo e excluir |
-| Notificações | Listar, contar não lidas, marcar notificação como lida e marcar chat como lido |
+| Clientes | Get Many com filtros de nicho, contrato fechado e nome; Get por ID; buscar por ID ou nome; criar, atualizar e excluir |
+| Automações | Get Many; Get por ID; salvar arquivo, baixar arquivo e baixar imagem |
+| Documentos | Get Many; Get por ID; enviar arquivo, baixar arquivo e excluir |
+| Notificações | Get Many; Get por ID; contar não lidas, marcar notificação como lida e marcar chat como lido |
 | Dashboard | Obter resumo |
 | Avisos administrativos | Criar aviso |
 
 O node **Nexo** também pode ser conectado à porta de ferramentas do **AI Agent**.
-As operações retornam JSON em envelope estável: `success`, `resource`, `operation` e `data`.
-Listagens devolvem um item n8n por registro, com `data` contendo o registro; a saída
-também traz `count`. Uma lista vazia produz um item com `count: 0` e `data: []`.
-Arquivos baixados aparecem em `binary.data`, com nome e MIME type em `json.file`.
-O trigger usa `success`, `source`, `event` e `data` para separar metadados do aviso.
+As operações seguem o formato padrão do n8n: cada registro retorna como um item
+independente, com os campos diretamente no JSON (sem envelope `data`). Uma lista vazia
+gera zero itens. Arquivos baixados aparecem em `binary.data`, acompanhados por
+`json.fileName` e `json.mimeType`. O trigger também retorna os campos da notificação
+diretamente no JSON de cada item.
 
 O agente recebe os nomes das operações em linguagem clara e os campos do recurso;
 restrinja a chave API e as instruções do agente às ações que ele realmente deve executar.

@@ -98,6 +98,22 @@ const ENDPOINTS: Endpoint[] = [
     notifies: true,
   },
   {
+    method: "GET",
+    route: "/automations",
+    path: "/automations/{identifier}",
+    title: "Obter automação",
+    description: "Retorna os metadados de uma automação pelo ID, sem carregar o arquivo binário.",
+    response: `{
+  "id": "uuid-da-automacao",
+  "name": "Captura de leads",
+  "description": "Importa e organiza novos contatos.",
+  "filename": "captura-leads.json",
+  "file_size": 24512,
+  "created_by_name": "Brayan",
+  "has_image": false
+}`,
+  },
+  {
     method: "PATCH",
     route: "/clients",
     path: "/clients/{identifier}",
@@ -212,6 +228,19 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET",
     route: "/documents",
+    path: "/documents/{identifier}",
+    title: "Obter documento",
+    description: "Retorna os metadados do documento pelo ID, sem incluir o conteúdo do arquivo.",
+    response: `{
+  "id": "uuid-do-documento",
+  "filename": "contrato.pdf",
+  "size": 248112,
+  "client_id": "uuid-do-cliente"
+}`,
+  },
+  {
+    method: "GET",
+    route: "/documents",
     path: "/documents/{identifier}/download",
     title: "Baixar documento",
     description: "Baixa o conteúdo binário do documento.",
@@ -253,6 +282,21 @@ const ENDPOINTS: Endpoint[] = [
   "total": 4,
   "notices": 3,
   "chat_messages": 1
+}`,
+  },
+  {
+    method: "GET",
+    route: "/notifications",
+    path: "/notifications/{identifier}",
+    title: "Obter notificação",
+    description: "Retorna uma notificação do usuário autenticado pelo ID.",
+    response: `{
+  "id": "uuid-da-notificacao",
+  "kind": "announcement",
+  "title": "Novo aviso",
+  "body": "Conteúdo do aviso",
+  "read_at": null,
+  "created_at": "2026-10-12T12:00:00"
 }`,
   },
   {
