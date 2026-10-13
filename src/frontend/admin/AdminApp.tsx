@@ -166,14 +166,6 @@ export default function AdminApp() {
       </Button>
     </div>
   );
-  const sidebarHeader = (
-    <div className="admin-sidebar-header">
-      <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
-      <Button variant="ghost" size="icon-sm" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>
-        {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-      </Button>
-    </div>
-  );
   return <div className={`admin-layout${sidebarCollapsed ? " admin-layout-collapsed" : ""}`}>
     <aside className="admin-sidebar">
       {sidebarHeader}
