@@ -9,6 +9,7 @@ type NativeSelectProps = {
   children: React.ReactNode
   className?: string
   disabled?: boolean
+  required?: boolean
   id?: string
   name?: string
   value?: string
@@ -17,13 +18,14 @@ type NativeSelectProps = {
   size?: "sm" | "default"
 }
 
-function NativeSelect({ children, className, disabled, id, name, value, defaultValue, onChange }: NativeSelectProps) {
+function NativeSelect({ children, className, disabled, required, id, name, value, defaultValue, onChange }: NativeSelectProps) {
   const mapValue = (item: string | undefined) => item === "" ? EMPTY_VALUE : item
   return <SelectPrimitive.Root
     name={name}
     value={mapValue(value)}
     defaultValue={mapValue(defaultValue)}
     disabled={disabled}
+    required={required}
     onValueChange={next => onChange?.({ target: { value: next === EMPTY_VALUE ? "" : next } })}
   >
     <SelectPrimitive.Trigger id={id} data-slot="native-select" className={cn("cn-input flex h-11 w-full items-center justify-between gap-2 px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50", className)}>

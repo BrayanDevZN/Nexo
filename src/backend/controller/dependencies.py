@@ -35,6 +35,13 @@ def approved_user(request: Request):
     return user
 
 
+def admin_user(request: Request):
+    user = approved_user(request)
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Administrator access required")
+    return user
+
+
 def owner_user(request: Request):
     user = approved_user(request)
     if user.role != "owner":
