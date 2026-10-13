@@ -100,7 +100,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
         if (response.status === 401 && !["/auth/login", "/auth/google/profile", "/auth/password/recovery/confirm"].includes(path)) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
-        const message = reason === "csrf" ? "Sua sessão precisa ser atualizada. Recarregue a página e tente novamente."
+        const message = reason === "csrf" ? "A proteção da sessão ficou desatualizada. Atualizando…"
           : reason === "origin" ? "O endereço deste site não está autorizado. Confira CORS_ORIGINS e tente novamente."
           : reason === "auth" ? "Sua sessão não está válida. Saia da Nexo e entre novamente."
           : reason === "approval" ? "Sua conta ainda está aguardando aprovação."
