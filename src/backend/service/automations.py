@@ -85,7 +85,9 @@ class AutomationService:
             body = f"A automação \"{name}\" foi atualizada.\n\n{description}\n\nArquivo: {row.filename}"
             self._notify(repos, current, recipients, title=f"Automação atualizada: {name}",
                          body=body, image_data=row.image_data)
-            result = {**snapshot("automations", row), "created_by_name": current.name,
+            creator = repos.users.get(row.created_by_id)
+            result = {**snapshot("automations", row),
+                      "created_by_name": creator.name if creator else "Membro removido",
                       "has_image": bool(row.image_data), "can_manage": True}
         self._push_notice(recipients, f"Automação atualizada: {name}", body)
         return result
