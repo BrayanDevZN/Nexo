@@ -29,6 +29,21 @@ function matchesEvent(note, event) {
 	}
 }
 
+function formatTriggerItem(note, event) {
+	return {
+		json: {
+			success: true,
+			source: 'Nexo Trigger',
+			event: {
+				filter: event,
+				kind: note.kind || null,
+				createdAt: note.created_at || null,
+			},
+			data: note,
+		},
+	};
+}
+
 class NexoTrigger {
 	constructor() {
 		this.description = {
@@ -79,7 +94,7 @@ class NexoTrigger {
 			staticData.seenIds = ids.slice(0, 500);
 			if (this.getMode() === 'manual') {
 				const sample = rows.filter((note) => matchesEvent(note, event)).slice(0, 1);
-				return sample.length ? [sample.map((note) => ({ json: note }))] : null;
+				return sample.length ? [sample.map((note) => formatTriggerItem(note, event))] : null;
 			}
 			return null;
 		}
@@ -94,9 +109,8 @@ class NexoTrigger {
 
 		staticData.seenIds = [...new Set([...ids, ...(staticData.seenIds || [])])].slice(0, 500);
 		if (!fresh.length) return null;
-		return [fresh.map((note) => ({ json: note }))];
+		return [fresh.map((note) => formatTriggerItem(note, event))];
 	}
 }
 
-module.exports = { NexoTrigger };
-
+module.exports = { NexoTrigger, formatTriggerItem };

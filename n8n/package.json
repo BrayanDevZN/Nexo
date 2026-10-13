@@ -4,6 +4,9 @@
   "private": true,
   "description": "Node privado do n8n para integrar workflows com a API da Nexo.",
   "license": "UNLICENSED",
+  "scripts": {
+    "test": "node --test"
+  },
   "n8n": {
     "nodes": [
       "nodes/Nexo/Nexo.node.js",
@@ -14,4 +17,3 @@
     ]
   }
 }
-

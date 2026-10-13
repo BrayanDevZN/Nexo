@@ -55,6 +55,7 @@ const operationOptions = {
 	clients: [
 		{ name: 'Listar', value: 'list' },
 		{ name: 'Buscar por ID', value: 'get' },
+		{ name: 'Buscar por ID ou nome', value: 'search' },
 		{ name: 'Criar', value: 'create' },
 		{ name: 'Atualizar', value: 'update' },
 		{ name: 'Excluir', value: 'delete' },
@@ -105,7 +106,28 @@ function add(displayName, name, type, defaultValue, resource, operations, extra 
 
 add('ID do cliente', 'identifier', 'string', '', 'clients', ['get', 'update', 'delete'], { required: true });
 add('Nome', 'name', 'string', '', 'clients', ['create', 'update']);
-add('Nicho', 'niche', 'string', '', 'clients', ['create', 'update']);
+add('Nicho', 'niche', 'options', '', 'clients', ['create', 'update'], {
+	options: [
+		{ name: 'Selecione um nicho', value: '' },
+		{ name: 'Contabilidade', value: 'Contabilidade' },
+		{ name: 'Saúde', value: 'Saúde' },
+		{ name: 'Beleza e estética', value: 'Beleza e estética' },
+		{ name: 'Imobiliário', value: 'Imobiliário' },
+		{ name: 'Advocacia', value: 'Advocacia' },
+		{ name: 'Educação', value: 'Educação' },
+		{ name: 'Varejo', value: 'Varejo' },
+		{ name: 'Comércio', value: 'Comércio' },
+		{ name: 'Alimentação', value: 'Alimentação' },
+		{ name: 'Tecnologia', value: 'Tecnologia' },
+		{ name: 'Construção civil', value: 'Construção civil' },
+		{ name: 'Indústria', value: 'Indústria' },
+		{ name: 'Logística', value: 'Logística' },
+		{ name: 'Serviços profissionais', value: 'Serviços profissionais' },
+		{ name: 'Marketing e publicidade', value: 'Marketing e publicidade' },
+		{ name: 'Automotivo', value: 'Automotivo' },
+		{ name: 'Outro', value: 'Outro' },
+	],
+});
 add('Telefone', 'phone', 'string', '', 'clients', ['create', 'update']);
 add('E-mail', 'email', 'string', '', 'clients', ['create', 'update']);
 add('Etapa do funil', 'pipelineStage', 'options', '', 'clients', ['list', 'create', 'update'], {
@@ -132,8 +154,37 @@ add('Observações', 'notes', 'string', '', 'clients', ['create', 'update'], { t
 add('Próximo acompanhamento', 'nextFollowUp', 'dateTime', '', 'clients', ['create', 'update']);
 add('Dor identificada', 'pain', 'string', '', 'clients', ['create', 'update'], { typeOptions: { rows: 3 } });
 add('Abordagem', 'approach', 'string', '', 'clients', ['create', 'update'], { typeOptions: { rows: 3 } });
-add('Filtrar por nicho', 'filterNiche', 'string', '', 'clients', ['list']);
+add('Filtrar por nicho', 'filterNiche', 'options', '', 'clients', ['list'], {
+	options: [
+		{ name: 'Todos os nichos', value: '' },
+		{ name: 'Contabilidade', value: 'Contabilidade' },
+		{ name: 'Saúde', value: 'Saúde' },
+		{ name: 'Beleza e estética', value: 'Beleza e estética' },
+		{ name: 'Imobiliário', value: 'Imobiliário' },
+		{ name: 'Advocacia', value: 'Advocacia' },
+		{ name: 'Educação', value: 'Educação' },
+		{ name: 'Varejo', value: 'Varejo' },
+		{ name: 'Comércio', value: 'Comércio' },
+		{ name: 'Alimentação', value: 'Alimentação' },
+		{ name: 'Tecnologia', value: 'Tecnologia' },
+		{ name: 'Construção civil', value: 'Construção civil' },
+		{ name: 'Indústria', value: 'Indústria' },
+		{ name: 'Logística', value: 'Logística' },
+		{ name: 'Serviços profissionais', value: 'Serviços profissionais' },
+		{ name: 'Marketing e publicidade', value: 'Marketing e publicidade' },
+		{ name: 'Automotivo', value: 'Automotivo' },
+		{ name: 'Outro', value: 'Outro' },
+	],
+});
 add('Filtrar por nome', 'filterName', 'string', '', 'clients', ['list']);
+add('ID ou nome para busca', 'searchTerm', 'string', '', 'clients', ['search'], { required: true });
+add('Buscar como', 'searchBy', 'options', 'auto', 'clients', ['search'], {
+	options: [
+		{ name: 'Detectar automaticamente', value: 'auto' },
+		{ name: 'ID', value: 'id' },
+		{ name: 'Nome', value: 'name' },
+	],
+});
 add('ID do criador', 'createdById', 'string', '', 'clients', ['list']);
 add('Filtrar por contrato fechado', 'filterContractClosed', 'options', 'all', 'clients', ['list'], {
 	options: [{ name: 'Todos', value: 'all' }, { name: 'Sim', value: 'true' }, { name: 'Não', value: 'false' }],
@@ -238,6 +289,17 @@ class Nexo {
 					if (contractClosed !== 'all') qs.contract_closed = contractClosed;
 					const stage = this.getNodeParameter('pipelineStage', i, '');
 					if (stage) qs.pipeline_stage = stage;
+				} else if (operation === 'search') {
+					const searchTerm = String(this.getNodeParameter('searchTerm', i, '')).trim();
+					if (!searchTerm) throw new Error('Informe o ID ou o nome do cliente para buscar.');
+					const searchBy = this.getNodeParameter('searchBy', i, 'auto');
+					const looksLikeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(searchTerm);
+					if (searchBy === 'id' || (searchBy === 'auto' && looksLikeId)) {
+						path = `/clients/${encodedPath(searchTerm)}`;
+					} else {
+						path = '/clients';
+						qs = { name: searchTerm, limit: 100, offset: 0 };
+					}
 				} else if (operation === 'get') {
 					path = `/clients/${encodedPath(identifier)}`;
 				} else if (operation === 'create' || operation === 'update') {
@@ -347,16 +409,20 @@ class Nexo {
 			const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
 			const fileName = parseFilename(response?.headers, fallbackFilename);
 			const binary = await this.helpers.prepareBinaryData(buffer, fileName, response?.headers?.['content-type']);
-			returnData.push({ json: { fileName, mimeType: binary.mimeType }, binary: { data: binary }, pairedItem: { item: i } });
+			returnData.push({ json: { success: true, resource, operation, file: { fileName, mimeType: binary.mimeType } }, binary: { data: binary }, pairedItem: { item: i } });
 			continue;
 		}
 
 		if (Array.isArray(response)) {
-			for (const row of response) returnData.push({ json: row, pairedItem: { item: i } });
+			if (response.length === 0) {
+				returnData.push({ json: { success: true, resource, operation, count: 0, data: [] }, pairedItem: { item: i } });
+			} else {
+				for (const row of response) returnData.push({ json: { success: true, resource, operation, count: response.length, data: row }, pairedItem: { item: i } });
+			}
 		} else if (response === undefined || response === null) {
-			returnData.push({ json: { success: true }, pairedItem: { item: i } });
+			returnData.push({ json: { success: true, resource, operation, data: null }, pairedItem: { item: i } });
 		} else {
-			returnData.push({ json: response, pairedItem: { item: i } });
+			returnData.push({ json: { success: true, resource, operation, data: response }, pairedItem: { item: i } });
 		}
 		}
 
@@ -365,4 +431,3 @@ class Nexo {
 }
 
 module.exports = { Nexo };
-

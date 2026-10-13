@@ -18,7 +18,7 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 
 | Recurso | Operações |
 | --- | --- |
-| Clientes | Listar, buscar por ID, criar, atualizar e excluir |
+| Clientes | Listar com filtro de nicho fechado, contrato fechado e nome; buscar por ID ou nome; criar, atualizar e excluir |
 | Automações | Listar, salvar arquivo, baixar arquivo e baixar imagem |
 | Documentos | Listar, enviar arquivo, baixar arquivo e excluir |
 | Notificações | Listar, contar não lidas, marcar notificação como lida e marcar chat como lido |
@@ -26,6 +26,12 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 | Avisos administrativos | Criar aviso |
 
 O node **Nexo** também pode ser conectado à porta de ferramentas do **AI Agent**.
+As operações retornam JSON em envelope estável: `success`, `resource`, `operation` e `data`.
+Listagens devolvem um item n8n por registro, com `data` contendo o registro; a saída
+também traz `count`. Uma lista vazia produz um item com `count: 0` e `data: []`.
+Arquivos baixados aparecem em `binary.data`, com nome e MIME type em `json.file`.
+O trigger usa `success`, `source`, `event` e `data` para separar metadados do aviso.
+
 O agente recebe os nomes das operações em linguagem clara e os campos do recurso;
 restrinja a chave API e as instruções do agente às ações que ele realmente deve executar.
 
@@ -77,4 +83,3 @@ Os caminhos e campos seguem a documentação visual em
 `src/frontend/admin/ApiDocumentation.tsx` e as rotas correspondentes em
 `src/backend/controller/handles/`. A API está em produção com OpenAPI desativado;
 para mudar operações, mantenha esta integração alinhada com esses dois pontos.
-
