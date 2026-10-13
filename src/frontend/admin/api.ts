@@ -100,13 +100,13 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
         if (response.status === 401 && !["/auth/login", "/auth/google/profile", "/auth/password/recovery/confirm"].includes(path)) {
           if (typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
         }
-        const message = reason === "csrf" ? "A proteção da sessão ficou desatualizada. Atualizando…"
-          : reason === "origin" ? "O domínio do site não está autorizado no backend (CORS_ORIGINS)."
-          : reason === "auth" ? "O backend recusou sua sessão. Saia da Nexo, entre novamente e teste de novo."
-          : reason === "approval" ? "O backend está tratando sua conta como pendente de aprovação. O selo Owner da tela não confirma o status de aprovação."
-          : reason === "admin" ? "O backend exige cargo de administrador para esta ação."
-          : reason === "owner" ? "O backend exige cargo Owner para esta ação."
-          : response.status === 403 ? "Ação recusada pelo backend" + (detail ? ": " + detail : " (403 sem detalhe)") + "."
+        const message = reason === "csrf" ? "Sua sessão precisa ser atualizada. Recarregue a página e tente novamente."
+          : reason === "origin" ? "Não foi possível validar esta solicitação. Recarregue a página e tente novamente."
+          : reason === "auth" ? "Sua sessão não está válida. Saia da Nexo e entre novamente."
+          : reason === "approval" ? "Sua conta ainda está aguardando aprovação."
+          : reason === "admin" ? "Seu perfil não tem acesso a esta área. Um Owner ou administrador pode revisar o cargo da conta."
+          : reason === "owner" ? "Esta ação está disponível apenas para o Owner."
+          : response.status === 403 ? "Você não tem acesso a esta ação."
           : messages[response.status] ||
           (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação.");
         throw new ApiError(response.status, message, reason);
