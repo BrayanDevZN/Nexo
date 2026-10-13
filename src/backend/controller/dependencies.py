@@ -37,7 +37,8 @@ def approved_user(request: Request):
 
 def admin_user(request: Request):
     user = approved_user(request)
-    if user.role != "admin":
+    # Owner is the highest role and inherits all administrator capabilities.
+    if user.role not in {"admin", "owner"}:
         raise HTTPException(status_code=403, detail="Administrator access required")
     return user
 
