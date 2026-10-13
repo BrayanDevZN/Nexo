@@ -69,7 +69,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         const detail = typeof body.detail === "string" ? body.detail : "";
-        const reason = detail === "Invalid CSRF token" ? "csrf"
+        const reason: ApiError["reason"] = detail === "Invalid CSRF token" ? "csrf"
           : detail === "Untrusted request origin" ? "origin"
           : detail === "Access denied" ? "auth" : undefined;
         const messages: Record<number, string> = {
@@ -101,7 +101,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           : reason === "origin" ? "O domínio do site não está autorizado no backend (CORS_ORIGINS)."
           : reason === "auth" ? "Sua sessão ou permissão foi alterada. Saia e entre novamente."
           : messages[response.status] ||
-          (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação."));
+          (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação.");
         throw new ApiError(response.status, message, reason);
       }
       if (response.status === 204) return undefined as T;
