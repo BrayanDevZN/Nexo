@@ -5,6 +5,8 @@ from backend.controller.cookies import set_session_cookie
 from backend.controller.dependencies import current_user
 from backend.controller.schema.auth import (
     LoginInput,
+    GoogleCompleteInput,
+    InvitationRegistrationInput,
     RegistrationConfirmInput,
     RegistrationInput,
     UserOutput,
@@ -15,6 +17,30 @@ from backend.service.registration import RegistrationCodeError, RegistrationCool
 from backend.service.security import AuthenticationError
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+@router.get("/invitations/{token}")
+def invitation_info(token: str, request: Request):
+    try:
+        return request.app.state.services.invitations.inspect(token)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invitation not found or expired") from None
+
+
+@router.post("/invitations/{token}/register", response_model=UserOutput, status_code=201)
+def register_invited(token: str, data: InvitationRegistrationInput, request: Request, response: Response):
+    try:
+        user, session = request.app.state.services.invitations.register(
+            token, name=data.name, email=str(data.email), phone=data.phone,
+            password=data.password.get_secret_value())
+    except ValueError as error:
+        if isinstance(error, RegistrationConflict):
+            raise HTTPException(status_code=409, detail=str(error)) from None
+        raise HTTPException(status_code=404, detail="Invitation not found or expired") from None
+    except RedisError:
+        raise HTTPException(status_code=503, detail="Invitation service unavailable") from None
+    set_session_cookie(response, request.app.state.settings, session)
+    return user
 
 
 @router.post("/register", status_code=202)

@@ -5,6 +5,7 @@ from backend.repository.redis.rate_limits import RateBudget
 SENSITIVE_ROUTES = {
     "/auth/login", "/auth/register", "/auth/register/confirm", "/auth/logout", "/auth/password/change",
     "/auth/password/recovery/request", "/auth/password/recovery/confirm", "/auth/account/deletion/request", "/auth/account/deletion/confirm",
+    "/auth/invitations/{token}/register",
 }
 
 

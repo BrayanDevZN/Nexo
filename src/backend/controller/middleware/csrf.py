@@ -29,12 +29,14 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             elif request.url.path not in {"/auth/login", "/auth/register", "/auth/register/confirm", "/auth/google/complete",
                                                 "/auth/password/recovery/request",
                                                 "/auth/password/recovery/confirm"}:
-                try:
-                    claims = self.tokens.read(request.cookies.get(self.settings.auth_cookie_name, ""))
-                    if not self.csrf.verify(claims.token_id, request.headers.get("x-csrf-token", "")):
-                        response = JSONResponse({"detail": "Invalid CSRF token"}, status_code=403)
-                except InvalidTokenError:
-                    response = JSONResponse({"detail": "Invalid or expired session"}, status_code=401)
+                if not (request.url.path.startswith("/auth/invitations/")
+                        and request.url.path.endswith("/register")):
+                    try:
+                        claims = self.tokens.read(request.cookies.get(self.settings.auth_cookie_name, ""))
+                        if not self.csrf.verify(claims.token_id, request.headers.get("x-csrf-token", "")):
+                            response = JSONResponse({"detail": "Invalid CSRF token"}, status_code=403)
+                    except InvalidTokenError:
+                        response = JSONResponse({"detail": "Invalid or expired session"}, status_code=401)
         if response is None:
             response = await call_next(request)
         if request.url.path.startswith(("/auth/", "/admin/", "/clients", "/members", "/documents", "/automations", "/chat", "/realtime")):

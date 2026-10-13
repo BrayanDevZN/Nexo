@@ -58,6 +58,8 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | GET /health | liveness, sem dependências externas |
 | GET /health/ready | verifica SQLite e Redis |
 | POST /auth/register | name, phone, email, password; conta pending/member |
+| GET /auth/invitations/{token} | valida convite e informa o cargo concedido |
+| POST /auth/invitations/{token}/register | cria conta aprovada a partir do convite e inicia sessão |
 | POST /auth/login | email, password; cookie JWT HttpOnly |
 | GET /auth/me | próprio perfil seguro |
 | GET /auth/csrf | token CSRF da sessão |
@@ -72,6 +74,7 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/account/deletion/request | sessão e CSRF; envia código para o email da própria conta |
 | POST /auth/account/deletion/confirm | sessão e CSRF; código de uso único confirma exclusão e limpa cookie |
 | GET /members | usuários aprovados; lista paginada com apenas id, nome e cargo de contas aprovadas |
+| POST /admin/invitations | admin ou Owner cria convite de membro/admin; uso único, expira em 7 dias |
 | GET /admin/users | somente Owner; filtro status, limit/offset e identificação da conta principal |
 | PATCH /admin/users/{id} | Owner altera nome, email, celular e cargo; cargo exige usuário aprovado |
 | DELETE /admin/users/{id} | Owner exclui conta e preserva seus clientes |
@@ -103,7 +106,8 @@ JWT HS256 exige issuer, audience, validade, sub, ver e jti; não contém senha.
 O navegador envia cookies com `credentials: "include"`; TypeScript não lê o JWT.
 Mutações exigem Origin presente em CORS_ORIGINS. Mutações autenticadas também exigem
 X-CSRF-Token obtido em /auth/csrf. Cadastro/login e recuperação pública exigem Origin;
-conclusão Google usa o CSRF de /auth/google/profile. Respostas privadas usam no-store.
+conclusão Google usa o CSRF de /auth/google/profile. Cadastro por convite exige Origin válido,
+usa link de uso único com expiração de 7 dias e inicia sessão após confirmar a conta. Respostas privadas usam no-store.
 
 ```ts
 const response = await fetch(API_URL + "/auth/csrf", { credentials: "include" });

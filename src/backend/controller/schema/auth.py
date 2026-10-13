@@ -40,6 +40,15 @@ class RegistrationInput(LoginInput, ProfileInput):
         return validate_new_password(value)
 
 
+class GoogleCompleteInput(ProfileInput):
+    model_config = ConfigDict(extra="forbid")
+    invite_token: str | None = Field(default=None, min_length=43, max_length=43)
+
+
+class InvitationRegistrationInput(RegistrationInput):
+    model_config = ConfigDict(extra="forbid")
+
+
 def validate_new_password(value):
     password = value.get_secret_value()
     try:

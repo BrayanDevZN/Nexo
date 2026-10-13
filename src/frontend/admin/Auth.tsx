@@ -8,7 +8,7 @@ import { type createApi, type GoogleProfile, type User } from "./api";
 import { PhotoPicker } from "./PhotoPicker";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "./shared";
 
-type Props = { api: ReturnType<typeof createApi>; complete: boolean; onLogin: (user: User) => void };
+type Props = { api: ReturnType<typeof createApi>; complete: boolean; inviteToken?: string; onLogin: (user: User) => void };
 type Mode = "login" | "register" | "recovery" | "confirm" | "verify";
 function GoogleLogo() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-icon="inline-start">
@@ -18,8 +18,8 @@ function GoogleLogo() {
     <path fill="#EA4335" d="M12 5.96c1.47 0 2.79.5 3.83 1.51l2.87-2.87A9.62 9.62 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.72 9.4 5.96 12 5.96Z" />
   </svg>;
 }
-export function Auth({ api, complete, onLogin }: Props) {
-  const [mode, setMode] = useState<Mode>("login");
+export function Auth({ api, complete, inviteToken, onLogin }: Props) {
+  const [mode, setMode] = useState<Mode>(inviteToken ? "register" : "login");
   const [createdUser, setCreatedUser] = useState<User>();
   const [selectedPhoto, setSelectedPhoto] = useState<File>();
   const [registration, setRegistration] = useState<Record<string, string>>();
@@ -28,6 +28,15 @@ export function Auth({ api, complete, onLogin }: Props) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [email, setEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<string>();
+  useEffect(() => {
+    if (!inviteToken) return;
+    let active = true;
+    api.request<{ role: string }>("/auth/invitations/" + encodeURIComponent(inviteToken))
+      .then(info => { if (active) setInviteRole(info.role); })
+      .catch(e => { if (active) setError(message(e)); });
+    return () => { active = false; };
+  }, [api, inviteToken]);
   useEffect(() => {
     if (complete) {
       let active = true;
@@ -46,13 +55,22 @@ export function Auth({ api, complete, onLogin }: Props) {
     try {
       if (complete) {
         if (!google) throw new Error("Reinicie o acesso com Google para completar seu perfil.");
-        const user = await api.mutate<User>("/auth/google/complete", "POST", { name: values.name, phone: values.phone }, google.csrf_token);
-        setCreatedUser(user);
+        const user = await api.mutate<User>("/auth/google/complete", "POST", {
+          name: values.name, phone: values.phone, invite_token: inviteToken,
+        }, google.csrf_token);
+        if (inviteToken) onLogin(user); else setCreatedUser(user);
       } else if (mode === "login") {
         onLogin(await api.publicPost<User>("/auth/login", { email, password: values.password }));
       } else if (mode === "register") {
         if (!passwordValid(values.password)) throw new Error("Use pelo menos 12 caracteres e até 72 bytes na senha.");
         if (values.password !== values.confirm_password) throw new Error("As senhas não coincidem.");
+        if (inviteToken) {
+          const user = await api.publicPost<User>("/auth/invitations/" + encodeURIComponent(inviteToken) + "/register", {
+            name: values.name, phone: values.phone, email, password: values.password,
+          });
+          onLogin(user);
+          return;
+        }
         await api.publicPost("/auth/register", { name: values.name, phone: values.phone, email, password: values.password });
         setRegistration({ name: values.name, phone: values.phone, email, password: values.password });
         setMode("verify"); setSuccess("Enviamos um código para seu e-mail. Confirme para criar sua conta. Confira também o spam.");
@@ -83,7 +101,7 @@ export function Auth({ api, complete, onLogin }: Props) {
         </form>
       </CardContent><CardFooter><Button type="button" variant="ghost" disabled={busy} onClick={() => onLogin(createdUser)}>Pular por enquanto<ArrowRight data-icon="inline-end" /></Button></CardFooter>
     </Card></main>;
-  const title = complete ? "Complete seu perfil" : ({ login: "Bem-vindo de volta", register: "Crie sua conta", recovery: "Recupere seu acesso", confirm: "Defina uma nova senha", verify: "Confirme seu e-mail" })[mode];
+  const title = complete ? "Complete seu perfil" : inviteToken ? "Seu convite para a Nexo" : ({ login: "Bem-vindo de volta", register: "Crie sua conta", recovery: "Recupere seu acesso", confirm: "Defina uma nova senha", verify: "Confirme seu e-mail" })[mode];
   return <main className="admin-auth">
     <section className="admin-intro">
       <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
@@ -92,7 +110,7 @@ export function Auth({ api, complete, onLogin }: Props) {
       <p className="flex items-center gap-2"><ShieldCheck className="size-5" /> Acesso liberado pelo administrador.</p>
     </section>
     <Card className="admin-auth-card">
-      <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{complete ? "Confirme seu nome e celular para solicitar acesso." : mode === "register" ? "Sua conta será analisada antes de acessar os dados." : "Acesse o painel administrativo da Nexo."}</CardDescription></CardHeader>
+      <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{complete ? (inviteToken ? "Finalize seu cadastro com Google para entrar na equipe." : "Confirme seu nome e celular para solicitar acesso.") : inviteToken ? (inviteRole ? `Você foi convidado como ${inviteRole === "admin" ? "administrador" : "membro"}. Crie sua conta para entrar no painel.` : "Validando seu convite…") : mode === "register" ? "Sua conta será analisada antes de acessar os dados." : "Acesse o painel administrativo da Nexo."}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-5">
         <Feedback error={error} success={success} />
         <form onSubmit={submit} key={complete ? "google" : mode} className="flex flex-col gap-5">
@@ -109,13 +127,13 @@ export function Auth({ api, complete, onLogin }: Props) {
               help={mode === "login" ? undefined : "Pelo menos 12 caracteres. Use uma senha exclusiva."} />}
             {!complete && mode === "register" && <TextField label="Confirmar senha" name="confirm_password" type="password" autoComplete="new-password" minLength={12} required />}
           </FieldGroup>
-          <Button type="submit" size="lg" disabled={busy || (complete && !google)}>
-            {busy ? <Busy>Enviando…</Busy> : <>{complete ? "Solicitar acesso" : mode === "login" ? "Entrar no painel" : mode === "register" ? "Criar conta" : mode === "verify" ? "Confirmar cadastro" : mode === "recovery" ? "Enviar código" : "Atualizar senha"}<ArrowRight data-icon="inline-end" /></>}
+          <Button type="submit" size="lg" disabled={busy || (complete && !google) || (!!inviteToken && !inviteRole && !complete)}>
+            {busy ? <Busy>Enviando…</Busy> : <>{complete ? inviteToken ? "Entrar na Nexo" : "Solicitar acesso" : mode === "login" ? "Entrar no painel" : mode === "register" ? "Criar conta" : mode === "verify" ? "Confirmar cadastro" : mode === "recovery" ? "Enviar código" : "Atualizar senha"}<ArrowRight data-icon="inline-end" /></>}
           </Button>
         </form>
         {!complete && (mode === "login" || mode === "register") && <>
           <Separator />
-          <Button variant="outline" size="lg" asChild><a href={api.googleLogin}><GoogleLogo />Continuar com Google</a></Button>
+          <Button variant="outline" size="lg" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")}><GoogleLogo />Continuar com Google</a></Button>
           {mode === "login" && <Button variant="link" onClick={() => switchMode("recovery")}>Esqueci minha senha</Button>}
         </>}
         {!complete && mode === "confirm" && <Button variant="link" disabled={busy} onClick={() => switchMode("recovery")}>Solicitar outro código</Button>}
@@ -125,10 +143,10 @@ export function Auth({ api, complete, onLogin }: Props) {
           try { await api.publicPost("/auth/register", registration); setSuccess("Código solicitado. Aguarde o intervalo de reenvio e confira seu e-mail."); }
           catch (e) { setError(message(e)); } finally { setBusy(false); }
         }}>Reenviar código de cadastro</Button>}
-        {complete && error && <Button variant="outline" asChild><a href={api.googleLogin}>Reiniciar com Google</a></Button>}
+        {complete && error && <Button variant="outline" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")}>Reiniciar com Google</a></Button>}
       </CardContent>
       <CardFooter className="flex flex-wrap justify-center gap-2">
-        {!complete && <Button variant="link" disabled={busy} onClick={() => switchMode(mode === "login" ? "register" : "login")}>
+        {!complete && !inviteToken && <Button variant="link" disabled={busy} onClick={() => switchMode(mode === "login" ? "register" : "login")}>
           {mode === "login" ? "Ainda não tem conta? Cadastre-se" : "Voltar para o login"}
         </Button>}
         <Button variant="ghost" asChild><a href="/"><ArrowLeft data-icon="inline-start" /> Voltar ao site</a></Button>

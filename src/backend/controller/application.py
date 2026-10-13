@@ -25,6 +25,7 @@ from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
 from backend.controller.handles.members import directory_router
 from backend.controller.handles.members import router as members_router
+from backend.controller.handles.members import invitations_router
 from backend.controller.handles.passwords import router as passwords_router
 from backend.controller.handles.profiles import router as profiles_router
 from backend.controller.handles.push import router as push_router
@@ -71,7 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
     routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router, automation_requests_router, automations_router, documents_router, passwords_router, clients_router, dashboard_router, profiles_router, push_router,
-               google_router, users_router, members_router, directory_router, notifications_router, announcements_router, member_notifications_router]
+               google_router, users_router, members_router, invitations_router, directory_router, notifications_router, announcements_router, member_notifications_router]
     # Public routes from our handles provide stable templates across FastAPI versions.
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]
     for router in routers:

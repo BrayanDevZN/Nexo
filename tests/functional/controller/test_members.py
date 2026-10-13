@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from urllib.parse import parse_qs, urlparse
 
 from backend.controller.application import create_app
 from backend.domain.passwords import PasswordHasher
@@ -85,4 +86,50 @@ def test_shared_directory_filters_sensitive_fields_and_enforces_approval(app):
         assert DATA["email"] not in response.text and DATA["password"] not in response.text and hashed not in response.text
         assert client.get("/members", params={"limit": 101}).status_code == 422
         assert len(client.get("/members", params={"limit": 1, "offset": 1}).json()) == 1
+
+
+@pytest.mark.parametrize(("role", "expected_role"), [("member", "member"), ("admin", "admin")])
+def test_admin_invitation_registers_approved_account_immediately(app, role, expected_role):
+    with TestClient(app) as client:
+        headers = login(client)
+        created = client.post("/admin/invitations", json={"role": role}, headers=headers)
+        assert created.status_code == 201
+        invitation_url = created.json()["url"]
+        token = parse_qs(urlparse(invitation_url).query)["invite"][0]
+        assert created.json()["expires_in"] == 7 * 24 * 60 * 60
+
+        info = client.get("/auth/invitations/" + token)
+        assert info.status_code == 200 and info.json()["role"] == expected_role
+
+        response = client.post("/auth/invitations/" + token + "/register", json={
+            "name": "Convidado", "phone": "+5531999999999", "email": "invitee@example.com",
+            "password": "invite-password-123",
+        }, headers=ORIGIN)
+        assert response.status_code == 201
+        user = response.json()
+        assert user["role"] == expected_role and user["status"] == "approved"
+        assert client.get("/auth/me").json()["id"] == user["id"]
+        assert client.get("/auth/invitations/" + token).status_code == 404
+
+
+def test_admins_can_invite_but_members_cannot(app):
+    with TestClient(app) as client:
+        member_password = "member-password-123"
+        admin_password = "admin-password-123"
+        with app.state.services.repositories.transaction() as repos:
+            repos.users.create(name="Aprovado", email="member@example.com",
+                               password_hash=app.state.services.passwords.hash(member_password),
+                               status="approved", role="member")
+            repos.users.create(name="Administrador", email="admin@example.com",
+                               password_hash=app.state.services.passwords.hash(admin_password),
+                               status="approved", role="admin")
+
+        member_headers = login(client, "member@example.com", member_password)
+        assert client.post("/admin/invitations", json={"role": "member"},
+                           headers=member_headers).status_code == 403
+
+        admin_headers = login(client, "admin@example.com", admin_password)
+        created = client.post("/admin/invitations", json={"role": "admin"}, headers=admin_headers)
+        assert created.status_code == 201
+        assert created.json()["role"] == "admin"
         assert client.get("/admin/users").status_code == 403

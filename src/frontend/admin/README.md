@@ -68,6 +68,8 @@ Fotos privadas são exibidas pela rota autenticada do backend.
   Administradores mantêm as funções operacionais, sem aprovar acessos, alterar cargos,
   gerenciar contas ou publicar avisos.
   Alterar email/cargo encerra as sessões da conta alterada, exigindo novo login.
+- Administradores podem gerar links de convite com cargo definido. O link pode ser
+  copiado e permite criar conta por senha ou Google; o acesso é liberado após o cadastro.
 - Clientes têm filtros por nicho exato/contrato, páginas de 20 e confirmação para excluir.
 - Perfil permite atualizar nome/celular e foto; senha atual ou código de e-mail
   permite alteração. Sessões são revogadas pelo backend, exigindo novo login.

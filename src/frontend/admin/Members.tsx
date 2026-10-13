@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { Pencil, RefreshCw, ShieldCheck, Trash2, Users } from "lucide-react";
+import { Copy, Pencil, RefreshCw, ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -11,6 +12,8 @@ import { MemberPhoto } from "./MemberPhoto";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 export function Members({ api, actor, onUpdate }: { api: ReturnType<typeof createApi>; actor: User; onUpdate: (user: User) => void }) {
+  const canManage = actor.role === "owner";
+  const canInvite = canManage || actor.role === "admin";
   const [rows, setRows] = useState<Member[]>([]);
   const [status, setStatus] = useState("");
   const [offset, setOffset] = useState(0);
@@ -18,17 +21,22 @@ export function Members({ api, actor, onUpdate }: { api: ReturnType<typeof creat
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
   const [editing, setEditing] = useState<Member>();
   const [deleting, setDeleting] = useState<Member>();
   const serial = useRef(0);
   const load = useCallback(async () => {
+    if (!canManage) { setRows([]); setError(""); setLoading(false); return; }
     const id = ++serial.current; setLoading(true); setError("");
     const query = new URLSearchParams({ limit: "20", offset: String(offset) });
     if (status) query.set("status", status);
     try { const result = await api.request<Member[]>("/admin/users?" + query); if (id === serial.current) setRows(result); }
     catch (e) { if (id === serial.current) setError(message(e)); }
     finally { if (id === serial.current) setLoading(false); }
-  }, [api, offset, status]);
+  }, [api, offset, status, canManage]);
   useEffect(() => { void load(); return () => { serial.current++; }; }, [load]);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!editing || busy) return;
@@ -52,16 +60,29 @@ export function Members({ api, actor, onUpdate }: { api: ReturnType<typeof creat
       if (rows.length === 1 && offset > 0) setOffset(offset - 20); else await load();
     } catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
+  async function createInvitation() {
+    if (inviteBusy) return;
+    setInviteBusy(true); setError(""); setSuccess("");
+    try {
+      const invite = await api.mutate<{ url: string }>("/admin/invitations", "POST", { role: inviteRole });
+      setInviteUrl(invite.url);
+    } catch (e) { setError(message(e)); } finally { setInviteBusy(false); }
+  }
+  async function copyInvitation() {
+    try { await navigator.clipboard.writeText(inviteUrl); setSuccess("Link do convite copiado."); }
+    catch { setError("Não foi possível copiar automaticamente. Selecione e copie o link."); }
+  }
   return <section className="flex flex-col gap-6" aria-labelledby="members-title">
-    <div className="admin-section-head"><div><span className="admin-eyebrow">EQUIPE NEXO</span><h1 id="members-title">Membros</h1><p>Gerencie os dados e os cargos de quem usa o painel.</p></div><Button variant="outline" disabled={loading} onClick={() => void load()}><RefreshCw data-icon="inline-start" /> Atualizar membros</Button></div>
+    <div className="admin-section-head"><div><span className="admin-eyebrow">EQUIPE NEXO</span><h1 id="members-title">Membros</h1><p>Gerencie os dados e os cargos de quem usa o painel.</p></div><div className="flex flex-wrap gap-2">{canInvite && <Button onClick={() => { setInviteUrl(""); setInviteOpen(true); }}><UserPlus data-icon="inline-start" /> Criar convite</Button>}{canManage && <Button variant="outline" disabled={loading} onClick={() => void load()}><RefreshCw data-icon="inline-start" /> Atualizar membros</Button>}</div></div>
     <Feedback error={editing || deleting ? "" : error} success={success} />
-    <Card><CardHeader><CardTitle>Controle da equipe</CardTitle><CardDescription>Membros e Administradores acessam as funções operacionais. O Owner gerencia usuários, aprova acessos e publica avisos.</CardDescription></CardHeader><CardContent><FieldGroup><Field><FieldLabel htmlFor="members-status">Situação do acesso</FieldLabel><NativeSelect id="members-status" value={status} onChange={event => { setOffset(0); setStatus(event.target.value); }}><NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="approved">Aprovados</NativeSelectOption><NativeSelectOption value="pending">Pendentes</NativeSelectOption><NativeSelectOption value="rejected">Recusados</NativeSelectOption></NativeSelect></Field></FieldGroup></CardContent></Card>
-    {loading ? <Loading /> : !rows.length && !error ? <Empty><EmptyHeader><EmptyMedia variant="icon"><Users /></EmptyMedia><EmptyTitle>Nenhum membro nesta lista</EmptyTitle><EmptyDescription>Altere o filtro ou aguarde novos cadastros.</EmptyDescription></EmptyHeader></Empty> : <div className="admin-client-grid">{rows.map(person => <Card key={person.id}>
+    {canManage ? <Card><CardHeader><CardTitle>Controle da equipe</CardTitle><CardDescription>Membros e Administradores acessam as funções operacionais. O Owner gerencia usuários, aprova acessos e publica avisos.</CardDescription></CardHeader><CardContent><FieldGroup><Field><FieldLabel htmlFor="members-status">Situação do acesso</FieldLabel><NativeSelect id="members-status" value={status} onChange={event => { setOffset(0); setStatus(event.target.value); }}><NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="approved">Aprovados</NativeSelectOption><NativeSelectOption value="pending">Pendentes</NativeSelectOption><NativeSelectOption value="rejected">Recusados</NativeSelectOption></NativeSelect></Field></FieldGroup></CardContent></Card> : <Card><CardHeader><CardTitle>Convide alguém para a equipe</CardTitle><CardDescription>Gere um link de acesso e escolha se a nova conta será de membro ou administrador.</CardDescription></CardHeader></Card>}
+    {!canManage ? null : loading ? <Loading /> : !rows.length && !error ? <Empty><EmptyHeader><EmptyMedia variant="icon"><Users /></EmptyMedia><EmptyTitle>Nenhum membro nesta lista</EmptyTitle><EmptyDescription>Altere o filtro ou aguarde novos cadastros.</EmptyDescription></EmptyHeader></Empty> : <div className="admin-client-grid">{rows.map(person => <Card key={person.id}>
       <CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-3"><MemberPhoto api={api} id={person.id} name={person.name} hasPhoto={!!person.profile_photo} /><CardTitle>{person.name}</CardTitle></div><Badge variant={person.role === "owner" ? "default" : person.role === "admin" ? "outline" : "secondary"}>{person.is_principal ? "Owner principal" : person.role === "owner" ? "Owner" : person.role === "admin" ? "Administrador" : "Membro"}</Badge></div><CardDescription>{person.status === "approved" ? "Aprovado" : person.status === "pending" ? "Aguardando aprovação" : "Recusado"}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2"><p className="break-all text-sm">{person.email}</p><p className="text-sm text-muted-foreground">{person.phone || "Celular não informado"}</p>{person.is_principal && <p className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="size-4" />Conta principal protegida</p>}</CardContent>
       <CardFooter className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { setError(""); setEditing(person); }} aria-label={"Editar membro " + person.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" disabled={person.is_principal || person.id === actor.id} onClick={() => { setError(""); setDeleting(person); }} aria-label={"Excluir membro " + person.name}><Trash2 data-icon="inline-start" /> Excluir</Button></CardFooter>
     </Card>)}</div>}
-    <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Página {offset / 20 + 1} · {rows.length} membros</p><div className="flex gap-2"><Button variant="outline" disabled={loading || !offset} onClick={() => setOffset(offset - 20)}>Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima</Button></div></div>
+    {canManage && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Página {offset / 20 + 1} · {rows.length} membros</p><div className="flex gap-2"><Button variant="outline" disabled={loading || !offset} onClick={() => setOffset(offset - 20)}>Anterior</Button><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setOffset(offset + 20)}>Próxima</Button></div></div>}
+    <Dialog open={inviteOpen} onOpenChange={open => { if (!inviteBusy) setInviteOpen(open); }}><DialogContent><DialogHeader><DialogTitle>Criar convite para a equipe</DialogTitle><DialogDescription>Escolha o cargo. Quem receber o link poderá criar uma conta com e-mail e senha ou continuar com Google. O acesso será liberado automaticamente.</DialogDescription></DialogHeader><Feedback error={error} success={success} /><FieldGroup><Field><FieldLabel htmlFor="invite-role">Cargo</FieldLabel><NativeSelect id="invite-role" value={inviteRole} onChange={event => setInviteRole(event.target.value as "member" | "admin")} disabled={!!inviteUrl}><NativeSelectOption value="member">Membro</NativeSelectOption><NativeSelectOption value="admin">Administrador</NativeSelectOption></NativeSelect></Field>{inviteUrl && <Field><FieldLabel htmlFor="invite-url">Link do convite · expira em 7 dias</FieldLabel><div className="flex gap-2"><Input id="invite-url" value={inviteUrl} readOnly /><Button type="button" variant="outline" onClick={() => void copyInvitation()} aria-label="Copiar link do convite"><Copy /></Button></div></Field>}</FieldGroup><DialogFooter><Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviteBusy}>Fechar</Button>{!inviteUrl && <Button onClick={() => void createInvitation()} disabled={inviteBusy}>{inviteBusy ? <Busy /> : <><UserPlus data-icon="inline-start" /> Gerar link</>}</Button>}</DialogFooter></DialogContent></Dialog>
     <Dialog open={!!editing} onOpenChange={open => { if (!open && !busy) { setEditing(undefined); setError(""); } }}><DialogContent showCloseButton={!busy}><DialogHeader><DialogTitle>Editar membro</DialogTitle><DialogDescription>Alterar email ou cargo encerra as sessões desta conta. A senha permanece privada.</DialogDescription></DialogHeader><Feedback error={error} /><form onSubmit={save} className="flex flex-col gap-5"><FieldGroup>
       <TextField label="Nome completo" name="name" defaultValue={editing?.name} required maxLength={120} />
       <TextField label="E-mail" name="email" type="email" defaultValue={editing?.email} required readOnly={editing?.is_principal} help={editing?.is_principal ? "O email principal é definido no ambiente da aplicação." : undefined} />

@@ -50,6 +50,7 @@ export default function AdminApp() {
   const [pushBusy, setPushBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const complete = window.location.pathname.replace(/\/$/, "") === "/admin/complete-profile";
+  const inviteToken = new URLSearchParams(window.location.search).get("invite") || undefined;
   const refresh = useCallback(async () => {
     const current = generation.current;
     try { const person = await api.request<User>("/auth/me"); if (current === generation.current) { setUser(person); setError(""); } }
@@ -63,6 +64,9 @@ export default function AdminApp() {
     } catch (e) { if (!(e instanceof ApiError && e.status === 401)) setError(message(e)); }
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
+  useEffect(() => {
+    if (user && inviteToken) window.history.replaceState(null, "", "/admin");
+  }, [user, inviteToken]);
   useEffect(() => {
     const expired = () => { api.resetSession(); generation.current++; setUser(null); setPage("clients"); setHasRequests(false); setUnreadCounts({ total: 0, notices: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setMobileOpen(false); setPushEnabled(false); };
     window.addEventListener("nexo:session-expired", expired);
@@ -121,7 +125,7 @@ export default function AdminApp() {
   }
   function onLogin(person: User) {
     generation.current++;
-    if (complete) window.history.replaceState(null, "", "/admin");
+    if (complete || inviteToken) window.history.replaceState(null, "", "/admin");
     api.resetSession(); setUser(person); setError(""); setPage("clients");
   }
   async function logout() {
@@ -131,7 +135,7 @@ export default function AdminApp() {
   }
   if (loading) return <main className="admin-loading"><Loading /></main>;
   if (!user && error) return <main className="admin-loading"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar novamente</Button><Button variant="link" asChild><a href="/">Voltar ao site</a></Button></main>;
-  if (!user) return <Auth api={api} complete={complete} onLogin={onLogin} />;
+  if (!user) return <Auth api={api} complete={complete} inviteToken={inviteToken} onLogin={onLogin} />;
   function navigate(next: Page) { setPage(next); setMobileOpen(false); }
   function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
@@ -145,7 +149,7 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
         {user.role === "owner" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.notices > 0 && <Badge aria-label={`${unreadCounts.notices} avisos novos`}>{unreadCounts.notices}</Badge>}</Button>}
-        {user.role === "owner" && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
+        {(user.role === "owner" || user.role === "admin") && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
         {user.status === "approved" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
         <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>
@@ -153,6 +157,14 @@ export default function AdminApp() {
   );
   const account = (
       <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "owner" ? "Owner" : user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
+  );
+  const sidebarHeader = (
+    <div className="admin-sidebar-header">
+      <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
+      <Button variant="ghost" size="icon-sm" className="admin-sidebar-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>
+        {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+      </Button>
+    </div>
   );
   const sidebarHeader = (
     <div className="admin-sidebar-header">
@@ -189,7 +201,7 @@ export default function AdminApp() {
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
-          page === "members" && user.role === "owner" ? <Members api={api} actor={user} onUpdate={setUser} /> :
+          page === "members" && (user.role === "owner" || user.role === "admin") ? <Members api={api} actor={user} onUpdate={setUser} /> :
           page === "approvals" && user.role === "owner" ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
       </main>
     </div>

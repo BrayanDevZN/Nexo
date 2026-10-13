@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import approved_user, owner_user
+from backend.controller.dependencies import admin_or_owner_user, approved_user, owner_user
 from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
+from backend.controller.schema.invitations import InvitationCreateInput, InvitationOutput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
 router = APIRouter(prefix="/admin/users", tags=["members"])
 directory_router = APIRouter(prefix="/members", tags=["members"])
+invitations_router = APIRouter(prefix="/admin/invitations", tags=["invitations"])
+
+
+@invitations_router.post("", response_model=InvitationOutput, status_code=201)
+def create_invitation(data: InvitationCreateInput, request: Request, actor=Depends(admin_or_owner_user)):
+    return request.app.state.services.invitations.create(actor, data.role)
 
 
 @directory_router.get("", response_model=list[MemberDirectoryOutput])

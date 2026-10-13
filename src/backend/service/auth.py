@@ -15,15 +15,17 @@ class AuthService:
         # Verify an equivalent hash even when the email does not exist.
         self._dummy_hash = passwords.hash("unused-login-placeholder-password")
 
-    def register(self, *, name, email, phone, password=None, password_hash=None):
+    def register(self, *, name, email, phone, password=None, password_hash=None,
+                 role="member", status="pending", notify_approval=True):
         hashed = password_hash or self.passwords.hash(password)
         try:
             with self.repositories.transaction() as repos:
                 if repos.users.by_email(email):
                     raise RegistrationConflict("Email already registered")
                 user = repos.users.create(name=name, email=email, phone=phone,
-                                          password_hash=hashed)
-                ApprovalService.notify_registration(repos, user)
+                                          password_hash=hashed, role=role, status=status)
+                if notify_approval:
+                    ApprovalService.notify_registration(repos, user)
             if self.messages:
                 self.messages.welcome(user)
             return user

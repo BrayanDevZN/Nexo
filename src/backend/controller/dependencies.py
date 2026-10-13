@@ -40,3 +40,11 @@ def owner_user(request: Request):
     if user.role != "owner":
         raise HTTPException(status_code=403, detail="Owner access required")
     return user
+
+
+
+def admin_or_owner_user(request: Request):
+    user = approved_user(request)
+    if user.role not in {"admin", "owner"}:
+        raise HTTPException(status_code=403, detail="Administrator access required")
+    return user
