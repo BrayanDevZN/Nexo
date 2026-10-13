@@ -89,12 +89,13 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | DELETE /automations/{id} | membro aprovado ou API key; criador da automação ou Owner exclui; envia aviso preservando a imagem da automação |
 | GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
 | GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
-
-Os avisos de criação, atualização e exclusão de automações aparecem na área de Avisos para os membros aprovados. Quando houver capa, ela é copiada para o armazenamento dos avisos e continua acessível mesmo após a automação ser excluída. A lista inclui `can_manage`, calculado pelo servidor para o criador ou Owner.
 | POST /clients | aprovado; name, niche, phone/email/notes opcionais, contract_closed |
 | GET/PATCH/DELETE /clients/{id} | aprovado; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |
 | PUT/GET/DELETE /auth/profile/photo | própria foto; upload multipart no campo file |
+
+
+Os avisos de criação, atualização e exclusão de automações aparecem na área de Avisos para os membros aprovados. Quando houver capa, ela é copiada para o armazenamento dos avisos e continua acessível mesmo após a automação ser excluída. A lista inclui `can_manage`, calculado pelo servidor para o criador ou Owner.
 
 Pendentes acessam o próprio perfil, sem clientes ou rotas exclusivas do Owner. Cadastro cria uma
 notificação para o Owner na mesma transação. Aprovação libera a sessão existente;
