@@ -181,7 +181,7 @@ class Nexo {
 		this.description = {
 			displayName: 'Nexo',
 			name: 'nexo',
-			icon: 'file:nexo-symbol-purple.png',
+			icon: 'file:nexo-symbol.svg',
 			group: ['transform'],
 			version: 1,
 			subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
