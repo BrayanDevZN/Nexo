@@ -71,3 +71,9 @@ Consulte [instruções do backend](src/backend/README.md).
 Membros aprovados podem enviar e baixar documentos em `/documents`. A API grava os arquivos em `UPLOAD_DIR/documents` com nomes internos aleatórios; o SQLite guarda os metadados. Configure `DOCUMENT_MAX_BYTES` (padrão: 10485760, 10 MiB). São aceitos PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT, CSV, ODT/ODS e RTF. Downloads exigem autenticação e são enviados como anexos. Exclusão de documentos de outras pessoas exige Owner; o criador pode excluir os próprios documentos. O volume `/data` no Railway deve preservar tanto o banco quanto uploads. A tabela é criada pelo comando de criação de tabelas já usado na inicialização.
 
 Clientes mostram `created_by_name`; a listagem aceita filtros combinados `name` (trecho sem distinguir maiúsculas/minúsculas), `niche` (exato) e `created_by_id`, além de contrato e paginação. O diretório `/members` inclui apenas ID, nome, cargo e `has_photo`; imagens são obtidas autenticadas em `/members/{id}/photo`. Contas pendentes não acessam o diretório, clientes ou documentos. Owners podem consultar fotos de contas pendentes ao gerenciá-las. Ao excluir uma conta, seus clientes e documentos são transferidos ao Owner principal.
+
+### Node Nexo para n8n
+
+O node privado da Nexo para n8n permite consultar e administrar recursos da API usando uma chave de API por credencial. Ele inclui operações para clientes, automações, documentos, avisos, chat, dashboard e avisos administrativos.
+
+Os arquivos do node e as instruções de instalação e implantação estão em [`n8n/`](n8n/README.md). Para criar a imagem personalizada baseada na imagem oficial `n8nio/n8n:latest`, use o [`Dockerfile.n8n`](Dockerfile.n8n) na raiz do repositório como Dockerfile do serviço n8n no Railway. Preserve o volume de dados existente do n8n (por exemplo, `/root/.n8n`), a chave de criptografia e faça backup antes de trocar a imagem.

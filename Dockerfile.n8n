@@ -1,0 +1,19 @@
+# Railway can build this file from the Nexo repository root.
+# Keep the tag aligned with the n8n image currently used by the service.
+FROM n8nio/n8n:latest
+
+USER root
+
+# Keep custom node code outside the Railway data volume. The volume remains
+# attached to the existing n8n data path and is not modified by this image.
+ENV N8N_CUSTOM_EXTENSIONS=/opt/n8n-custom
+
+RUN mkdir -p /opt/n8n-custom/nodes /opt/n8n-custom/credentials \
+    && chown -R node:node /opt/n8n-custom
+
+COPY --chown=node:node n8n/nodes/ /opt/n8n-custom/nodes/
+COPY --chown=node:node n8n/credentials/ /opt/n8n-custom/credentials/
+
+USER node
+
+# Preserve the official image's entrypoint and default n8n start command.
