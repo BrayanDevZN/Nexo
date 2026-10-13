@@ -88,11 +88,11 @@ function addField(displayName, name, type, defaults, extra = {}) {
 
 addField('Recurso', 'resource', 'options', 'clients', { options: resourceOptions, noDataExpression: true });
 addField('Operação', 'operation', 'options', 'list', {
-	options: [],
+	// Keep a non-empty static list: n8n versions used in production inject
+	// their proxy-auth option by reading the final option's `name`.
+	options: [...new Map(Object.values(operationOptions).flat().map((option) => [option.value, option])).values()],
 	noDataExpression: true,
 	displayOptions: { show: { resource: Object.keys(operationOptions) } },
-	// n8n filters these operation choices by the selected resource.
-	typeOptions: { loadOptionsMethod: 'getOperations' },
 });
 
 function add(displayName, name, type, defaultValue, resource, operations, extra = {}) {
@@ -176,10 +176,6 @@ add('ID do membro do chat', 'memberId', 'string', '', 'notifications', ['markCha
 add('Título', 'title', 'string', '', 'announcements', ['create'], { required: true });
 add('Conteúdo', 'body', 'string', '', 'announcements', ['create'], { required: true, typeOptions: { rows: 4 } });
 
-function operationsFor(resource) {
-	return operationOptions[resource] || [];
-}
-
 class Nexo {
 	constructor() {
 		this.description = {
@@ -196,14 +192,6 @@ class Nexo {
 			properties: fields,
 		};
 	}
-
-	methods = {
-		loadOptions: {
-			getOperations() {
-				return operationsFor(this.getCurrentNodeParameter('resource'));
-			},
-		},
-	};
 
 	async execute() {
 		const items = this.getInputData();
@@ -366,3 +354,4 @@ class Nexo {
 }
 
 module.exports = { Nexo };
+
