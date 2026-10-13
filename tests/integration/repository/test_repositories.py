@@ -48,12 +48,12 @@ def test_clients_crud_filters_and_ownership(repositories):
     _, manager = repositories
     with manager.transaction() as repos:
         owner = repos.users.create(name="Admin", email="admin@example.com", password_hash="hash")
-        client = repos.clients.create(name="Loja", niche="varejo", created_by_id=owner.id)
+        client = repos.clients.create(name="Loja", niche="Varejo", created_by_id=owner.id)
         identifier = client.id
     with manager.transaction() as repos:
         client = repos.clients.get(identifier)
         repos.clients.update(client, contract_closed=True, notes="Fechado")
-        assert len(repos.clients.list(niche="varejo", contract_closed=True)) == 1
+        assert len(repos.clients.list(niche="Varejo", contract_closed=True)) == 1
         assert repos.clients.list(contract_closed=False) == []
     with pytest.raises(IntegrityError):
         with manager.transaction() as repos:
@@ -63,7 +63,7 @@ def test_clients_crud_filters_and_ownership(repositories):
         assert not repos.clients.delete(identifier)
     with pytest.raises(IntegrityError):
         with manager.transaction() as repos:
-            repos.clients.create(name="Loja", niche="varejo", created_by_id="missing")
+            repos.clients.create(name="Loja", niche="Varejo", created_by_id="missing")
 
 
 def test_approval_transaction_is_atomic(repositories):

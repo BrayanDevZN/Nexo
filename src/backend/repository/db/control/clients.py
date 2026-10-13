@@ -43,7 +43,7 @@ class ClientRepository(Repository[Client]):
         if created_by_id:
             query = query.where(Client.created_by_id == created_by_id)
         if niche is not None:
-            query = query.where(Client.niche == validate_client_niche(niche))
+            query = query.where(Client.niche == niche)
         if contract_closed is not None:
             query = query.where(Client.contract_closed == contract_closed)
         if pipeline_stage is not None:
