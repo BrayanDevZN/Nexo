@@ -50,7 +50,7 @@ def test_email_code_reset_is_single_use_and_preserves_pending_role(runtime):
     runtime.password_service.request_code("ana@example.com")
     runtime.password_service.confirm("ana@example.com", "12345678", "changed-password-123")
     user, _ = runtime.auth.login("ana@example.com", "changed-password-123")
-    assert user.role == "member" and user.status == "pending"
+    assert user.role == "commercial" and user.status == "pending"
     with pytest.raises(PasswordRecoveryError):
         runtime.password_service.confirm(user.email, "12345678", "another-password-123")
     with pytest.raises(AuthenticationError):
@@ -87,3 +87,4 @@ def test_sql_failure_after_consumption_does_not_change_password(runtime, monkeyp
     runtime.auth.login("ana@example.com", "initial-password-123")
     with pytest.raises(PasswordRecoveryError):
         runtime.password_service.confirm("ana@example.com", "12345678", "changed-password-123")
+

@@ -1,5 +1,6 @@
 import logging
 
+from backend.domain.roles import TEAM_MANAGERS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import authorize_read
 
@@ -26,7 +27,7 @@ class ApprovalService:
     @staticmethod
     def notify_registration(repos, user):
         admin = repos.users.principal_admin()
-        if admin and admin.status == "approved" and user.role == "member" and user.status == "pending":
+        if admin and admin.status == "approved" and user.role == "commercial" and user.status == "pending":
             repos.notifications.ensure_approval_request(recipient_id=admin.id,
                                                         requested_user_id=user.id)
             # Approved members also receive a realtime notification about the new signup.
@@ -56,14 +57,14 @@ class ApprovalService:
     def _authorize(repos, actor):
         # Revalidate authoritative SQL state inside the operation's transaction.
         current = repos.users.get(actor.id)
-        if (current is None or current.status != "approved" or current.role != "owner"
+        if (current is None or current.status != "approved" or current.role not in TEAM_MANAGERS
                 or current.session_version != actor.session_version):
             raise ApprovalPermissionError("Owner access required")
 
     @staticmethod
     def _authorize_read(repos, actor):
         current = authorize_read(repos, actor, approved=True)
-        if current.role != "owner":
+        if current.role not in TEAM_MANAGERS:
             raise ApprovalPermissionError("Owner access required")
         return current
 
@@ -101,7 +102,7 @@ class ApprovalService:
                     or not repos.notifications.resolve_if_pending(notification, decision)):
                 raise ApprovalConflict("Approval request already resolved")
             user = repos.users.get(notification.requested_user_id)
-            if user is None or user.role != "member" or not repos.users.decide_pending(user, decision):
+            if user is None or user.role != "commercial" or not repos.users.decide_pending(user, decision):
                 raise ApprovalConflict("Account is no longer awaiting approval")
         if self.messages:
             try:
@@ -110,3 +111,4 @@ class ApprovalService:
                 logger.warning("Access decision email could not be queued: category=%s",
                                type(error).__name__)
         return user
+

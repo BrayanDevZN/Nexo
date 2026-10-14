@@ -1,6 +1,7 @@
 import logging
 from uuid import uuid4
 
+from backend.domain.roles import DEVELOPERS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import AccessDenied, ResourceNotFound, authorize, authorize_read
 
@@ -21,7 +22,7 @@ class AutomationService:
 
     @staticmethod
     def _can_manage(actor, creator_id, owner_id):
-        return actor.id == creator_id or actor.id == owner_id
+        return actor.role in DEVELOPERS and (actor.id == creator_id or actor.id == owner_id)
 
     @staticmethod
     def _output(row, creator_name, can_manage):
@@ -53,6 +54,8 @@ class AutomationService:
         try:
             with self.repositories.transaction() as repos:
                 current = authorize(repos, actor, approved=True)
+                if current.role not in DEVELOPERS:
+                    raise AccessDenied("Developer access required")
                 row = repos.automations.create(name=name, description=description, filename=filename,
                                                file_content=file_content, image_data=image_data,
                                                created_by_id=current.id)
@@ -177,3 +180,4 @@ class AutomationService:
             if row is None or row.image_data is None:
                 raise ResourceNotFound("Automation image not found")
             return row.image_data
+

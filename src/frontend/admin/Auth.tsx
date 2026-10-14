@@ -4,7 +4,7 @@ import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { type createApi, type GoogleProfile, type User } from "./api";
+import { ROLE_LABELS, type createApi, type GoogleProfile, type Role, type User } from "./api";
 import { PhotoPicker } from "./PhotoPicker";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "./shared";
 
@@ -28,11 +28,11 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [email, setEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<string>();
+  const [inviteRole, setInviteRole] = useState<Exclude<Role, "owner">>();
   useEffect(() => {
     if (!inviteToken) return;
     let active = true;
-    api.request<{ role: string }>("/auth/invitations/" + encodeURIComponent(inviteToken))
+    api.request<{ role: Exclude<Role, "owner"> }>("/auth/invitations/" + encodeURIComponent(inviteToken))
       .then(info => { if (active) setInviteRole(info.role); })
       .catch(e => { if (active) setError(message(e)); });
     return () => { active = false; };
@@ -110,7 +110,7 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
       <p className="flex items-center gap-2"><ShieldCheck className="size-5" /> Acesso liberado pelo administrador.</p>
     </section>
     <Card className="admin-auth-card">
-      <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{complete ? (inviteToken ? "Finalize seu cadastro com Google para entrar na equipe." : "Confirme seu nome e celular para solicitar acesso.") : inviteToken ? (inviteRole ? `Você foi convidado como ${inviteRole === "admin" ? "administrador" : "membro"}. Crie sua conta para entrar no painel.` : "Validando seu convite…") : mode === "register" ? "Sua conta será analisada antes de acessar os dados." : "Acesse o painel administrativo da Nexo."}</CardDescription></CardHeader>
+      <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{complete ? (inviteToken ? "Finalize seu cadastro com Google para entrar na equipe." : "Confirme seu nome e celular para solicitar acesso.") : inviteToken ? (inviteRole ? `Convite para o cargo ${ROLE_LABELS[inviteRole]}. Crie sua conta para entrar no painel.` : "Validando seu convite…") : mode === "register" ? "Sua conta será analisada antes de acessar os dados." : "Acesse o painel administrativo da Nexo."}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-5">
         <Feedback error={error} success={success} />
         <form onSubmit={submit} key={complete ? "google" : mode} className="flex flex-col gap-5">
@@ -154,3 +154,4 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
     </Card>
   </main>;
 }
+

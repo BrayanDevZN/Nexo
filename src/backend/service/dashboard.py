@@ -1,7 +1,8 @@
 from datetime import date, datetime, time
 
+from backend.domain.roles import SALES
 from backend.repository.cache.queries import snapshot
-from backend.service.access import authorize_read
+from backend.service.access import authorize_role
 
 
 class DashboardService:
@@ -10,7 +11,7 @@ class DashboardService:
 
     def overview(self, actor):
         with self.repositories.read_transaction() as repos:
-            authorize_read(repos, actor, approved=True)
+            authorize_role(repos, actor, SALES, read=True)
             return self.cache.read("dashboard", {"actor_id": actor.id}, lambda: self._overview(repos, actor))
 
     def _overview(self, repos, actor):
@@ -50,3 +51,4 @@ class DashboardService:
                 "conversion_rate": (funnel.get("won", 0) / clients * 100) if clients else 0,
                 "documents_count": documents_count, "documents": documents,
                 "contracts_by_month": months, "announcements": announcements}
+

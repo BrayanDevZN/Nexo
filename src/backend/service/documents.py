@@ -1,8 +1,9 @@
 import logging
 
 from backend.domain.documents import validate_document
+from backend.domain.roles import SALES
 from backend.repository.cache.queries import snapshot
-from backend.service.access import AccessDenied, ResourceNotFound, authorize, authorize_read
+from backend.service.access import AccessDenied, ResourceNotFound, authorize_role
 from backend.service.clients import ClientService
 
 logger = logging.getLogger(__name__)
@@ -15,12 +16,12 @@ class DocumentService:
 
     def list(self, actor, **filters):
         with self.cached_repositories.read_transaction() as repos:
-            authorize_read(repos.db, actor, approved=True)
+            authorize_role(repos.db, actor, SALES, read=True)
             return ClientService.with_creators(repos, repos.documents.list(**filters))
 
     def get(self, actor, identifier):
         with self.cached_repositories.read_transaction() as repos:
-            authorize_read(repos.db, actor, approved=True)
+            authorize_role(repos.db, actor, SALES, read=True)
             row = repos.db.documents.get_summary(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
@@ -29,12 +30,12 @@ class DocumentService:
 
     def upload(self, actor, filename, data, client_id=None):
         with self.repositories.read_transaction() as repos:
-            authorize_read(repos, actor, approved=True)
+            authorize_role(repos, actor, SALES, read=True)
         filename = validate_document(filename, data, self.max_bytes)
         key = self.storage.write(data)
         try:
             with self.repositories.transaction() as repos:
-                user = authorize(repos, actor, approved=True)
+                user = authorize_role(repos, actor, SALES)
                 if client_id and repos.clients.get(client_id) is None:
                     raise ResourceNotFound("Client not found")
                 row = repos.documents.create(filename=filename, storage_key=key,
@@ -46,7 +47,7 @@ class DocumentService:
 
     def download(self, actor, identifier):
         with self.repositories.read_transaction() as repos:
-            authorize_read(repos, actor, approved=True)
+            authorize_role(repos, actor, SALES, read=True)
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
@@ -60,11 +61,11 @@ class DocumentService:
 
     def delete(self, actor, identifier):
         with self.repositories.transaction() as repos:
-            user = authorize(repos, actor, approved=True)
+            user = authorize_role(repos, actor, SALES)
             row = repos.documents.get(identifier)
             if row is None:
                 raise ResourceNotFound("Document not found")
-            if user.role != "admin" and row.created_by_id != user.id:
+            if user.role not in {"owner", "admin"} and row.created_by_id != user.id:
                 raise AccessDenied("Only the creator or an administrator can delete this document")
             key = row.storage_key
             repos.documents.delete(identifier)
@@ -75,3 +76,4 @@ class DocumentService:
             self.storage.delete(key)
         except OSError:
             logger.warning("Document cleanup failed")
+

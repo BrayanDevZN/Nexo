@@ -51,7 +51,9 @@ def test_owner_member_lifecycle_and_access_boundaries(app):
         assert "password_hash" not in result.json()
         headers = login(client, DATA["email"], DATA["password"])
         assert client.get("/admin/users").status_code == 403
+        assert client.delete("/admin/users/" + principal["id"], headers=headers).status_code == 403
         assert client.delete(path, headers=headers).status_code == 403
+        assert client.patch(path, json={"role": "commercial"}, headers=headers).status_code == 403
         headers = login(client)
         assert client.get("/admin/users").status_code == 200
         assert client.patch(path, json={"role": "owner"}, headers=headers).status_code == 200
@@ -89,7 +91,7 @@ def test_shared_directory_filters_sensitive_fields_and_enforces_approval(app):
         assert len(client.get("/members", params={"limit": 1, "offset": 1}).json()) == 1
 
 
-@pytest.mark.parametrize(("role", "expected_role"), [("member", "member"), ("admin", "admin")])
+@pytest.mark.parametrize(("role", "expected_role"), [("commercial", "commercial"), ("dev", "dev"), ("admin", "admin")])
 def test_admin_invitation_registers_approved_account_immediately(app, role, expected_role):
     with TestClient(app) as client:
         headers = login(client)
@@ -113,24 +115,9 @@ def test_admin_invitation_registers_approved_account_immediately(app, role, expe
         assert client.get("/auth/invitations/" + token).status_code == 404
 
 
-def test_admins_can_invite_but_members_cannot(app):
+def test_only_admin_can_create_invitation(app):
     with TestClient(app) as client:
-        member_password = "member-password-123"
-        admin_password = "admin-password-123"
-        with app.state.services.repositories.transaction() as repos:
-            repos.users.create(name="Aprovado", email="member@example.com",
-                               password_hash=app.state.services.passwords.hash(member_password),
-                               status="approved", role="member")
-            repos.users.create(name="Administrador", email="admin@example.com",
-                               password_hash=app.state.services.passwords.hash(admin_password),
-                               status="approved", role="admin")
-
-        member_headers = login(client, "member@example.com", member_password)
-        assert client.post("/admin/invitations", json={"role": "member"},
-                           headers=member_headers).status_code == 403
-
-        admin_headers = login(client, "admin@example.com", admin_password)
-        created = client.post("/admin/invitations", json={"role": "admin"}, headers=admin_headers)
-        assert created.status_code == 201
-        assert created.json()["role"] == "admin"
+        assert verified_register(client, json=DATA, headers=ORIGIN).status_code == 201
+        assert client.post("/admin/invitations", json={"role": "commercial"}, headers=ORIGIN).status_code == 403
         assert client.get("/admin/users").status_code == 403
+

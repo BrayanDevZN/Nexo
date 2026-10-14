@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from backend.domain.roles import ADMINISTRATORS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import ResourceNotFound, authorize, authorize_read
 
@@ -16,7 +17,7 @@ class AnnouncementService:
     @staticmethod
     def _authorize(repos, actor):
         current = authorize(repos, actor, approved=True)
-        if current.role != "admin":
+        if current.role not in ADMINISTRATORS:
             raise AnnouncementPermissionError("Administrator access required")
         return current
 
@@ -131,3 +132,4 @@ class AnnouncementService:
         created_at = min((note.created_at for note in notes), default=None)
         return {"id": announcement_id, "title": title, "body": body,
                 "recipients": len(notes), "email_queued": queued, "created_at": created_at}
+

@@ -53,8 +53,9 @@ Fotos privadas são exibidas pela rota autenticada do backend.
   novo cadastro. Quem criou pelo Google continua acessando somente pelo Google.
 - Pendentes acessam o próprio perfil e foto. A aprovação é consultada a cada
   15 segundos enquanto a aba está visível, ou manualmente.
-- Owner recebe aviso de novos pedidos; autorizar/recusar pede confirmação e usa decisão do backend.
-- Membros aprovados consultam e gerenciam todos os clientes.
+- Owner recebe aviso de novos pedidos, consultados a cada 30 segundos;
+  autorizar/recusar pede confirmação e usa decisão do backend.
+- Comercial, admin e owner consultam e gerenciam clientes e funil. Dev trabalha em chaves de API e automações.
 - A aba Membros é compartilhada pelos usuários aprovados e mostra apenas nome
   e cargo da equipe, sem contatos ou dados de autenticação. Usa GET /members.
 - No mobile, o botão de menu abre um Sheet shadcn pela esquerda; selecionar uma
@@ -62,20 +63,18 @@ Fotos privadas são exibidas pela rota autenticada do backend.
 - O lápis sobre a foto abre o seletor de arquivos, tanto no cadastro quanto no
   perfil. No perfil, a seleção válida salva automaticamente. O cadastro mantém
   a opção de salvar e continuar ou pular a foto.
-- A aba Gerenciar membros é exclusiva do Owner: lista/filtro/paginação, edição
-  de nome/email/celular e cargos Membro/Administrador/Owner para usuários aprovados.
-  Excluir exige confirmação e preserva clientes. A conta Owner principal é protegida.
-  Administradores mantêm as funções operacionais, sem aprovar acessos, alterar cargos,
-  gerenciar contas ou publicar avisos.
+- A aba Gerenciar membros é exclusiva do owner: lista/filtro/paginação, edição
+  de nome/email/celular e cargos Comercial/Desenvolvedor/Administrador para usuários aprovados.
+  Excluir exige confirmação e preserva clientes. A conta principal é protegida.
   Alterar email/cargo encerra as sessões da conta alterada, exigindo novo login.
-- Administradores podem gerar links de convite com cargo definido. O link pode ser
+- Owner pode gerar links de convite com cargo definido. O link pode ser
   copiado e permite criar conta por senha ou Google; o acesso é liberado após o cadastro.
 - Clientes têm filtros por nicho exato/contrato, páginas de 20 e confirmação para excluir.
 - Perfil permite atualizar nome/celular e foto; senha atual ou código de e-mail
   permite alteração. Sessões são revogadas pelo backend, exigindo novo login.
 - Perfil tem Apagar minha conta: primeiro envia código ao email da sessão;
   só a confirmação válida exclui a conta. Falha de envio mantém a conta.
-  A exclusão encerra a sessão, preserva clientes e protege o admin principal.
+  A exclusão encerra a sessão, preserva clientes e protege o owner principal.
 - Erros de rede, sessão expirada e rate limit têm mensagens em português.
 
 ## Verificar
@@ -103,3 +102,4 @@ com imports, ícones Lucide e estilos semânticos adaptados ao projeto.
 ### Chat
 
 Nova aba Chat: seleção de membro aprovado, mensagens ao vivo, histórico paginado, foto, envio de áudio e gravação pelo microfone. O indicador mostra conexão/reconexão e avisos no painel permitem abrir a conversa de novas mensagens. Solicitações e aprovação de acesso usam eventos WebSocket, sem intervalos de polling. `VITE_WS_URL` é opcional e, em produção, usa o endereço Railway já configurado. A rolagem utiliza o componente oficial `@shadcn/react/message-scroller`; os elementos visuais de mensagem, bubble e attachment são composições locais com cores semânticas, pois o registry CLI estava inacessível.
+

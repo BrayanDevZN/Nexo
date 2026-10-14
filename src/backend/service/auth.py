@@ -16,7 +16,7 @@ class AuthService:
         self._dummy_hash = passwords.hash("unused-login-placeholder-password")
 
     def register(self, *, name, email, phone, password=None, password_hash=None,
-                 role="member", status="pending", notify_approval=True):
+                 role="commercial", status="pending", notify_approval=True):
         hashed = password_hash or self.passwords.hash(password)
         try:
             with self.repositories.transaction() as repos:
@@ -64,4 +64,4 @@ class AuthService:
     @staticmethod
     def _validate_admin(user):
         if user is None or user.role != "owner" or user.status != "approved":
-            raise RuntimeError("Configured email is not an approved Owner")
+            raise RuntimeError("Configured email is not an approved owner")

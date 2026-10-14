@@ -10,7 +10,7 @@ class MemberDirectoryOutput(BaseModel):
     online: bool = False
     id: str
     name: str
-    role: Literal["member", "admin", "owner"]
+    role: Literal["commercial", "dev", "admin", "owner"]
 
 
 class MemberOutput(UserOutput):
@@ -22,7 +22,7 @@ class MemberUpdateInput(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, min_length=10, max_length=30)
-    role: Literal["member", "admin", "owner"] | None = None
+    role: Literal["commercial", "dev", "admin"] | None = None
 
     @field_validator("name")
     @classmethod
@@ -39,3 +39,4 @@ class MemberUpdateInput(BaseModel):
         if not self.model_fields_set or any(getattr(self, field) is None for field in self.model_fields_set - {"phone"}):
             raise ValueError("Provide valid member fields")
         return self
+

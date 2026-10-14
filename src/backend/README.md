@@ -18,8 +18,8 @@ nexo
 ```
 
 Também aceita `python -m backend.main`. O comando `create-tables` cria tabelas ausentes
-sem Redis/Resend, preserva dados e não executa migrações nem cria a conta Owner.
-A inicialização normal cria as tabelas, aplica migrações e garante a conta Owner de EMAIL/PASSWORD.
+sem Redis/Resend, preserva dados e migra o formato dos cargos sem criar uma nova conta.
+A inicialização normal cria as tabelas e o administrador de EMAIL/PASSWORD.
 Reiniciar preserva a senha e o nome já salvos; não promove um membro com o mesmo e-mail.
 Em desenvolvimento, esse par pode ficar vazio. Produção exige ambos.
 Na criação inicial, a senha do painel vem de `PASSWORD`. O envio usa a chave
@@ -53,13 +53,22 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 
 ## Rotas e permissões
 
+| Cargo | Acesso |
+| --- | --- |
+| comercial | Clientes, funil, dashboard e documentos; biblioteca para consultar/baixar |
+| dev | Chaves de API, automações e acesso ao n8n; biblioteca para consultar/baixar |
+| admin | Áreas comerciais e de desenvolvimento; avisos; sem convites, aprovações ou gestão da equipe |
+| owner | Todas as áreas, inclusive convites, aprovações e gestão de membros |
+
+Contas antigas `member` são migradas para `commercial`; a conta configurada por EMAIL vira `owner`. Alterar um cargo revoga as sessões existentes.
+
 | Método / rota | Uso |
 | --- | --- |
 | GET /health | liveness, sem dependências externas |
 | GET /health/ready | verifica SQLite e Redis |
-| POST /auth/register | name, phone, email, password; conta pending/member |
+| POST /auth/register | name, phone, email, password; conta pending/commercial |
 | GET /auth/invitations/{token} | valida convite e informa o cargo concedido |
-| POST /auth/invitations/{token}/register | cria conta aprovada a partir do convite e inicia sessão |
+| POST /auth/invitations/{token}/register | cria conta aprovada a partir de convite e inicia sessão |
 | POST /auth/login | email, password; cookie JWT HttpOnly |
 | GET /auth/me | próprio perfil seguro |
 | GET /auth/csrf | token CSRF da sessão |
@@ -74,23 +83,22 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | POST /auth/account/deletion/request | sessão e CSRF; envia código para o email da própria conta |
 | POST /auth/account/deletion/confirm | sessão e CSRF; código de uso único confirma exclusão e limpa cookie |
 | GET /members | usuários aprovados; lista paginada com apenas id, nome e cargo de contas aprovadas |
-| POST /admin/invitations | admin ou Owner cria convite de membro/admin; uso único, expira em 7 dias |
-| GET /admin/users | somente Owner; filtro status, limit/offset e identificação da conta principal |
-| PATCH /admin/users/{id} | Owner altera nome, email, celular e cargo; cargo exige usuário aprovado |
-| DELETE /admin/users/{id} | Owner exclui conta e preserva seus clientes |
-| GET /admin/notifications | somente Owner; filtro unresolved_only, limit/offset |
-| PATCH /admin/notifications/{id}/read | somente Owner destinatário |
-| POST /admin/notifications/{id}/decision | somente Owner; decision approved/rejected |
-| POST /admin/announcements | somente Owner; JSON `title`/`body`; publica um aviso a todas as contas aprovadas, inclusive com chave API Bearer de Owner |
-| GET /clients | aprovado; filtros niche, contract_closed, limit/offset |
+| GET /admin/users | somente owner; filtro status, limit/offset e identificação da conta principal |
+| POST /admin/invitations | owner cria convite de comercial/dev/admin; link de uso único expira em 7 dias |
+| PATCH /admin/users/{id} | owner altera nome, email, celular e cargo; cargo exige usuário aprovado |
+| DELETE /admin/users/{id} | owner exclui conta e preserva seus clientes |
+| GET /admin/notifications | somente owner; filtro unresolved_only, limit/offset |
+| PATCH /admin/notifications/{id}/read | somente owner destinatário |
+| POST /admin/notifications/{id}/decision | somente owner; decision approved/rejected |
+| GET /clients | comercial/admin/owner; filtros niche, contract_closed, limit/offset |
 | GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
-| POST /automations | membro aprovado ou API key; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
-| PATCH /automations/{id} | membro aprovado ou API key; criador da automação ou Owner atualiza nome, descrição e, opcionalmente, arquivo/imagem; envia aviso com a imagem atualizada |
-| DELETE /automations/{id} | membro aprovado ou API key; criador da automação ou Owner exclui; envia aviso preservando a imagem da automação |
+| POST /automations | dev/admin/owner; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
+| PATCH /automations/{id} | dev/admin/owner; multipart com qualquer combinação de `name`, `description`, `file` e `image`; campos omitidos são preservados; gera aviso com a imagem atual |
+| DELETE /automations/{id} | dev/admin/owner; exclui e gera aviso preservando a imagem |
 | GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
 | GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
-| POST /clients | aprovado; name, niche, phone/email/notes opcionais, contract_closed |
-| GET/PATCH/DELETE /clients/{id} | aprovado; consulta, alteração ou remoção |
+| POST /clients | comercial/admin/owner; name, niche, phone/email/notes opcionais, contract_closed |
+| GET/PATCH/DELETE /clients/{id} | comercial/admin/owner; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |
 | PUT/GET/DELETE /auth/profile/photo | própria foto; upload multipart no campo file |
 
@@ -199,6 +207,8 @@ Python 3.12/3.13, com relatórios JUnit anexados.
 
 O cadastro local inicia em `POST /auth/register` (202), envia um código de 8 dígitos pelo Resend e guarda apenas o hash bcrypt e os dados temporários no Redis. `POST /auth/register/confirm` recebe email e código e cria a conta pendente (201). A notificação para o Owner só é criada após a confirmação. Os códigos usam o TTL, limite de tentativas e intervalo de reenvio de `EMAIL_CODE_*` e são de uso único; cadastro e recuperação usam namespaces e assinaturas distintos. O Owner inicial continua sendo configurado automaticamente com `EMAIL`/`PASSWORD`, sem confirmação. O Google usa o email verificado pelo provedor.
 
+Convites são criados por administradores com cargo definido, guardados no Redis com token aleatório e uso único, e expiram em sete dias. O cadastro pelo link (senha ou Google) cria a conta aprovada imediatamente e inicia a sessão.
+
 No painel, `POST /auth/password/change` exige senha atual e nova senha. A opção “Esqueci minha senha” continua usando os endpoints `/auth/password/recovery/request` e `/auth/password/recovery/confirm`, com código por email. Após o cadastro local ou o preenchimento do perfil Google, o frontend oferece foto opcional ou pular; o upload usa `/auth/profile/photo`, protegido por sessão e CSRF, inclusive para contas pendentes.
 
 O cadastro só responde 202 depois que a API do Resend aceita a mensagem. Falha ou timeout retorna 503, invalida o código e libera nova tentativa; o intervalo normal de reenvio retorna 429. Os logs classificam falhas de rede, autenticação e rejeição do provedor sem expor credenciais ou conteúdo.
@@ -261,3 +271,4 @@ Eventos `notifications.changed` atualizam as solicitações dos Owners; `account
 `CHAT_MEDIA_MAX_BYTES=10485760`, `WS_CONNECTIONS_PER_USER=3` e `WS_MESSAGE_LIMIT=60` são opcionais. O rate limit global também conta comandos WebSocket. Tickets usam SET/EX e GETDEL; conexões usam leases em ZSET com TTL e comandos usam contadores INCR/TTL; frames textuais são limitados a 16 KiB, filas são limitadas e consumidores lentos são desconectados. Uma indisponibilidade de Redis não desfaz uma mensagem já confirmada no SQLite.
 
 No frontend publicado, a conexão vai diretamente para `wss://nexo-production-60a0.up.railway.app/realtime`. Opcionalmente configure `VITE_WS_URL` na Vercel com a URL pública completa e refaça o build. Requisições HTTP continuam em `/api`; não é necessário compartilhar o cookie JWT com o domínio Railway. Mantenha a origem exata do site em `CORS_ORIGINS`. A gravação usa MediaRecorder, exige permissão de microfone e contexto seguro, limita clipes a dois minutos e permite escolher um arquivo caso a gravação não seja suportada. Não há criptografia ponta a ponta: o servidor armazena mensagens e mídias.
+

@@ -8,7 +8,7 @@ class User(IdentityTimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="user_status"),
-        CheckConstraint("role IN ('member', 'admin', 'owner')", name="user_role"),
+        CheckConstraint("role IN ('commercial', 'dev', 'admin', 'owner')", name="user_role"),
         CheckConstraint("session_version >= 0", name="session_version_nonnegative"),
         CheckConstraint("password_hash IS NOT NULL OR google_sub IS NOT NULL", name="user_identity"),
         Index("user_status_created_at_id", "status", "created_at", "id"),
@@ -22,5 +22,6 @@ class User(IdentityTimestampMixin, Base):
     profile_photo: Mapped[str | None] = mapped_column(String(255))
     profile_photo_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     status: Mapped[str] = mapped_column(String(16), default="pending")
-    role: Mapped[str] = mapped_column(String(16), default="member")
+    role: Mapped[str] = mapped_column(String(16), default="commercial")
     session_version: Mapped[int] = mapped_column(default=0)
+

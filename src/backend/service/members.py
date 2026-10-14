@@ -1,5 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
+from backend.domain.roles import TEAM_MANAGERS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import (
     AccessDenied,
@@ -18,13 +19,13 @@ class MemberService:
     @staticmethod
     def _authorize(repos, actor):
         current = authorize(repos, actor, approved=True)
-        if current.role != "owner":
+        if current.role not in TEAM_MANAGERS:
             raise AccessDenied("Owner access required")
 
     @staticmethod
     def _authorize_read(repos, actor):
         current = authorize_read(repos, actor, approved=True)
-        if current.role != "owner":
+        if current.role not in TEAM_MANAGERS:
             raise AccessDenied("Owner access required")
         return current
 
@@ -64,7 +65,7 @@ class MemberService:
         with self.repositories.read_transaction() as repos:
             current = authorize_read(repos, actor, approved=True)
             user = self._target(repos, identifier)
-            if (user.status != "approved" and current.role != "owner") or not user.profile_photo:
+            if (user.status != "approved" and current.role not in TEAM_MANAGERS) or not user.profile_photo:
                 raise ResourceNotFound("Profile photo not found")
             photo, data = user.profile_photo, user.profile_photo_data
         if data is not None:
@@ -88,6 +89,10 @@ class MemberService:
             with self.repositories.transaction() as repos:
                 self._authorize(repos, actor)
                 user = self._target(repos, identifier)
+                if user.role == "owner" and "role" in changes and changes["role"] != "owner":
+                    raise ResourceConflict("Owner role cannot be changed")
+                if changes.get("role") == "owner" and user.role != "owner":
+                    raise ResourceConflict("Owner role cannot be assigned")
                 principal = repos.users.principal_admin()
                 if principal and principal.id == user.id:
                     if (("email" in changes and changes["email"] != user.email)
@@ -96,7 +101,7 @@ class MemberService:
                 if "role" in changes and user.status != "approved":
                     raise ResourceConflict("Only approved members can change role")
                 if actor.id == user.id and changes.get("role", user.role) != "owner":
-                    raise ResourceConflict("You cannot remove your own Owner role")
+                    raise ResourceConflict("You cannot remove your own owner role")
                 if not repos.users.update_member_if_current(user, changes):
                     raise ResourceConflict("Member changed; try again")
                 return {**snapshot("users", user), "is_principal": bool(principal and user.id == principal.id)}
@@ -136,3 +141,4 @@ class MemberService:
         self.profiles.cleanup_photo(previous_photo)
         if keys:
             self.chat.cleanup(keys)
+

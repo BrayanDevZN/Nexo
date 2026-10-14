@@ -40,3 +40,10 @@ def authorize_read(repos, actor, *, approved=False):
             raise AccessDenied("Access denied")
         return actor
     return authorize(repos, actor, approved=approved)
+
+
+def authorize_role(repos, actor, roles, *, read=False):
+    current = (authorize_read if read else authorize)(repos, actor, approved=True)
+    if current.role not in roles:
+        raise AccessDenied("Permission denied for this area")
+    return current

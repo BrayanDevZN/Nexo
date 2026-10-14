@@ -16,7 +16,7 @@ class UserRepository(Repository[User]):
 
     def create(self, *, name: str, email: str, phone: str | None = None,
                password_hash: str | None = None, google_sub: str | None = None,
-               role: str = "member", status: str = "pending") -> User:
+               role: str = "commercial", status: str = "pending") -> User:
         if not name.strip() or not email.strip():
             raise ValueError("Name and email are required")
         return self.add(User(name=name.strip(), email=email.strip().lower(), phone=phone,
@@ -34,7 +34,7 @@ class UserRepository(Repository[User]):
         )).where(User.id == identifier))
 
     def principal_admin(self) -> User | None:
-        query = select(User).where(User.role.in_(["owner", "admin"]))
+        query = select(User).where(User.role == "owner")
         if self.principal_email:
             query = query.where(User.email == self.principal_email)
         return self.session.scalar(query.options(load_only(
@@ -83,13 +83,13 @@ class UserRepository(Repository[User]):
 
     def approved_member_ids(self) -> list[str]:
         return list(self.session.scalars(select(User.id).where(
-            User.status == "approved", User.role == "member",
+            User.status == "approved", User.role == "commercial",
         )))
 
     def approved_admins(self) -> list[User]:
         return list(self.session.scalars(select(User).options(load_only(
             User.id, User.email, User.name,
-        )).where(User.status == "approved", User.role == "owner")))
+        )).where(User.status == "approved", User.role.in_(["dev", "admin", "owner"]))))
 
 
     def count(self, *, status: str | None = None) -> int:
@@ -130,7 +130,7 @@ class UserRepository(Repository[User]):
         if decision not in {"approved", "rejected"}:
             raise ValueError("Invalid decision")
         result = self.session.execute(update(User).where(
-            User.id == user.id, User.status == "pending", User.role == "member"
+            User.id == user.id, User.status == "pending", User.role == "commercial"
         ).values(status=decision, session_version=User.session_version + int(decision == "rejected")),
             execution_options={"synchronize_session": False})
         self.session.info.setdefault("cache_dirty_tables", set()).add("users")
@@ -199,3 +199,4 @@ class UserRepository(Repository[User]):
             self.session.info.setdefault("cache_dirty_tables", set()).add("users")
         self.session.refresh(user)
         return result.rowcount == 1
+

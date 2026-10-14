@@ -1,5 +1,6 @@
 from fastapi import HTTPException, Request
 
+from backend.domain.roles import ADMINISTRATORS, DEVELOPERS, SALES, TEAM_MANAGERS, has_role
 from backend.service.access import REQUEST_AUTHENTICATED
 from backend.service.api_keys import ApiKeyAuthenticationError
 from backend.service.security import AuthenticationError
@@ -37,22 +38,27 @@ def approved_user(request: Request):
 
 def admin_user(request: Request):
     user = approved_user(request)
-    # Owner is the highest role and inherits all administrator capabilities.
-    if user.role not in {"admin", "owner"}:
+    if not has_role(user, ADMINISTRATORS):
         raise HTTPException(status_code=403, detail="Administrator access required")
     return user
 
 
 def owner_user(request: Request):
     user = approved_user(request)
-    if user.role != "owner":
+    if not has_role(user, TEAM_MANAGERS):
         raise HTTPException(status_code=403, detail="Owner access required")
     return user
 
 
-
-def admin_or_owner_user(request: Request):
+def developer_user(request: Request):
     user = approved_user(request)
-    if user.role not in {"admin", "owner"}:
-        raise HTTPException(status_code=403, detail="Administrator access required")
+    if not has_role(user, DEVELOPERS):
+        raise HTTPException(status_code=403, detail="Developer access required")
+    return user
+
+
+def commercial_user(request: Request):
+    user = approved_user(request)
+    if not has_role(user, SALES):
+        raise HTTPException(status_code=403, detail="Commercial access required")
     return user

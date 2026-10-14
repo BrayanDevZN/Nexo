@@ -24,7 +24,7 @@ def auth(settings):
 def test_register_login_duplicate_and_rejected_session(auth):
     user = auth.register(name="Ana", email="ANA@example.com", phone="+5511999999999",
                          password="strong-password-123")
-    assert user.status == "pending" and user.role == "member"
+    assert user.status == "pending" and user.role == "commercial"
     assert user.password_hash != "strong-password-123"
     _, token = auth.login("ana@example.com", "strong-password-123")
     assert auth.sessions.authenticate(token).id == user.id
@@ -71,7 +71,7 @@ def test_bootstrap_does_not_promote_registered_member(auth, settings):
                   password="strong-password-123")
     settings.email = "owner@example.com"
     settings.password = SecretStr("initial-admin-password")
-    with pytest.raises(RuntimeError, match="not an approved Owner"):
+    with pytest.raises(RuntimeError, match="not an approved owner"):
         auth.bootstrap_admin(settings)
     with auth.repositories.transaction() as repos:
-        assert repos.users.by_email(settings.email).role == "member"
+        assert repos.users.by_email(settings.email).role == "commercial"

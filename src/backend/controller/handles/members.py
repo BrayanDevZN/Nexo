@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import admin_or_owner_user, approved_user, owner_user
+from backend.controller.dependencies import approved_user, owner_user
 from backend.controller.schema.invitations import InvitationCreateInput, InvitationOutput
 from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
@@ -11,7 +11,7 @@ invitations_router = APIRouter(prefix="/admin/invitations", tags=["invitations"]
 
 
 @invitations_router.post("", response_model=InvitationOutput, status_code=201)
-def create_invitation(data: InvitationCreateInput, request: Request, actor=Depends(admin_or_owner_user)):
+def create_invitation(data: InvitationCreateInput, request: Request, actor=Depends(owner_user)):
     return request.app.state.services.invitations.create(actor, data.role)
 
 
@@ -56,3 +56,4 @@ def delete(identifier: str, request: Request, actor=Depends(owner_user)):
     except (AccessDenied, ResourceConflict, ResourceNotFound) as error:
         raise fail(error) from None
     return Response(status_code=204)
+

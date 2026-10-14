@@ -182,7 +182,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/automations",
     path: "/automations/{identifier}",
     title: "Atualizar automação",
-    description: "Atualiza nome, descrição, arquivo JSON e/ou imagem via multipart/form-data. Campos omitidos permanecem iguais. Permitido ao criador ou Owner; a alteração gera um aviso para os membros aprovados.",
+    description: "Atualiza nome, descrição, arquivo JSON e/ou imagem via multipart/form-data. Campos omitidos permanecem iguais. Permitido a dev, admin ou owner; a alteração gera um aviso para os membros aprovados.",
     body: "name=ChatBot Interno Nexo\ndescription=Chatbot interno com suporte a texto, áudio e imagem.\nfile=@chatbot-nexo-interno.json (opcional)\nimage=@chatbot-nexo-capa.jpg (opcional)",
     response: `{
   "id": "uuid-da-automacao",
@@ -199,7 +199,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/automations",
     path: "/automations/{identifier}",
     title: "Excluir automação",
-    description: "Remove a automação da biblioteca. Permitido somente ao criador ou Owner; todos os membros aprovados recebem um aviso, incluindo a imagem cadastrada.",
+    description: "Remove a automação da biblioteca. Permitido a dev, admin ou owner; todos os membros aprovados recebem um aviso, incluindo a imagem cadastrada.",
     response: `{
   "id": "uuid-da-automacao",
   "deleted": true
@@ -211,7 +211,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/automations",
     path: "/automations/{identifier}/download",
     title: "Baixar automação",
-    description: "Baixa o arquivo binário da automação. Exige sessão ou chave API de membro aprovado.",
+    description: "Baixa o arquivo binário da automação. Exige sessão aprovada ou chave API de dev, admin ou owner.",
     response: "application/octet-stream",
   },
   {
@@ -652,7 +652,7 @@ export function ApiDocumentation() {
       {!selected ? <>
         <DialogHeader className="border-b px-6 pb-5 pt-6">
           <DialogTitle>Documentação da API</DialogTitle>
-          <DialogDescription>Escolha um path e abra um método para ver requisição, headers, body e resposta.</DialogDescription>
+          <DialogDescription>Chaves API: dev acessa automações; admin e owner acessam também clientes, dashboard e documentos. Comercial opera pelo painel e não gerencia chaves.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 p-6">
@@ -741,3 +741,4 @@ export function ApiDocumentation() {
     </DialogContent>
   </Dialog>;
 }
+

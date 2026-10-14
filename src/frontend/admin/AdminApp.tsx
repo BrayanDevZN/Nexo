@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { apiBase, ApiError, createApi, type Approval, type User } from "./api";
+import { apiBase, ApiError, createApi, hasDeveloperAccess, hasSalesAccess, ROLE_LABELS, type Approval, type User } from "./api";
 import { Auth } from "./Auth";
 import { Chat } from "./Chat";
 import { useRealtime, type RealtimeEvent, type ChatMessage } from "./realtime";
@@ -34,7 +34,16 @@ export default function AdminApp() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState<Page>("clients");
+  const [selectedPage, setPage] = useState<Page>("clients");
+  const canSell = user?.status === "approved" && hasSalesAccess(user.role);
+  const canDevelop = user?.status === "approved" && hasDeveloperAccess(user.role);
+  const isOwner = user?.status === "approved" && user.role === "owner";
+  const salesPages: Page[] = ["home", "business", "funnel", "clients", "documents"];
+  const page: Page = user?.status === "approved" && (
+    (!canSell && salesPages.includes(selectedPage)) ||
+    (!canDevelop && selectedPage === "api-keys") ||
+    (!isOwner && ["members", "approvals"].includes(selectedPage))
+  ) ? (canSell ? "clients" : "automations") : selectedPage;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("nexo:sidebar-collapsed") === "true");
   const [incoming, setIncoming] = useState<ChatMessage | null>(null);
@@ -87,12 +96,12 @@ export default function AdminApp() {
     else setUnreadCounts({ total: 0, notices: 0, chat_messages: 0 });
   }, [user?.id, user?.status, refreshUnreadCounts]);
   useEffect(() => {
-    if (user?.status !== "approved") return;
+    if (user?.status !== "approved" || !hasSalesAccess(user.role)) return;
     // Warm the overview while Clientes is visible. Navigation to Início can
     // then reuse the short-lived client cache instead of waiting on the API.
     const timer = window.setTimeout(() => { void api.prefetch("/dashboard"); }, 150);
     return () => window.clearTimeout(timer);
-  }, [user?.id, user?.status]);
+  }, [user?.id, user?.status, user?.role]);
   useEffect(() => {
     if (!user || user.status !== "approved") { setPushEnabled(false); return; }
     let cancelled = false;
@@ -126,7 +135,7 @@ export default function AdminApp() {
   function onLogin(person: User) {
     generation.current++;
     if (complete || inviteToken) window.history.replaceState(null, "", "/admin");
-    api.resetSession(); setUser(person); setError(""); setPage("clients");
+    api.resetSession(); setUser(person); setError(""); setPage(person.role === "dev" ? "automations" : "clients");
   }
   async function logout() {
     setLoggingOut(true); setError("");
@@ -140,23 +149,23 @@ export default function AdminApp() {
   function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
-        {user.status === "approved" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
-        {user.status === "approved" && <Button variant={page === "business" ? "secondary" : "ghost"} onClick={() => navigate("business")} aria-current={page === "business" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Dashboard do negócio</Button>}
-        {user.status === "approved" && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
+        {canSell && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
+        {canSell && <Button variant={page === "business" ? "secondary" : "ghost"} onClick={() => navigate("business")} aria-current={page === "business" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Dashboard do negócio</Button>}
+        {canSell && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
         {user.status === "approved" && <Button variant={page === "automations" ? "secondary" : "ghost"} onClick={() => navigate("automations")} aria-current={page === "automations" ? "page" : undefined}><Workflow data-icon="inline-start" /> Automações</Button>}
-        {user.status === "approved" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
-        {user.status === "approved" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
+        {canSell && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
+        {canSell && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
         {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
-        {user.role === "owner" && user.status === "approved" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
+        {isOwner && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.notices > 0 && <Badge aria-label={`${unreadCounts.notices} avisos novos`}>{unreadCounts.notices}</Badge>}</Button>}
-        {(user.role === "owner" || user.role === "admin") && user.status === "approved" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
+        {isOwner && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
-        {user.status === "approved" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
+        {canDevelop && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
         <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>
       </nav>
   );
   const account = (
-      <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.role === "owner" ? "Owner" : user.role === "admin" ? "Administrador" : user.status === "pending" ? "Aguardando aprovação" : "Membro"}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
+      <div className="admin-sidebar-bottom"><Badge variant="outline"><ShieldCheck className="size-3" />{user.status === "pending" ? "Aguardando aprovação" : ROLE_LABELS[user.role]}</Badge><Button variant="ghost" disabled={loggingOut} onClick={() => void logout()}><LogOut data-icon="inline-start" /> Sair</Button></div>
   );
   const sidebarHeader = (
     <div className="admin-sidebar-header">
@@ -187,15 +196,16 @@ export default function AdminApp() {
           page === "home" ? <Home api={api} user={user} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
-          page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger><TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger></TabsList><TabsContent value="library"><AutomationsLibrary api={api} /></TabsContent><TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent></Tabs></section> :
+          page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger>{canDevelop && <TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger>}</TabsList><TabsContent value="library"><AutomationsLibrary api={api} user={user} /></TabsContent>{canDevelop && <TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent>}</Tabs></section> :
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
-          page === "members" && (user.role === "owner" || user.role === "admin") ? <Members api={api} actor={user} onUpdate={setUser} /> :
-          page === "approvals" && user.role === "owner" ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
+          page === "members" && isOwner ? <Members api={api} actor={user} onUpdate={setUser} /> :
+          page === "approvals" && isOwner ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
       </main>
     </div>
   </div>;
 }
+

@@ -38,7 +38,7 @@ def test_linked_local_account_preserves_data_approval_password_and_sessions(runt
     assert kind == "session"
     current = runtime.sessions.authenticate(google_token)
     assert current.id == user.id and current.name == "Ana Local" and current.phone == "11999999999"
-    assert current.role == "member" and current.status == "approved"
+    assert current.role == "commercial" and current.status == "approved"
     assert runtime.sessions.authenticate(local_token).id == user.id
     assert runtime.auth.login(user.email, "strong-password-123")[0].id == user.id
     assert runtime.clients.get(current, client.id)["created_by_id"] == user.id
@@ -69,3 +69,4 @@ def test_different_email_creates_onboarding_and_google_only_cannot_use_password(
     assert runtime.sessions.authenticate(token).id == user.id and user.password_hash is None
     with pytest.raises(AuthenticationError):
         runtime.auth.login(user.email, "strong-password-123")
+

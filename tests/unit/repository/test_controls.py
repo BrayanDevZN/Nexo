@@ -20,7 +20,7 @@ def test_normalizes_email_and_does_not_commit():
     row = repository.create(name=" Brayan ", email=" ADMIN@Example.com ", password_hash="hash")
     assert row.email == "admin@example.com"
     assert row.name == "Brayan"
-    assert row.status == "pending" and row.role == "member"
+    assert row.status == "pending" and row.role == "commercial"
     session.flush.assert_called_once()
     session.commit.assert_not_called()
 
@@ -34,3 +34,4 @@ def test_notification_cannot_be_resolved_twice():
     row = Mock(resolved_at=object())
     with pytest.raises(ValueError, match="already resolved"):
         NotificationRepository(Mock()).resolve(row, "approved")
+

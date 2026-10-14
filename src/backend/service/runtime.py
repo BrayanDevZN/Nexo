@@ -97,9 +97,8 @@ class RuntimeServices:
             self.automation_requests = AutomationRequestService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
             )
-            self.automations = AutomationService(
-                self.repositories, self.cached_repositories, self.push, self.announcement_storage,
-            )
+            self.automations = AutomationService(self.repositories, self.cached_repositories, self.push,
+                                                 self.announcement_storage)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]
@@ -137,7 +136,7 @@ class RuntimeServices:
             raise
 
     def initialize(self, settings: Settings) -> None:
-        create_tables(self.database.engine, settings.email)
+        create_tables(self.database.engine, str(settings.email) if settings.email else None)
         self.auth.bootstrap_admin(settings)
         self.approvals.synchronize_pending()
 
@@ -152,3 +151,4 @@ class RuntimeServices:
 
     def close(self) -> None:
         self._cleanup.close()
+

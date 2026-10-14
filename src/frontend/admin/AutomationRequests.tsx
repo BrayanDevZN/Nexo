@@ -8,7 +8,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { type createApi, type User } from "./api";
+import { hasDeveloperAccess, type createApi, type User } from "./api";
 import { Busy, Feedback, Loading, message } from "./shared";
 
 const N8N_URL = "https://n8n.nexoaicompany.com";
@@ -125,10 +125,10 @@ export function AutomationRequests({ api, user }: { api: ReturnType<typeof creat
     </div>
     <Feedback error={error} success={success} />
 
-    <Tabs defaultValue={user.role === "owner" ? "requests" : "access"}>
+    <Tabs defaultValue={hasDeveloperAccess(user.role) ? "requests" : "access"}>
       <TabsList className="w-full sm:w-fit">
         <TabsTrigger value="access"><N8nLogo compact /> Acesso ao n8n</TabsTrigger>
-        {user.role === "owner" && <TabsTrigger value="requests">Solicitações {pending > 0 && <Badge>{pending}</Badge>}</TabsTrigger>}
+        {hasDeveloperAccess(user.role) && <TabsTrigger value="requests">Solicitações {pending > 0 && <Badge>{pending}</Badge>}</TabsTrigger>}
       </TabsList>
 
       <TabsContent value="access" className="mt-4 flex flex-col gap-5">
@@ -163,7 +163,7 @@ export function AutomationRequests({ api, user }: { api: ReturnType<typeof creat
         </Card>
       </TabsContent>
 
-      {user.role === "owner" && <TabsContent value="requests" className="mt-4 flex flex-col gap-5">
+      {hasDeveloperAccess(user.role) && <TabsContent value="requests" className="mt-4 flex flex-col gap-5">
         <Card><CardHeader><CardTitle>Solicitações de conta n8n</CardTitle><CardDescription>Envie um link de convite ou recuse o pedido. O link será enviado em um e-mail personalizado e ficará disponível na notificação do solicitante.</CardDescription></CardHeader></Card>
         {loading ? <Loading /> : rows.length === 0 ? <Card><CardContent className="p-6 text-sm text-muted-foreground">Ainda não há solicitações de conta n8n.</CardContent></Card> : <div className="admin-client-grid">
           {rows.map(row => <Card key={row.id}>
@@ -190,3 +190,4 @@ export function AutomationRequests({ api, user }: { api: ReturnType<typeof creat
     </Dialog>
   </section>;
 }
+

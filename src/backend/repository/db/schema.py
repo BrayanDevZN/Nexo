@@ -1,14 +1,57 @@
+import re
+
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-from backend.repository.db.migrations.owner_role import migrate_owner_role
 from backend.repository.db.models import Base
+
+
+def _migrate_user_roles(engine: Engine, principal_email: str | None) -> None:
+    """Rebuild the old SQLite role CHECK while keeping account IDs and foreign keys."""
+    with engine.connect() as connection:
+        sql = connection.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")).scalar_one()
+        if "'commercial'" not in sql:
+            migrated = sql.replace("role IN ('member', 'admin', 'owner')",
+                                   "role IN ('commercial', 'dev', 'admin', 'owner')")
+            migrated = migrated.replace("role IN ('member', 'admin')",
+                                        "role IN ('commercial', 'dev', 'admin', 'owner')")
+            migrated = re.sub(r'^CREATE TABLE ["`]?users["`]?', 'CREATE TABLE users_role_migration', migrated, count=1)
+            if migrated == sql or "users_role_migration" not in migrated or "'commercial'" not in migrated:
+                raise RuntimeError("Cannot safely migrate the users role constraint")
+            columns = [column["name"] for column in inspect(connection).get_columns("users")]
+            names = ", ".join('"' + column.replace('"', '""') + '"' for column in columns)
+            selected = ", ".join("CASE WHEN role='member' THEN 'commercial' ELSE role END"
+                                 if column == "role" else '"' + column.replace('"', '""') + '"'
+                                 for column in columns)
+            connection.commit()
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            connection.commit()
+            try:
+                with connection.begin():
+                    connection.exec_driver_sql(migrated)
+                    connection.exec_driver_sql(f"INSERT INTO users_role_migration ({names}) SELECT {selected} FROM users")
+                    connection.exec_driver_sql("DROP TABLE users")
+                    connection.exec_driver_sql("ALTER TABLE users_role_migration RENAME TO users")
+                    if connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall():
+                        raise RuntimeError("User role migration would break foreign keys")
+            finally:
+                connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+                connection.commit()
+        if principal_email:
+            connection.execute(text("UPDATE users SET role='owner', session_version=session_version+1 "
+                                    "WHERE lower(email)=:email AND role='admin'"),
+                               {"email": principal_email.lower()})
+        else:
+            connection.execute(text("UPDATE users SET role='owner', session_version=session_version+1 "
+                                    "WHERE role='admin' AND NOT EXISTS (SELECT 1 FROM users WHERE role='owner') "
+                                    "AND id=(SELECT id FROM users WHERE role='admin' ORDER BY created_at, id LIMIT 1)"))
+        connection.commit()
 
 
 def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     """Create missing tables and apply additive, data-preserving schema changes."""
     Base.metadata.create_all(engine)
-    migrate_owner_role(engine, principal_email)
+    _migrate_user_roles(engine, principal_email)
     # Existing Railway volumes already contain the notifications table. Add the
     # announcement fields in place so deploying this feature preserves history.
     columns = {column["name"] for column in inspect(engine).get_columns("notifications")}
@@ -82,3 +125,4 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
                      "ix_notifications_recipient_id", "ix_users_status"):
             connection.execute(text(f"DROP INDEX IF EXISTS {name}"))
         connection.execute(text("PRAGMA optimize"))
+

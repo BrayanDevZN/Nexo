@@ -3,7 +3,8 @@ from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 
-from backend.service.access import ResourceConflict, ResourceNotFound, authorize, authorize_read
+from backend.domain.roles import SALES
+from backend.service.access import ResourceConflict, ResourceNotFound, authorize_role
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +58,12 @@ class ClientService:
 
     def list(self, actor, **filters):
         with self.cached_repositories.read_transaction() as repos:
-            authorize_read(repos.db, actor, approved=True)
+            authorize_role(repos.db, actor, SALES, read=True)
             return self.with_creators(repos, repos.clients.list(**filters))
 
     def get(self, actor, identifier):
         with self.cached_repositories.read_transaction() as repos:
-            authorize_read(repos.db, actor, approved=True)
+            authorize_role(repos.db, actor, SALES, read=True)
             client = repos.clients.get(identifier)
             if client is None:
                 raise ResourceNotFound("Client not found")
@@ -73,7 +74,7 @@ class ClientService:
         notices = []
         try:
             with self.repositories.transaction() as repos:
-                authorize(repos, actor, approved=True)
+                authorize_role(repos, actor, SALES)
                 if identifier:
                     existing = repos.clients.get(identifier)
                     if existing is not None:
@@ -95,7 +96,7 @@ class ClientService:
             # Concurrent retries can both pass the initial lookup. The primary
             # key ensures only one insert succeeds; the loser returns that row.
             with self.repositories.read_transaction() as repos:
-                authorize_read(repos.db, actor, approved=True)
+                authorize_role(repos.db, actor, SALES, read=True)
                 existing = repos.clients.get(identifier)
                 if existing is None or existing.created_by_id != actor.id:
                     raise
@@ -108,7 +109,7 @@ class ClientService:
     def update(self, actor, identifier, **changes):
         notice = None
         with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
+            authorize_role(repos, actor, SALES)
             client = repos.clients.get(identifier)
             if client is None:
                 raise ResourceNotFound("Client not found")
@@ -136,7 +137,7 @@ class ClientService:
     def delete(self, actor, identifier):
         notice = None
         with self.repositories.transaction() as repos:
-            authorize(repos, actor, approved=True)
+            authorize_role(repos, actor, SALES)
             client = repos.clients.get(identifier)
             if client is None:
                 raise ResourceNotFound("Client not found")
@@ -148,3 +149,4 @@ class ClientService:
             notice = (recipients, title, body)
         if notice:
             self._deliver_team_notice(*notice)
+

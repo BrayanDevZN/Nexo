@@ -25,7 +25,7 @@ def test_tables_are_idempotent_and_defaults_persist(repositories):
     with manager.transaction() as repos:
         user = repos.users.by_email("user@example.com")
         assert user.id == identifier
-        assert user.status == "pending" and user.role == "member"
+        assert user.status == "pending" and user.role == "commercial"
         assert user.created_at is not None
 
 
@@ -104,7 +104,7 @@ def test_member_edit_rejects_stale_session_version(repositories):
         from sqlalchemy.orm.attributes import set_committed_value
         set_committed_value(current, "session_version", -1)
         assert not repos.users.update_member_if_current(current, {"role": "admin"})
-        assert current.role == "member" and current.session_version == 0
+        assert current.role == "commercial" and current.session_version == 0
 
 
 def test_google_link_is_conditional_and_cannot_overwrite_existing_identity(repositories):
@@ -117,3 +117,4 @@ def test_google_link_is_conditional_and_cannot_overwrite_existing_identity(repos
         assert local.google_sub == "linked-google" and local.password_hash == "bcrypt"
         assert not repos.users.link_google_if_local(google, "replacement-google")
         assert google.google_sub == "google-only" and google.password_hash is None
+

@@ -3,9 +3,10 @@ from urllib.parse import urlsplit
 
 from sqlalchemy.exc import IntegrityError
 
+from backend.domain.roles import DEVELOPERS
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 from backend.repository.db.models.base import utc_now
-from backend.service.access import authorize, authorize_read
+from backend.service.access import authorize, authorize_role
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +42,14 @@ class AutomationRequestService:
 
     @staticmethod
     def _admin(user):
-        if user.role != "owner":
-            raise AutomationRequestPermissionError("Owner access required")
+        if user.role not in DEVELOPERS:
+            raise AutomationRequestPermissionError("Developer access required")
 
     def list(self, actor, *, limit=50, offset=0):
         with self.cached_repositories.read_transaction() as repos:
-            current = authorize_read(repos.db, actor, approved=True)
+            current = authorize_role(repos.db, actor, DEVELOPERS, read=True)
             return repos.db.automation_requests.list(
-                requester_id=None if current.role == "owner" else current.id,
+                requester_id=None if current.role in DEVELOPERS else current.id,
                 limit=limit, offset=offset,
             )
 
@@ -56,7 +57,7 @@ class AutomationRequestService:
         recipients = []
         try:
             with self.repositories.transaction() as repos:
-                current = authorize(repos, actor, approved=True)
+                current = authorize_role(repos, actor, DEVELOPERS)
                 if repos.automation_requests.pending_for_user(current.id):
                     raise AutomationRequestConflict("A pending n8n account request already exists")
                 row = repos.automation_requests.create(user=current, details=details)
@@ -172,3 +173,4 @@ class AutomationRequestService:
                 self.push.notify_users([user.id for user in users], title, body, "/admin")
             except Exception:
                 logger.warning("n8n request push notification could not be delivered", exc_info=True)
+

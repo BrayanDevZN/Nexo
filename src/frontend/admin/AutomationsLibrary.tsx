@@ -8,7 +8,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { type createApi } from "./api";
+import { hasDeveloperAccess, type createApi, type User } from "./api";
 import { Feedback, Loading, message } from "./shared";
 
 type Automation = { id: string; name: string; description: string; filename: string; file_size: number; created_by_id: string; created_by_name: string; has_image: boolean; can_manage: boolean; created_at: string };
@@ -90,7 +90,8 @@ function AutomationImage({ api, item }: { api: ReturnType<typeof createApi>; ite
   return url ? <img src={url} alt={`Imagem de ${item.name}`} className="aspect-video w-full rounded-lg border object-cover" loading="lazy" /> : null;
 }
 
-export function AutomationsLibrary({ api }: { api: ReturnType<typeof createApi> }) {
+export function AutomationsLibrary({ api, user }: { api: ReturnType<typeof createApi>; user: User }) {
+  const canCreate = hasDeveloperAccess(user.role);
   const [items, setItems] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -164,7 +165,7 @@ export function AutomationsLibrary({ api }: { api: ReturnType<typeof createApi> 
       <div><span className="admin-eyebrow">BIBLIOTECA COMPARTILHADA</span><h1 id="automations-title" className="flex items-center gap-2">Automações <Workflow /></h1><p>Consulte e baixe as automações compartilhadas pela equipe.</p></div>
       <div className="flex shrink-0 items-center gap-2">
         <Button variant="outline" size="icon" disabled={loading} onClick={() => void load()} aria-label="Atualizar automações" title="Atualizar automações"><RefreshCw /></Button>
-        <Button onClick={() => openEditor(null)}><Plus data-icon="inline-start" />Criar automação</Button>
+        {canCreate && <Button onClick={() => openEditor(null)}><Plus data-icon="inline-start" />Criar automação</Button>}
         <Dialog open={composerOpen} onOpenChange={open => { setComposerOpen(open); if (!open) { setEditing(null); setAutomationFile(null); setAutomationImage(null); setRemoveCurrentImage(false); } if (open) { setError(""); setSuccess(""); } }}>
           <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
             <DialogHeader>
@@ -190,7 +191,7 @@ export function AutomationsLibrary({ api }: { api: ReturnType<typeof createApi> 
       </div>
     </div>
     <Feedback success={success} />
-    {loading ? <Loading /> : !items.length ? <Card><CardContent className="py-8"><Empty><EmptyHeader><EmptyMedia variant="icon"><FileArchive /></EmptyMedia><EmptyTitle>Nenhuma automação salva ainda</EmptyTitle><EmptyDescription>A primeira que for publicada aparecerá aqui.</EmptyDescription></EmptyHeader><Button onClick={() => openEditor(null)}><Plus data-icon="inline-start" />Criar automação</Button></Empty></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map(item => <Card key={item.id} className="overflow-hidden">{item.has_image && <CardContent className="p-3 pb-0"><AutomationImage api={api} item={item} /></CardContent>}<CardHeader><div className="flex items-start justify-between gap-3"><div className="min-w-0"><CardTitle className="break-words">{item.name}</CardTitle><CardDescription className="mt-1">Por {item.created_by_name} · {new Date(item.created_at.endsWith("Z") ? item.created_at : item.created_at + "Z").toLocaleDateString("pt-BR")}</CardDescription></div><Badge variant="secondary">{formatSize(item.file_size)}</Badge></div></CardHeader><CardContent className="flex flex-col gap-4"><p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.description}</p><p className="truncate text-xs text-muted-foreground" title={item.filename}>Arquivo: {item.filename}</p><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => void download(item)}><Download data-icon="inline-start" /> Baixar automação</Button>{item.can_manage && <><Button variant="outline" onClick={() => openEditor(item)}><Pencil data-icon="inline-start" />Editar</Button><Button variant="destructive" onClick={() => setDeleting(item)}><Trash2 data-icon="inline-start" />Excluir</Button></>}</div></CardContent></Card>)}</div>}
+    {loading ? <Loading /> : !items.length ? <Card><CardContent className="py-8"><Empty><EmptyHeader><EmptyMedia variant="icon"><FileArchive /></EmptyMedia><EmptyTitle>Nenhuma automação salva ainda</EmptyTitle><EmptyDescription>A primeira que for publicada aparecerá aqui.</EmptyDescription></EmptyHeader>{canCreate && <Button onClick={() => openEditor(null)}><Plus data-icon="inline-start" />Criar automação</Button>}</Empty></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map(item => <Card key={item.id} className="overflow-hidden">{item.has_image && <CardContent className="p-3 pb-0"><AutomationImage api={api} item={item} /></CardContent>}<CardHeader><div className="flex items-start justify-between gap-3"><div className="min-w-0"><CardTitle className="break-words">{item.name}</CardTitle><CardDescription className="mt-1">Por {item.created_by_name} · {new Date(item.created_at.endsWith("Z") ? item.created_at : item.created_at + "Z").toLocaleDateString("pt-BR")}</CardDescription></div><Badge variant="secondary">{formatSize(item.file_size)}</Badge></div></CardHeader><CardContent className="flex flex-col gap-4"><p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.description}</p><p className="truncate text-xs text-muted-foreground" title={item.filename}>Arquivo: {item.filename}</p><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => void download(item)}><Download data-icon="inline-start" /> Baixar automação</Button>{canCreate && item.can_manage && <><Button variant="outline" onClick={() => openEditor(item)}><Pencil data-icon="inline-start" />Editar</Button><Button variant="destructive" onClick={() => setDeleting(item)}><Trash2 data-icon="inline-start" />Excluir</Button></>}</div></CardContent></Card>)}</div>}
     <Dialog open={Boolean(deleting)} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Excluir automação?</DialogTitle><DialogDescription>A automação “{deleting?.name}” será removida da biblioteca. Os membros aprovados receberão um aviso.</DialogDescription></DialogHeader>
@@ -199,3 +200,4 @@ export function AutomationsLibrary({ api }: { api: ReturnType<typeof createApi> 
     </Dialog>
   </section>;
 }
+

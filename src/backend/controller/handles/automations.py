@@ -13,7 +13,7 @@ from fastapi import (
 )
 from pydantic import ValidationError
 
-from backend.controller.dependencies import approved_user
+from backend.controller.dependencies import approved_user, developer_user
 from backend.controller.schema.automations import AutomationOutput
 from backend.domain.documents import DocumentTooLarge, DocumentValidationError, validate_document
 from backend.domain.photos import PhotoTooLarge, PhotoValidationError, normalize_photo
@@ -45,7 +45,7 @@ def get_automation(identifier: str, request: Request, actor=Depends(approved_use
 async def create(request: Request, name: str = Form(min_length=1, max_length=120),
                  description: str = Form(min_length=1, max_length=5000),
                  file: UploadFile = File(), image: UploadFile | None = File(default=None),
-                 actor=Depends(approved_user)):
+                 actor=Depends(developer_user)):
     try:
         if not name.strip() or not description.strip():
             raise HTTPException(status_code=422, detail="Name and description cannot be empty")
@@ -80,7 +80,7 @@ async def create(request: Request, name: str = Form(min_length=1, max_length=120
 async def update(identifier: str, request: Request, name: str | None = Form(default=None, max_length=120),
                  description: str | None = Form(default=None, max_length=5000),
                  file: UploadFile | None = File(default=None), image: UploadFile | None = File(default=None),
-                 actor=Depends(approved_user)):
+                 actor=Depends(developer_user)):
     try:
         if name is None and description is None and file is None and image is None:
             raise HTTPException(status_code=422, detail="Send at least one field to update")
@@ -122,7 +122,7 @@ async def update(identifier: str, request: Request, name: str | None = Form(defa
 
 
 @router.delete("/{identifier}")
-def delete_automation(identifier: str, request: Request, actor=Depends(approved_user)):
+def delete_automation(identifier: str, request: Request, actor=Depends(developer_user)):
     try:
         return request.app.state.services.automations.delete(actor, identifier)
     except AccessDenied as error:
@@ -153,3 +153,4 @@ def image(identifier: str, request: Request, actor=Depends(approved_user)):
     except ResourceNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from None
     return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+

@@ -1,7 +1,14 @@
+export type Role = "commercial" | "dev" | "admin" | "owner";
+export const ROLE_LABELS: Record<Role, string> = {
+  commercial: "Comercial", dev: "Desenvolvedor", admin: "Administrador", owner: "Owner",
+};
+export const hasSalesAccess = (role: Role) => role === "commercial" || role === "admin" || role === "owner";
+export const hasDeveloperAccess = (role: Role) => role === "dev" || role === "admin" || role === "owner";
+
 export type User = {
   id: string; name: string; email: string; phone: string | null;
   profile_photo: string | null; status: "pending" | "approved" | "rejected";
-  role: "member" | "admin" | "owner";
+  role: Role;
 };
 export type ApiKey = {
   id: string; name: string; key_prefix: string; created_at: string; last_used_at: string | null;
@@ -163,3 +170,4 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
     photo: () => request<Blob>("/auth/profile/photo", {}, "blob"),
     googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
 }
+

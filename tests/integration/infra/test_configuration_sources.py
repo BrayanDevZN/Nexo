@@ -61,3 +61,4 @@ def test_proxy_setting_from_dotenv_and_environment(tmp_path, monkeypatch):
     assert Settings(_env_file=dotenv).forwarded_allow_ips == "127.0.0.1,10.0.0.0/8"
     monkeypatch.setenv("FORWARDED_ALLOW_IPS", "")
     assert Settings(_env_file=dotenv).forwarded_allow_ips == ""
+

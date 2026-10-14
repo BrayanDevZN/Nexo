@@ -3,8 +3,9 @@ import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
+from backend.domain.roles import DEVELOPERS
 from backend.repository.db.models import ApiKey
-from backend.service.access import ResourceNotFound, authorize
+from backend.service.access import AccessDenied, ResourceNotFound, authorize
 
 
 class ApiKeyAuthenticationError(ValueError):
@@ -29,9 +30,15 @@ class ApiKeyService:
             "created_at": key.created_at, "last_used_at": key.last_used_at,
         }
 
+    @staticmethod
+    def _developer(user):
+        if user.role not in DEVELOPERS:
+            raise AccessDenied("Developer access required")
+        return user
+
     def create(self, actor, name: str) -> tuple[dict, str]:
         with self.repositories.transaction() as repos:
-            current = authorize(repos, actor, approved=True)
+            current = self._developer(authorize(repos, actor, approved=True))
             raw = self.prefix + secrets.token_urlsafe(32)
             key = repos.api_keys.create(user_id=current.id, name=name,
                                         key_prefix=raw[:len(self.prefix) + 8], key_hash=self._hash(raw))
@@ -39,12 +46,12 @@ class ApiKeyService:
 
     def list(self, actor):
         with self.repositories.read_transaction() as repos:
-            current = authorize(repos, actor, approved=True)
+            current = self._developer(authorize(repos, actor, approved=True))
             return [self._output(key) for key in repos.api_keys.list_for_user(current.id)]
 
     def revoke(self, actor, identifier: str) -> None:
         with self.repositories.transaction() as repos:
-            current = authorize(repos, actor, approved=True)
+            current = self._developer(authorize(repos, actor, approved=True))
             if not repos.api_keys.revoke(current.id, identifier, datetime.now(UTC).replace(tzinfo=None)):
                 raise ResourceNotFound("API key not found")
 
@@ -56,7 +63,7 @@ class ApiKeyService:
             if key is None:
                 raise ApiKeyAuthenticationError("Invalid API key")
             user = repos.users.for_auth(key.user_id)
-            if user is None or user.status != "approved":
+            if user is None or user.status != "approved" or user.role not in DEVELOPERS:
                 raise ApiKeyAuthenticationError("Invalid API key")
             key_id = key.id
         self._usage_executor.submit(self._record_access, key_id)
@@ -77,5 +84,6 @@ class ApiKeyService:
 
     def usage(self, actor, days: int):
         with self.repositories.read_transaction() as repos:
-            current = authorize(repos, actor, approved=True)
+            current = self._developer(authorize(repos, actor, approved=True))
             return repos.api_keys.usage_for_user(current.id, days)
+
