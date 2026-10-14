@@ -23,9 +23,8 @@ from backend.controller.handles.dashboard import router as dashboard_router
 from backend.controller.handles.documents import router as documents_router
 from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
-from backend.controller.handles.members import directory_router
+from backend.controller.handles.members import directory_router, invitations_router
 from backend.controller.handles.members import router as members_router
-from backend.controller.handles.members import invitations_router
 from backend.controller.handles.passwords import router as passwords_router
 from backend.controller.handles.profiles import router as profiles_router
 from backend.controller.handles.push import router as push_router
