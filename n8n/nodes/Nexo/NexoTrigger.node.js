@@ -48,7 +48,7 @@ class NexoTrigger {
 					await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
 						method: 'DELETE', baseURL: `${baseUrl}/`,
 						url: `event-subscriptions/${encodeURIComponent(staticData.subscriptionId)}`,
-						json: true, timeout: 30000,
+						json: false, timeout: 30000,
 					});
 					delete staticData.subscriptionId;
 					return true;
