@@ -57,3 +57,21 @@ def test_client_event_with_datetime_and_decimal_reaches_webhook(monkeypatch):
         },
     }]
 
+
+def test_subscription_lookup_checks_owner_and_missing_record():
+    class Redis:
+        def get(self, key):
+            if key.endswith(":subscription-missing"):
+                return None
+            return json.dumps({
+                "id": "subscription-1", "owner_id": "owner-1",
+                "event": "newClient", "url": "https://n8n.example/webhook-test/nexo-event",
+            })
+
+    service = WebhookEventService(Redis(), "test")
+    try:
+        assert service.get_subscription("owner-1", "subscription-1")["event"] == "newClient"
+        assert service.get_subscription("other-owner", "subscription-1") is None
+        assert service.get_subscription("owner-1", "subscription-missing") is None
+    finally:
+        service.close()
