@@ -88,6 +88,7 @@ test('trigger registers selected event using its n8n webhook URL', async () => {
 	const context = {
 		getWorkflowStaticData: () => staticData,
 		getNodeParameter: () => 'newClient',
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
 		getNodeWebhookUrl: () => 'https://n8n.example/webhook/nexo-event',
 		helpers: {
 			httpRequestWithAuthentication: async function (_credential, options) {
@@ -97,7 +98,8 @@ test('trigger registers selected event using its n8n webhook URL', async () => {
 		},
 	};
 	assert.equal(await node.webhookMethods.default.create.call(context), true);
-	assert.equal(staticData.subscriptionId, 'sub-1');
+	assert.deepEqual(staticData.subscriptions['https://n8n.example/webhook/nexo-event'], { id: 'sub-1', event: 'newClient' });
+	assert.equal(request.baseURL, 'https://nexo.test/');
 	assert.equal(request.url, 'event-subscriptions');
 	assert.deepEqual(request.body, {
 		event: 'newClient', webhook_url: 'https://n8n.example/webhook/nexo-event',
@@ -110,4 +112,56 @@ test('trigger webhook emits only the event data', async () => {
 		getBodyData: () => ({ event: 'newClient', data: client }),
 	});
 	assert.deepEqual(output, { workflowData: [[{ json: client }]] });
+});
+
+test('test webhook registers independently and returns the created client', async () => {
+	const node = new NexoTrigger();
+	const production = 'https://n8n.example/webhook/nexo-event';
+	const manual = 'https://n8n.example/webhook-test/nexo-event';
+	const staticData = { subscriptions: { [production]: { id: 'prod', event: 'newClient' } } };
+	const requests = [];
+	const context = {
+		getWorkflowStaticData: () => staticData,
+		getNodeParameter: () => 'newClient',
+		getNodeWebhookUrl: () => manual,
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async function (_credential, options) {
+			requests.push(options);
+			return { id: 'test' };
+		} },
+	};
+	assert.equal(await node.webhookMethods.default.checkExists.call(context), false);
+	await node.webhookMethods.default.create.call(context);
+	assert.equal(requests[0].body.webhook_url, manual);
+	assert.equal(await node.webhookMethods.default.checkExists.call(context), true);
+	assert.deepEqual(staticData.subscriptions[production], { id: 'prod', event: 'newClient' });
+	const client = { id: 'c1', name: 'Empresa' };
+	assert.deepEqual(await node.webhook.call({ getBodyData: () => ({ event: 'newClient', data: client }) }),
+		{ workflowData: [[{ json: client }]] });
+	await node.webhookMethods.default.delete.call(context);
+	assert.equal(requests[1].url, 'event-subscriptions/test');
+	assert.equal(staticData.subscriptions[manual], undefined);
+	assert.deepEqual(staticData.subscriptions[production], { id: 'prod', event: 'newClient' });
+});
+
+test('changing selected event registers a new subscription', async () => {
+	const node = new NexoTrigger();
+	const url = 'https://n8n.example/webhook/nexo-event';
+	const staticData = { subscriptions: { [url]: { id: 'old', event: 'any' } } };
+	const requests = [];
+	const context = {
+		getWorkflowStaticData: () => staticData,
+		getNodeParameter: () => 'newClient',
+		getNodeWebhookUrl: () => url,
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async function (_credential, options) {
+			requests.push(options);
+			return { id: 'new' };
+		} },
+	};
+	assert.equal(await node.webhookMethods.default.checkExists.call(context), false);
+	await node.webhookMethods.default.create.call(context);
+	assert.deepEqual(requests.map((request) => request.method), ['POST', 'DELETE']);
+	assert.equal(requests[1].url, 'event-subscriptions/old');
+	assert.deepEqual(staticData.subscriptions[url], { id: 'new', event: 'newClient' });
 });
