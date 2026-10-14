@@ -101,7 +101,7 @@ class RuntimeServices:
                 self.announcement_storage, self.webhook_events,
             )
             self.automation_requests = AutomationRequestService(
-                self.repositories, self.cached_repositories, self.messages, self.push,
+                self.repositories, self.cached_repositories, self.messages, self.push, self.webhook_events,
             )
             self.automations = AutomationService(self.repositories, self.cached_repositories, self.push,
                                                  self.announcement_storage, self.webhook_events)
