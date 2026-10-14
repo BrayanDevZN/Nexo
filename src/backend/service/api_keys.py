@@ -63,7 +63,9 @@ class ApiKeyService:
             if key is None:
                 raise ApiKeyAuthenticationError("Invalid API key")
             user = repos.users.for_auth(key.user_id)
-            if user is None or user.status != "approved" or user.role not in DEVELOPERS:
+            # Authenticate the key against the current account state. Endpoint
+            # dependencies enforce the role for each operation separately.
+            if user is None or user.status != "approved":
                 raise ApiKeyAuthenticationError("Invalid API key")
             key_id = key.id
         self._usage_executor.submit(self._record_access, key_id)
