@@ -110,6 +110,7 @@ test('trigger webhook emits only the event data', async () => {
 	const client = { id: 'c1', name: 'Empresa' };
 	const output = await NexoTrigger.prototype.webhook.call({
 		getBodyData: () => ({ event: 'newClient', data: client }),
+		helpers: { returnJsonArray: (items) => items.map((json) => ({ json })) },
 	});
 	assert.deepEqual(output, { workflowData: [[{ json: client }]] });
 });
@@ -137,8 +138,10 @@ test('test webhook registers independently and returns the created client', asyn
 	assert.equal(await node.webhookMethods.default.checkExists.call(context), true);
 	assert.deepEqual(staticData.subscriptions[production], { id: 'prod', event: 'newClient' });
 	const client = { id: 'c1', name: 'Empresa' };
-	assert.deepEqual(await node.webhook.call({ getBodyData: () => ({ event: 'newClient', data: client }) }),
-		{ workflowData: [[{ json: client }]] });
+	assert.deepEqual(await node.webhook.call({
+		getBodyData: () => ({ event: 'newClient', data: client }),
+		helpers: { returnJsonArray: (items) => items.map((json) => ({ json })) },
+	}), { workflowData: [[{ json: client }]] });
 	await node.webhookMethods.default.delete.call(context);
 	assert.equal(requests[2].url, 'event-subscriptions/test');
 	assert.equal(staticData.subscriptions[manual], undefined);
