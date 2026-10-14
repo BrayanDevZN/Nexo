@@ -1,7 +1,7 @@
 const DEFAULT_BASE_URL = 'https://nexo-production-60a0.up.railway.app';
 
 const eventOptions = [
-	{ name: 'Qualquer evento', value: 'any' },
+	{ name: 'Qualquer novo evento', value: 'any' },
 	{ name: 'Novo aviso da equipe', value: 'teamAnnouncement' },
 	{ name: 'Novo cliente cadastrado', value: 'newClient' },
 	{ name: 'Nova automação cadastrada', value: 'newAutomation' },
@@ -11,11 +11,6 @@ const eventOptions = [
 	{ name: 'Solicitação de automação', value: 'automation' },
 ];
 
-function formatTriggerItem(payload) {
-	const data = payload && Object.prototype.hasOwnProperty.call(payload, 'data') ? payload.data : payload;
-	return { json: data && typeof data === 'object' ? data : { value: data } };
-}
-
 class NexoTrigger {
 	constructor() {
 		this.description = {
@@ -23,55 +18,62 @@ class NexoTrigger {
 			name: 'nexoTrigger',
 			icon: 'file:nexo-mark.svg',
 			group: ['trigger'],
-			version: 2,
-			description: 'Espera um evento real da Nexo e inicia o workflow com os dados desse evento.',
+			version: 1,
+			description: 'Inicia o workflow imediatamente quando a Nexo envia o evento selecionado.',
 			defaults: { name: 'Nexo Trigger' },
 			inputs: [],
 			outputs: ['main'],
-			credentials: [{ name: 'nexoApi', required: true }],
 			webhooks: [{ name: 'default', httpMethod: 'POST', responseMode: 'onReceived', path: 'nexo-event' }],
-			properties: [{
-				displayName: 'Iniciar quando', name: 'event', type: 'options', options: eventOptions,
-				default: 'any', required: true,
-			}],
-		};
-
-		this.webhookMethods = {
-			default: {
-				checkExists: async function () {
-					return Boolean(this.getWorkflowStaticData('node').subscriptionId);
-				},
-				create: async function () {
-					const staticData = this.getWorkflowStaticData('node');
-					const event = this.getNodeParameter('event', 'any');
-					const subscription = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
-						method: 'POST', baseURL: `${DEFAULT_BASE_URL}/`, url: 'event-subscriptions',
-						body: { event, webhook_url: this.getNodeWebhookUrl('default') }, json: true, timeout: 30000,
-					});
-					staticData.subscriptionId = subscription.id;
-					return true;
-				},
-				delete: async function () {
-					const staticData = this.getWorkflowStaticData('node');
-					if (!staticData.subscriptionId) return true;
-					try {
-						await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
-							method: 'DELETE', baseURL: `${DEFAULT_BASE_URL}/`,
-							url: `event-subscriptions/${encodeURIComponent(staticData.subscriptionId)}`,
+			webhookMethods: {
+				default: {
+					async create() {
+						const staticData = this.getWorkflowStaticData('node');
+						if (staticData.subscriptionId) return true;
+						const credentials = await this.getCredentials('nexoApi');
+						const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\\/+$/, '');
+						const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
+							method: 'POST', baseURL: `${baseUrl}/`, url: 'event-subscriptions',
+							body: { event: this.getNodeParameter('event', 'any'), webhook_url: this.getWebhookUrl('default') },
 							json: true, timeout: 30000,
 						});
-					} finally {
-						delete staticData.subscriptionId;
-					}
+					if (!response?.id) throw new Error('A Nexo não retornou o ID da assinatura de evento.');
+					staticData.subscriptionId = response.id;
 					return true;
 				},
+					async delete() {
+						const staticData = this.getWorkflowStaticData('node');
+						if (!staticData.subscriptionId) return true;
+					const credentials = await this.getCredentials('nexoApi');
+					const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\\/+$/, '');
+					await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
+						method: 'DELETE', baseURL: `${baseUrl}/`,
+						url: `event-subscriptions/${encodeURIComponent(staticData.subscriptionId)}`,
+						json: true, timeout: 30000,
+					});
+					delete staticData.subscriptionId;
+					return true;
+				},
+				},
 			},
+			credentials: [{ name: 'nexoApi', required: true }],
+			properties: [{
+				displayName: 'Iniciar quando',
+				name: 'event',
+				type: 'options',
+				options: eventOptions,
+				default: 'any',
+				required: true,
+			}],
 		};
 	}
 
 	async webhook() {
-		return { workflowData: [[formatTriggerItem(this.getBodyData())]] };
+		const body = this.getRequestObject()?.body;
+		if (!body || typeof body !== 'object' || !body.data || typeof body.data !== 'object') {
+			throw new Error('Payload de evento da Nexo inválido: campo data ausente.');
+		}
+		return { workflowData: [[{ json: body.data }]] };
 	}
 }
 
-module.exports = { NexoTrigger, formatTriggerItem };
+module.exports = { NexoTrigger, eventOptions };
