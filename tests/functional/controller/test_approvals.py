@@ -147,3 +147,22 @@ def test_owner_api_key_can_publish_announcement(app):
         notice = next(item for item in client.get("/notifications", headers=session).json()
                       if item["announcement_id"] == response.json()["id"])
         assert notice["title"] == "Atualização do painel"
+
+def test_announcement_returns_success_if_push_fails_after_commit(app, monkeypatch):
+    with TestClient(app) as client:
+        headers = login(client, "owner@example.com", "initial-admin-password")
+        monkeypatch.setattr(app.state.services.messages, "announcement", lambda *args: True)
+
+        def broken_push(*args, **kwargs):
+            raise RuntimeError("push temporarily unavailable")
+
+        monkeypatch.setattr(app.state.services.push, "notify_users", broken_push)
+        response = client.post(
+            "/admin/announcements/with-image",
+            headers=headers,
+            data={"title": "Aviso", "body": "Mensagem para a equipe."},
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["recipients"] >= 1
+        notices = client.get("/notifications").json()
+        assert any(note["announcement_id"] == response.json()["id"] for note in notices)
