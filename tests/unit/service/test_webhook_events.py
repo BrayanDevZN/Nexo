@@ -33,6 +33,8 @@ def test_client_event_with_datetime_and_decimal_reaches_webhook(monkeypatch):
 
     def handle(request):
         received.append(json.loads(request.content))
+        assert request.headers["X-Nexo-Event"] == "newClient"
+        assert request.headers["X-Nexo-Delivery"]
         return httpx.Response(200)
 
     transport = httpx.MockTransport(handle)
@@ -75,3 +77,24 @@ def test_subscription_lookup_checks_owner_and_missing_record():
         assert service.get_subscription("owner-1", "subscription-missing") is None
     finally:
         service.close()
+
+
+def test_delivery_retries_transient_n8n_failure(monkeypatch):
+    attempts = []
+    real_client = httpx.Client
+
+    def handle(request):
+        attempts.append(request)
+        return httpx.Response(503 if len(attempts) < 3 else 200)
+
+    monkeypatch.setattr("backend.service.webhook_events.time.sleep", lambda _delay: None)
+    monkeypatch.setattr(
+        "backend.service.webhook_events.httpx.Client",
+        lambda **kwargs: real_client(transport=httpx.MockTransport(handle), **kwargs),
+    )
+    WebhookEventService._deliver(
+        "https://n8n.example/webhook-test/nexo-event",
+        {"event": "newClient", "data": {"id": "client-1"}},
+    )
+    assert len(attempts) == 3
+    assert len({request.headers["X-Nexo-Delivery"] for request in attempts}) == 1
