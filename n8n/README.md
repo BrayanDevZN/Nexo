@@ -31,7 +31,7 @@ buscar clientes e outro para cadastrar clientes — e conecte cada um à porta T
 Nas propriedades que o agente deve preencher, use **Let the model define this
 parameter** e dê uma descrição clara; recurso e operação são escolhidos no node.
 Operações que enviam arquivos precisam receber o binário de outro node do workflow.
-O **Nexo Trigger** inicia workflows por polling e não é uma ferramenta de chamada
+O **Nexo Trigger** recebe eventos por webhook e não é uma ferramenta de chamada
 sob demanda do agente.
 
 As operações seguem o formato padrão do n8n: cada registro retorna como um item
@@ -40,15 +40,14 @@ gera zero itens. Arquivos baixados aparecem em `binary.data`, acompanhados por
 `json.fileName` e `json.mimeType`. O trigger também retorna os campos da notificação
 diretamente no JSON de cada item.
 
-O **Nexo Trigger** inicia workflows por polling de notificações da API. Ele pode
-filtrar avisos da equipe, novos clientes cadastrados, novas automações salvas na
-biblioteca, contratos fechados, novos membros, mensagens do chat e solicitações de
-automação. O cadastro de cliente e o salvamento de automação geram avisos próprios
-na Nexo, que o trigger reconhece separadamente. Como a API não oferece um webhook
-de saída, o trigger consulta a lista a cada ciclo de polling do n8n; pode haver o
-intervalo normal do polling até o workflow iniciar. A primeira consulta cria uma
-referência e não dispara todo o histórico; em teste manual, retorna uma notificação
-existente como amostra.
+O **Nexo Trigger** registra um webhook na API Nexo quando o workflow é ativado
+ou quando você clica em **Listen for test event**. Selecione **Novo cliente
+cadastrado** para receber o registro criado como JSON no próximo node. O teste
+manual usa uma URL diferente da URL do workflow ativo; o trigger mantém as
+assinaturas separadas e remove apenas a assinatura correspondente ao parar.
+A URL pública do n8n precisa usar HTTPS e ser alcançável pela API Nexo.
+Depois de atualizar a imagem do n8n, reinicie o serviço e reative o workflow
+para cadastrar a assinatura com a versão nova do node.
 
 Conecte a credencial **Nexo API** ao node de ação, ao **Nexo Trigger** e ao node Nexo
 usado como ferramenta do **AI Agent**. Para habilitar o node como ferramenta, ligue-o
