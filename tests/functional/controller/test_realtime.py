@@ -52,6 +52,32 @@ def test_websocket_chat_and_notifications_commit_delivery(client):
         assert error.value.code == 4401
 
 
+def test_other_member_client_mutations_refresh_the_funnel(client):
+    services = client.app.state.services
+    owner = services.auth.login('owner@example.com', 'initial-admin-password')[0]
+    member = services.auth.register(name='Sales member', email='sales@example.com',
+                                    phone='11999999999', password='sales-password-123')
+    request = services.approvals.notifications(owner)[0]
+    services.approvals.decide(owner, request['id'], 'approved')
+    owner_headers = login(client)
+
+    with connect(client, owner_headers) as ws:
+        assert ws.receive_json() == {'type': 'ready'}
+        member_headers = login(client, 'sales@example.com', 'sales-password-123')
+        created = client.post('/clients', headers=member_headers,
+                              json={'name': 'Lead compartilhado', 'niche': 'Varejo'})
+        assert created.status_code == 201 and created.json()['created_by_id'] == member.id
+        assert receive_type(ws, 'clients.changed') == {'type': 'clients.changed'}
+
+        path = '/clients/' + created.json()['id']
+        assert client.patch(path, headers=member_headers,
+                            json={'pipeline_stage': 'proposal'}).status_code == 200
+        assert receive_type(ws, 'clients.changed') == {'type': 'clients.changed'}
+
+        assert client.delete(path, headers=member_headers).status_code == 204
+        assert receive_type(ws, 'clients.changed') == {'type': 'clients.changed'}
+
+
 def test_ws_origin_ticket_replay_and_malformed_messages(client):
     headers = login(client)
     ticket = client.post('/realtime/ticket', headers=headers).json()['ticket']
