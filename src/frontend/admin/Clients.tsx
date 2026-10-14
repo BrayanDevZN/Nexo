@@ -99,11 +99,16 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
       ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
     };
+    // Preserve a legacy niche when the user edits another field.
+    const payload: Partial<ClientInput> = { ...body };
+    if (editor !== null && editor !== "new" && body.niche === editor.niche) {
+      delete payload.niche;
+    }
     saveInFlight.current = true;
     setBusy(true); setError(""); setSuccess("");
     try {
       const saved = await api.mutate<ClientRecord>(editor === "new" ? "/clients" : "/clients/" + editor!.id,
-        editor === "new" ? "POST" : "PATCH", body);
+        editor === "new" ? "POST" : "PATCH", payload);
       const attachment = data.get("attachment");
       if (attachment instanceof File && attachment.size > 0) {
         const upload = new FormData(); upload.append("file", attachment);
@@ -192,7 +197,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <form onSubmit={save} className="flex flex-col gap-5">
           <FieldGroup>
             <TextField label="Nome / empresa" name="name" required maxLength={160} defaultValue={row?.name} />
-            <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row && CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) ? row.niche : ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
+            <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row?.niche || ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{row && !CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) && <NativeSelectOption value={row.niche}>{row.niche} (nicho anterior)</NativeSelectOption>}{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
