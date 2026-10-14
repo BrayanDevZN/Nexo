@@ -1,8 +1,12 @@
+import logging
 from uuid import uuid4
 
 from backend.domain.roles import ADMINISTRATORS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import ResourceNotFound, authorize, authorize_read
+
+
+logger = logging.getLogger(__name__)
 
 
 class AnnouncementPermissionError(ValueError):
@@ -128,7 +132,10 @@ class AnnouncementService:
                 # DB delivery is durable; a Resend outage must not roll back the notice.
                 continue
         if self.push:
-            self.push.notify_users([user.id for user in recipients], title, body)
+            try:
+                self.push.notify_users([user.id for user in recipients], title, body)
+            except Exception:
+                logger.warning("Announcement push delivery failed after commit", exc_info=True)
         created_at = min((note.created_at for note in notes), default=None)
         return {"id": announcement_id, "title": title, "body": body,
                 "recipients": len(notes), "email_queued": queued, "created_at": created_at}
