@@ -60,6 +60,13 @@ class WebhookEventService:
         pipe.execute()
         return record
 
+    def get_subscription(self, owner_id: str, identifier: str) -> dict | None:
+        raw = self.redis.get(f"{self.prefix}:subscription:{identifier}")
+        if not raw:
+            return None
+        record = json.loads(raw)
+        return record if record.get("owner_id") == owner_id else None
+
     def unsubscribe(self, owner_id: str, identifier: str) -> bool:
         key = f"{self.prefix}:subscription:{identifier}"
         raw = self.redis.get(key)
