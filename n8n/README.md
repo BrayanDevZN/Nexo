@@ -31,7 +31,7 @@ buscar clientes e outro para cadastrar clientes — e conecte cada um à porta T
 Nas propriedades que o agente deve preencher, use **Let the model define this
 parameter** e dê uma descrição clara; recurso e operação são escolhidos no node.
 Operações que enviam arquivos precisam receber o binário de outro node do workflow.
-O **Nexo Trigger** inicia workflows por polling e não é uma ferramenta de chamada
+O **Nexo Trigger** inicia workflows por evento e não é uma ferramenta de chamada
 sob demanda do agente.
 
 As operações seguem o formato padrão do n8n: cada registro retorna como um item
