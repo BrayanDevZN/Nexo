@@ -2,6 +2,7 @@ import ipaddress
 import json
 import logging
 import socket
+import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -98,12 +99,34 @@ class WebhookEventService:
 
     @staticmethod
     def _deliver(url: str, payload: dict) -> None:
-        try:
-            with httpx.Client(timeout=10, follow_redirects=False) as client:
-                response = client.post(url, json=payload)
-                response.raise_for_status()
-        except Exception:
-            logger.warning("Webhook event delivery failed for %s", url, exc_info=True)
+        delivery_id = str(uuid4())
+        headers = {
+            "X-Nexo-Delivery": delivery_id,
+            "X-Nexo-Event": str(payload.get("event", "")),
+        }
+        last_error = None
+        for attempt, delay in enumerate((0, 0.5, 2), start=1):
+            if delay:
+                time.sleep(delay)
+            try:
+                with httpx.Client(timeout=10, follow_redirects=False) as client:
+                    response = client.post(url, json=payload, headers=headers)
+                    response.raise_for_status()
+                logger.info(
+                    "Webhook event delivered: id=%s event=%s status=%s attempt=%s",
+                    delivery_id, payload.get("event"), response.status_code, attempt,
+                )
+                return
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "Webhook delivery attempt failed: id=%s event=%s attempt=%s url=%s",
+                    delivery_id, payload.get("event"), attempt, url, exc_info=True,
+                )
+        logger.error(
+            "Webhook event delivery exhausted retries: id=%s event=%s url=%s error=%r",
+            delivery_id, payload.get("event"), url, last_error,
+        )
 
     def close(self) -> None:
         self.executor.shutdown(wait=False, cancel_futures=True)
