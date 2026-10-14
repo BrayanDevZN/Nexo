@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import httpx
+from fastapi.encoders import jsonable_encoder
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ class WebhookEventService:
             if not raw:
                 continue
             record = json.loads(raw)
-            payload = {"event": event, "data": data}
+            payload = jsonable_encoder({"event": event, "data": data})
             self.executor.submit(self._deliver, record["url"], payload)
 
     @staticmethod
