@@ -4,10 +4,11 @@ const eventOptions = [
 	{ name: 'Qualquer nova notificação', value: 'any' },
 	{ name: 'Novo aviso da equipe', value: 'teamAnnouncement' },
 	{ name: 'Novo cliente cadastrado', value: 'newClient' },
+	{ name: 'Nova automação cadastrada', value: 'newAutomation' },
 	{ name: 'Contrato fechado', value: 'closedContract' },
 	{ name: 'Novo membro', value: 'memberJoined' },
 	{ name: 'Nova mensagem no chat', value: 'chatMessage' },
-	{ name: 'Evento de automação', value: 'automation' },
+	{ name: 'Solicitação de automação', value: 'automation' },
 ];
 
 function matchesEvent(note, event) {
@@ -19,6 +20,8 @@ function matchesEvent(note, event) {
 				&& title !== 'contrato fechado';
 		case 'newClient':
 			return note.kind === 'announcement' && title === 'novo cliente cadastrado';
+		case 'newAutomation':
+			return note.kind === 'announcement' && title.startsWith('nova automação disponível:');
 		case 'closedContract':
 			return note.kind === 'announcement' && title === 'contrato fechado';
 		case 'memberJoined': return note.kind === 'member_joined';
@@ -102,4 +105,4 @@ class NexoTrigger {
 	}
 }
 
-module.exports = { NexoTrigger, formatTriggerItem };
+module.exports = { NexoTrigger, formatTriggerItem, matchesEvent };

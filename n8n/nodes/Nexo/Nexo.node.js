@@ -85,6 +85,40 @@ const operationOptions = {
 	announcements: [{ name: 'Criar aviso', value: 'create' }],
 };
 
+const toolOperationDescriptions = {
+	clients: {
+		getMany: 'Listar clientes, com filtros opcionais.',
+		get: 'Consultar um cliente pelo ID.',
+		search: 'Localizar cliente pelo ID ou nome.',
+		create: 'Cadastrar um cliente na Nexo.',
+		update: 'Atualizar os dados de um cliente.',
+		delete: 'Excluir um cliente da Nexo.',
+	},
+	automations: {
+		getMany: 'Listar automações salvas na biblioteca.',
+		get: 'Consultar os dados de uma automação.',
+		create: 'Salvar uma automação na biblioteca.',
+		download: 'Baixar o arquivo de uma automação.',
+		image: 'Baixar a imagem de uma automação.',
+	},
+	documents: {
+		getMany: 'Listar documentos, opcionalmente filtrados por cliente.',
+		get: 'Consultar um documento pelo ID.',
+		upload: 'Enviar um documento para a Nexo.',
+		download: 'Baixar um documento.',
+		delete: 'Excluir um documento.',
+	},
+	notifications: {
+		getMany: 'Listar notificações da conta.',
+		get: 'Consultar uma notificação pelo ID.',
+		unreadCount: 'Consultar a contagem de notificações não lidas.',
+		markRead: 'Marcar uma notificação como lida.',
+		markChatRead: 'Marcar as mensagens de um membro como lidas.',
+	},
+	dashboard: { get: 'Consultar o resumo do dashboard da Nexo.' },
+	announcements: { create: 'Publicar um aviso para os membros aprovados.' },
+};
+
 const fields = [];
 function addField(displayName, name, type, defaults, extra = {}) {
 	fields.push({ displayName, name, type, default: defaults, ...extra });
@@ -233,7 +267,7 @@ class Nexo {
 			group: ['transform'],
 			version: 1,
 			subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
-			description: 'Consuma os recursos da API da Nexo em workflows.',
+			description: 'Node de ações da Nexo. Conecte à porta Tool do AI Agent e configure o recurso e a operação que o agente deve executar.',
 			defaults: { name: 'Nexo', color: '#6D4AFF' },
 			usableAsTool: true,
 			inputs: ['main'],
@@ -246,7 +280,12 @@ class Nexo {
 	methods = {
 		loadOptions: {
 			getOperations() {
-				return operationOptions[this.getCurrentNodeParameter('resource')] || [];
+				const resource = this.getCurrentNodeParameter('resource');
+				return (operationOptions[resource] || []).map((operation) => ({
+					...operation,
+					action: operation.name,
+					description: toolOperationDescriptions[resource]?.[operation.value] || operation.name,
+				}));
 			},
 		},
 	};
