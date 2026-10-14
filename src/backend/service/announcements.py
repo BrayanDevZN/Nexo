@@ -1,4 +1,7 @@
+import logging
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 from backend.domain.roles import ADMINISTRATORS
 from backend.repository.cache.queries import snapshot
@@ -10,9 +13,10 @@ class AnnouncementPermissionError(ValueError):
 
 
 class AnnouncementService:
-    def __init__(self, repositories, cached_repositories, messages, push=None, image_storage=None):
+    def __init__(self, repositories, cached_repositories, messages, push=None, image_storage=None, webhook_events=None):
         self.repositories, self.cached_repositories, self.messages, self.push = repositories, cached_repositories, messages, push
         self.image_storage = image_storage
+        self.webhook_events = webhook_events
 
     @staticmethod
     def _authorize(repos, actor):
@@ -130,6 +134,12 @@ class AnnouncementService:
         if self.push:
             self.push.notify_users([user.id for user in recipients], title, body)
         created_at = min((note.created_at for note in notes), default=None)
-        return {"id": announcement_id, "title": title, "body": body,
-                "recipients": len(notes), "email_queued": queued, "created_at": created_at}
+        result = {"id": announcement_id, "title": title, "body": body,
+                  "recipients": len(notes), "email_queued": queued, "created_at": created_at}
+        if self.webhook_events:
+            try:
+                self.webhook_events.emit("teamAnnouncement", result)
+            except Exception:
+                logger.warning("Announcement webhook event could not be queued", exc_info=True)
+        return result
 

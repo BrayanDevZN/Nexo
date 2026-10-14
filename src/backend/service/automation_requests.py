@@ -34,11 +34,12 @@ class AutomationEmailUnavailable(ValueError):
 class AutomationRequestService:
     invite_host = "n8n.nexoaicompany.com"
 
-    def __init__(self, repositories, cached_repositories, messages, push=None):
+    def __init__(self, repositories, cached_repositories, messages, push=None, webhook_events=None):
         self.repositories = repositories
         self.cached_repositories = cached_repositories
         self.messages = messages
         self.push = push
+        self.webhook_events = webhook_events
 
     @staticmethod
     def _admin(user):
@@ -78,6 +79,7 @@ class AutomationRequestService:
                 raise AutomationRequestConflict("A pending n8n account request already exists") from None
             raise
         self._push(recipients, "Nova solicitação de conta n8n", body)
+        self._emit({"id": row.id, "status": row.status, "details": row.details})
         return {"id": row.id, "status": row.status, "details": row.details,
                 "created_at": row.created_at, "updated_at": row.updated_at}
 
@@ -133,6 +135,7 @@ class AutomationRequestService:
             logger.warning("n8n invitation email could not be queued: %s", type(error).__name__)
             raise AutomationEmailUnavailable("Não foi possível colocar o e-mail na fila") from None
         self._push([requester], "Seu convite para o n8n está pronto", notice_body)
+        self._emit({"id": row.id, "status": row.status, "resolved_at": row.resolved_at})
         return {"id": row.id, "status": row.status, "invite_url": row.invite_url,
                 "resolved_at": row.resolved_at, "updated_at": row.updated_at}
 
@@ -164,8 +167,16 @@ class AutomationRequestService:
                 body=notice_body,
             )
         self._push([requester], "Solicitação de conta n8n recusada", notice_body)
+        self._emit({"id": row.id, "status": row.status, "resolved_at": row.resolved_at})
         return {"id": row.id, "status": row.status, "resolved_at": row.resolved_at,
                 "updated_at": row.updated_at}
+
+    def _emit(self, data):
+        if self.webhook_events:
+            try:
+                self.webhook_events.emit("automation", data)
+            except Exception:
+                logger.warning("Automation request webhook event could not be queued", exc_info=True)
 
     def _push(self, users, title, body):
         if self.push:

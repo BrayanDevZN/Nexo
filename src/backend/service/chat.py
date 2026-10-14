@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
-    def __init__(self, repositories, cached_repositories, storage, events, settings, push=None):
+    def __init__(self, repositories, cached_repositories, storage, events, settings, push=None, webhook_events=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
         self.storage, self.events, self.settings, self.push = storage, events, settings, push
+        self.webhook_events = webhook_events
 
     @staticmethod
     def participants(repos, actor, member_id, *, read=False):
@@ -70,6 +71,11 @@ class ChatService:
         return result, True
 
     def broadcast(self, row):
+        if self.webhook_events:
+            try:
+                self.webhook_events.emit("chatMessage", row)
+            except Exception:
+                logger.warning("Chat webhook event could not be queued", exc_info=True)
         try:
             self.events.publish({"type": "chat.message", "message": row}, [row["sender_id"], row["recipient_id"]])
         except Exception:

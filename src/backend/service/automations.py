@@ -9,11 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class AutomationService:
-    def __init__(self, repositories, cached_repositories, push=None, image_storage=None):
+    def __init__(self, repositories, cached_repositories, push=None, image_storage=None, webhook_events=None):
         self.repositories = repositories
         self.cached_repositories = cached_repositories
         self.push = push
         self.image_storage = image_storage
+        self.webhook_events = webhook_events
 
     @staticmethod
     def _owner_id(repos):
@@ -77,6 +78,11 @@ class AutomationService:
                 except OSError:
                     pass
             raise
+        if self.webhook_events:
+            try:
+                self.webhook_events.emit("newAutomation", result)
+            except Exception:
+                logger.warning("Automation webhook event could not be queued", exc_info=True)
         if self.push:
             try:
                 self.push.notify_users(recipients_ids, f"Nova automação: {name}", description)

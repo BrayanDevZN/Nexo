@@ -31,7 +31,7 @@ buscar clientes e outro para cadastrar clientes — e conecte cada um à porta T
 Nas propriedades que o agente deve preencher, use **Let the model define this
 parameter** e dê uma descrição clara; recurso e operação são escolhidos no node.
 Operações que enviam arquivos precisam receber o binário de outro node do workflow.
-O **Nexo Trigger** inicia workflows por polling e não é uma ferramenta de chamada
+O **Nexo Trigger** inicia workflows por evento e não é uma ferramenta de chamada
 sob demanda do agente.
 
 As operações seguem o formato padrão do n8n: cada registro retorna como um item
@@ -40,15 +40,15 @@ gera zero itens. Arquivos baixados aparecem em `binary.data`, acompanhados por
 `json.fileName` e `json.mimeType`. O trigger também retorna os campos da notificação
 diretamente no JSON de cada item.
 
-O **Nexo Trigger** inicia workflows por polling de notificações da API. Ele pode
-filtrar avisos da equipe, novos clientes cadastrados, novas automações salvas na
-biblioteca, contratos fechados, novos membros, mensagens do chat e solicitações de
-automação. O cadastro de cliente e o salvamento de automação geram avisos próprios
-na Nexo, que o trigger reconhece separadamente. Como a API não oferece um webhook
-de saída, o trigger consulta a lista a cada ciclo de polling do n8n; pode haver o
-intervalo normal do polling até o workflow iniciar. A primeira consulta cria uma
-referência e não dispara todo o histórico; em teste manual, retorna uma notificação
-existente como amostra.
+O **Nexo Trigger** cria uma assinatura em `/event-subscriptions` ao ativar o workflow.
+A Nexo envia um POST para o webhook HTTPS do n8n assim que o evento acontece; não há
+polling nem espera entre ciclos. Ao desativar o workflow, o node remove a assinatura.
+O item de saída é o conteúdo de `data` do evento, diretamente em `json`.
+
+Os eventos disponíveis são: avisos da equipe, clientes novos, automações novas,
+contratos fechados, membros aprovados, mensagens do chat e solicitações/decisões de
+automação. A URL pública do n8n precisa usar HTTPS e resolver para um endereço IP
+público. O node requer uma chave API ativa de uma conta com cargo dev ou superior.
 
 Conecte a credencial **Nexo API** ao node de ação, ao **Nexo Trigger** e ao node Nexo
 usado como ferramenta do **AI Agent**. Para habilitar o node como ferramenta, ligue-o
