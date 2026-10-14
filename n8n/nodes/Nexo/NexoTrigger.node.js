@@ -107,7 +107,8 @@ class NexoTrigger {
 	}
 
 	async webhook() {
-		return { workflowData: [[formatTriggerItem(this.getBodyData())]] };
+		const item = formatTriggerItem(this.getBodyData());
+		return { workflowData: [this.helpers.returnJsonArray([item.json])] };
 	}
 }
 
