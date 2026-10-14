@@ -85,7 +85,18 @@ export function Announcements({ api, user, onNotificationsRead }: { api: ReturnT
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     setBusy(true); setError(""); setSuccess("");
-    try { await api.mutate("/admin/announcements/with-image", "POST", form); setSuccess("Aviso publicado e enviado aos membros aprovados."); setShowComposer(false); formElement.reset(); setSelectedImage(null); await load(); }
+    try {
+      const title = String(form.get("title") || "");
+      const body = String(form.get("body") || "");
+      if (selectedImage) {
+        form.set("image", selectedImage);
+        await api.mutate("/admin/announcements/with-image", "POST", form);
+      } else {
+        await api.mutate("/admin/announcements", "POST", { title, body });
+      }
+      setSuccess("Aviso publicado e enviado aos membros aprovados.");
+      setShowComposer(false); formElement.reset(); setSelectedImage(null); await load();
+    }
     catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
   function chooseImage(event: ChangeEvent<HTMLInputElement>) {
