@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { Nexo } = require('../nodes/Nexo/Nexo.node');
-const { NexoTrigger, formatTriggerItem, matchesEvent } = require('../nodes/Nexo/NexoTrigger.node');
+const { NexoTrigger, formatTriggerItem } = require('../nodes/Nexo/NexoTrigger.node');
 
 async function executeNexo(parameters, response) {
 	let request;
@@ -69,36 +69,45 @@ test('Get automation calls the individual metadata endpoint', async () => {
 	assert.deepEqual(output[0][0].json, { id: 'a/1', name: 'Fluxo' });
 });
 
-test('trigger returns the notification as a direct JSON item', () => {
-	const note = { id: 'n1', kind: 'announcement', title: 'Contrato fechado', created_at: '2026-10-13T12:00:00Z' };
-	assert.deepEqual(formatTriggerItem(note, 'closedContract').json, note);
+test('trigger is webhook based instead of polling', () => {
+	const node = new NexoTrigger();
+	assert.equal(node.description.polling, undefined);
+	assert.equal(node.description.webhooks[0].httpMethod, 'POST');
+	assert.equal(node.description.version, 2);
 });
 
-test('trigger distinguishes client creation from automation library creation', () => {
-	assert.equal(matchesEvent({ kind: 'announcement', title: 'Novo cliente cadastrado' }, 'newClient'), true);
-	assert.equal(matchesEvent({ kind: 'announcement', title: 'Nova automação disponível: Boas-vindas' }, 'newAutomation'), true);
-	assert.equal(matchesEvent({ kind: 'automation_request', title: 'Nova automação disponível: Boas-vindas' }, 'newAutomation'), false);
-	assert.equal(matchesEvent({ kind: 'announcement', title: 'Automação atualizada: Boas-vindas' }, 'newAutomation'), false);
+test('trigger returns event data directly to the next node', () => {
+	const client = { id: 'c1', name: 'Empresa', niche: 'Varejo' };
+	assert.deepEqual(formatTriggerItem({ event: 'newClient', data: client }), { json: client });
 });
 
-test('trigger emits a newly created client or automation after establishing its polling baseline', async () => {
-	for (const [event, note] of [
-		['newClient', { id: 'client-notice', kind: 'announcement', title: 'Novo cliente cadastrado' }],
-		['newAutomation', { id: 'automation-notice', kind: 'announcement', title: 'Nova automação disponível: Boas-vindas' }],
-	]) {
-		const staticData = {};
-		let notifications = [];
-		const context = {
-			getWorkflowStaticData: () => staticData,
-			getCredentials: async () => ({ baseUrl: 'https://nexo.test', apiKey: 'test' }),
-			getNodeParameter: () => event,
-			getMode: () => 'trigger',
-			helpers: { httpRequestWithAuthentication: async () => notifications },
-		};
+test('trigger registers selected event using its n8n webhook URL', async () => {
+	const node = new NexoTrigger();
+	const staticData = {};
+	let request;
+	const context = {
+		getWorkflowStaticData: () => staticData,
+		getNodeParameter: () => 'newClient',
+		getNodeWebhookUrl: () => 'https://n8n.example/webhook/nexo-event',
+		helpers: {
+			httpRequestWithAuthentication: async function (_credential, options) {
+				request = options;
+				return { id: 'sub-1' };
+			},
+		},
+	};
+	assert.equal(await node.webhookMethods.default.create.call(context), true);
+	assert.equal(staticData.subscriptionId, 'sub-1');
+	assert.equal(request.url, 'event-subscriptions');
+	assert.deepEqual(request.body, {
+		event: 'newClient', webhook_url: 'https://n8n.example/webhook/nexo-event',
+	});
+});
 
-		assert.equal(await NexoTrigger.prototype.poll.call(context), null);
-		notifications = [{ ...note, created_at: '2026-10-14T12:00:00Z' }];
-		assert.deepEqual(await NexoTrigger.prototype.poll.call(context), [[{ json: notifications[0] }]]);
-		assert.equal(await NexoTrigger.prototype.poll.call(context), null);
-	}
+test('trigger webhook emits only the event data', async () => {
+	const client = { id: 'c1', name: 'Empresa' };
+	const output = await NexoTrigger.prototype.webhook.call({
+		getBodyData: () => ({ event: 'newClient', data: client }),
+	});
+	assert.deepEqual(output, { workflowData: [[{ json: client }]] });
 });
