@@ -21,6 +21,14 @@ def create_subscription(data: SubscriptionCreate, request: Request, actor=Depend
         raise HTTPException(status_code=422, detail=str(exc)) from None
 
 
+@router.get("/{identifier}")
+def get_subscription(identifier: str, request: Request, actor=Depends(approved_user)):
+    subscription = request.app.state.services.webhook_events.get_subscription(actor.id, identifier)
+    if subscription is None:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return subscription
+
+
 @router.delete("/{identifier}", status_code=204)
 def delete_subscription(identifier: str, request: Request, actor=Depends(approved_user)):
     if not request.app.state.services.webhook_events.unsubscribe(actor.id, identifier):
