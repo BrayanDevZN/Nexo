@@ -76,7 +76,7 @@ test('trigger registers an event subscription when the workflow is activated', a
 		getWorkflowStaticData: () => staticData,
 		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
 		getNodeParameter: () => 'newClient',
-		getWebhookUrl: () => 'https://n8n.example/webhook/nexo-event',
+		getNodeWebhookUrl: () => 'https://n8n.example/webhook/nexo-event',
 		helpers: { httpRequestWithAuthentication: async function (_credential, options) {
 			request = options;
 			return { id: 'subscription-1' };
@@ -113,14 +113,14 @@ test('trigger removes its event subscription when the workflow is deactivated', 
 
 test('trigger outputs the event data directly as JSON', async () => {
 	const data = { id: 'client-1', name: 'Empresa Exemplo', niche: 'Varejo' };
-	const context = { getRequestObject: () => ({ body: { event: 'newClient', data } }) };
+	const context = { getBodyData: () => ({ event: 'newClient', data }) };
 	assert.deepEqual(await NexoTrigger.prototype.webhook.call(context), {
 		workflowData: [[{ json: data }]],
 	});
 });
 
 test('trigger rejects payloads without event data', async () => {
-	const context = { getRequestObject: () => ({ body: { event: 'newClient' } }) };
+	const context = { getBodyData: () => ({ event: 'newClient' }) };
 	await assert.rejects(NexoTrigger.prototype.webhook.call(context), /campo data ausente/);
 });
 
