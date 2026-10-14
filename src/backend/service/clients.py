@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class ClientService:
-    def __init__(self, repositories, cached_repositories, messages=None, push=None):
+    def __init__(self, repositories, cached_repositories, messages=None, push=None, webhook_events=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
-        self.messages, self.push = messages, push
+        self.messages, self.push, self.webhook_events = messages, push, webhook_events
 
     @staticmethod
     def with_creator(repos, row):
@@ -20,7 +20,6 @@ class ClientService:
 
     @staticmethod
     def with_creators(repos, rows):
-        """Add creator names with one indexed query for the whole page."""
         names = repos.db.users.names_by_ids(row["created_by_id"] for row in rows)
         return [{**row, "created_by_name": names.get(row["created_by_id"], "Membro removido")}
                 for row in rows]
@@ -29,13 +28,26 @@ class ClientService:
     def _record_team_notice(repos, actor_id, title, body):
         recipients = repos.users.approved_recipients()
         repos.notifications.create_announcements(
-            announcement_id=str(uuid4()),
-            recipient_ids=[user.id for user in recipients],
-            creator_id=actor_id,
-            title=title,
-            body=body,
+            announcement_id=str(uuid4()), recipient_ids=[user.id for user in recipients],
+            creator_id=actor_id, title=title, body=body,
         )
         return recipients
+
+    @staticmethod
+    def _event_data(row):
+        if hasattr(row, "model_dump"):
+            return row.model_dump(mode="json")
+        if isinstance(row, dict):
+            return dict(row)
+        return {key: value for key, value in vars(row).items() if not key.startswith("_")}
+
+    def _emit(self, event, row):
+        if not self.webhook_events:
+            return
+        try:
+            self.webhook_events.emit(event, self._event_data(row))
+        except Exception:
+            logger.warning("Client webhook event could not be queued", exc_info=True)
 
     def _email_team(self, recipients, title, body):
         if self.messages is None:
@@ -44,7 +56,6 @@ class ClientService:
             try:
                 self.messages.announcement(user, title, body)
             except Exception:
-                # The in-app notice is already durable; email remains best-effort.
                 logger.warning("Client event email could not be queued", exc_info=True)
 
     def _deliver_team_notice(self, recipients, title, body):
@@ -53,7 +64,6 @@ class ClientService:
             try:
                 self.push.notify_users([user.id for user in recipients], title, body)
             except Exception:
-                # Push delivery must never make a successful mutation fail.
                 logger.warning("Client event push could not be delivered", exc_info=True)
 
     def list(self, actor, **filters):
@@ -93,8 +103,6 @@ class ClientService:
         except IntegrityError:
             if not identifier:
                 raise
-            # Concurrent retries can both pass the initial lookup. The primary
-            # key ensures only one insert succeeds; the loser returns that row.
             with self.repositories.read_transaction() as repos:
                 authorize_role(repos.db, actor, SALES, read=True)
                 existing = repos.clients.get(identifier)
@@ -104,10 +112,14 @@ class ClientService:
                 return existing
         for notice in notices:
             self._deliver_team_notice(*notice)
+        self._emit("newClient", row)
+        if row.contract_closed or row.pipeline_stage == "won":
+            self._emit("closedContract", row)
         return row
 
     def update(self, actor, identifier, **changes):
         notice = None
+        webhook_event = None
         with self.repositories.transaction() as repos:
             authorize_role(repos, actor, SALES)
             client = repos.clients.get(identifier)
@@ -120,6 +132,7 @@ class ClientService:
             row.created_by_name = repos.users.get(row.created_by_id).name
             if not was_closed and is_closed:
                 event = ("Contrato fechado", f"O contrato de {row.name} foi marcado como fechado.")
+                webhook_event = "closedContract"
             elif was_closed and not is_closed:
                 event = ("Contrato cancelado", f"O contrato de {row.name} foi cancelado.")
             elif previous_stage != "lost" and row.pipeline_stage == "lost":
@@ -132,6 +145,8 @@ class ClientService:
                 notice = (recipients, title, body)
         if notice:
             self._deliver_team_notice(*notice)
+        if webhook_event:
+            self._emit(webhook_event, row)
         return row
 
     def delete(self, actor, identifier):
@@ -149,4 +164,3 @@ class ClientService:
             notice = (recipients, title, body)
         if notice:
             self._deliver_team_notice(*notice)
-
