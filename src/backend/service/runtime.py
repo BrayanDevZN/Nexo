@@ -81,7 +81,8 @@ class RuntimeServices:
             self.repositories.on_change = self.realtime.changed
             self.realtime_connection = RealtimeConnection(settings)
             self.chat = ChatService(self.repositories, self.cached_repositories,
-                                    DocumentStorage(settings.upload_dir / "chat"), self.events, settings, self.push)
+                                    DocumentStorage(settings.upload_dir / "chat"), self.events, settings, self.push,
+                                    self.webhook_events)
             self.members.chat = self.chat
             self.passwords = PasswordHasher()
             self.tokens = JWTService(settings.jwt_secret_key.get_secret_value(),
@@ -97,13 +98,13 @@ class RuntimeServices:
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
-                self.announcement_storage,
+                self.announcement_storage, self.webhook_events,
             )
             self.automation_requests = AutomationRequestService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
             )
             self.automations = AutomationService(self.repositories, self.cached_repositories, self.push,
-                                                 self.announcement_storage)
+                                                 self.announcement_storage, self.webhook_events)
             self.auth = AuthService(self.repositories, self.passwords, self.sessions, self.messages)
             namespace = "nexo:oauth:" + hashlib.sha256(
                 settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:32]
