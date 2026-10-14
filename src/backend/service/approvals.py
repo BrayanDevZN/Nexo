@@ -20,9 +20,10 @@ class ApprovalConflict(ValueError):
 
 
 class ApprovalService:
-    def __init__(self, repositories, cached_repositories, messages=None):
+    def __init__(self, repositories, cached_repositories, messages=None, webhook_events=None):
         self.repositories, self.cached_repositories = repositories, cached_repositories
         self.messages = messages
+        self.webhook_events = webhook_events
 
     @staticmethod
     def notify_registration(repos, user):
@@ -104,6 +105,11 @@ class ApprovalService:
             user = repos.users.get(notification.requested_user_id)
             if user is None or user.role != "commercial" or not repos.users.decide_pending(user, decision):
                 raise ApprovalConflict("Account is no longer awaiting approval")
+        if decision == "approved" and self.webhook_events:
+            try:
+                self.webhook_events.emit("memberJoined", {"id": user.id, "name": user.name, "role": user.role})
+            except Exception:
+                logger.warning("Member webhook event could not be queued", exc_info=True)
         if self.messages:
             try:
                 self.messages.access_decision(user, decision)
