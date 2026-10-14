@@ -94,7 +94,7 @@ class RuntimeServices:
             self.messages = AccountMessages(self.email)
             self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push,
                                          self.webhook_events)
-            self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
+            self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages, self.webhook_events)
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(
                 self.repositories, self.cached_repositories, self.messages, self.push,
