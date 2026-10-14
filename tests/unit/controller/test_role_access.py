@@ -46,7 +46,6 @@ def test_commercial_cannot_manage_api_keys_even_through_service():
     ("owner", {"owner", "admin", "dev", "sales"}),
     ("admin", {"admin", "dev", "sales"}),
     ("dev", {"dev"}),
-    ("commercial", {"sales"}),
 ])
 def test_api_key_uses_current_account_role(role, allowed):
     user = SimpleNamespace(id="user", role=role, status="approved", session_version=0)
@@ -76,9 +75,11 @@ def test_api_key_uses_current_account_role(role, allowed):
         service.close()
 
 
-@pytest.mark.parametrize("status", ["pending", "rejected"])
-def test_api_key_rejects_unapproved_owner(status):
-    user = SimpleNamespace(role="owner", status=status)
+@pytest.mark.parametrize(("role", "status"), [
+    ("owner", "pending"), ("owner", "rejected"), ("commercial", "approved"),
+])
+def test_api_key_rejects_unapproved_or_commercial_account(role, status):
+    user = SimpleNamespace(role=role, status=status)
     @contextmanager
     def transaction():
         yield SimpleNamespace(api_keys=SimpleNamespace(active_by_hash=lambda _hash: SimpleNamespace(id="key", user_id="user")),

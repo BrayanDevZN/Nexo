@@ -63,9 +63,9 @@ class ApiKeyService:
             if key is None:
                 raise ApiKeyAuthenticationError("Invalid API key")
             user = repos.users.for_auth(key.user_id)
-            # Authenticate the key against the current account state. Endpoint
-            # dependencies enforce the role for each operation separately.
-            if user is None or user.status != "approved":
+            # A role downgrade immediately disables all existing API keys.
+            # Each endpoint then checks the current role for its own operation.
+            if user is None or user.status != "approved" or user.role not in DEVELOPERS:
                 raise ApiKeyAuthenticationError("Invalid API key")
             key_id = key.id
         self._usage_executor.submit(self._record_access, key_id)

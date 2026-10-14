@@ -652,7 +652,7 @@ export function ApiDocumentation() {
       {!selected ? <>
         <DialogHeader className="border-b px-6 pb-5 pt-6">
           <DialogTitle>Documentação da API</DialogTitle>
-          <DialogDescription>Chaves API seguem o cargo atual do titular: dev acessa automações; admin e owner acessam também clientes, dashboard e documentos. Comercial não gerencia chaves; uma chave existente fica limitada às rotas comerciais.</DialogDescription>
+          <DialogDescription>Apenas dev, admin e owner podem criar e usar chaves API. Se o titular mudar para Comercial, suas chaves deixam de autenticar. Dev acessa automações; admin e owner acessam também clientes, dashboard e documentos.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 p-6">
