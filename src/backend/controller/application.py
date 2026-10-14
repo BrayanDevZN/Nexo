@@ -30,6 +30,7 @@ from backend.controller.handles.passwords import router as passwords_router
 from backend.controller.handles.profiles import router as profiles_router
 from backend.controller.handles.push import router as push_router
 from backend.controller.handles.realtime import router as realtime_router
+from backend.controller.handles.webhook_events import router as webhook_events_router
 from backend.controller.middleware.csrf import CSRFMiddleware
 from backend.controller.middleware.rate_limits import RateLimitMiddleware
 from backend.infra.config.settings import Settings, get_settings
@@ -59,7 +60,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = config
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
-        # Do not echo submitted passwords or unknown sensitive fields.
         errors = [{"loc": error["loc"], "type": error["type"], "msg": error["msg"]}
                   for error in exc.errors()]
         return JSONResponse(status_code=422, content={"detail": errors})
@@ -71,9 +71,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
-    routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router, automation_requests_router, automations_router, documents_router, passwords_router, clients_router, dashboard_router, profiles_router, push_router,
-               google_router, users_router, members_router, invitations_router, directory_router, notifications_router, announcements_router, member_notifications_router]
-    # Public routes from our handles provide stable templates across FastAPI versions.
+    routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router,
+               automation_requests_router, automations_router, documents_router, passwords_router, clients_router,
+               dashboard_router, profiles_router, push_router, webhook_events_router, google_router, users_router,
+               members_router, invitations_router, directory_router, notifications_router, announcements_router,
+               member_notifications_router]
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]
     for router in routers:
         app.include_router(router)
