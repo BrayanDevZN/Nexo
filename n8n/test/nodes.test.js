@@ -127,6 +127,7 @@ test('test webhook registers independently and returns the created client', asyn
 		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
 		helpers: { httpRequestWithAuthentication: async function (_credential, options) {
 			requests.push(options);
+			if (options.method === 'GET') return { id: 'test', event: 'newClient', url: manual };
 			return { id: 'test' };
 		} },
 	};
@@ -139,7 +140,7 @@ test('test webhook registers independently and returns the created client', asyn
 	assert.deepEqual(await node.webhook.call({ getBodyData: () => ({ event: 'newClient', data: client }) }),
 		{ workflowData: [[{ json: client }]] });
 	await node.webhookMethods.default.delete.call(context);
-	assert.equal(requests[1].url, 'event-subscriptions/test');
+	assert.equal(requests[2].url, 'event-subscriptions/test');
 	assert.equal(staticData.subscriptions[manual], undefined);
 	assert.deepEqual(staticData.subscriptions[production], { id: 'prod', event: 'newClient' });
 });
@@ -164,4 +165,27 @@ test('changing selected event registers a new subscription', async () => {
 	assert.deepEqual(requests.map((request) => request.method), ['POST', 'DELETE']);
 	assert.equal(requests[1].url, 'event-subscriptions/old');
 	assert.deepEqual(staticData.subscriptions[url], { id: 'new', event: 'newClient' });
+});
+
+test('trigger recreates subscription missing from the backend', async () => {
+	const node = new NexoTrigger();
+	const url = 'https://n8n.example/webhook-test/nexo-event';
+	const staticData = { subscriptions: { [url]: { id: 'stale', event: 'newClient' } } };
+	const requests = [];
+	const context = {
+		getWorkflowStaticData: () => staticData,
+		getNodeParameter: () => 'newClient',
+		getNodeWebhookUrl: () => url,
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async function (_credential, options) {
+			requests.push(options);
+			if (options.method === 'GET') throw { statusCode: 404 };
+			if (options.method === 'DELETE') throw { statusCode: 404 };
+			return { id: 'fresh' };
+		} },
+	};
+	assert.equal(await node.webhookMethods.default.checkExists.call(context), false);
+	await node.webhookMethods.default.create.call(context);
+	assert.deepEqual(requests.map((request) => request.method), ['GET', 'POST', 'DELETE']);
+	assert.deepEqual(staticData.subscriptions[url], { id: 'fresh', event: 'newClient' });
 });
