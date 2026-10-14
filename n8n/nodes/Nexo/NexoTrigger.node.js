@@ -18,7 +18,7 @@ class NexoTrigger {
 			name: 'nexoTrigger',
 			icon: 'file:nexo-mark.svg',
 			group: ['trigger'],
-			version: 1,
+			version: 2,
 			description: 'Inicia o workflow imediatamente quando a Nexo envia o evento selecionado.',
 			defaults: { name: 'Nexo Trigger' },
 			inputs: [],
@@ -33,7 +33,7 @@ class NexoTrigger {
 						const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 						const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
 							method: 'POST', baseURL: `${baseUrl}/`, url: 'event-subscriptions',
-							body: { event: this.getNodeParameter('event', 'any'), webhook_url: this.getWebhookUrl('default') },
+							body: { event: this.getNodeParameter('event', 'any'), webhook_url: this.getNodeWebhookUrl() },
 							json: true, timeout: 30000,
 						});
 					if (!response?.id) throw new Error('A Nexo não retornou o ID da assinatura de evento.');
@@ -68,7 +68,7 @@ class NexoTrigger {
 	}
 
 	async webhook() {
-		const body = this.getRequestObject()?.body;
+		const body = this.getBodyData();
 		if (!body || typeof body !== 'object' || !body.data || typeof body.data !== 'object') {
 			throw new Error('Payload de evento da Nexo inválido: campo data ausente.');
 		}
