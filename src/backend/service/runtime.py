@@ -44,6 +44,7 @@ from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
 from backend.service.registration import RegistrationService
 from backend.service.security import SessionSecurity
+from backend.service.webhook_events import WebhookEventService
 
 
 class RuntimeServices:
@@ -70,8 +71,11 @@ class RuntimeServices:
             rate_namespace = "nexo:rate:" + hashlib.sha256(
                 (settings.database_url + settings.jwt_secret_key.get_secret_value()).encode()).hexdigest()[:32]
             self.rate_limits = RateLimitService(RateLimitRepository(self.redis.client), settings, rate_namespace)
-            self.events = RealtimeRepository(self.redis.client, "nexo:realtime:" + database_namespace + ":" + hashlib.sha256(
-                settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:16])
+            realtime_namespace = "nexo:realtime:" + database_namespace + ":" + hashlib.sha256(
+                settings.jwt_secret_key.get_secret_value().encode()).hexdigest()[:16]
+            self.events = RealtimeRepository(self.redis.client, realtime_namespace)
+            self.webhook_events = WebhookEventService(self.redis.client, realtime_namespace)
+            self._cleanup.callback(self.webhook_events.close)
             self.members.presence = self.events
             self.realtime = RealtimeService(self.events, self.repositories, settings, self.rate_limits)
             self.repositories.on_change = self.realtime.changed
@@ -87,7 +91,8 @@ class RuntimeServices:
             self.email = ResendConnection(settings, redis_client=self.redis.client)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
-            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
+            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push,
+                                         self.webhook_events)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(
@@ -151,4 +156,3 @@ class RuntimeServices:
 
     def close(self) -> None:
         self._cleanup.close()
-
