@@ -42,7 +42,20 @@ class NexoTrigger {
 					const url = this.getNodeWebhookUrl('default');
 					const event = this.getNodeParameter('event', 'any');
 					const subscriptions = this.getWorkflowStaticData('node').subscriptions || {};
-					return Boolean(subscriptions[url] && subscriptions[url].event === event);
+					const current = subscriptions[url];
+					if (!current || current.event !== event) return false;
+					const credentials = await this.getCredentials('nexoApi');
+					try {
+						const remote = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
+							method: 'GET', baseURL: `${credentials.baseUrl || DEFAULT_BASE_URL}/`,
+							url: `event-subscriptions/${encodeURIComponent(current.id)}`,
+							json: true, timeout: 30000,
+						});
+						return remote.id === current.id && remote.event === event && remote.url === url;
+					} catch (error) {
+						if (error.statusCode === 404 || error.response?.statusCode === 404) return false;
+						throw error;
+					}
 				},
 				create: async function () {
 					const staticData = this.getWorkflowStaticData('node');
