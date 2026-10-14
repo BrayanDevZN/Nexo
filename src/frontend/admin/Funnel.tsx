@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { ArrowRight, Building2, Check, Clock3, GripVertical, MessageCircle, RefreshCw, Trash2, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,7 +84,7 @@ export function Funnel({ api }: { api: ReturnType<typeof createApi> }) {
     if (autoScrollFrame.current !== null) cancelAnimationFrame(autoScrollFrame.current);
   }, []);
 
-  function handleBoardDragOver(event: React.DragEvent<HTMLDivElement>) {
+  function handleBoardDragOver(event: DragEvent<HTMLDivElement>) {
     if (!isDraggingRef.current) return;
     event.preventDefault();
     dragPointerX.current = event.clientX;
