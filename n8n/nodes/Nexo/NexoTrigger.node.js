@@ -30,7 +30,7 @@ class NexoTrigger {
 						const staticData = this.getWorkflowStaticData('node');
 						if (staticData.subscriptionId) return true;
 						const credentials = await this.getCredentials('nexoApi');
-						const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
+						const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 						const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
 							method: 'POST', baseURL: `${baseUrl}/`, url: 'event-subscriptions',
 							body: { event: this.getNodeParameter('event', 'any'), webhook_url: this.getWebhookUrl('default') },
@@ -44,7 +44,7 @@ class NexoTrigger {
 						const staticData = this.getWorkflowStaticData('node');
 						if (!staticData.subscriptionId) return true;
 					const credentials = await this.getCredentials('nexoApi');
-					const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
+					const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 					await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
 						method: 'DELETE', baseURL: `${baseUrl}/`,
 						url: `event-subscriptions/${encodeURIComponent(staticData.subscriptionId)}`,
