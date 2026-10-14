@@ -38,6 +38,14 @@ def member_photo(identifier: str, request: Request, actor=Depends(approved_user)
     return Response(content=data, media_type="image/jpeg", headers={"X-Content-Type-Options": "nosniff"})
 
 
+@router.get("/principal")
+def principal(request: Request, actor=Depends(owner_user)):
+    try:
+        return request.app.state.services.members.principal(actor)
+    except (AccessDenied, ResourceConflict) as error:
+        raise fail(error) from None
+
+
 @router.patch("/{identifier}", response_model=MemberOutput)
 def update(identifier: str, data: MemberUpdateInput, request: Request, actor=Depends(owner_user)):
     changes = data.model_dump(exclude_unset=True)

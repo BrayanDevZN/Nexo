@@ -82,6 +82,14 @@ class MemberService:
             return [{**row, "is_principal": bool(principal and row["id"] == principal.id)}
                     for row in repos.users.list(**filters)]
 
+    def principal(self, actor):
+        with self.repositories.read_transaction() as repos:
+            self._authorize_read(repos, actor)
+            principal = repos.users.principal_admin()
+            if principal is None:
+                raise ResourceConflict("Principal owner is unavailable")
+            return {"id": principal.id}
+
     def update(self, actor, identifier, changes):
         if not changes or set(changes) - {"name", "email", "phone", "role"}:
             raise ValueError("Unsupported member fields")
@@ -89,18 +97,20 @@ class MemberService:
             with self.repositories.transaction() as repos:
                 self._authorize(repos, actor)
                 user = self._target(repos, identifier)
-                if user.role == "owner" and "role" in changes and changes["role"] != "owner":
-                    raise ResourceConflict("Owner role cannot be changed")
-                if changes.get("role") == "owner" and user.role != "owner":
-                    raise ResourceConflict("Owner role cannot be assigned")
                 principal = repos.users.principal_admin()
+                is_principal = bool(principal and principal.id == actor.id)
+                if principal and principal.id == user.id and not is_principal:
+                    raise AccessDenied("Only the principal owner can edit the principal account")
+                if "role" in changes and changes["role"] != user.role:
+                    if (user.role == "owner" or changes["role"] == "owner") and not is_principal:
+                        raise ResourceConflict("Only the principal owner can change owner roles")
                 if principal and principal.id == user.id:
                     if (("email" in changes and changes["email"] != user.email)
                             or ("role" in changes and changes["role"] != "owner")):
                         raise ResourceConflict("Principal administrator email and role are protected")
                 if "role" in changes and user.status != "approved":
                     raise ResourceConflict("Only approved members can change role")
-                if actor.id == user.id and changes.get("role", user.role) != "owner":
+                if actor.id == user.id and changes.get("role", user.role) != user.role:
                     raise ResourceConflict("You cannot remove your own owner role")
                 if not repos.users.update_member_if_current(user, changes):
                     raise ResourceConflict("Member changed; try again")
@@ -137,6 +147,9 @@ class MemberService:
             user = self._target(repos, identifier)
             if actor.id == user.id:
                 raise ResourceConflict("You cannot delete your own account")
+            principal = repos.users.principal_admin()
+            if user.role == "owner" and (principal is None or actor.id != principal.id):
+                raise AccessDenied("Only the principal owner can delete another owner")
             previous_photo, keys = self._remove(repos, user)
         self.profiles.cleanup_photo(previous_photo)
         if keys:

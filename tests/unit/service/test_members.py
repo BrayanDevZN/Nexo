@@ -1,10 +1,11 @@
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
 from backend.controller.schema.members import MemberDirectoryOutput, MemberOutput, MemberUpdateInput
-from backend.service.access import AccessDenied
+from backend.service.access import AccessDenied, ResourceConflict
 from backend.service.members import MemberService
 
 
@@ -28,6 +29,35 @@ def test_member_schema_rejects_invalid_and_sensitive_fields(data):
 
 def test_owner_role_is_valid_for_member_updates():
     assert MemberUpdateInput(role="owner").role == "owner"
+
+
+def test_only_principal_can_assign_or_remove_another_owner_role():
+    principal = SimpleNamespace(id="principal", name="Principal", email="owner@example.com",
+                                phone=None, profile_photo=None, status="approved", role="owner",
+                                session_version=0, created_at=None, updated_at=None)
+    other = SimpleNamespace(id="other", name="Other", email="other@example.com",
+                            phone=None, profile_photo=None, status="approved", role="admin",
+                            session_version=0, created_at=None, updated_at=None)
+    users = {principal.id: principal, other.id: other}
+    repository = SimpleNamespace(get=users.get, principal_admin=lambda: principal)
+    def update(user, changes):
+        for field, value in changes.items():
+            setattr(user, field, value)
+        return True
+    repository.update_member_if_current = update
+    @contextmanager
+    def transaction():
+        yield SimpleNamespace(users=repository)
+    service = MemberService(SimpleNamespace(transaction=transaction), None, None)
+
+    assert service.update(principal, other.id, {"role": "owner"})["role"] == "owner"
+    with pytest.raises(AccessDenied):
+        service.update(other, principal.id, {"role": "admin"})
+    with pytest.raises(ResourceConflict):
+        service.update(other, other.id, {"role": "dev"})
+    with pytest.raises(ResourceConflict):
+        service.update(principal, principal.id, {"role": "commercial"})
+    assert service.update(principal, other.id, {"role": "dev"})["role"] == "dev"
 
 
 def test_optional_phone_can_be_removed_without_other_changes():

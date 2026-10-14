@@ -84,6 +84,28 @@ def test_principal_identity_and_self_protection(runtime):
     assert runtime.members.update(actor, second.id, {"name": "Admin edited"})["name"] == "Admin edited"
 
 
+def test_principal_owner_can_change_other_owner_roles(runtime):
+    principal = owner(runtime)
+    user, token = registered(runtime)
+    assert runtime.members.principal(principal) == {"id": principal.id}
+    assert runtime.members.update(principal, user.id, {"role": "owner"})["role"] == "owner"
+    with pytest.raises(AuthenticationError):
+        runtime.sessions.authenticate(token)
+    other_owner, owner_token = runtime.auth.login(user.email, "strong-password-123")
+    with pytest.raises(AccessDenied):
+        runtime.members.update(other_owner, principal.id, {"role": "commercial"})
+    with pytest.raises(ResourceConflict):
+        runtime.members.update(other_owner, other_owner.id, {"role": "commercial"})
+    with pytest.raises(ResourceConflict):
+        runtime.members.update(principal, principal.id, {"role": "admin"})
+    assert runtime.members.update(principal, other_owner.id, {"role": "dev"})["role"] == "dev"
+    with pytest.raises(AuthenticationError):
+        runtime.sessions.authenticate(owner_token)
+    runtime.members.update(principal, other_owner.id, {"role": "owner"})
+    runtime.members.delete(principal, other_owner.id)
+    assert [row["id"] for row in runtime.members.users(principal)] == [principal.id]
+
+
 def test_pending_role_and_duplicate_email_are_rejected_atomically(runtime):
     actor = owner(runtime)
     user, token = registered(runtime, approved=False)
