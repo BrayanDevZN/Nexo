@@ -91,8 +91,10 @@ class RuntimeServices:
             self.email = ResendConnection(settings, redis_client=self.redis.client)
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
-            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push,
-                                         self.webhook_events)
+            self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
+            # Keep runtime startup compatible with older ClientService constructors
+            # while enabling webhook events on the current implementation.
+            self.clients.webhook_events = self.webhook_events
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(
