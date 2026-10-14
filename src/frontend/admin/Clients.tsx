@@ -85,8 +85,16 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     const form = event.currentTarget;
     const data = new FormData(form);
     const value = (key: string) => String(data.get(key) || "").trim();
+    const niche = value("niche");
+    const validNiche = CLIENT_NICHES.some(option => option === niche)
+      || (editor !== null && editor !== "new" && niche === editor.niche);
+    if (!validNiche) {
+      setError("Selecione um nicho para o cliente.");
+      form.querySelector<HTMLElement>("#client-niche")?.focus();
+      return;
+    }
     const body: ClientInput = {
-      name: value("name"), niche: value("niche"), phone: value("phone") || null,
+      name: value("name"), niche, phone: value("phone") || null,
       email: value("email") || null, notes: value("notes") || null,
       pain: value("pain") || null, approach: value("approach") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
