@@ -39,29 +39,53 @@ class NexoTrigger {
 		this.webhookMethods = {
 			default: {
 				checkExists: async function () {
-					return Boolean(this.getWorkflowStaticData('node').subscriptionId);
+					const url = this.getNodeWebhookUrl('default');
+					const event = this.getNodeParameter('event', 'any');
+					const subscriptions = this.getWorkflowStaticData('node').subscriptions || {};
+					return Boolean(subscriptions[url] && subscriptions[url].event === event);
 				},
 				create: async function () {
 					const staticData = this.getWorkflowStaticData('node');
 					const event = this.getNodeParameter('event', 'any');
+					const url = this.getNodeWebhookUrl('default');
+					const credentials = await this.getCredentials('nexoApi');
+					const baseURL = `${credentials.baseUrl || DEFAULT_BASE_URL}/`;
+					const previous = staticData.subscriptions && staticData.subscriptions[url];
 					const subscription = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
-						method: 'POST', baseURL: `${DEFAULT_BASE_URL}/`, url: 'event-subscriptions',
-						body: { event, webhook_url: this.getNodeWebhookUrl('default') }, json: true, timeout: 30000,
+						method: 'POST', baseURL, url: 'event-subscriptions',
+						body: { event, webhook_url: url }, json: true, timeout: 30000,
 					});
-					staticData.subscriptionId = subscription.id;
+					if (!staticData.subscriptions) staticData.subscriptions = {};
+					staticData.subscriptions[url] = { id: subscription.id, event };
+					if (previous && previous.id !== subscription.id) {
+						try {
+							await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
+								method: 'DELETE', baseURL,
+								url: `event-subscriptions/${encodeURIComponent(previous.id)}`,
+								json: true, timeout: 30000,
+							});
+						} catch (error) {
+							if (error.statusCode !== 404 && error.response?.statusCode !== 404) throw error;
+						}
+					}
 					return true;
 				},
 				delete: async function () {
 					const staticData = this.getWorkflowStaticData('node');
-					if (!staticData.subscriptionId) return true;
+					const url = this.getNodeWebhookUrl('default');
+					const current = staticData.subscriptions && staticData.subscriptions[url];
+					if (!current) return true;
+					const credentials = await this.getCredentials('nexoApi');
 					try {
 						await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', {
-							method: 'DELETE', baseURL: `${DEFAULT_BASE_URL}/`,
-							url: `event-subscriptions/${encodeURIComponent(staticData.subscriptionId)}`,
+							method: 'DELETE', baseURL: `${credentials.baseUrl || DEFAULT_BASE_URL}/`,
+							url: `event-subscriptions/${encodeURIComponent(current.id)}`,
 							json: true, timeout: 30000,
 						});
+					} catch (error) {
+						if (error.statusCode !== 404 && error.response?.statusCode !== 404) throw error;
 					} finally {
-						delete staticData.subscriptionId;
+						delete staticData.subscriptions[url];
 					}
 					return true;
 				},
