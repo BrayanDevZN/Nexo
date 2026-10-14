@@ -115,7 +115,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           : reason === "owner" ? "Esta ação está disponível apenas para o Owner."
           : response.status === 403 ? "Você não tem acesso a esta ação."
           : messages[response.status] ||
-          (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : "Não foi possível concluir a ação.");
+          (path.includes("account/deletion") ? "Código de exclusão inválido ou expirado." : path.includes("register") ? "Código de cadastro inválido ou expirado." : path.includes("password") ? "Senha atual ou código inválido/expirado." : `Não foi possível concluir a ação (HTTP ${response.status}).`);
         throw new ApiError(response.status, message, reason);
       }
       if (response.status === 204) return undefined as T;
