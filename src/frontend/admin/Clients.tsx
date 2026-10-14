@@ -9,19 +9,12 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
+import { whatsappUrl } from "./contact";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 function Detail({ label, value, multiline = false }: { label: string; value: string | null | undefined; multiline?: boolean }) {
   return <div className={multiline ? "sm:col-span-2" : ""}><p className="text-xs font-medium text-muted-foreground">{label}</p><p className={"mt-1 text-sm " + (multiline ? "whitespace-pre-wrap break-words" : "break-words")}>{value?.trim() || "Não informado"}</p></div>;
-}
-
-function whatsappUrl(phone: string, name: string) {
-  const digits = phone.replace(/\D/g, "");
-  if (!digits) return "";
-  const normalized = digits.startsWith("55") || digits.length > 11 ? digits : `55${digits}`;
-  const text = encodeURIComponent(`Olá, ${name}! Aqui é da Nexo. Podemos conversar?`);
-  return `https://wa.me/${normalized}?text=${text}`;
 }
 
 type ClientDocument = { id: string; filename: string; size: number; client_id: string | null };
