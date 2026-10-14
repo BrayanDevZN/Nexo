@@ -1,4 +1,7 @@
+import logging
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 from backend.domain.roles import ADMINISTRATORS
 from backend.repository.cache.queries import snapshot
@@ -137,7 +140,6 @@ class AnnouncementService:
             try:
                 self.webhook_events.emit("teamAnnouncement", result)
             except Exception:
-                logger = __import__("logging").getLogger(__name__)
                 logger.warning("Announcement webhook event could not be queued", exc_info=True)
         return result
 
