@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextvars
 import json
 import os
 import re
@@ -20,6 +21,10 @@ BASE_URL = os.getenv("NEXO_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
 TIMEOUT_SECONDS = float(os.getenv("NEXO_TIMEOUT_SECONDS", "30"))
 MAX_FILE_BYTES = int(os.getenv("MCP_MAX_FILE_BYTES", str(10 * 1024 * 1024)))
 DEFAULT_API_KEY = os.getenv("NEXO_API_KEY", "").strip()
+
+_request_api_key: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "nexo_mcp_request_api_key", default=None
+)
 
 mcp = FastMCP(
     "Nexo",
@@ -45,11 +50,13 @@ CLIENT_FIELDS = {
 
 
 def _api_key() -> str:
-    if not DEFAULT_API_KEY:
+    key = _request_api_key.get() or DEFAULT_API_KEY
+    if not key:
         raise ValueError(
-            "NEXO_API_KEY is missing. Set it in the MCP server environment."
+            "No Nexo API key was provided. Send Authorization: Bearer <Nexo API key> "
+            "to the MCP server, or set NEXO_API_KEY for local stdio use."
         )
-    return DEFAULT_API_KEY
+    return key
 
 
 def _safe_segment(value: str) -> str:
@@ -491,8 +498,8 @@ async def nexo_announcement_create(title: str, body: str) -> Any:
     )
 
 
-class EnvironmentKeyMiddleware:
-    """Expose health and require a server-side Nexo key for HTTP access."""
+class BearerApiKeyMiddleware:
+    """Bind each HTTP MCP request to its caller's Nexo Bearer key."""
 
     def __init__(self, app: Any) -> None:
         self.app = app
@@ -517,24 +524,38 @@ class EnvironmentKeyMiddleware:
             await self.app(scope, receive, send)
             return
 
-        if not DEFAULT_API_KEY:
-            body = b'{"detail":"NEXO_API_KEY is not configured on the MCP server."}'
+        raw_headers = dict(scope.get("headers", []))
+        authorization = raw_headers.get(b"authorization", b"").decode(
+            "latin-1"
+        ).strip()
+        scheme, separator, token = authorization.partition(" ")
+        if not separator or scheme.lower() != "bearer" or not token.strip():
+            body = (
+                b'{"detail":"Send your Nexo API key in '
+                b'Authorization: Bearer <key>."}'
+            )
             await send(
                 {
                     "type": "http.response.start",
-                    "status": 503,
+                    "status": 401,
                     "headers": [
                         (b"content-type", b"application/json"),
                         (b"content-length", str(len(body)).encode("ascii")),
+                        (b"www-authenticate", b"Bearer"),
                     ],
                 }
             )
             await send({"type": "http.response.body", "body": body})
             return
-        await self.app(scope, receive, send)
+
+        context_token = _request_api_key.set(token.strip())
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            _request_api_key.reset(context_token)
 
 
-app = EnvironmentKeyMiddleware(mcp.streamable_http_app())
+app = BearerApiKeyMiddleware(mcp.streamable_http_app())
 
 
 def main() -> None:
