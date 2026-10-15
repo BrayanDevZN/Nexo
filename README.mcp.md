@@ -4,21 +4,20 @@ Python MCP server exposing the operations documented for Nexo API keys.
 
 ## Authentication
 
-The server reads `NEXO_API_KEY` from its own process environment and uses it
-for every Nexo API request. MCP clients do not need to read, store, or send the
-Nexo key. The key is never a tool argument. The Nexo API enforces the
-permissions of the configured key.
+For HTTP, each MCP client sends its own Nexo API key in the request header:
 
-All users of this server act with the same Nexo account and permissions. Keep
-the MCP endpoint behind authentication and expose it only to trusted users; an
-environment variable protects the key itself, but does not authenticate MCP
-callers.
+    Authorization: Bearer nexo_live_...
+
+The server forwards that key to Nexo. It does not store or log caller keys, and
+the key is never a tool argument. The Nexo API enforces the permissions for
+each caller's key. For local stdio only, set `NEXO_API_KEY` in the server
+process environment. Do not commit API keys to Git or bake them into the image.
 
 ChatGPT's custom MCP connector authenticates remote MCP connections with
-OAuth. This server does not implement OAuth, so connecting it to ChatGPT still
-needs an OAuth layer for MCP sign-in. That layer can restrict who reaches the
-server, while `NEXO_API_KEY` remains hidden from users. Those users will share
-the configured key's Nexo permissions.
+OAuth. This server does not implement OAuth or map OAuth accounts to Nexo
+keys. Connecting it to ChatGPT for multiple users requires an OAuth layer that
+securely associates each signed-in user with their own Nexo key and sends that
+key in the MCP Authorization header.
 
 ## Exposed operations
 
@@ -54,23 +53,21 @@ Install dependencies and start the local stdio transport:
     MCP_TRANSPORT=stdio python mcp_server.py
 
 For remote HTTP transport, connect a compatible MCP client to
-http://localhost:8000/mcp. The server uses its `NEXO_API_KEY` environment
-variable; the client does not send the Nexo API key. `/health` is an
-unauthenticated liveness endpoint.
+http://localhost:8000/mcp and configure the client's Authorization header
+with that caller's key. `/health` is an unauthenticated liveness endpoint.
 
 ## Build the container
 
 From the repository root:
 
     docker build -f Dockerfile.mcp -t nexo-mcp .
-    export NEXO_API_KEY='nexo_live_...'
-    docker run --rm -p 8000:8000 -e NEXO_API_KEY nexo-mcp
+    docker run --rm -p 8000:8000 nexo-mcp
 
 On Railway, select Dockerfile.mcp with the repository root as the build
-context. Railway supplies PORT. Add `NEXO_API_KEY` as a Railway service
-environment variable if the server should use one configured key. Configure
-NEXO_BASE_URL only when using a different Nexo API deployment. Never add API
-keys to the image, Dockerfile, or Git.
+context. Railway supplies PORT. In HTTP mode, callers provide their own key in
+the Authorization header; do not configure one shared NEXO_API_KEY on a public
+multi-user server. Configure NEXO_BASE_URL only when using a different Nexo
+API deployment. Never add API keys to the image, Dockerfile, or Git.
 
 ## Configuration
 
@@ -79,6 +76,6 @@ keys to the image, Dockerfile, or Git.
 | PORT | 8000 | HTTP listener port |
 | MCP_TRANSPORT | streamable-http | streamable-http or local stdio |
 | NEXO_BASE_URL | Production Nexo API URL | API base URL, without trailing slash |
-| NEXO_API_KEY | unset | Nexo API key used by the server for all requests |
+| NEXO_API_KEY | unset | Nexo API key for local stdio transport only |
 | NEXO_TIMEOUT_SECONDS | 30 | Outbound API timeout |
 | MCP_MAX_FILE_BYTES | 10485760 | Maximum decoded upload size |
