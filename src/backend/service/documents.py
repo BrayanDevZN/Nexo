@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from backend.domain.documents import validate_document
 from backend.domain.roles import SALES
@@ -13,6 +14,8 @@ class DocumentService:
     def __init__(self, repositories, cached_repositories, storage, max_bytes):
         self.repositories, self.cached_repositories = repositories, cached_repositories
         self.storage, self.max_bytes = storage, max_bytes
+        self.messages = None
+        self.push = None
 
     def list(self, actor, **filters):
         with self.cached_repositories.read_transaction() as repos:
@@ -33,17 +36,47 @@ class DocumentService:
             authorize_role(repos, actor, SALES, read=True)
         filename = validate_document(filename, data, self.max_bytes)
         key = self.storage.write(data)
+        notice = None
         try:
             with self.repositories.transaction() as repos:
                 user = authorize_role(repos, actor, SALES)
-                if client_id and repos.clients.get(client_id) is None:
+                client = repos.clients.get(client_id) if client_id else None
+                if client_id and client is None:
                     raise ResourceNotFound("Client not found")
                 row = repos.documents.create(filename=filename, storage_key=key,
                                              content=data, size=len(data), created_by_id=user.id, client_id=client_id)
-                return {**snapshot("documents", row), "created_by_name": user.name}
+                title = "Novo documento salvo"
+                body = (f"{filename} foi salvo para o cliente {client.name}."
+                        if client else f"{filename} foi salvo na biblioteca de documentos.")
+                recipients = repos.users.approved_recipients()
+                repos.notifications.create_announcements(
+                    announcement_id=str(uuid4()),
+                    recipient_ids=[member.id for member in recipients],
+                    creator_id=user.id,
+                    title=title,
+                    body=body,
+                )
+                notice = (recipients, title, body)
+                result = {**snapshot("documents", row), "created_by_name": user.name}
         except BaseException:
             self.cleanup(key)
             raise
+        if notice:
+            self._deliver_team_notice(*notice)
+        return result
+
+    def _deliver_team_notice(self, recipients, title, body):
+        if self.messages:
+            for member in recipients:
+                try:
+                    self.messages.announcement(member, title, body)
+                except Exception:
+                    logger.warning("Document notice email could not be queued", exc_info=True)
+        if self.push:
+            try:
+                self.push.notify_users([member.id for member in recipients], title, body)
+            except Exception:
+                logger.warning("Document notice push could not be delivered", exc_info=True)
 
     def download(self, actor, identifier):
         with self.repositories.read_transaction() as repos:
