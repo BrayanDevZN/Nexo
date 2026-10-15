@@ -1,4 +1,4 @@
-"""Nexo API MCP server using NEXO_API_KEY from the process environment."""
+"""Nexo MCP server: HTTP callers pass their key; stdio can use NEXO_API_KEY."""
 
 from __future__ import annotations
 
