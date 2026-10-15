@@ -1,9 +1,8 @@
 """Nexo API MCP server.
 
-The caller supplies its own Nexo API key as an HTTP Bearer token. The server
-forwards that token to the Nexo API, which remains responsible for permission
-checks. For local stdio use, NEXO_API_KEY may be supplied through the process
-environment instead.
+HTTP callers can supply their own Nexo API key as a Bearer token. If no
+Authorization header is sent, the server uses NEXO_API_KEY from its process
+environment. For local stdio, NEXO_API_KEY is also used directly.
 """
 
 from __future__ import annotations
@@ -60,7 +59,7 @@ def _api_key() -> str:
     if not key:
         raise ValueError(
             "No Nexo API key was provided. Send Authorization: Bearer <Nexo API key> "
-            "to the MCP server, or set NEXO_API_KEY for local stdio use."
+            "to the MCP server, or set NEXO_API_KEY in the server environment."
         )
     return key
 
@@ -535,10 +534,14 @@ class BearerApiKeyMiddleware:
             "latin-1"
         ).strip()
         scheme, separator, token = authorization.partition(" ")
-        if not separator or scheme.lower() != "bearer" or not token.strip():
+        invalid_bearer = bool(authorization) and (
+            not separator or scheme.lower() != "bearer" or not token.strip()
+        )
+        missing_auth = not authorization and not DEFAULT_API_KEY
+        if invalid_bearer or missing_auth:
             body = (
                 b'{"detail":"Send your Nexo API key in '
-                b'Authorization: Bearer <key>."}'
+                b'Authorization: Bearer <key>, or configure NEXO_API_KEY."}'
             )
             await send(
                 {
@@ -554,7 +557,9 @@ class BearerApiKeyMiddleware:
             await send({"type": "http.response.body", "body": body})
             return
 
-        context_token = _request_api_key.set(token.strip())
+        # An explicit caller key takes precedence. When the header is omitted,
+        # _api_key() falls back to NEXO_API_KEY from the process environment.
+        context_token = _request_api_key.set(token.strip() if authorization else None)
         try:
             await self.app(scope, receive, send)
         finally:
