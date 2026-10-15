@@ -4,28 +4,21 @@ Python MCP server exposing the operations documented for Nexo API keys.
 
 ## Authentication
 
-For remote Streamable HTTP clients, each caller sends their own Nexo API key in
-the MCP request header:
+The server reads `NEXO_API_KEY` from its own process environment and uses it
+for every Nexo API request. MCP clients do not need to read, store, or send the
+Nexo key. The key is never a tool argument. The Nexo API enforces the
+permissions of the configured key.
 
-    Authorization: Bearer nexo_live_...
+All users of this server act with the same Nexo account and permissions. Keep
+the MCP endpoint behind authentication and expose it only to trusted users; an
+environment variable protects the key itself, but does not authenticate MCP
+callers.
 
-The server forwards that same key to the Nexo API. It does not store or log
-remote users' keys. The Nexo API remains responsible for deciding which
-operations each key may perform. Do not pass API keys as tool arguments.
-
-Set `NEXO_API_KEY` in the MCP server's process environment to use one key for
-stdio or HTTP requests that omit the Authorization header. An explicit Bearer
-key on an HTTP request takes precedence over the environment key. A shared
-environment key means every caller without a Bearer header uses the same Nexo
-account and permissions; use per-caller Bearer keys for a multi-user server.
-
-ChatGPT's custom MCP connector currently authenticates remote MCP connections
-with OAuth and does not send caller-supplied API keys. This server's direct
-Bearer-key mode works with MCP clients that can attach an Authorization
-header. Connecting it to ChatGPT for multiple Nexo users needs an OAuth
-account-linking layer that securely associates each OAuth account with that
-user's Nexo key; do not put the key in a tool argument or hardcode it in the
-plugin.
+ChatGPT's custom MCP connector authenticates remote MCP connections with
+OAuth. This server does not implement OAuth, so connecting it to ChatGPT still
+needs an OAuth layer for MCP sign-in. That layer can restrict who reaches the
+server, while `NEXO_API_KEY` remains hidden from users. Those users will share
+the configured key's Nexo permissions.
 
 ## Exposed operations
 
@@ -61,9 +54,9 @@ Install dependencies and start the local stdio transport:
     MCP_TRANSPORT=stdio python mcp_server.py
 
 For remote HTTP transport, connect a compatible MCP client to
-http://localhost:8000/mcp. Configure its Authorization header with the
-caller's own Nexo API key, or set `NEXO_API_KEY` in the server environment and
-omit the header. `/health` is an unauthenticated liveness endpoint.
+http://localhost:8000/mcp. The server uses its `NEXO_API_KEY` environment
+variable; the client does not send the Nexo API key. `/health` is an
+unauthenticated liveness endpoint.
 
 ## Build the container
 
@@ -86,6 +79,6 @@ keys to the image, Dockerfile, or Git.
 | PORT | 8000 | HTTP listener port |
 | MCP_TRANSPORT | streamable-http | streamable-http or local stdio |
 | NEXO_BASE_URL | Production Nexo API URL | API base URL, without trailing slash |
-| NEXO_API_KEY | unset | Default key for stdio and HTTP calls without an Authorization header |
+| NEXO_API_KEY | unset | Nexo API key used by the server for all requests |
 | NEXO_TIMEOUT_SECONDS | 30 | Outbound API timeout |
 | MCP_MAX_FILE_BYTES | 10485760 | Maximum decoded upload size |
