@@ -1,15 +1,9 @@
-"""Nexo API MCP server.
-
-HTTP callers can supply their own Nexo API key as a Bearer token. If no
-Authorization header is sent, the server uses NEXO_API_KEY from its process
-environment. For local stdio, NEXO_API_KEY is also used directly.
-"""
+"""Nexo API MCP server using NEXO_API_KEY from the process environment."""
 
 from __future__ import annotations
 
 import base64
 import binascii
-import contextvars
 import json
 import os
 import re
@@ -26,10 +20,6 @@ BASE_URL = os.getenv("NEXO_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
 TIMEOUT_SECONDS = float(os.getenv("NEXO_TIMEOUT_SECONDS", "30"))
 MAX_FILE_BYTES = int(os.getenv("MCP_MAX_FILE_BYTES", str(10 * 1024 * 1024)))
 DEFAULT_API_KEY = os.getenv("NEXO_API_KEY", "").strip()
-
-_request_api_key: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "nexo_mcp_request_api_key", default=None
-)
 
 mcp = FastMCP(
     "Nexo",
@@ -55,13 +45,11 @@ CLIENT_FIELDS = {
 
 
 def _api_key() -> str:
-    key = _request_api_key.get() or DEFAULT_API_KEY
-    if not key:
+    if not DEFAULT_API_KEY:
         raise ValueError(
-            "No Nexo API key was provided. Send Authorization: Bearer <Nexo API key> "
-            "to the MCP server, or set NEXO_API_KEY in the server environment."
+            "NEXO_API_KEY is missing. Set it in the MCP server environment."
         )
-    return key
+    return DEFAULT_API_KEY
 
 
 def _safe_segment(value: str) -> str:
@@ -503,8 +491,8 @@ async def nexo_announcement_create(title: str, body: str) -> Any:
     )
 
 
-class BearerApiKeyMiddleware:
-    """Bind each HTTP MCP request to the caller's own Nexo Bearer key."""
+class EnvironmentKeyMiddleware:
+    """Expose health and require a server-side Nexo key for HTTP access."""
 
     def __init__(self, app: Any) -> None:
         self.app = app
@@ -529,44 +517,24 @@ class BearerApiKeyMiddleware:
             await self.app(scope, receive, send)
             return
 
-        raw_headers = dict(scope.get("headers", []))
-        authorization = raw_headers.get(b"authorization", b"").decode(
-            "latin-1"
-        ).strip()
-        scheme, separator, token = authorization.partition(" ")
-        invalid_bearer = bool(authorization) and (
-            not separator or scheme.lower() != "bearer" or not token.strip()
-        )
-        missing_auth = not authorization and not DEFAULT_API_KEY
-        if invalid_bearer or missing_auth:
-            body = (
-                b'{"detail":"Send your Nexo API key in '
-                b'Authorization: Bearer <key>, or configure NEXO_API_KEY."}'
-            )
+        if not DEFAULT_API_KEY:
+            body = b'{"detail":"NEXO_API_KEY is not configured on the MCP server."}'
             await send(
                 {
                     "type": "http.response.start",
-                    "status": 401,
+                    "status": 503,
                     "headers": [
                         (b"content-type", b"application/json"),
                         (b"content-length", str(len(body)).encode("ascii")),
-                        (b"www-authenticate", b"Bearer"),
                     ],
                 }
             )
             await send({"type": "http.response.body", "body": body})
             return
-
-        # An explicit caller key takes precedence. When the header is omitted,
-        # _api_key() falls back to NEXO_API_KEY from the process environment.
-        context_token = _request_api_key.set(token.strip() if authorization else None)
-        try:
-            await self.app(scope, receive, send)
-        finally:
-            _request_api_key.reset(context_token)
+        await self.app(scope, receive, send)
 
 
-app = BearerApiKeyMiddleware(mcp.streamable_http_app())
+app = EnvironmentKeyMiddleware(mcp.streamable_http_app())
 
 
 def main() -> None:
