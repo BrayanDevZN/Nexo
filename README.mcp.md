@@ -13,9 +13,11 @@ The server forwards that same key to the Nexo API. It does not store or log
 remote users' keys. The Nexo API remains responsible for deciding which
 operations each key may perform. Do not pass API keys as tool arguments.
 
-For local stdio use only, set NEXO_API_KEY in the MCP client's process
-environment. Do not set one shared NEXO_API_KEY on a public multi-user
-deployment.
+Set `NEXO_API_KEY` in the MCP server's process environment to use one key for
+stdio or HTTP requests that omit the Authorization header. An explicit Bearer
+key on an HTTP request takes precedence over the environment key. A shared
+environment key means every caller without a Bearer header uses the same Nexo
+account and permissions; use per-caller Bearer keys for a multi-user server.
 
 ChatGPT's custom MCP connector currently authenticates remote MCP connections
 with OAuth and does not send caller-supplied API keys. This server's direct
@@ -59,21 +61,23 @@ Install dependencies and start the local stdio transport:
     MCP_TRANSPORT=stdio python mcp_server.py
 
 For remote HTTP transport, connect a compatible MCP client to
-http://localhost:8000/mcp and configure its Authorization header with the
-caller's own Nexo API key. /health is an unauthenticated liveness endpoint.
-The service does not need a shared Nexo API key in HTTP mode.
+http://localhost:8000/mcp. Configure its Authorization header with the
+caller's own Nexo API key, or set `NEXO_API_KEY` in the server environment and
+omit the header. `/health` is an unauthenticated liveness endpoint.
 
 ## Build the container
 
 From the repository root:
 
     docker build -f Dockerfile.mcp -t nexo-mcp .
-    docker run --rm -p 8000:8000 nexo-mcp
+    export NEXO_API_KEY='nexo_live_...'
+    docker run --rm -p 8000:8000 -e NEXO_API_KEY nexo-mcp
 
 On Railway, select Dockerfile.mcp with the repository root as the build
-context. Railway supplies PORT. Configure NEXO_BASE_URL only when using a
-different Nexo API deployment. Never add API keys to the image, Dockerfile,
-repository variables, or Git.
+context. Railway supplies PORT. Add `NEXO_API_KEY` as a Railway service
+environment variable if the server should use one configured key. Configure
+NEXO_BASE_URL only when using a different Nexo API deployment. Never add API
+keys to the image, Dockerfile, or Git.
 
 ## Configuration
 
@@ -82,6 +86,6 @@ repository variables, or Git.
 | PORT | 8000 | HTTP listener port |
 | MCP_TRANSPORT | streamable-http | streamable-http or local stdio |
 | NEXO_BASE_URL | Production Nexo API URL | API base URL, without trailing slash |
-| NEXO_API_KEY | unset | Local stdio key only |
+| NEXO_API_KEY | unset | Default key for stdio and HTTP calls without an Authorization header |
 | NEXO_TIMEOUT_SECONDS | 30 | Outbound API timeout |
 | MCP_MAX_FILE_BYTES | 10485760 | Maximum decoded upload size |
