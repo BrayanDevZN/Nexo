@@ -57,7 +57,9 @@ addField('Recurso', 'resource', 'options', 'clients', { options: resourceOptions
 addField('Operação', 'operation', 'options', 'getMany', { options: [{ name: 'Selecione uma operação', value: '__select' }], noDataExpression: true, displayOptions: { show: { resource: Object.keys(operationOptions) } }, typeOptions: { loadOptionsMethod: 'getOperations', loadOptionsDependsOn: ['resource'] } });
 function add(displayName, name, type, defaultValue, resource, operations, extra = {}) { addField(displayName, name, type, defaultValue, { displayOptions: { show: { resource: [resource], operation: operations } }, ...extra }); }
 
-add('ID do cliente', 'identifier', 'string', '', 'clients', ['get', 'delete'], { required: true });
+add('ID do cliente', 'identifier', 'string', '', 'clients', ['get'], { required: true });
+add('Excluir cliente por', 'deleteLookupBy', 'options', 'id', 'clients', ['delete'], { required: true, options: [{ name: 'ID', value: 'id' }, { name: 'Nome', value: 'name' }] });
+add('ID ou nome do cliente', 'deleteLookupValue', 'string', '', 'clients', ['delete'], { required: true, description: 'Valor usado para localizar o cliente antes da exclusão.' });
 add('Buscar cliente por', 'updateLookupBy', 'options', 'id', 'clients', ['update'], { required: true, options: [{ name: 'ID', value: 'id' }, { name: 'Nome', value: 'name' }, { name: 'Número de telefone', value: 'phone' }] });
 add('ID, nome ou número do cliente', 'updateLookupValue', 'string', '', 'clients', ['update'], { required: true, description: 'Valor usado para localizar o cliente antes da atualização.' });
 add('Nome', 'name', 'string', '', 'clients', ['create', 'update']);
@@ -104,7 +106,23 @@ class Nexo {
 					}
 					body = {}; for (const [field, apiField] of [['name','name'],['niche','niche'],['phone','phone'],['email','email'],['pipelineStage','pipeline_stage'],['contractValue','contract_value'],['notes','notes'],['nextFollowUp','next_follow_up'],['pain','pain'],['approach','approach']]) { const value = this.getNodeParameter(field, i, undefined); if (value !== undefined && value !== null && value !== '') body[apiField] = value; }
 					const contractClosed = this.getNodeParameter('contractClosed', i, 'unchanged'); if (contractClosed !== 'unchanged') body.contract_closed = contractClosed === 'true'; else if (operation === 'create') body.contract_closed = false; if (operation === 'create' && !body.pipeline_stage) body.pipeline_stage = 'lead'; if (operation === 'create' && (!body.name || !body.niche)) throw new Error('Para criar um cliente, preencha Nome e Nicho.');
-				} else { method = 'DELETE'; path = `/clients/${encodedPath(identifier)}`; }
+				} else {
+					method = 'DELETE';
+					const lookupBy = this.getNodeParameter('deleteLookupBy', i, 'id');
+					const lookupValue = String(this.getNodeParameter('deleteLookupValue', i, identifier)).trim();
+					if (!lookupValue) throw new Error('Informe o ID ou nome do cliente para excluir.');
+					let targetId = lookupValue;
+					if (lookupBy === 'name') {
+						const lookupResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method: 'GET', baseURL: `${baseUrl}/`, url: 'clients', qs: { name: lookupValue, limit: 100, offset: 0 }, json: true, timeout: 30000 });
+						const clients = Array.isArray(lookupResponse) ? lookupResponse : (lookupResponse?.items || lookupResponse?.clients || []);
+						const matches = clients.filter((client) => String(client.name || '').trim().toLocaleLowerCase() === lookupValue.toLocaleLowerCase());
+						if (matches.length === 0) throw new Error('Nenhum cliente encontrado pelo nome informado.');
+						if (matches.length > 1) throw new Error('Mais de um cliente corresponde ao nome informado. Use o ID para evitar excluir o cliente errado.');
+						targetId = matches[0].id || matches[0].public_id;
+						if (!targetId) throw new Error('O cliente encontrado não possui um ID válido para exclusão.');
+					}
+					path = `/clients/${encodedPath(targetId)}`;
+				}
 			} else if (resource === 'automations') {
 				if (operation === 'getMany') { path = '/automations'; qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) }; }
 				else if (operation === 'get') path = `/automations/${encodedPath(this.getNodeParameter('identifier', i))}`;
