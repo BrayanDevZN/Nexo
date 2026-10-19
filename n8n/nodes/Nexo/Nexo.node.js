@@ -104,7 +104,7 @@ class Nexo {
 						}
 						path = `/clients/${encodedPath(targetId)}`;
 					}
-					body = {}; for (const [field, apiField] of [['name','name'],['niche','niche'],['phone','phone'],['email','email'],['pipelineStage','pipeline_stage'],['contractValue','contract_value'],['notes','notes'],['nextFollowUp','next_follow_up'],['pain','pain'],['approach','approach']]) { const value = this.getNodeParameter(field, i, undefined); if (value !== undefined && value !== null && value !== '') body[apiField] = value; }
+					body = {}; for (const [field, apiField] of [['name','name'],['niche','niche'],['phone','phone'],['email','email'],['pipelineStage','pipeline_stage'],['contractValue','contract_value'],['notes','notes'],['nextFollowUp','next_follow_up'],['pain','pain'],['approach','approach']]) { const value = this.getNodeParameter(field, i, undefined); if (value === undefined || value === null || value === '') continue; if (field === 'contractValue') { const numericValue = Number(value); if (!Number.isFinite(numericValue)) continue; body[apiField] = numericValue; } else body[apiField] = value; }
 					const contractClosed = this.getNodeParameter('contractClosed', i, 'unchanged'); if (contractClosed !== 'unchanged') body.contract_closed = contractClosed === 'true'; else if (operation === 'create') body.contract_closed = false; if (operation === 'create' && !body.pipeline_stage) body.pipeline_stage = 'lead'; if (operation === 'create' && (!body.name || !body.niche)) throw new Error('Para criar um cliente, preencha Nome e Nicho.');
 				} else {
 					method = 'DELETE';
