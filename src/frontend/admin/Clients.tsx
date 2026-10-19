@@ -8,6 +8,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { DocumentPreviewButton } from "./DocumentPreviewButton";
 import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { whatsappUrl } from "./contact";
 import { type DirectoryMember } from "./Directory";
@@ -185,7 +186,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Detail label="Possível dor do cliente" value={viewing.pain} multiline />
             <Detail label="Melhor forma de abordagem" value={viewing.approach} multiline />
             <Detail label="Observações" value={viewing.notes} multiline />
-            <div className="sm:col-span-2"><p className="text-xs font-medium text-muted-foreground">Documentos vinculados</p>{attachments.length ? <div className="mt-2 flex flex-wrap gap-2">{attachments.map(document => <Button key={document.id} variant="outline" size="sm" disabled={busy} onClick={() => void downloadAttachment(document)}><Download data-icon="inline-start" />{document.filename} ({Math.ceil(document.size / 1024)} KB)</Button>)}</div> : <p className="mt-1 text-sm">Nenhum documento anexado.</p>}</div>
+            <div className="sm:col-span-2"><p className="text-xs font-medium text-muted-foreground">Documentos vinculados</p>{attachments.length ? <div className="mt-2 flex flex-wrap gap-2">{attachments.map(document => <div key={document.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-2"><span className="max-w-64 break-all text-sm">{document.filename} ({Math.ceil(document.size / 1024)} KB)</span><DocumentPreviewButton api={api} item={document} size="sm" onError={setError} /><Button variant="outline" size="sm" disabled={busy} onClick={() => void downloadAttachment(document)} aria-label={`Baixar ${document.filename}`}><Download /></Button></div>)}</div> : <p className="mt-1 text-sm">Nenhum documento anexado.</p>}</div>
             <Detail label="Criado em" value={new Date(viewing.created_at).toLocaleString("pt-BR")} />
             <Detail label="Atualizado em" value={new Date(viewing.updated_at).toLocaleString("pt-BR")} />
           </CardContent><CardFooter><Button variant="outline" onClick={() => { setViewing(null); setEditor(viewing); }}>Editar cliente</Button></CardFooter></Card>}
