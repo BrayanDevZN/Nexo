@@ -51,6 +51,16 @@ test('client Get Many applies filters and returns each record as its own JSON it
 	assert.deepEqual(output[0], [{ json: client, pairedItem: { item: 0 } }]);
 });
 
+test('client update omits an empty contract value and sends valid numeric values', async () => {
+	const base = { resource: 'clients', operation: 'update', updateLookupBy: 'id', updateLookupValue: 'client-1' };
+	const emptyValue = await executeNexo({ ...base, contractValue: Number.NaN }, { id: 'client-1' });
+	assert.equal(emptyValue.request.method, 'PATCH');
+	assert.equal(Object.hasOwn(emptyValue.request.body, 'contract_value'), false);
+
+	const numericValue = await executeNexo({ ...base, contractValue: 1250.5 }, { id: 'client-1' });
+	assert.equal(numericValue.request.body.contract_value, 1250.5);
+});
+
 test('client search detects a UUID and can search a name', async () => {
 	const id = '82f0ae21-45a8-4df1-a420-75d4dd452b25';
 	const byId = await executeNexo({ resource: 'clients', operation: 'search', searchTerm: id, searchBy: 'auto' }, { id });
