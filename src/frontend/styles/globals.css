@@ -2639,3 +2639,93 @@ main,
   .admin-auth-card [data-slot="card-header"], .admin-auth-card [data-slot="card-content"], .admin-auth-card [data-slot="card-footer"] { padding-inline: 1.25rem; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-layout *, .admin-auth * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Layout and typography refinements. No color tokens are changed here. */
+html {
+  overflow-x: clip;
+}
+.section {
+  padding-block: clamp(72px, 9vw, 112px);
+}
+.section-heading {
+  margin-bottom: clamp(32px, 4vw, 44px);
+}
+p,
+.body-copy,
+.section-description,
+.about-lead {
+  text-wrap: pretty;
+}
+
+/* The hero glow spans the full viewport instead of ending in a visible seam at the content edge. */
+.hero:before {
+  inset-inline: auto;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+}
+
+/* Let card shadows breathe on the desktop grid instead of being cut by the carousel viewport. */
+@media (min-width: 768px) {
+  .solutions-carousel [data-slot="carousel-content"] {
+    overflow: visible;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+/* Readable microcopy: the smallest labels were 8-9px. */
+.hero-note > p {
+  font-size: 10px;
+}
+.hero-content > [data-slot="badge"] {
+  font-size: 10px;
+}
+.detail-label {
+  font-size: 10px;
+}
+.contact-note {
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+/* Calmer, more consistent interactive details. */
+[data-slot="accordion-trigger"] {
+  transition: opacity 0.2s ease;
+}
+[data-slot="accordion-trigger"] > svg {
+  transition: transform 0.25s ease;
+}
+[data-slot="accordion-trigger"]:hover {
+  opacity: 0.8;
+}
+.footer a {
+  text-underline-offset: 4px;
+}
+.footer a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.footer-top {
+  align-items: flex-start;
+}
+.contact-panel {
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .shell {
+    width: min(1200px, calc(100% - 40px));
+  }
+  .hero-actions > [data-slot="button"] {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .footer-top {
+    gap: 24px;
+  }
+  .footer-top nav {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+}
