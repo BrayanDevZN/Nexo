@@ -28,6 +28,8 @@ class GoogleConnection:
             "client_id": self.client_id, "redirect_uri": self.redirect_uri,
             "response_type": "code", "scope": "openid email profile", "state": state,
             "nonce": nonce, "code_challenge": challenge, "code_challenge_method": "S256",
+            # Without this Google silently reuses the browser's signed-in account.
+            "prompt": "select_account",
         })
 
     async def exchange(self, code, verifier, nonce):
