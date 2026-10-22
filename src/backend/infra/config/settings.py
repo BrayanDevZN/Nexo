@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     database_url: str = "sqlite:///./data/nexo.db"
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
+    qdrant_url: str | None = "https://qdrant-production-3e50f.up.railway.app"
+    qdrant_api_key: SecretStr | None = None
+    qdrant_timeout_seconds: float = Field(default=5, gt=0, le=30)
     admin_name: str = "Brayan"
     email: EmailStr | None = None
     password: SecretStr | None = None
@@ -67,7 +70,8 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, ge=1, le=65535)
 
     @field_validator("email", "resend_from", "password", "resend_key", "secret_email_n8n",
-                     "google_client_id", "google_client_secret", mode="before")
+                     "google_client_id", "google_client_secret", "qdrant_url", "qdrant_api_key",
+                     mode="before")
     @classmethod
     def empty_optional(cls, value):
         return None if value == "" else value
@@ -148,6 +152,14 @@ class Settings(BaseSettings):
     def http_url(cls, value: str):
         cls._http_address(value)
         return value.rstrip("/") if value.endswith("/") else value
+
+    @field_validator("qdrant_url")
+    @classmethod
+    def qdrant_address(cls, value: str | None):
+        if value is None:
+            return None
+        cls._http_address(value)
+        return value.rstrip("/")
 
     @field_validator("cors_origins")
     @classmethod

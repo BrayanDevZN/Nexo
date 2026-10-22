@@ -20,6 +20,7 @@ from backend.controller.handles.automations import router as automations_router
 from backend.controller.handles.chat import router as chat_router
 from backend.controller.handles.clients import router as clients_router
 from backend.controller.handles.dashboard import router as dashboard_router
+from backend.controller.handles.databases import router as databases_router
 from backend.controller.handles.documents import router as documents_router
 from backend.controller.handles.google import router as google_router
 from backend.controller.handles.health import router as health_router
@@ -72,7 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router,
                automation_requests_router, automations_router, documents_router, passwords_router, clients_router,
-               dashboard_router, profiles_router, push_router, webhook_events_router, google_router, users_router,
+               dashboard_router, databases_router, profiles_router, push_router, webhook_events_router, google_router, users_router,
                members_router, invitations_router, directory_router, notifications_router, announcements_router,
                member_notifications_router]
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]

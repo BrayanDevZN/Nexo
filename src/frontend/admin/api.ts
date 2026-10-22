@@ -83,6 +83,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           : detail === "Administrator access required" ? "admin"
           : detail === "Owner access required" ? "owner" : undefined;
         const messages: Record<number, string> = {
+          400: path.startsWith("/admin/databases") ? detail || "Consulta inválida." : "Confira os dados e tente novamente.",
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
           404: "Registro não encontrado.",

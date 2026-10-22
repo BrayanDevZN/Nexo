@@ -11,6 +11,7 @@ from backend.infra.connections.documents import DocumentStorage
 from backend.infra.connections.email import ResendConnection
 from backend.infra.connections.google import GoogleConnection
 from backend.infra.connections.photos import PhotoStorage
+from backend.infra.connections.qdrant import QdrantConnection
 from backend.infra.connections.realtime import RealtimeConnection
 from backend.infra.connections.redis import RedisConnection
 from backend.repository.cache.aside import CacheAside
@@ -32,6 +33,7 @@ from backend.service.automations import AutomationService
 from backend.service.chat import ChatService
 from backend.service.clients import ClientService
 from backend.service.dashboard import DashboardService
+from backend.service.databases import DatabaseAdminService
 from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
@@ -56,12 +58,15 @@ class RuntimeServices:
             self.redis = RedisConnection(settings)
             self._cleanup.callback(self.redis.close)
             database_namespace = hashlib.sha256(settings.database_url.encode()).hexdigest()[:16]
+            self.qdrant = QdrantConnection(settings)
+            self._cleanup.callback(self.qdrant.close)
             self.cache = CacheAside(self.redis.client, ttl=settings.cache_ttl_seconds,
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
             self.push = PushService(self.redis.client, settings)
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.api_keys = ApiKeyService(self.repositories)
+            self.database_admin = DatabaseAdminService(self.repositories, settings, self.redis.client, self.qdrant)
             self._cleanup.callback(self.api_keys.close)
             self.dashboard = DashboardService(self.repositories, self.cache)
             self.documents = DocumentService(self.repositories, self.cached_repositories,
