@@ -5,7 +5,6 @@ from backend.domain.roles import ADMINISTRATORS
 from backend.repository.cache.queries import snapshot
 from backend.service.access import ResourceNotFound, authorize, authorize_read
 
-
 logger = logging.getLogger(__name__)
 
 
