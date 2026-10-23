@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Bell, Database, BellOff, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Activity, Bell, Database, BellOff, MapPin, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +25,12 @@ import { Members } from "./Members";
 import { Profile } from "./Profile";
 import { ApiKeys } from "./ApiKeys";
 import { Databases } from "./Databases";
+import { Maps } from "./Maps";
 import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "automations";
+type Page = "home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -39,7 +40,7 @@ export default function AdminApp() {
   const canSell = user?.status === "approved" && hasSalesAccess(user.role);
   const canDevelop = user?.status === "approved" && hasDeveloperAccess(user.role);
   const isOwner = user?.status === "approved" && user.role === "owner";
-  const salesPages: Page[] = ["home", "business", "funnel", "clients", "documents"];
+  const salesPages: Page[] = ["home", "business", "funnel", "clients", "documents", "maps"];
   const page: Page = user?.status === "approved" && (
     (!canSell && salesPages.includes(selectedPage)) ||
     (!canDevelop && ["api-keys", "databases"].includes(selectedPage)) ||
@@ -156,6 +157,7 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "automations" ? "secondary" : "ghost"} onClick={() => navigate("automations")} aria-current={page === "automations" ? "page" : undefined}><Workflow data-icon="inline-start" /> Automações</Button>}
         {canSell && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {canSell && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
+        {canSell && <Button variant={page === "maps" ? "secondary" : "ghost"} onClick={() => navigate("maps")} aria-current={page === "maps" ? "page" : undefined}><MapPin data-icon="inline-start" /> Maps</Button>}
         {user.status === "approved" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
         {isOwner && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.notices > 0 && <Badge aria-label={`${unreadCounts.notices} avisos novos`}>{unreadCounts.notices}</Badge>}</Button>}
@@ -202,6 +204,7 @@ export default function AdminApp() {
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
+          page === "maps" && canSell ? <Maps api={api} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :
