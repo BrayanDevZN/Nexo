@@ -1,4 +1,6 @@
-from sqlalchemy import case, func, select, update
+from collections.abc import Sequence
+
+from sqlalchemy import case, func, or_, select, update
 
 from backend.domain.client_niches import validate_client_niche
 from backend.repository.db.control.base import Repository, pagination
@@ -11,7 +13,7 @@ class ClientRepository(Repository[Client]):
 
     def create(self, *, name: str, niche: str, created_by_id: str, identifier: str | None = None,
                contract_closed: bool = False, phone: str | None = None,
-               email: str | None = None, notes: str | None = None,
+               email: str | None = None, address: str | None = None, notes: str | None = None,
                pain: str | None = None, approach: str | None = None,
                contract_value=None, pipeline_stage: str = "lead",
                next_follow_up=None) -> Client:
@@ -25,7 +27,7 @@ class ClientRepository(Repository[Client]):
         row = Client(name=name.strip(), niche=niche.strip(),
                      created_by_id=created_by_id, contract_closed=contract_closed,
                      contract_closed_at=utc_now() if contract_closed else None,
-                     phone=phone, email=email, notes=notes, pain=pain, approach=approach,
+                     phone=phone, email=email, address=address, notes=notes, pain=pain, approach=approach,
                      contract_value=contract_value,
                      pipeline_stage=pipeline_stage, next_follow_up=next_follow_up)
         if identifier is not None:
@@ -50,9 +52,21 @@ class ClientRepository(Repository[Client]):
             query = query.where(Client.pipeline_stage == pipeline_stage)
         return list(self.session.scalars(query.limit(limit).offset(offset)))
 
+    def known_contacts(self, names: Sequence[str], phones: Sequence[str]) -> tuple[set[str], set[str]]:
+        """Return the lowercased names and the phones among the given ones that already exist."""
+        conditions = []
+        if names:
+            conditions.append(func.lower(Client.name).in_([name.lower() for name in names]))
+        if phones:
+            conditions.append(Client.phone.in_(phones))
+        if not conditions:
+            return set(), set()
+        rows = self.session.execute(select(Client.name, Client.phone).where(or_(*conditions))).all()
+        return {name.lower() for name, _ in rows}, {phone for _, phone in rows if phone}
+
     def update(self, client: Client, **changes) -> Client:
         allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value",
-                   "pipeline_stage", "next_follow_up", "notes", "pain", "approach"}
+                   "pipeline_stage", "next_follow_up", "address", "notes", "pain", "approach"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         was_closed = bool(client.contract_closed or client.pipeline_stage == "won")

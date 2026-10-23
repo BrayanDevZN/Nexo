@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Download, KeyRound, MapPin, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Download, ExternalLink, KeyRound, ListPlus, MapPin, Check, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { type createApi } from "./api";
+import { CLIENT_NICHES, type createApi } from "./api";
+import { mapsUrl } from "./contact";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 type MapsStatus = { configured: boolean; source: "panel" | "environment" | null; key_prefix: string | null; updated_at: string | null };
@@ -19,7 +20,7 @@ type Job = { id: string; name: string; status: string; created_at: string | null
 type Lead = {
   title: string | null; category: string | null; address: string | null; phone: string | null;
   website: string | null; emails: string | null; review_rating: number | null; review_count: number | null;
-  link: string | null;
+  link: string | null; latitude: number | null; longitude: number | null;
 };
 type Results = { rows: Lead[]; total: number; truncated: boolean };
 
@@ -40,6 +41,36 @@ const CITIES: { name: string; lat: string; lon: string }[] = [
   { name: "Manaus (AM)", lat: "-3.1190", lon: "-60.0217" },
   { name: "Belém (PA)", lat: "-1.4558", lon: "-48.4902" },
 ];
+// Termos de busca no Google Maps para cada nicho que a Nexo atende ("Outro" não tem busca própria).
+const NICHE_SEARCH: Record<string, string[]> = {
+  "Contabilidade": ["escritório de contabilidade", "contador"],
+  "Saúde": ["clínica médica", "clínica odontológica", "consultório"],
+  "Beleza e estética": ["salão de beleza", "clínica de estética", "barbearia"],
+  "Imobiliário": ["imobiliária", "corretor de imóveis"],
+  "Advocacia": ["escritório de advocacia", "advogado"],
+  "Educação": ["escola", "curso", "escola de idiomas"],
+  "Varejo": ["loja de roupas", "loja de calçados", "loja de presentes"],
+  "Comércio": ["loja", "papelaria", "mercado"],
+  "Alimentação": ["restaurante", "padaria", "lanchonete"],
+  "Tecnologia": ["empresa de tecnologia", "empresa de software", "assistência técnica"],
+  "Construção civil": ["construtora", "empreiteira", "material de construção"],
+  "Indústria": ["indústria", "fábrica"],
+  "Logística": ["transportadora", "empresa de logística"],
+  "Serviços profissionais": ["consultoria", "empresa de serviços"],
+  "Marketing e publicidade": ["agência de marketing", "agência de publicidade"],
+  "Automotivo": ["oficina mecânica", "concessionária", "autopeças"],
+};
+const NICHES = CLIENT_NICHES.filter(niche => NICHE_SEARCH[niche]);
+const LIMITS = [10, 20, 50, 100, 200];
+const JOB_META_KEY = "nexo-maps-job-meta";
+type JobMeta = { niche?: string; limit?: number };
+const readJobMeta = (): Record<string, JobMeta> => {
+  try { return JSON.parse(localStorage.getItem(JOB_META_KEY) || "{}") as Record<string, JobMeta>; } catch { return {}; }
+};
+const saveJobMeta = (id: string, meta: JobMeta) => {
+  try { localStorage.setItem(JOB_META_KEY, JSON.stringify({ ...readJobMeta(), [id]: meta })); } catch { /* sem armazenamento: usa os padrões */ }
+};
+const leadKey = (lead: Lead) => `${lead.link ?? ""}|${lead.title ?? ""}|${lead.address ?? ""}`;
 const DEPTHS = [
   { value: 1, label: "Rápida: poucos resultados" },
   { value: 3, label: "Normal" },
@@ -84,8 +115,12 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [adding, setAdding] = useState<string | null>(null);
+  const [leadNiche, setLeadNiche] = useState<string>(NICHES[0]);
+  const [resultLimit, setResultLimit] = useState(0);
   const [form, setForm] = useState({
-    name: "", keywords: "", city: CITIES[0].name, lat: CITIES[0].lat, lon: CITIES[0].lon, radius: "5000",
+    name: "", niche: NICHES[0] as string, limit: 20, city: CITIES[0].name, lat: CITIES[0].lat, lon: CITIES[0].lon, radius: "5000",
     depth: 3, lang: "pt", duration: 300, email: false, fast: false,
   });
 
@@ -110,7 +145,10 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
   const selected = jobs?.find(job => job.id === selectedId);
   const selectedStatus = selected?.status;
   useEffect(() => {
-    setResults(undefined); setFilter(""); setOnlyPhone(false);
+    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set());
+    const meta = readJobMeta()[selectedId];
+    setResultLimit(meta?.limit ?? 0);
+    if (meta?.niche && NICHES.some(niche => niche === meta.niche)) setLeadNiche(meta.niche);
     if (!selectedId || selectedStatus !== "ok") return;
     let active = true;
     setResultsLoading(true);
@@ -123,10 +161,12 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
 
   const visible = useMemo(() => {
     const term = filter.trim().toLowerCase();
-    return (results?.rows ?? []).filter(row =>
+    const matching = (results?.rows ?? []).filter(row =>
       (!onlyPhone || row.phone) &&
       (!term || [row.title, row.category, row.address, row.phone, row.website, row.emails].some(value => value?.toLowerCase().includes(term))));
-  }, [results, filter, onlyPhone]);
+    return resultLimit > 0 ? matching.slice(0, resultLimit) : matching;
+  }, [results, filter, onlyPhone, resultLimit]);
+  const pending = visible.filter(row => row.title && !added.has(leadKey(row)));
 
   function pickCity(name: string) {
     const city = CITIES.find(item => item.name === name);
@@ -135,10 +175,10 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
-    const keywords = form.keywords.split(",").map(item => item.trim()).filter(Boolean);
+    const keywords = NICHE_SEARCH[form.niche] ?? [];
     const lat = Number(form.lat), lon = Number(form.lon), radius = Number(form.radius);
     setError(""); setSuccess("");
-    if (!keywords.length) { setError("Informe o que você quer buscar, por exemplo: padaria."); return; }
+    if (!keywords.length) { setError("Escolha um nicho para buscar."); return; }
     if (!form.lat.trim() || !form.lon.trim() || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
       setError("Confira a latitude (-90 a 90) e a longitude (-180 a 180)."); return;
     }
@@ -146,10 +186,12 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
     setBusy(true);
     try {
       const created = await api.mutate<{ id: string }>("/maps/jobs", "POST", {
-        name: form.name.trim() || `${keywords[0]} · ${form.city || "local personalizado"}`.slice(0, 80),
+        name: form.name.trim() || `${form.niche} · ${form.city || "local personalizado"}`.slice(0, 80),
         keywords, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
         email: form.email, fast_mode: form.fast,
       });
+      saveJobMeta(created.id, { niche: form.niche, limit: form.limit });
+      setLeadNiche(form.niche);
       setSuccess("Busca iniciada. Os resultados aparecem aqui quando ela terminar.");
       await load();
       setSelectedId(created.id);
@@ -187,6 +229,23 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
       await load();
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
+  }
+  async function addToFunnel(leads: Lead[], busyKey: string) {
+    if (adding || !leads.length) return;
+    setAdding(busyKey); setError(""); setSuccess("");
+    try {
+      let created = 0, skipped = 0;
+      const done = new Set(added);
+      for (let start = 0; start < leads.length; start += 200) {
+        const chunk = leads.slice(start, start + 200);
+        const result = await api.mutate<{ created: number; skipped: number; items: string[] }>("/maps/funnel", "POST", { niche: leadNiche, leads: chunk });
+        created += result.created; skipped += result.skipped;
+        chunk.forEach(lead => done.add(leadKey(lead)));
+        setAdded(new Set(done));
+      }
+      setSuccess(`${created} lead(s) adicionados ao funil${skipped ? `; ${skipped} já estavam cadastrados` : ""}.`);
+    } catch (e) { setError(message(e)); }
+    finally { setAdding(null); }
   }
   function download() {
     const url = URL.createObjectURL(csvFile(visible));
@@ -231,14 +290,24 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
     </Card>
 
     {status?.configured && <div className="grid gap-5 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+      <div className="flex flex-col gap-5">
+      <Card>
+        <CardHeader><CardTitle>Nichos da Nexo</CardTitle>
+          <CardDescription>Escolha o nicho que você quer prospectar. A busca já usa os termos certos para ele.</CardDescription></CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Nichos disponíveis">
+            {NICHES.map(niche => <Button key={niche} type="button" size="sm" variant={form.niche === niche ? "default" : "outline"}
+              aria-pressed={form.niche === niche} onClick={() => setForm({ ...form, niche })}>{niche}</Button>)}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Vai buscar por: {(NICHE_SEARCH[form.niche] ?? []).join(", ")}.</p>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader><CardTitle>Nova busca</CardTitle>
           <CardDescription>Buscas grandes levam alguns minutos e consomem recursos do servidor. Comece pela profundidade normal.</CardDescription></CardHeader>
         <CardContent>
           <form onSubmit={event => void submit(event)} className="flex flex-col gap-4">
             <FieldGroup>
-              <TextField label="O que buscar" placeholder="padaria, confeitaria" value={form.keywords} maxLength={300}
-                onChange={event => setForm({ ...form, keywords: event.target.value })} help="Separe vários termos com vírgula." />
               <Field>
                 <FieldLabel htmlFor="maps-city">Cidade</FieldLabel>
                 <NativeSelect id="maps-city" value={form.city} onChange={event => pickCity(event.target.value)}>
@@ -251,6 +320,13 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
                 <TextField label="Longitude" inputMode="decimal" value={form.lon} onChange={event => setForm({ ...form, lon: event.target.value, city: "" })} />
                 <TextField label="Raio (m)" inputMode="numeric" value={form.radius} onChange={event => setForm({ ...form, radius: event.target.value })} />
               </div>
+              <Field>
+                <FieldLabel htmlFor="maps-limit">Limite de clientes</FieldLabel>
+                <NativeSelect id="maps-limit" value={String(form.limit)} onChange={event => setForm({ ...form, limit: Number(event.target.value) })}>
+                  {LIMITS.map(item => <NativeSelectOption key={item} value={String(item)}>{item} clientes</NativeSelectOption>)}
+                </NativeSelect>
+                <FieldDescription>Quantas empresas mostrar e poder adicionar ao funil desta busca.</FieldDescription>
+              </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="maps-depth">Profundidade</FieldLabel>
@@ -290,6 +366,7 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
           </form>
         </CardContent>
       </Card>
+      </div>
 
       <Card>
         <CardHeader><CardTitle>Buscas</CardTitle>
@@ -330,11 +407,31 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
             <Field orientation="horizontal" className="w-auto"><Switch id="maps-phone" checked={onlyPhone} onCheckedChange={setOnlyPhone} /><FieldLabel htmlFor="maps-phone">Só com telefone</FieldLabel></Field>
             <Button variant="outline" disabled={!visible.length} onClick={download}><Download data-icon="inline-start" /> Baixar CSV ({visible.length})</Button>
           </div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <Field className="w-auto">
+                <FieldLabel htmlFor="maps-lead-niche">Nicho dos leads no funil</FieldLabel>
+                <NativeSelect id="maps-lead-niche" value={leadNiche} onChange={event => setLeadNiche(event.target.value)}>
+                  {NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}
+                </NativeSelect>
+              </Field>
+              <Field className="w-auto">
+                <FieldLabel htmlFor="maps-result-limit">Mostrar</FieldLabel>
+                <NativeSelect id="maps-result-limit" value={String(resultLimit)} onChange={event => setResultLimit(Number(event.target.value))}>
+                  <NativeSelectOption value="0">Todos</NativeSelectOption>
+                  {LIMITS.map(item => <NativeSelectOption key={item} value={String(item)}>{item} clientes</NativeSelectOption>)}
+                </NativeSelect>
+              </Field>
+            </div>
+            <Button disabled={adding !== null || pending.length === 0} onClick={() => void addToFunnel(pending, "all")}>
+              {adding === "all" ? <Busy>Adicionando…</Busy> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
+            </Button>
+          </div>
           {visible.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nada encontrado</EmptyTitle>
             <EmptyDescription>Nenhuma empresa corresponde aos filtros atuais.</EmptyDescription></EmptyHeader></Empty> :
             <div className="max-h-[32rem] overflow-auto rounded-md border">
               <Table>
-                <TableHeader><TableRow><TableHead>Empresa</TableHead><TableHead>Contato</TableHead><TableHead>Nota</TableHead><TableHead>Endereço</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Empresa</TableHead><TableHead>Contato</TableHead><TableHead>Nota</TableHead><TableHead>Endereço</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
                 <TableBody>{visible.map((row, index) => <TableRow key={`${row.link ?? row.title}-${index}`}>
                   <TableCell className="max-w-64 whitespace-normal"><p className="font-medium">{row.link ? <a className="underline-offset-4 hover:underline" href={row.link} target="_blank" rel="noopener noreferrer">{row.title || "Sem nome"}</a> : row.title || "Sem nome"}</p>
                     {row.category && <p className="text-xs text-muted-foreground">{row.category}</p>}</TableCell>
@@ -346,6 +443,18 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">{row.review_rating !== null ? <>{row.review_rating.toFixed(1)} <span className="text-muted-foreground">({row.review_count ?? 0})</span></> : "—"}</TableCell>
                   <TableCell className="max-w-72 whitespace-normal text-sm text-muted-foreground">{row.address || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const url = mapsUrl({ latitude: row.latitude, longitude: row.longitude, query: [row.title, row.address].filter(Boolean).join(" ") });
+                        return url ? <Button asChild size="sm" variant="outline"><a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Ver ${row.title || "empresa"} no mapa`}><ExternalLink data-icon="inline-start" /> Ver no mapa</a></Button> : null;
+                      })()}
+                      {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> No funil</Button>
+                        : <Button size="sm" disabled={adding !== null || !row.title} onClick={() => void addToFunnel([row], leadKey(row))} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
+                          {adding === leadKey(row) ? <Busy>Salvando…</Busy> : <><ListPlus data-icon="inline-start" /> Adicionar ao funil</>}
+                        </Button>}
+                    </div>
+                  </TableCell>
                 </TableRow>)}</TableBody>
               </Table>
             </div>}

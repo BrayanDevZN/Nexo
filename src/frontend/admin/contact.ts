@@ -5,3 +5,9 @@ export function whatsappUrl(phone: string, name: string) {
   const text = encodeURIComponent(`Olá, ${name}! Aqui é da Nexo. Podemos conversar?`);
   return `https://wa.me/${normalized}?text=${text}`;
 }
+
+/** Google Maps link: by coordinates when known, otherwise by the name and address text. */
+export function mapsUrl({ latitude, longitude, query }: { latitude?: number | null; longitude?: number | null; query?: string | null }) {
+  const place = latitude != null && longitude != null ? `${latitude},${longitude}` : query?.trim();
+  return place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}` : "";
+}

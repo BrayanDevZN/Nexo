@@ -1,12 +1,48 @@
 import logging
+import re
 from uuid import uuid4
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from backend.domain.roles import SALES
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize_role
 
 logger = logging.getLogger(__name__)
+_EMAIL = TypeAdapter(EmailStr)
+
+
+def _lead_phone(value):
+    """Normalize a phone read from Google Maps; numbers without a country code are Brazilian."""
+    if not value:
+        return None
+    digits = re.sub(r"\D", "", value)
+    if not value.strip().startswith("+") and len(digits) in (10, 11):
+        digits = "55" + digits
+    return "+" + digits if 10 <= len(digits) <= 15 else None
+
+
+def _lead_email(value):
+    for candidate in re.split(r"[,;\s]+", value or ""):
+        try:
+            return _EMAIL.validate_python(candidate)
+        except ValidationError:
+            continue
+    return None
+
+
+def _lead_notes(lead):
+    rating = lead.get("review_rating")
+    lines = [
+        "Origem: Google Maps",
+        f"Categoria no Maps: {lead['category']}" if lead.get("category") else None,
+        f"Site: {lead['website']}" if lead.get("website") else None,
+        f"Nota: {rating:.1f} ({lead.get('review_count') or 0} avaliações)" if rating is not None else None,
+        f"Google Maps: {lead['link']}" if lead.get("link") else None,
+        f"Coordenadas: {lead['latitude']}, {lead['longitude']}"
+        if lead.get("latitude") is not None and lead.get("longitude") is not None else None,
+    ]
+    return "\n".join(line for line in lines if line)[:10000]
 
 
 class ClientService:
@@ -116,6 +152,41 @@ class ClientService:
         if row.contract_closed or row.pipeline_stage == "won":
             self._emit("closedContract", row)
         return row
+
+    def import_leads(self, actor, niche, leads):
+        """Save Google Maps leads as funnel clients, skipping ones already registered by name or phone."""
+        prepared = [(lead, _lead_phone(lead.get("phone"))) for lead in leads]
+        notices = []
+        created, statuses = [], []
+        with self.repositories.transaction() as repos:
+            authorize_role(repos, actor, SALES)
+            known_names, known_phones = repos.clients.known_contacts(
+                [lead["title"] for lead, _ in prepared], [phone for _, phone in prepared if phone])
+            creator = repos.users.get(actor.id).name
+            for lead, phone in prepared:
+                name = lead["title"].strip()[:160]
+                if name.lower() in known_names or (phone and phone in known_phones):
+                    statuses.append("duplicate")
+                    continue
+                row = repos.clients.create(
+                    created_by_id=actor.id, name=name, niche=niche, phone=phone, email=_lead_email(lead.get("emails")),
+                    address=(lead.get("address") or None), notes=_lead_notes(lead), pipeline_stage="lead")
+                row.created_by_name = creator
+                known_names.add(name.lower())
+                if phone:
+                    known_phones.add(phone)
+                created.append(row)
+                statuses.append("created")
+            if created:
+                title = "Novos leads no funil"
+                body = (f"{creator} adicionou {len(created)} lead(s) do Google Maps ao funil na categoria {niche}."
+                        if len(created) > 1 else f"{created[0].name} foi adicionado ao funil na categoria {niche}.")
+                notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
+        for notice in notices:
+            self._deliver_team_notice(*notice)
+        for row in created:
+            self._emit("newClient", row)
+        return {"created": len(created), "skipped": statuses.count("duplicate"), "items": statuses}
 
     def update(self, actor, identifier, **changes):
         notice = None

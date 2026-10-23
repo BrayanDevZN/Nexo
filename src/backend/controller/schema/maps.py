@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.domain.client_niches import validate_client_niche
+
 
 class MapsJobInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -27,3 +29,37 @@ class MapsJobInput(BaseModel):
 class MapsKeyInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     api_key: str = Field(pattern=r"^nexo_live_[A-Za-z0-9_-]{8,140}$")
+
+
+class MapsLead(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    title: str = Field(min_length=1, max_length=160)
+    category: str | None = Field(default=None, max_length=200)
+    address: str | None = Field(default=None, max_length=300)
+    phone: str | None = Field(default=None, max_length=60)
+    website: str | None = Field(default=None, max_length=500)
+    emails: str | None = Field(default=None, max_length=1000)
+    review_rating: float | None = Field(default=None, ge=0, le=5)
+    review_count: int | None = Field(default=None, ge=0)
+    link: str | None = Field(default=None, max_length=1000)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str):
+        value = value.strip()
+        if not value:
+            raise ValueError("Title cannot be blank")
+        return value
+
+
+class MapsFunnelInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    niche: str
+    leads: list[MapsLead] = Field(min_length=1, max_length=200)
+
+    @field_validator("niche")
+    @classmethod
+    def valid_niche(cls, value: str):
+        return validate_client_niche(value.strip())

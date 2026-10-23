@@ -10,7 +10,7 @@ from backend.infra.connections.maps import MapsConnection, MapsUnavailable
 
 MAX_ROWS = 1000
 LEAD_FIELDS = ("title", "category", "address", "phone", "website", "emails",
-               "review_rating", "review_count", "link")
+               "review_rating", "review_count", "link", "latitude", "longitude")
 
 
 class MapsNotConfigured(Exception):
@@ -148,6 +148,12 @@ class MapsService:
             lead["review_count"] = int(float(lead["review_count"]))
         except (TypeError, ValueError):
             lead["review_count"] = None
+        for axis, limit in (("latitude", 90), ("longitude", 180)):
+            try:
+                value = float(lead[axis])
+                lead[axis] = value if abs(value) <= limit else None
+            except (TypeError, ValueError):
+                lead[axis] = None
         return lead
 
     def delete(self, job_id: UUID) -> None:

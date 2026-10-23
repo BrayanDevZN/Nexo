@@ -114,3 +114,15 @@ def test_commercial_members_can_see_the_status_but_not_change_the_key(client):
     assert client.get("/maps/status").status_code == 200
     assert client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_panelkey1234"}).status_code == 403
     assert client.delete("/maps/key", headers=headers).status_code == 403
+
+
+def test_leads_are_saved_to_the_funnel_and_repeats_are_skipped(client):
+    headers = sign_in(client)
+    body = {"niche": "Alimentação", "leads": [{"title": "Padaria X", "address": "Rua A, 1", "latitude": -23.5, "longitude": -46.6}]}
+    first = client.post("/maps/funnel", headers=headers, json=body)
+    assert first.status_code == 201 and first.json()["created"] == 1
+    assert client.post("/maps/funnel", headers=headers, json=body).json()["skipped"] == 1
+    saved = client.get("/clients", params={"name": "Padaria X"}).json()[0]
+    assert saved["pipeline_stage"] == "lead" and saved["address"] == "Rua A, 1"
+    assert client.post("/maps/funnel", headers=headers, json={**body, "niche": "Inexistente"}).status_code == 422
+    assert client.post("/maps/funnel", headers=headers, json={"niche": "Varejo", "leads": []}).status_code == 422

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MapPin, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DocumentPreviewButton } from "./DocumentPreviewButton";
 import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
-import { whatsappUrl } from "./contact";
+import { mapsUrl, whatsappUrl } from "./contact";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -96,7 +96,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     }
     const body: ClientInput = {
       name: value("name"), niche, phone: value("phone") || null,
-      email: value("email") || null, notes: value("notes") || null,
+      email: value("email") || null, address: value("address") || null, notes: value("notes") || null,
       pain: value("pain") || null, approach: value("approach") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
       ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
@@ -160,10 +160,11 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
         {client.phone && <div className="flex flex-wrap items-center gap-2"><p className="text-sm">{client.phone}</p>{contactUrl && <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"><a href={contactUrl} target="_blank" rel="noreferrer" aria-label={"Entrar em contato com " + client.name + " pelo WhatsApp"}><MessageCircle data-icon="inline-start" /> WhatsApp</a></Button>}</div>}
+        {client.address && <div className="flex flex-wrap items-center gap-2"><p className="break-words text-sm">{client.address}</p><Button asChild size="sm" variant="outline"><a href={mapsUrl({ query: client.name + " " + client.address })} target="_blank" rel="noopener noreferrer" aria-label={"Ver " + client.name + " no mapa"}><MapPin data-icon="inline-start" /> Ver no mapa</a></Button></div>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
-        {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
+        {!client.phone && !client.email && !client.address && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
       <CardFooter className="flex-wrap justify-between gap-2"><Button variant="secondary" onClick={() => setViewing(client)} aria-label={"Ver dados de " + client.name}><Eye data-icon="inline-start" /> Ver</Button><div className="flex gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></div></CardFooter>
     </Card>;
@@ -179,6 +180,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
+            <div className="sm:col-span-2"><Detail label="Endereço" value={viewing.address} />{viewing.address && <Button asChild size="sm" variant="outline" className="mt-2"><a href={mapsUrl({ query: viewing.name + " " + viewing.address })} target="_blank" rel="noopener noreferrer"><MapPin data-icon="inline-start" /> Ver no mapa</a></Button>}</div>
             <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
             <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
             <Detail label="Criado por" value={viewing.created_by_name} />
@@ -202,6 +204,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row?.niche || ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{row && !CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) && <NativeSelectOption value={row.niche}>{row.niche} (nicho anterior)</NativeSelectOption>}{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
+            <TextField label="Endereço (opcional)" name="address" maxLength={300} placeholder="Rua, número, bairro, cidade" defaultValue={row?.address || ""} />
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
             <Field><FieldLabel htmlFor="pipeline-stage">Etapa do funil</FieldLabel><NativeSelect id="pipeline-stage" name="pipeline_stage" defaultValue={row?.pipeline_stage || "lead"}>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="Próximo follow-up (opcional)" name="next_follow_up" type="date" defaultValue={row?.next_follow_up ? row.next_follow_up.slice(0, 10) : ""} />

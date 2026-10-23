@@ -18,9 +18,9 @@ from backend.service.maps import (
 )
 
 JOB_ID = uuid4()
-CSV = ("title,category,address,phone,website,emails,review_rating,review_count,latitude\n"
-       "Padaria Santa Tereza,Padaria,Rua A 1,+55 11 1111-1111,https://a.example,,4.400000,120,-23.5\n"
-       "Sem Nota,Padaria,Rua B 2,,,,,,-23.6\n")
+CSV = ("title,category,address,phone,website,emails,review_rating,review_count,latitude,longitude\n"
+       "Padaria Santa Tereza,Padaria,Rua A 1,+55 11 1111-1111,https://a.example,,4.400000,120,-23.5,-46.6\n"
+       "Sem Nota,Padaria,Rua B 2,,,,,,,999\n")
 
 
 class Credentials:
@@ -96,7 +96,8 @@ def test_results_keep_only_lead_fields_and_cap_the_rows(settings, monkeypatch):
     assert rows["total"] == 2 and rows["truncated"] is False
     first, second = rows["rows"]
     assert first["title"] == "Padaria Santa Tereza" and first["review_rating"] == 4.4 and first["review_count"] == 120
-    assert "latitude" not in first
+    assert first["latitude"] == -23.5 and first["longitude"] == -46.6
+    assert second["latitude"] is None and second["longitude"] is None
     assert second["phone"] is None and second["review_rating"] is None and second["review_count"] is None
     monkeypatch.setattr("backend.service.maps.MAX_ROWS", 1)
     capped = service(settings, lambda request: httpx.Response(200, content=CSV.encode())).results(JOB_ID)

@@ -30,6 +30,7 @@ class ClientFields(BaseModel):
     next_follow_up: datetime | None = None
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
+    address: str | None = Field(default=None, max_length=300)
     notes: str | None = Field(default=None, max_length=10000)
     pain: str | None = Field(default=None, max_length=5000)
     approach: str | None = Field(default=None, max_length=5000)

@@ -28,6 +28,7 @@ class Client(IdentityTimestampMixin, Base):
     contract_value: Mapped[float | None] = mapped_column(Numeric(12, 2))
     pipeline_stage: Mapped[str] = mapped_column(String(24), default="lead")
     next_follow_up: Mapped[datetime | None] = mapped_column(DateTime)
+    address: Mapped[str | None] = mapped_column(String(300))
     notes: Mapped[str | None] = mapped_column(Text)
     pain: Mapped[str | None] = mapped_column(Text)
     approach: Mapped[str | None] = mapped_column(Text)

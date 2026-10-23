@@ -77,6 +77,31 @@ def test_client_queries_invalidate_after_mutations_and_recheck_permissions(runti
         service.clients.get(actor, row.id)
 
 
+def test_maps_leads_become_funnel_clients_without_duplicates(runtime):
+    service, actor = runtime
+    service.clients.messages = Mock()
+    leads = [
+        {"title": "Padaria A", "address": "Rua A, 1", "phone": "(11) 3333-4444", "emails": "x, oi@padaria.com",
+         "category": "Padaria", "website": "https://a.example", "review_rating": 4.5, "review_count": 10,
+         "link": "https://maps.example/a", "latitude": -23.5, "longitude": -46.6},
+        {"title": "Padaria B", "phone": "123"},
+        {"title": "padaria a"},
+        {"title": "Outra", "phone": "+55 11 3333-4444"},
+    ]
+    result = service.clients.import_leads(actor, "Alimentação", leads)
+    assert result == {"created": 2, "skipped": 2, "items": ["created", "created", "duplicate", "duplicate"]}
+    rows = {row["name"]: row for row in service.clients.list(actor)}
+    first = rows["Padaria A"]
+    assert first["pipeline_stage"] == "lead" and first["niche"] == "Alimentação"
+    assert first["phone"] == "+551133334444" and first["email"] == "oi@padaria.com"
+    assert first["address"] == "Rua A, 1" and "Google Maps" in first["notes"]
+    assert rows["Padaria B"]["phone"] is None
+    again = service.clients.import_leads(actor, "Alimentação", leads[:2])
+    assert again["created"] == 0 and again["skipped"] == 2
+    titles = [notice["title"] for notice in service.announcements.list_for_user(actor)]
+    assert titles.count("Novos leads no funil") == 1
+
+
 def test_photo_replacement_deletion_and_sql_failure_preserve_previous(runtime, monkeypatch):
     service, actor = runtime
     user = service.profiles.upload(actor, png())

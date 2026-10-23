@@ -3,9 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from backend.controller.dependencies import current_user
-from backend.controller.schema.maps import MapsJobInput, MapsKeyInput
+from backend.controller.schema.maps import MapsFunnelInput, MapsJobInput, MapsKeyInput
 from backend.domain.roles import DEVELOPERS, SALES
 from backend.infra.connections.maps import MapsUnavailable
+from backend.service.access import AccessDenied
 from backend.service.maps import (
     MapsJobNotFound,
     MapsKeyRejected,
@@ -82,6 +83,16 @@ def job(job_id: UUID, request: Request, actor=Depends(current_user)):
 def results(job_id: UUID, request: Request, actor=Depends(current_user)):
     _check(actor)
     return _run(request.app.state.services.maps.results, job_id)
+
+
+@router.post("/funnel", status_code=201)
+def add_to_funnel(data: MapsFunnelInput, request: Request, actor=Depends(current_user)):
+    _check(actor)
+    try:
+        return request.app.state.services.clients.import_leads(
+            actor, data.niche, [lead.model_dump() for lead in data.leads])
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
 
 
 @router.delete("/jobs/{job_id}", status_code=204)
