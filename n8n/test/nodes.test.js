@@ -61,6 +61,13 @@ test('client update omits an empty contract value and sends valid numeric values
 	assert.equal(numericValue.request.body.contract_value, 1250.5);
 });
 
+test('client create and update send the address', async () => {
+	const created = await executeNexo({ resource: 'clients', operation: 'create', name: 'Padaria X', niche: 'Alimentação', address: 'Rua A, 1' }, { id: 'client-1' });
+	assert.equal(created.request.body.address, 'Rua A, 1');
+	const updated = await executeNexo({ resource: 'clients', operation: 'update', updateLookupBy: 'id', updateLookupValue: 'client-1', address: 'Rua B, 2' }, { id: 'client-1' });
+	assert.equal(updated.request.body.address, 'Rua B, 2');
+});
+
 test('client search detects a UUID and can search a name', async () => {
 	const id = '82f0ae21-45a8-4df1-a420-75d4dd452b25';
 	const byId = await executeNexo({ resource: 'clients', operation: 'search', searchTerm: id, searchBy: 'auto' }, { id });

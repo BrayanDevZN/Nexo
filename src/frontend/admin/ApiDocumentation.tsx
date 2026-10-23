@@ -83,6 +83,7 @@ const ENDPOINTS: Endpoint[] = [
   "niche": "Contabilidade",
   "phone": "31999999999",
   "email": "contato@empresa.com",
+  "address": "Rua das Flores, 100, Centro, Belo Horizonte",
   "pipeline_stage": "lead",
   "contract_closed": false,
   "contract_value": 1500,
