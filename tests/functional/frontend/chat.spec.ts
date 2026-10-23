@@ -20,6 +20,7 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await admin.getByLabel("E-mail", { exact: true }).fill("owner@example.com");
     await admin.getByLabel("Senha", { exact: true }).fill("initial-admin-password");
     await admin.getByRole("button", { name: "Entrar no painel" }).click();
+    await admin.getByRole("button", { name: "Entrar na área Comercial" }).click();
     await expect(admin.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await admin.getByRole("button", { name: "Chat", exact: true }).click();
     await expect(admin.getByText("Conectado", { exact: true })).toBeVisible();

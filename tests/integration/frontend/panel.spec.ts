@@ -108,11 +108,40 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
 test("Owner sees notification and approves request", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" }, requests: true });
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
   await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
   await page.getByRole("button", { name: "Ver solicitações" }).click();
   await page.getByRole("button", { name: "Autorizar", exact: true }).click();
   await page.getByRole("button", { name: "Confirmar decisão" }).click();
   await expect(page.getByText("Acesso autorizado.")).toBeVisible();
+});
+
+test("owner chooses an area and the menu follows it", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.goto("/admin");
+  await expect(page.getByRole("button", { name: "Entrar na área Comercial" })).toBeVisible();
+  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
+  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Trocar de área" }).click();
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toHaveCount(0);
+});
+
+test("commercial and dev accounts skip the choice and only get their own area", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  await page.goto("/admin");
+  await expect(page.getByRole("button", { name: /Entrar na área/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Trocar de área" })).toHaveCount(0);
+  const dev = await page.context().newPage();
+  await mock(dev, { user: { ...member, role: "dev", status: "approved" } });
+  await dev.goto("/admin");
+  await expect(dev.getByRole("button", { name: /Entrar na área/ })).toHaveCount(0);
+  await expect(dev.getByRole("button", { name: "Bancos de dados", exact: true })).toBeVisible();
+  await expect(dev.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
 });
 
 test("mobile login and panel fit the viewport", async ({ page }) => {
@@ -213,6 +242,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
   await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
   await page.getByRole("button", { name: "Editar membro Principal" }).click();

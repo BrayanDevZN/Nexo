@@ -28,6 +28,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByLabel("E-mail", { exact: true }).fill("owner@example.com");
     await admin.getByLabel("Senha", { exact: true }).fill("initial-admin-password");
     await admin.getByRole("button", { name: "Entrar no painel" }).click();
+    await admin.getByRole("button", { name: "Entrar na área Comercial" }).click();
     await admin.getByRole("button", { name: "Ver solicitações" }).click();
     await admin.getByRole("button", { name: "Autorizar", exact: true }).click();
     await admin.getByRole("button", { name: "Confirmar decisão" }).click();
