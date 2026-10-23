@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     qdrant_url: str | None = "https://qdrant-production-3e50f.up.railway.app"
     qdrant_api_key: SecretStr | None = None
     qdrant_timeout_seconds: float = Field(default=5, gt=0, le=30)
+    maps_url: str | None = "https://nexo-production-52a1.up.railway.app"
+    maps_api_key: SecretStr | None = None
+    maps_timeout_seconds: float = Field(default=20, gt=0, le=60)
     admin_name: str = "Brayan"
     email: EmailStr | None = None
     password: SecretStr | None = None
@@ -71,7 +74,7 @@ class Settings(BaseSettings):
 
     @field_validator("email", "resend_from", "password", "resend_key", "secret_email_n8n",
                      "google_client_id", "google_client_secret", "qdrant_url", "qdrant_api_key",
-                     mode="before")
+                     "maps_url", "maps_api_key", mode="before")
     @classmethod
     def empty_optional(cls, value):
         return None if value == "" else value
@@ -153,7 +156,7 @@ class Settings(BaseSettings):
         cls._http_address(value)
         return value.rstrip("/") if value.endswith("/") else value
 
-    @field_validator("qdrant_url")
+    @field_validator("qdrant_url", "maps_url")
     @classmethod
     def qdrant_address(cls, value: str | None):
         if value is None:

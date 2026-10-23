@@ -10,6 +10,7 @@ from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.documents import DocumentStorage
 from backend.infra.connections.email import ResendConnection
 from backend.infra.connections.google import GoogleConnection
+from backend.infra.connections.maps import MapsConnection
 from backend.infra.connections.photos import PhotoStorage
 from backend.infra.connections.qdrant import QdrantConnection
 from backend.infra.connections.realtime import RealtimeConnection
@@ -38,6 +39,7 @@ from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
 from backend.service.google import GoogleAuthService
 from backend.service.invitations import InvitationService
+from backend.service.maps import MapsService
 from backend.service.members import MemberService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
@@ -60,6 +62,9 @@ class RuntimeServices:
             database_namespace = hashlib.sha256(settings.database_url.encode()).hexdigest()[:16]
             self.qdrant = QdrantConnection(settings)
             self._cleanup.callback(self.qdrant.close)
+            maps_connection = MapsConnection(settings)
+            self._cleanup.callback(maps_connection.close)
+            self.maps = MapsService(maps_connection)
             self.cache = CacheAside(self.redis.client, ttl=settings.cache_ttl_seconds,
                                     prefix="nexo:cache:" + database_namespace)
             self.repositories = RepositoryManager(self.database, cache=self.cache, principal_email=settings.email)
