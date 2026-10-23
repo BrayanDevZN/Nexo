@@ -26,6 +26,7 @@ import { Profile } from "./Profile";
 import { ApiKeys } from "./ApiKeys";
 import { Databases } from "./Databases";
 import { Maps } from "./Maps";
+import { useAdminReveal } from "@/hooks/useAdminReveal";
 import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
@@ -47,6 +48,8 @@ export default function AdminApp() {
     (!canDevelop && ["api-keys", "databases"].includes(selectedPage)) ||
     (!isOwner && ["members", "approvals"].includes(selectedPage))
   ) ? (canSell ? "clients" : "automations") : selectedPage;
+  // The panel entrance animation is skipped on the chat, whose list updates live.
+  const revealRef = useAdminReveal(page !== "chat", page + ":" + (user?.id ?? ""));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("nexo:sidebar-collapsed") === "true");
   const [incoming, setIncoming] = useState<ChatMessage | null>(null);
@@ -192,7 +195,7 @@ export default function AdminApp() {
         <SheetTrigger asChild><Button variant="outline" size="icon-lg" className="admin-mobile-menu" aria-label="Abrir menu do painel"><Menu /></Button></SheetTrigger>
         <SheetContent side="left" className="overflow-y-auto"><SheetHeader><SheetTitle>Menu do painel</SheetTitle><SheetDescription>Navegue pelo seu espaço na Nexo.</SheetDescription></SheetHeader><div className="px-4"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a></div><div className="px-4">{navigation}</div><SheetFooter>{account}</SheetFooter></SheetContent>
       </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
-      <main className="admin-content" id="painel">
+      <main className="admin-content" id="painel" ref={revealRef}>
         <Feedback error={error} />
         {incoming && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
         {hasRequests && user.role === "owner" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
