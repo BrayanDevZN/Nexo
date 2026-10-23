@@ -123,9 +123,11 @@ test("owner chooses an area and the menu follows it", async ({ page }) => {
   await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
   await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chat", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Trocar de área" }).click();
   await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
   await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Chat", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toHaveCount(0);
 });
 
