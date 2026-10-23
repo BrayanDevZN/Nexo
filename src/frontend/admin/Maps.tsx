@@ -9,6 +9,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CLIENT_NICHES, type createApi } from "./api";
@@ -118,6 +119,8 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState<string | null>(null);
+  const [existing, setExisting] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [leadNiche, setLeadNiche] = useState<string>(NICHES[0]);
   const [resultLimit, setResultLimit] = useState(0);
   const [form, setForm] = useState({
@@ -146,7 +149,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const selected = jobs?.find(job => job.id === selectedId);
   const selectedStatus = selected?.status;
   useEffect(() => {
-    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set());
+    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set());
     const meta = readJobMeta()[selectedId];
     setResultLimit(meta?.limit ?? 0);
     if (meta?.niche && NICHES.some(niche => niche === meta.niche)) setLeadNiche(meta.niche);
@@ -167,7 +170,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       (!term || [row.title, row.category, row.address, row.phone, row.website, row.emails].some(value => value?.toLowerCase().includes(term))));
     return resultLimit > 0 ? matching.slice(0, resultLimit) : matching;
   }, [results, filter, onlyPhone, resultLimit]);
-  const pending = visible.filter(row => row.title && !added.has(leadKey(row)));
+  const pending = visible.filter(row => row.title && !added.has(leadKey(row)) && !existing.has(leadKey(row)));
 
   function pickCity(name: string) {
     const city = CITIES.find(item => item.name === name);
@@ -231,22 +234,24 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
-  async function addToFunnel(leads: Lead[], busyKey: string) {
-    if (adding || !leads.length) return;
-    setAdding(busyKey); setError(""); setSuccess("");
+  // Leads are saved one at a time: each one gets its own notice, and its button only changes once it is really saved.
+  async function addLeads(leads: Lead[], all: boolean) {
+    if (adding || bulk || !leads.length) return;
+    setError(""); setSuccess("");
+    if (all) setBulk({ done: 0, total: leads.length });
+    let created = 0, skipped = 0;
     try {
-      let created = 0, skipped = 0;
-      const done = new Set(added);
-      for (let start = 0; start < leads.length; start += 200) {
-        const chunk = leads.slice(start, start + 200);
-        const result = await api.mutate<{ created: number; skipped: number; items: string[] }>("/maps/funnel", "POST", { niche: leadNiche, leads: chunk });
+      for (const lead of leads) {
+        const key = leadKey(lead);
+        setAdding(key);
+        const result = await api.mutate<{ created: number; skipped: number }>("/maps/funnel", "POST", { niche: leadNiche, leads: [lead] });
         created += result.created; skipped += result.skipped;
-        chunk.forEach(lead => done.add(leadKey(lead)));
-        setAdded(new Set(done));
+        (result.created ? setAdded : setExisting)(current => new Set(current).add(key));
+        if (all) setBulk(current => current && { ...current, done: current.done + 1 });
       }
       setSuccess(`${created} lead(s) adicionados ao funil${skipped ? `; ${skipped} já estavam cadastrados` : ""}.`);
-    } catch (e) { setError(message(e)); }
-    finally { setAdding(null); }
+    } catch (e) { setError(message(e) + (created ? ` ${created} lead(s) já tinham sido adicionados.` : "")); }
+    finally { setAdding(null); setBulk(null); }
   }
   function download() {
     const url = URL.createObjectURL(csvFile(visible));
@@ -363,7 +368,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 <FieldLabel htmlFor="maps-fast">Modo rápido (menos detalhes por empresa)</FieldLabel>
               </Field>
             </FieldGroup>
-            <div><Button type="submit" disabled={busy}>{busy ? <Busy>Iniciando…</Busy> : <><Search data-icon="inline-start" /> Buscar</>}</Button></div>
+            <div><Button type="submit" disabled={busy}>{busy ? <><Spinner data-icon="inline-start" /> Iniciando…</> : <><Search data-icon="inline-start" /> Buscar</>}</Button></div>
           </form>
         </CardContent>
       </Card>
@@ -384,7 +389,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                   onClick={() => setSelectedId(job.id)} aria-pressed={job.id === selectedId}>
                   <span className="min-w-0"><span className="block truncate font-medium">{job.name || "Sem nome"}</span>
                     <span className="block text-xs font-normal text-muted-foreground">{dateLabel(job.created_at)}</span></span>
-                  <Badge variant={status.variant}>{status.label}</Badge>
+                  <Badge variant={status.variant}>{ACTIVE.has(job.status) && <Spinner data-icon="inline-start" />}{status.label}</Badge>
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => setDeleting(job)} aria-label={`Excluir busca ${job.name || job.id}`}><Trash2 /></Button>
               </li>;
@@ -401,6 +406,9 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
           : ACTIVE.has(selected.status) ? "A busca está rodando. Esta tela atualiza sozinha." : "A busca não terminou com sucesso. Tente novamente com outra região ou menos profundidade."}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {ACTIVE.has(selected.status) && <Empty><EmptyHeader><EmptyMedia variant="icon"><Spinner className="size-6" aria-label="Buscando empresas" /></EmptyMedia>
+          <EmptyTitle>Buscando empresas…</EmptyTitle>
+          <EmptyDescription>Isso pode levar alguns minutos. Esta tela atualiza sozinha e você recebe um aviso quando a busca terminar.</EmptyDescription></EmptyHeader></Empty>}
         {resultsLoading && <Loading />}
         {results && <>
           <div className="flex flex-wrap items-center gap-3">
@@ -424,8 +432,8 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 </NativeSelect>
               </Field>
             </div>
-            <Button disabled={adding !== null || pending.length === 0} onClick={() => void addToFunnel(pending, "all")}>
-              {adding === "all" ? <Busy>Adicionando…</Busy> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
+            <Button disabled={adding !== null || bulk !== null || pending.length === 0} onClick={() => void addLeads(pending, true)}>
+              {bulk ? <><Spinner data-icon="inline-start" /> Adicionando {Math.min(bulk.done + 1, bulk.total)} de {bulk.total}…</> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
             </Button>
           </div>
           {visible.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nada encontrado</EmptyTitle>
@@ -450,9 +458,11 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                         const url = mapsUrl({ latitude: row.latitude, longitude: row.longitude, query: [row.title, row.address].filter(Boolean).join(" ") });
                         return url ? <MapsButton href={url} label={`Ver ${row.title || "empresa"} no mapa`} /> : null;
                       })()}
-                      {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> No funil</Button>
-                        : <Button size="sm" disabled={adding !== null || !row.title} onClick={() => void addToFunnel([row], leadKey(row))} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
-                          {adding === leadKey(row) ? <Busy>Salvando…</Busy> : <><ListPlus data-icon="inline-start" /> Adicionar ao funil</>}
+                      {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Adicionado!</Button>
+                        : existing.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Já estava no funil</Button>
+                        : adding === leadKey(row) ? <span className="flex h-8 min-w-40 items-center justify-center"><Spinner aria-label={`Adicionando ${row.title || "empresa"} ao funil`} /></span>
+                        : <Button size="sm" disabled={adding !== null || bulk !== null || !row.title} onClick={() => void addLeads([row], false)} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
+                          <ListPlus data-icon="inline-start" /> Adicionar ao funil
                         </Button>}
                     </div>
                   </TableCell>

@@ -99,7 +99,9 @@ def test_maps_leads_become_funnel_clients_without_duplicates(runtime):
     again = service.clients.import_leads(actor, "Alimentação", leads[:2])
     assert again["created"] == 0 and again["skipped"] == 2
     titles = [notice["title"] for notice in service.announcements.list_for_user(actor)]
-    assert titles.count("Novos leads no funil") == 1
+    # One notice per saved lead, none for the skipped duplicates and none summarizing the batch.
+    assert titles.count("Novo cliente cadastrado") == 2 and "Novos leads no funil" not in titles
+    assert service.clients.messages.announcement.call_count == 2
 
 
 def test_photo_replacement_deletion_and_sql_failure_preserve_previous(runtime, monkeypatch):

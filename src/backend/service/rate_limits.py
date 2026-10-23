@@ -9,6 +9,10 @@ SENSITIVE_ROUTES = {
 }
 
 
+# The panel adds leads from the Maps one request at a time, so this route gets a larger per-route budget.
+BULK_ROUTES = {"/maps/funnel": 10}
+
+
 class RateLimitService:
     def __init__(self, repository, settings, namespace):
         self.repository, self.settings, self.namespace = repository, settings, namespace
@@ -21,7 +25,7 @@ class RateLimitService:
             RateBudget(f"{self.namespace}:global:{config.global_rate_limit_window_seconds}",
                        config.global_rate_limit, config.global_rate_limit_window_seconds),
             RateBudget(f"{self.namespace}:route:{identity}:{operation}:{config.rate_limit_window_seconds}",
-                       config.rate_limit, config.rate_limit_window_seconds),
+                       config.rate_limit * BULK_ROUTES.get(route, 1), config.rate_limit_window_seconds),
         ]
         if route in SENSITIVE_ROUTES or route.startswith("/auth/google/"):
             budgets.append(RateBudget(

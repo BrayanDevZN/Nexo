@@ -27,3 +27,10 @@ def test_settings_limits_and_windows_are_used(settings):
     settings.auth_rate_limit_window_seconds = 16
     budgets = RateLimitService(Mock(), settings, "test:rate").budgets("peer", "POST", "/auth/login")
     assert [(b.limit, b.window_seconds) for b in budgets] == [(11, 12), (13, 14), (15, 16)]
+
+
+def test_leads_route_gets_a_larger_budget_than_the_default(settings):
+    settings.rate_limit = 60
+    service = RateLimitService(Mock(), settings, "test:rate")
+    assert service.budgets("peer", "POST", "/maps/funnel")[1].limit == 600
+    assert service.budgets("peer", "POST", "/clients")[1].limit == 60

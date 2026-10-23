@@ -178,10 +178,8 @@ class ClientService:
                     known_phones.add(phone)
                 created.append(row)
                 statuses.append("created")
-            if created:
-                title = "Novos leads no funil"
-                body = (f"{creator} adicionou {len(created)} lead(s) do Google Maps ao funil na categoria {niche}."
-                        if len(created) > 1 else f"{created[0].name} foi adicionado ao funil na categoria {niche}.")
+                # One notice per lead, exactly like a client registered by hand.
+                title, body = "Novo cliente cadastrado", f"{name} foi adicionado ao funil na categoria {niche}."
                 notices.append((self._record_team_notice(repos, actor.id, title, body), title, body))
         for notice in notices:
             self._deliver_team_notice(*notice)
