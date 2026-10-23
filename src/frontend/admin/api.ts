@@ -83,7 +83,9 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           : detail === "Administrator access required" ? "admin"
           : detail === "Owner access required" ? "owner" : undefined;
         const messages: Record<number, string> = {
-          400: path.startsWith("/admin/databases") ? detail || "Consulta inválida." : "Confira os dados e tente novamente.",
+          400: path.startsWith("/admin/databases") ? detail || "Consulta inválida."
+            : path === "/maps/key" ? "O servidor do Maps recusou esta chave. Use uma chave válida de Dev, Admin ou Owner."
+            : "Confira os dados e tente novamente.",
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
           404: "Registro não encontrado.",
@@ -94,7 +96,8 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
           413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
-          422: path.startsWith("/maps") ? "Confira os campos da busca e tente novamente."
+          422: path === "/maps/key" ? "A chave deve começar com nexo_live_ e ter o formato gerado na página API."
+            : path.startsWith("/maps") ? "Confira os campos da busca e tente novamente."
             : path.startsWith("/push")
             ? "Não foi possível registrar as notificações neste dispositivo. Atualize a página e tente novamente."
             : path.startsWith("/clients")

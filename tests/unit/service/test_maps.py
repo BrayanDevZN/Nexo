@@ -1,4 +1,7 @@
 import json
+from contextlib import contextmanager
+from datetime import datetime
+from types import SimpleNamespace
 from uuid import uuid4
 
 import httpx
@@ -6,7 +9,13 @@ import pytest
 from pydantic import SecretStr
 
 from backend.infra.connections.maps import MapsConnection, MapsUnavailable
-from backend.service.maps import MapsJobNotFound, MapsNotConfigured, MapsService, MapsUnauthorized
+from backend.service.maps import (
+    MapsJobNotFound,
+    MapsKeyRejected,
+    MapsNotConfigured,
+    MapsService,
+    MapsUnauthorized,
+)
 
 JOB_ID = uuid4()
 CSV = ("title,category,address,phone,website,emails,review_rating,review_count,latitude\n"
@@ -14,10 +23,39 @@ CSV = ("title,category,address,phone,website,emails,review_rating,review_count,l
        "Sem Nota,Padaria,Rua B 2,,,,,,-23.6\n")
 
 
-def service(settings, handler, key="nexo_live_secret"):
+class Credentials:
+    def __init__(self):
+        self.row = None
+
+    def current(self):
+        return self.row
+
+    def replace(self, *, api_key_encrypted, key_prefix, updated_by_id):
+        self.row = SimpleNamespace(api_key_encrypted=api_key_encrypted, key_prefix=key_prefix,
+                                   updated_at=datetime(2026, 10, 23, 12, 0))
+        return self.row
+
+    def clear(self):
+        had, self.row = self.row is not None, None
+        return had
+
+
+class Repositories:
+    def __init__(self):
+        self.maps_credentials = Credentials()
+
+    @contextmanager
+    def transaction(self):
+        yield self
+
+    read_transaction = transaction
+
+
+def service(settings, handler, key="nexo_live_secret", repositories=None):
     settings.maps_url = "https://maps.example.com/"
     settings.maps_api_key = SecretStr(key) if key else None
-    return MapsService(MapsConnection(settings, transport=httpx.MockTransport(handler)))
+    return MapsService(MapsConnection(settings, transport=httpx.MockTransport(handler)),
+                       repositories or Repositories(), "unit-test-secret")
 
 
 def test_requests_carry_the_nexo_key_and_job_list_is_normalized_newest_first(settings):
@@ -83,3 +121,43 @@ def test_upstream_failures_map_to_specific_errors(settings):
 def test_without_a_key_the_server_is_not_configured(settings):
     with pytest.raises(MapsNotConfigured):
         service(settings, lambda request: httpx.Response(200, json=[]), key=None).jobs()
+
+
+ACTOR = SimpleNamespace(id="user-1")
+PANEL_KEY = "nexo_live_panelkey1234"
+
+
+def test_a_key_saved_from_the_panel_is_verified_encrypted_and_used_instead_of_the_env_key(settings):
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers["authorization"])
+        return httpx.Response(200, content=b"null")
+
+    repositories = Repositories()
+    maps = service(settings, handler, repositories=repositories)
+    assert maps.status()["source"] == "environment"
+    status = maps.save_key(ACTOR, PANEL_KEY)
+    assert status["source"] == "panel" and status["key_prefix"] == PANEL_KEY[:14] and status["configured"] is True
+    assert PANEL_KEY not in repositories.maps_credentials.row.api_key_encrypted
+    maps.jobs()
+    assert seen == [f"Bearer {PANEL_KEY}", f"Bearer {PANEL_KEY}"]
+    assert maps.clear_key()["source"] == "environment"
+    maps.jobs()
+    assert seen[-1] == "Bearer nexo_live_secret"
+
+
+def test_a_key_the_maps_server_rejects_is_not_saved(settings):
+    repositories = Repositories()
+    maps = service(settings, lambda request: httpx.Response(401), repositories=repositories)
+    with pytest.raises(MapsKeyRejected):
+        maps.save_key(ACTOR, PANEL_KEY)
+    assert repositories.maps_credentials.row is None
+
+
+def test_a_saved_key_that_cannot_be_decrypted_is_ignored(settings):
+    repositories = Repositories()
+    maps = service(settings, lambda request: httpx.Response(200, content=b"null"), key=None, repositories=repositories)
+    maps.save_key(ACTOR, PANEL_KEY)
+    other = MapsService(maps.connection, repositories, "a-different-secret")
+    assert other.status() == {"configured": False, "source": None, "key_prefix": None, "updated_at": None}

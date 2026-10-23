@@ -24,6 +24,8 @@ def client(settings, local_redis_url, monkeypatch):
 
     def handler(request):
         calls.append((request.method, request.url.path))
+        if request.headers["authorization"] == "Bearer nexo_live_rejected00":
+            return httpx.Response(401)
         if request.method == "GET" and request.url.path == "/api/v1/jobs":
             return httpx.Response(200, json=[{"ID": JOB, "Name": "Teste", "Status": "ok", "Date": "2026-10-23"}])
         if request.method == "POST":
@@ -85,3 +87,30 @@ def test_an_unconfigured_maps_server_answers_503(client):
     client.app.state.services.maps.connection._client = None
     response = client.get("/maps/jobs")
     assert response.status_code == 503 and "not configured" in response.json()["detail"]
+
+
+def test_developers_save_and_remove_the_maps_key_and_it_is_never_returned(client):
+    headers = sign_in(client)
+    assert client.get("/maps/status").json()["source"] == "environment"
+    saved = client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_panelkey1234"})
+    assert saved.status_code == 200
+    assert saved.json()["source"] == "panel" and saved.json()["key_prefix"] == "nexo_live_pane"
+    assert "panelkey1234" not in saved.text and "panelkey1234" not in client.get("/maps/status").text
+    cleared = client.delete("/maps/key", headers=headers)
+    assert cleared.status_code == 200 and cleared.json()["source"] == "environment"
+
+
+def test_a_rejected_or_malformed_key_is_not_saved(client):
+    headers = sign_in(client)
+    rejected = client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_rejected00"})
+    assert rejected.status_code == 400
+    assert client.put("/maps/key", headers=headers, json={"api_key": "not-a-nexo-key"}).status_code == 422
+    assert client.get("/maps/status").json()["source"] == "environment"
+
+
+def test_commercial_members_can_see_the_status_but_not_change_the_key(client):
+    add_member(client, "commercial")
+    headers = sign_in(client, "commercial@example.com", PASSWORD)
+    assert client.get("/maps/status").status_code == 200
+    assert client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_panelkey1234"}).status_code == 403
+    assert client.delete("/maps/key", headers=headers).status_code == 403

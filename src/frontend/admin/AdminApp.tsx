@@ -204,7 +204,7 @@ export default function AdminApp() {
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
-          page === "maps" && canSell ? <Maps api={api} /> :
+          page === "maps" && canSell ? <Maps api={api} canManageKey={canDevelop} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :

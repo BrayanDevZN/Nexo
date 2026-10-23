@@ -1,6 +1,10 @@
+import base64
 import csv
+import hashlib
 import io
 from uuid import UUID
+
+from cryptography.fernet import Fernet, InvalidToken
 
 from backend.infra.connections.maps import MapsConnection, MapsUnavailable
 
@@ -28,15 +32,65 @@ def _pick(item: dict, *names: str):
     return None
 
 
+class MapsKeyRejected(Exception):
+    pass
+
+
 class MapsService:
-    """Lets signed-in panel users run searches on the maps server with the server's own key."""
-    def __init__(self, connection: MapsConnection):
+    """Lets signed-in panel users run searches on the maps server with the saved Nexo API key."""
+    def __init__(self, connection: MapsConnection, repositories, secret: str):
         self.connection = connection
+        self.repositories = repositories
+        # The saved key is encrypted at rest. Rotating the JWT secret makes it unreadable (re-enter it).
+        self._fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"nexo-maps-key:" + secret.encode()).digest()))
+
+    def _stored(self):
+        with self.repositories.read_transaction() as repos:
+            row = repos.maps_credentials.current()
+            if row is None:
+                return None
+            try:
+                return self._fernet.decrypt(row.api_key_encrypted.encode()).decode(), row.key_prefix, row.updated_at
+            except InvalidToken:
+                return None
+
+    def _key(self) -> str | None:
+        stored = self._stored()
+        return stored[0] if stored else self.connection.env_key
+
+    def status(self) -> dict:
+        stored = self._stored()
+        if stored:
+            return {"configured": self.connection.available, "source": "panel", "key_prefix": stored[1],
+                    "updated_at": stored[2]}
+        env_key = self.connection.env_key
+        return {"configured": bool(env_key and self.connection.available), "source": "environment" if env_key else None,
+                "key_prefix": env_key[:14] if env_key else None, "updated_at": None}
+
+    def save_key(self, actor, raw: str) -> dict:
+        if not self.connection.available:
+            raise MapsNotConfigured("Maps server is not configured")
+        # Never store a key the maps server does not accept.
+        probe = self.connection.request("GET", "/api/v1/jobs", raw)
+        if probe.status_code in {401, 403}:
+            raise MapsKeyRejected("The maps server rejected this API key")
+        if probe.status_code >= 400:
+            raise MapsUnavailable("Maps server error")
+        with self.repositories.transaction() as repos:
+            repos.maps_credentials.replace(api_key_encrypted=self._fernet.encrypt(raw.encode()).decode(),
+                                           key_prefix=raw[:14], updated_by_id=actor.id)
+        return self.status()
+
+    def clear_key(self) -> dict:
+        with self.repositories.transaction() as repos:
+            repos.maps_credentials.clear()
+        return self.status()
 
     def _call(self, method: str, path: str, **kwargs):
-        if not self.connection.configured:
+        key = self._key()
+        if not key or not self.connection.available:
             raise MapsNotConfigured("Maps server is not configured")
-        response = self.connection.request(method, path, **kwargs)
+        response = self.connection.request(method, path, key, **kwargs)
         if response.status_code in {401, 403}:
             raise MapsUnauthorized("Maps server rejected the Nexo API key")
         if response.status_code == 404:

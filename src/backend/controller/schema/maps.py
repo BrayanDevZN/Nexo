@@ -22,3 +22,8 @@ class MapsJobInput(BaseModel):
         if any(not value or len(value) > 120 for value in cleaned):
             raise ValueError("Each keyword must have 1 to 120 characters")
         return cleaned
+
+
+class MapsKeyInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    api_key: str = Field(pattern=r"^nexo_live_[A-Za-z0-9_-]{8,140}$")

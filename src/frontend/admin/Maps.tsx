@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Download, MapPin, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Download, KeyRound, MapPin, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { type createApi } from "./api";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
+type MapsStatus = { configured: boolean; source: "panel" | "environment" | null; key_prefix: string | null; updated_at: string | null };
 type Job = { id: string; name: string; status: string; created_at: string | null };
 type Lead = {
   title: string | null; category: string | null; address: string | null; phone: string | null;
@@ -68,7 +70,10 @@ function csvFile(rows: Lead[]) {
   return new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
 }
 
-export function Maps({ api }: { api: ReturnType<typeof createApi> }) {
+export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>; canManageKey: boolean }) {
+  const [status, setStatus] = useState<MapsStatus>();
+  const [keyInput, setKeyInput] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
   const [jobs, setJobs] = useState<Job[]>();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -85,8 +90,13 @@ export function Maps({ api }: { api: ReturnType<typeof createApi> }) {
   });
 
   const load = useCallback(async () => {
-    try { api.invalidate(); setJobs(await api.request<Job[]>("/maps/jobs")); setError(""); }
-    catch (e) { setError(message(e)); setJobs(current => current ?? []); }
+    try {
+      api.invalidate();
+      const current = await api.request<MapsStatus>("/maps/status");
+      setStatus(current);
+      setJobs(current.configured ? await api.request<Job[]>("/maps/jobs") : []);
+      setError("");
+    } catch (e) { setError(message(e)); setJobs(current => current ?? []); }
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
@@ -146,6 +156,27 @@ export function Maps({ api }: { api: ReturnType<typeof createApi> }) {
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
+  async function saveKey(event: FormEvent) {
+    event.preventDefault();
+    if (keyBusy || !keyInput.trim()) return;
+    setKeyBusy(true); setError(""); setSuccess("");
+    try {
+      setStatus(await api.mutate<MapsStatus>("/maps/key", "PUT", { api_key: keyInput.trim() }));
+      setKeyInput(""); setSuccess("Chave salva. O Maps já pode ser usado.");
+      await load();
+    } catch (e) { setError(message(e)); }
+    finally { setKeyBusy(false); }
+  }
+  async function removeKey() {
+    if (keyBusy) return;
+    setKeyBusy(true); setError(""); setSuccess("");
+    try {
+      setStatus(await api.mutate<MapsStatus>("/maps/key", "DELETE"));
+      setSuccess("Chave removida do painel."); setSelectedId("");
+      await load();
+    } catch (e) { setError(message(e)); }
+    finally { setKeyBusy(false); }
+  }
   async function remove() {
     if (!deleting || busy) return;
     setBusy(true); setError("");
@@ -175,7 +206,31 @@ export function Maps({ api }: { api: ReturnType<typeof createApi> }) {
     </div>
     <Feedback error={error} success={success} />
 
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2"><KeyRound className="size-4" /> Chave de API do Maps
+          <Badge variant={status?.configured ? "default" : "destructive"}>{status?.configured ? "Configurada" : "Não configurada"}</Badge></CardTitle>
+        <CardDescription>{status?.configured
+          ? `Em uso: ${status.key_prefix ?? "chave"}… ${status.source === "panel" ? `(salva no painel${status.updated_at ? ` em ${dateLabel(status.updated_at)}` : ""})` : "(definida no servidor, variável MAPS_API_KEY)"}.`
+          : "O Maps usa uma chave de API da Nexo para falar com o servidor de buscas. Gere uma na página API e cole aqui."}</CardDescription>
+      </CardHeader>
+      {canManageKey ? <CardContent>
+        <form onSubmit={event => void saveKey(event)} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <TextField label={status?.configured ? "Trocar chave" : "Chave de API"} type="password" autoComplete="off" spellCheck={false}
+              placeholder="nexo_live_…" value={keyInput} maxLength={160} onChange={event => setKeyInput(event.target.value)}
+              help="A chave é testada no servidor do Maps antes de ser salva e fica guardada criptografada." />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={keyBusy || !keyInput.trim()}>{keyBusy ? <Busy>Salvando…</Busy> : "Salvar chave"}</Button>
+            {status?.source === "panel" && <Button type="button" variant="outline" disabled={keyBusy} onClick={() => void removeKey()}>Remover</Button>}
+          </div>
+        </form>
+      </CardContent> : !status?.configured && <CardContent><Alert><AlertTitle>Peça a um administrador</AlertTitle>
+        <AlertDescription>Somente Dev, Admin e Owner podem cadastrar a chave do Maps.</AlertDescription></Alert></CardContent>}
+    </Card>
+
+    {status?.configured && <div className="grid gap-5 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
       <Card>
         <CardHeader><CardTitle>Nova busca</CardTitle>
           <CardDescription>Buscas grandes levam alguns minutos e consomem recursos do servidor. Comece pela profundidade normal.</CardDescription></CardHeader>
@@ -259,9 +314,9 @@ export function Maps({ api }: { api: ReturnType<typeof createApi> }) {
           </ul>}
         </CardContent>
       </Card>
-    </div>
+    </div>}
 
-    {selected && <Card>
+    {status?.configured && selected && <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2">{selected.name || "Busca"} <Badge variant={statusOf(selected.status).variant}>{statusOf(selected.status).label}</Badge></CardTitle>
         <CardDescription>{selected.status === "ok" ? (results ? `${results.total} empresa(s) encontradas${results.truncated ? `; mostrando as primeiras ${results.rows.length}` : ""}.` : "Carregando resultados…")
