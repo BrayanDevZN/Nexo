@@ -51,6 +51,42 @@ function AreaChart({ points, canDrill, onDrill }: {
   </div>;
 }
 
+type AreaRow = { label: string; count: number };
+const TOP_AREAS = 8;
+const leadsChartConfig = { count: { label: "Leads", color: "var(--primary)" } };
+const contractsChartConfig = { count: { label: "Contratos fechados", color: "#0f766e" } };
+
+/** Count rows per niche, keep the biggest areas and fold the rest into "Outros". */
+function topAreas(niches: string[]): AreaRow[] {
+  const counts = new Map<string, number>();
+  for (const niche of niches) counts.set(niche || "Sem nicho", (counts.get(niche || "Sem nicho") ?? 0) + 1);
+  const sorted = [...counts].map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR"));
+  const rest = sorted.slice(TOP_AREAS).reduce((sum, item) => sum + item.count, 0);
+  return rest ? [...sorted.slice(0, TOP_AREAS), { label: "Outros", count: rest }] : sorted;
+}
+
+function AreaRanking({ title, description, icon, rows, config, seriesName, emptyTitle, emptyLabel }: {
+  title: string; description: string; icon: React.ReactNode; rows: AreaRow[]; config: typeof leadsChartConfig;
+  seriesName: string; emptyTitle: string; emptyLabel: string;
+}) {
+  return <Card className="min-w-0">
+    <CardHeader><div className="flex items-center gap-2">{icon}<CardTitle>{title}</CardTitle></div><CardDescription>{description}</CardDescription></CardHeader>
+    <CardContent>
+      {rows.length ? <ChartContainer config={config} className="h-[19rem]" aria-label={`${title}, gráfico de área`}>
+        <RechartsAreaChart data={rows} margin={{ top: 12, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} strokeDasharray="4 4" />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-28} textAnchor="end" height={80} tick={{ fontSize: 11 }} padding={{ left: 56, right: 12 }} />
+          <YAxis allowDecimals={false} domain={[0, "auto"]} tickLine={false} axisLine={false} width={36} />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={value => String(value)} />} />
+          <Area type="linear" dataKey="count" name={seriesName} stroke="var(--color-count)" strokeWidth={2.5} fill="var(--color-count)" fillOpacity={0.25} dot={{ r: 4 }} activeDot={{ r: 7 }} isAnimationActive={false} />
+        </RechartsAreaChart>
+      </ChartContainer> : <Empty><EmptyHeader><EmptyMedia variant="icon">{icon}</EmptyMedia><EmptyTitle>{emptyTitle}</EmptyTitle><EmptyDescription>{emptyLabel}</EmptyDescription></EmptyHeader></Empty>}
+      {rows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">{rows.map(row => `${row.label}: ${row.count}`).join(" · ")}</p>}
+    </CardContent>
+  </Card>;
+}
+
 function RankedBars({ title, description, icon, rows, selectedId, onSelect, emptyLabel, emptyTitle = "Sem vendas no período", onBack, backLabel, summary, angledLabels = false, horizontalBars = false }: {
   title: string;
   description: string;
@@ -199,6 +235,17 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
     });
   }, [filteredSales, period, years]);
 
+  const leadAreas = useMemo(() => topAreas(rows.filter(row => {
+    const date = new Date(row.created_at);
+    return (period.year === undefined || date.getFullYear() === period.year) &&
+      (period.month === undefined || date.getMonth() === period.month) &&
+      (selectedMember === "all" || row.created_by_id === selectedMember);
+  }).map(row => row.niche)), [rows, period, selectedMember]);
+
+  const contractAreas = useMemo(() => topAreas(timeSales
+    .filter(row => selectedMember === "all" || row.created_by_id === selectedMember)
+    .map(row => row.niche)), [timeSales, selectedMember]);
+
   const members = useMemo(() => {
     const grouped = new Map<string, GroupMetric>();
     for (const member of teamMembers) {
@@ -323,6 +370,15 @@ export function BusinessDashboard({ api }: { api: ReturnType<typeof createApi> }
           <p className="mt-3 text-xs text-muted-foreground">Para contratos fechados antes deste registro de data, usamos a última atualização disponível como aproximação.</p>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AreaRanking title="Áreas com mais leads" description={`Leads cadastrados por área em ${periodTitle.toLowerCase()}. Cada cliente do CRM conta como um lead.`}
+          icon={<Users className="text-primary" />} rows={leadAreas} config={leadsChartConfig} seriesName="Leads"
+          emptyTitle="Sem leads no período" emptyLabel="Os leads cadastrados no período aparecerão aqui, agrupados por área." />
+        <AreaRanking title="Áreas que mais fecharam contrato" description={`Contratos fechados por área em ${periodTitle.toLowerCase()}.`}
+          icon={<TrendingUp className="text-primary" />} rows={contractAreas} config={contractsChartConfig} seriesName="Contratos fechados"
+          emptyTitle="Sem contratos no período" emptyLabel="Os contratos fechados no período aparecerão aqui, agrupados por área." />
+      </div>
 
       {(selectedMemberName || selectedNicheName || selectedContract !== "all") && <div className="flex flex-wrap items-center gap-2" aria-label="Filtros do drill-down">
         <span className="text-sm text-muted-foreground">Aplicado a todos os gráficos:</span>
