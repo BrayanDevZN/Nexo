@@ -28,9 +28,11 @@ import {
 import { contactUrl, faqs, navigation } from "@/lib/content";
 
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useMotionPreferences } from "@/components/MotionProvider";
 
 export default function App() {
   const revealRef = useScrollReveal();
+  const { reduced, setReduced } = useMotionPreferences();
   useSectionNavigation();
   useButtonFeedback();
   return (
@@ -267,6 +269,14 @@ export default function App() {
           <p>
             © {new Date().getFullYear()} Nexo. Todos os direitos reservados.
           </p>
+          <button
+            type="button"
+            className="motion-toggle-link"
+            aria-pressed={reduced}
+            onClick={() => setReduced(!reduced)}
+          >
+            {reduced ? "Ativar animações" : "Reduzir animações"}
+          </button>
           <a href="#inicio">
             Voltar ao topo{" "}
             <ArrowRight className="size-3 -rotate-90" aria-hidden="true" />

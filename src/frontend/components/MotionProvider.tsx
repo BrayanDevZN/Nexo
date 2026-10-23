@@ -8,6 +8,21 @@ import {
 } from "react";
 
 const PERF_KEY = "nexo:perf";
+const REDUCE_KEY = "nexo:reduce-motion";
+
+// Animations play unless the visitor chooses otherwise with the footer button. The operating
+// system's "reduce motion" setting is deliberately not used: many weak PCs have it switched on
+// by their power/performance profile and the site then looked static.
+function savedReduce() {
+  try {
+    return localStorage.getItem(REDUCE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+function applyReduce(reduce: boolean) {
+  document.documentElement.dataset.reduceMotion = reduce ? "true" : "false";
+}
 const PROBE_FRAMES = 40;
 const SKIP_FRAMES = 15;
 
@@ -88,23 +103,32 @@ const MotionContext = createContext({
   reduced: false,
   pageVisible: true,
   toggle: () => {},
+  setReduced: (_value: boolean) => {},
 });
 
 export function MotionProvider({ children }: { children: ReactNode }) {
   const [paused, setPaused] = useState(false);
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const [reduced, setReducedState] = useState(() => {
+    const saved = savedReduce();
+    applyReduce(saved);
+    return saved;
+  });
+  const setReduced = (value: boolean) => {
+    setReducedState(value);
+    applyReduce(value);
+    try {
+      if (value) localStorage.setItem(REDUCE_KEY, "true");
+      else localStorage.removeItem(REDUCE_KEY);
+    } catch {
+      /* sem armazenamento: vale só até recarregar a página */
+    }
+  };
   const [pageVisible, setPageVisible] = useState(() => !document.hidden);
   useDevicePerformance();
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const preference = () => setReduced(media.matches);
     const visibility = () => setPageVisible(!document.hidden);
-    media.addEventListener("change", preference);
     document.addEventListener("visibilitychange", visibility);
     return () => {
-      media.removeEventListener("change", preference);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
@@ -115,6 +139,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
         reduced,
         pageVisible,
         toggle: () => setPaused((value) => !value),
+        setReduced,
       }}
     >
       {children}

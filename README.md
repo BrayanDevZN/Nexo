@@ -27,8 +27,8 @@ Na Vercel, configure **Root Directory** como `src/frontend`, build como `npm run
 - Tailwind CSS v4 e shadcn/ui (Radix, estilo Nova).
 - Componentes locais em `src/frontend/components/ui`, configurados em `src/frontend/components.json`.
 - Marca com símbolo próprio gerado em `src/frontend/public/images/nexo-symbol-purple.png`, paleta branca/lavanda/violeta e sombras roxas.
-- Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções, respeito à preferência por movimento reduzido.
-- Fundo animado contínuo com manchas de luz roxa mais intensas e chuva diagonal de partículas em CSS, pausado com a aba oculta ou movimento reduzido.
+- Entradas de conteúdo por IntersectionObserver, com reaparição ao sair e retornar à tela em ambas as direções.
+- Fundo animado contínuo com manchas de luz roxa mais intensas e chuva diagonal de partículas em CSS, pausado com a aba oculta ou quando o visitante escolhe reduzir as animações.
 - Contraste reforçado, contornos semânticos e sombras violetas para separar os elementos brancos.
 - Tema, cores semânticas e responsividade em `src/frontend/styles/globals.css`.
 - Conteúdo, exemplos de aplicação e link de contato em `src/frontend/lib/content.ts`.
@@ -37,10 +37,10 @@ Na Vercel, configure **Root Directory** como `src/frontend`, build como `npm run
 - Cards compactos no mobile, textos resumidos nos serviços e no streaming e apresentação compacta dos benefícios.
 - Navegação interna por rolagem, mantendo a URL sem fragmentos `#`, inclusive no menu mobile.
 - Menu mobile com foco controlado, perguntas frequentes e benefícios com indicadores de validação.
-- Fontes Geist servidas localmente e respeito a `prefers-reduced-motion`.
+- Fontes Geist servidas localmente.
 - Núcleo 3D em CSS com seis faces, órbitas em planos distintos e profundidade por perspectiva, sem WebGL ou novas dependências.
 - Demonstrações ampliadas em streaming de contabilidade, marketing e atendimento, navegáveis por setas, teclado e arraste, identificadas como simulações com dados fictícios.
-- Sem controles visíveis de pausa ou reinício; temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
+- Sem controles visíveis de pausa ou reinício; temporizadores pausam fora da tela ou quando a aba está oculta. As animações tocam mesmo quando o sistema operacional pede movimento reduzido (muitos PCs fracos ativam isso pelo perfil de energia e o site ficava estático). Quem quiser menos movimento usa o botão "Reduzir animações" no rodapé; a escolha fica salva no navegador (`html[data-reduce-motion="true"]`) e mostra o conteúdo completo sem animação.
 - Serviços com entregas e exemplos, processo com atividades de cada etapa, valor para o negócio com mecanismos, impactos potenciais e indicadores.
 
 - Desempenho em computadores fracos: o símbolo da marca tem 256 px (cerca de 40 KB, em vez de 720 KB); a chuva do fundo usa três camadas animadas em vez de oitenta e quatro; a digitação das demonstrações atualiza só os textos que mudam, no mesmo ritmo, em vez de renderizar o card inteiro a cada passo. Um teste de fluidez roda depois do carregamento e, só em aparelho lento (ou com 2 núcleos/2 GB), liga `html[data-perf="lite"]`: nenhuma animação nem elemento sai, apenas o desfoque ao vivo do cabeçalho vira um fundo quase opaco.

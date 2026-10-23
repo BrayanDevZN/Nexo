@@ -58,3 +58,36 @@ test("the demo keeps typing at the same pace and finishes every line", async ({ 
   await expect.poll(async () => (await typed()).every(length => length > 40), { timeout: 15000 }).toBe(true);
   await expect(page.locator(".stream-console").first().locator("[data-result]")).toHaveText("Resumo pronto para conferência", { timeout: 20000 });
 });
+
+const running = () => document.getAnimations().filter(animation => animation instanceof CSSAnimation && animation.playState === "running").length;
+
+test("animations play even when the operating system asks to reduce motion", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true);
+  expect(await page.evaluate(running)).toBeGreaterThan(10);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector(".core-cube")!).animationName)).toBe("cube-turn");
+  expect(await page.evaluate(() => [...document.querySelectorAll(".ambient-drop")].filter(drop => getComputedStyle(drop).display !== "none").length)).toBeGreaterThan(0);
+  await context.close();
+});
+
+test("the footer button turns reduced motion on and off and remembers the choice", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Reduzir animações" });
+  await toggle.scrollIntoViewIfNeeded();
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
+  await expect(page.getByRole("button", { name: "Ativar animações" })).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector(".core-cube")!).animationName)).toBe("none");
+  expect(await page.evaluate(() => [...document.querySelectorAll(".ambient-drop")].filter(drop => getComputedStyle(drop).display !== "none").length)).toBe(0);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
+  await page.getByRole("button", { name: "Ativar animações" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "false");
+  // The cube is paused while it is off screen, so look at the top of the page.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(1200);
+  expect(await page.evaluate(running)).toBeGreaterThan(10);
+});
