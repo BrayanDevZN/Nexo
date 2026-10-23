@@ -60,7 +60,7 @@ export default function AdminApp() {
     (!canSell && salesPages.includes(selectedPage)) ||
     (!canDevelop && devPages.includes(selectedPage)) ||
     (area === "commercial" && devPages.includes(selectedPage)) ||
-    (area === "dev" && (salesPages.includes(selectedPage) || selectedPage === "chat")) ||
+    (area === "dev" && (salesPages.includes(selectedPage) || selectedPage === "chat" || selectedPage === "profile")) ||
     (!isOwner && ["members", "approvals"].includes(selectedPage))
   ) ? defaultPage(area) : selectedPage;
   // The panel entrance animation is skipped on the chat, whose list updates live.
@@ -197,7 +197,7 @@ export default function AdminApp() {
         {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
         {area === "dev" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
         {area === "dev" && <Button variant={page === "databases" ? "secondary" : "ghost"} onClick={() => navigate("databases")} aria-current={page === "databases" ? "page" : undefined}><Database data-icon="inline-start" /> Bancos de dados</Button>}
-        <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>
+        {area !== "dev" && <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>}
       </nav>
   );
   const account = (
