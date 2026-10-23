@@ -29,6 +29,14 @@ def _header_api_key(request: Request):
         raise HTTPException(status_code=401, detail="Invalid API key") from None
 
 
+def api_key_user(request: Request):
+    # API key only: a session cookie never satisfies this dependency.
+    user = _header_api_key(request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="API key required")
+    return user
+
+
 def approved_user(request: Request):
     user = _header_api_key(request) or current_user(request)
     if user.status != "approved":
