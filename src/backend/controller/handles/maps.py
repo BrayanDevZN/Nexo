@@ -6,7 +6,7 @@ from backend.controller.dependencies import current_user
 from backend.controller.schema.maps import MapsFunnelInput, MapsJobInput, MapsKeyInput
 from backend.domain.roles import SALES
 from backend.infra.connections.maps import MapsUnavailable
-from backend.service.access import AccessDenied
+from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 from backend.service.maps import (
     MapsJobNotFound,
     MapsKeyRejected,
@@ -93,6 +93,27 @@ def add_to_funnel(data: MapsFunnelInput, request: Request, actor=Depends(current
             actor, data.niche, [lead.model_dump() for lead in data.leads])
     except AccessDenied as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
+
+
+@router.post("/funnel/batches", status_code=202)
+def start_funnel_batch(data: MapsFunnelInput, request: Request, actor=Depends(current_user)):
+    """Queue the leads; each one becomes its own background task that creates the client."""
+    _check(actor)
+    try:
+        return request.app.state.services.funnel_imports.submit(actor, data.niche, [lead.model_dump() for lead in data.leads])
+    except ResourceConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+
+
+@router.get("/funnel/batches/{batch_id}")
+def funnel_batch(batch_id: str, request: Request, actor=Depends(current_user)):
+    _check(actor)
+    try:
+        return request.app.state.services.funnel_imports.status(actor, batch_id)
+    except ResourceNotFound:
+        raise HTTPException(status_code=404, detail="Batch not found") from None
 
 
 @router.delete("/jobs/{job_id}", status_code=204)

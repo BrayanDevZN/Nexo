@@ -246,11 +246,19 @@ async function openMaps(page: Page, status: "working" | "ok", leadRequests: Reco
   await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: 2, in_funnel: 0, truncated: false, rows: [
     { title: "Padaria A", category: "Padaria", address: "Rua A, 1", phone: "11 3333-4444", website: null, emails: null, review_rating: 4.5, review_count: 10, link: null, latitude: -23.5, longitude: -46.6 },
     { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }] })));
-  await page.route("**/api/maps/funnel", async route => {
-    leadRequests.push(route.request().postDataJSON());
-    await new Promise(resolve => setTimeout(resolve, 600));
-    await route.fulfill(json({ created: 1, skipped: 0, items: ["created"] }, 201));
+  // The server saves the leads in the background: one more lead is done every two status polls.
+  let total = 0, polls = 0;
+  const snapshot = () => {
+    const done = Math.min(total, Math.floor(polls / 2));
+    return { id: "b1", total, done, created: done, skipped: 0, failed: 0, finished: done === total,
+      items: Array.from({ length: total }, (_, index) => index < done ? "created" : index === done ? "processing" : "queued") };
+  };
+  await page.route("**/api/maps/funnel/batches", route => {
+    const body = route.request().postDataJSON();
+    leadRequests.push(body); total = body.leads.length; polls = 0;
+    return route.fulfill(json({ ...snapshot(), items: Array(total).fill("queued") }, 202));
   });
+  await page.route("**/api/maps/funnel/batches/b1", route => { polls += 1; return route.fulfill(json(snapshot())); });
   await page.goto("/admin");
   await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
   await button(page, "Maps").click();
@@ -263,27 +271,28 @@ test("maps shows a spinner while a search is running", async ({ page }) => {
   await expect(page.getByRole("status", { name: "Buscando empresas" })).toBeVisible();
 });
 
-test("adding a lead swaps its button for a spinner and then shows Adicionado!", async ({ page }) => {
+test("adding a lead swaps its button for a spinner until the background task saves it", async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await openMaps(page, "ok", requests);
   await page.getByRole("button", { name: "Adicionar Padaria A ao funil" }).click();
   await expect(page.getByRole("status", { name: "Adicionando Padaria A ao funil" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Adicionar Padaria A ao funil" })).toHaveCount(0);
-  await expect(page.getByText("Adicionado!")).toBeVisible();
+  await expect(page.getByText("Adicionado!")).toBeVisible({ timeout: 10000 });
   expect(requests).toHaveLength(1);
   expect((requests[0].leads as unknown[]).length).toBe(1);
-  // The other lead is untouched.
   await expect(page.getByRole("button", { name: "Adicionar Padaria B ao funil" })).toBeEnabled();
 });
 
-test("adding all leads saves them one by one", async ({ page }) => {
+test("adding all leads queues one task per lead and follows the progress", async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await openMaps(page, "ok", requests);
   await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
-  await expect(page.getByText(/Adicionando 1 de 2/)).toBeVisible();
-  await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 10000 });
-  expect(requests.map(request => (request.leads as { title: string }[]).map(lead => lead.title))).toEqual([["Padaria A"], ["Padaria B"]]);
+  await expect(page.getByRole("progressbar", { name: "Andamento da adição ao funil" })).toBeVisible();
+  await expect(page.getByText("Na fila")).toBeVisible();
+  await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 15000 });
   await expect(page.getByText("2 lead(s) adicionados ao funil.")).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect((requests[0].leads as { title: string }[]).map(lead => lead.title)).toEqual(["Padaria A", "Padaria B"]);
 });
 
 test("mobile login and panel fit the viewport", async ({ page }) => {

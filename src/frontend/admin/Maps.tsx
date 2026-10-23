@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Download, KeyRound, ListPlus, MapPin, Check, RefreshCw, Search, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Download, KeyRound, ListPlus, MapPin, Check, Clock3, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,11 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CLIENT_NICHES, type createApi } from "./api";
+import { ApiError, CLIENT_NICHES, type createApi } from "./api";
 import { mapsUrl } from "./contact";
 import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
@@ -24,6 +25,12 @@ type Lead = {
   website: string | null; emails: string | null; review_rating: number | null; review_count: number | null;
   link: string | null; latitude: number | null; longitude: number | null;
 };
+type BatchStatus = { id: string; total: number; done: number; created: number; skipped: number; failed: number; finished: boolean; items: string[] };
+type Batch = { id: string; jobId: string; keys: string[]; status?: BatchStatus };
+const BATCH_KEY = "nexo-maps-batch";
+const saveBatch = (batch: Batch) => { try { localStorage.setItem(BATCH_KEY, JSON.stringify({ id: batch.id, jobId: batch.jobId, keys: batch.keys })); } catch { /* sem armazenamento */ } };
+const clearBatch = () => { try { localStorage.removeItem(BATCH_KEY); } catch { /* sem armazenamento */ } };
+const savedBatch = (): Batch | null => { try { const raw = localStorage.getItem(BATCH_KEY); return raw ? JSON.parse(raw) as Batch : null; } catch { return null; } };
 type Results = { rows: Lead[]; total: number; truncated: boolean; in_funnel: number };
 
 const CITIES: { name: string; lat: string; lon: string }[] = [
@@ -118,9 +125,9 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
-  const [adding, setAdding] = useState<string | null>(null);
   const [existing, setExisting] = useState<Set<string>>(new Set());
-  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [failed, setFailed] = useState<Set<string>>(new Set());
+  const [batch, setBatch] = useState<Batch | null>(null);
   const [leadNiche, setLeadNiche] = useState<string>(NICHES[0]);
   const [resultLimit, setResultLimit] = useState(0);
   const [form, setForm] = useState({
@@ -149,7 +156,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const selected = jobs?.find(job => job.id === selectedId);
   const selectedStatus = selected?.status;
   useEffect(() => {
-    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set());
+    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set()); setFailed(new Set());
     const meta = readJobMeta()[selectedId];
     setResultLimit(meta?.limit ?? 0);
     if (meta?.niche && NICHES.some(niche => niche === meta.niche)) setLeadNiche(meta.niche);
@@ -234,25 +241,66 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
-  // Leads are saved one at a time: each one gets its own notice, and its button only changes once it is really saved.
-  async function addLeads(leads: Lead[], all: boolean) {
-    if (adding || bulk || !leads.length) return;
+  // The server saves each lead as its own background task; this follows its progress until every lead is done.
+  async function addLeads(leads: Lead[]) {
+    if (batch || !leads.length) return;
     setError(""); setSuccess("");
-    if (all) setBulk({ done: 0, total: leads.length });
-    let created = 0, skipped = 0;
+    const keys = leads.map(leadKey);
+    setFailed(current => { const next = new Set(current); keys.forEach(key => next.delete(key)); return next; });
+    setBatch({ id: "", jobId: selectedId, keys });
     try {
-      for (const lead of leads) {
-        const key = leadKey(lead);
-        setAdding(key);
-        const result = await api.mutate<{ created: number; skipped: number }>("/maps/funnel", "POST", { niche: leadNiche, leads: [lead] });
-        created += result.created; skipped += result.skipped;
-        (result.created ? setAdded : setExisting)(current => new Set(current).add(key));
-        if (all) setBulk(current => current && { ...current, done: current.done + 1 });
-      }
-      setSuccess(`${created} lead(s) adicionados ao funil${skipped ? `; ${skipped} já estavam cadastrados` : ""}.`);
-    } catch (e) { setError(message(e) + (created ? ` ${created} lead(s) já tinham sido adicionados.` : "")); }
-    finally { setAdding(null); setBulk(null); }
+      const started = await api.mutate<BatchStatus>("/maps/funnel/batches", "POST", { niche: leadNiche, leads });
+      const next: Batch = { id: started.id, jobId: selectedId, keys, status: started };
+      setBatch(next); saveBatch(next);
+    } catch (e) { setError(message(e)); setBatch(null); }
   }
+  const batchId = batch?.id;
+  const batchKeys = useRef<string[]>([]);
+  batchKeys.current = batch?.keys ?? batchKeys.current;
+  useEffect(() => {
+    if (!batchId) return;
+    let active = true;
+    async function tick() {
+      try {
+        api.invalidate(); // progress must never come from the read cache
+        const status = await api.request<BatchStatus>(`/maps/funnel/batches/${batchId}`);
+        if (!active) return;
+        // Leads already finished keep their final state even after the batch ends.
+        const keysWith = (target: string) => batchKeys.current.filter((_, index) => status.items[index] === target);
+        const merge = (extra: string[]) => (old: Set<string>) => new Set([...old, ...extra]);
+        setAdded(merge(keysWith("created"))); setExisting(merge(keysWith("duplicate"))); setFailed(merge(keysWith("failed")));
+        setBatch(current => current && current.id === batchId ? { ...current, status } : current);
+        if (status.finished) {
+          clearBatch(); setBatch(null);
+          setSuccess(`${status.created} lead(s) adicionados ao funil${status.skipped ? `; ${status.skipped} já estavam cadastrados` : ""}${status.failed ? `; ${status.failed} falharam` : ""}.`);
+        }
+      } catch (e) {
+        if (!active) return;
+        clearBatch(); setBatch(null);
+        setError(e instanceof ApiError && e.status === 404 ? "O acompanhamento expirou. Os leads já adicionados aparecem como clientes no funil." : message(e));
+      }
+    }
+    void tick();
+    const timer = window.setInterval(() => void tick(), 1000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [api, batchId]);
+  // Coming back to a search while its leads are still being saved resumes the progress.
+  useEffect(() => {
+    if (!results || batch) return;
+    const saved = savedBatch();
+    if (saved && saved.jobId === selectedId && saved.id) setBatch(saved);
+  }, [results, selectedId, batch]);
+  const leadState = (row: Lead) => {
+    const key = leadKey(row);
+    if (added.has(key)) return "added";
+    if (existing.has(key)) return "existing";
+    const index = batch ? batch.keys.indexOf(key) : -1;
+    if (batch && index >= 0) {
+      const item = batch.status?.items[index] ?? "queued";
+      return item === "processing" || (item === "queued" && batch.keys.length === 1) ? "processing" : item === "queued" ? "queued" : "idle";
+    }
+    return failed.has(key) ? "failed" : "idle";
+  };
   function download() {
     const url = URL.createObjectURL(csvFile(visible));
     const link = document.createElement("a");
@@ -432,10 +480,14 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 </NativeSelect>
               </Field>
             </div>
-            <Button disabled={adding !== null || bulk !== null || pending.length === 0} onClick={() => void addLeads(pending, true)}>
-              {bulk ? <><Spinner data-icon="inline-start" /> Adicionando {Math.min(bulk.done + 1, bulk.total)} de {bulk.total}…</> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
+            <Button disabled={batch !== null || pending.length === 0} onClick={() => void addLeads(pending)}>
+              {batch && batch.keys.length > 1 ? <><Spinner data-icon="inline-start" /> Adicionando…</> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
             </Button>
           </div>
+          {batch && batch.keys.length > 1 && <div className="flex flex-col gap-2" role="status" aria-live="polite">
+            <div className="flex items-center justify-between text-sm"><span>Adicionando leads ao funil…</span><span className="text-muted-foreground">{batch.status?.done ?? 0} de {batch.keys.length}</span></div>
+            <Progress value={((batch.status?.done ?? 0) / batch.keys.length) * 100} aria-label="Andamento da adição ao funil" />
+          </div>}
           {visible.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nada encontrado</EmptyTitle>
             <EmptyDescription>Nenhuma empresa corresponde aos filtros atuais.</EmptyDescription></EmptyHeader></Empty> :
             <div className="max-h-[32rem] overflow-auto rounded-md border">
@@ -458,12 +510,19 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                         const url = mapsUrl({ latitude: row.latitude, longitude: row.longitude, query: [row.title, row.address].filter(Boolean).join(" ") });
                         return url ? <MapsButton href={url} label={`Ver ${row.title || "empresa"} no mapa`} /> : null;
                       })()}
-                      {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Adicionado!</Button>
-                        : existing.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Já estava no funil</Button>
-                        : adding === leadKey(row) ? <span className="flex h-8 min-w-40 items-center justify-center"><Spinner aria-label={`Adicionando ${row.title || "empresa"} ao funil`} /></span>
-                        : <Button size="sm" disabled={adding !== null || bulk !== null || !row.title} onClick={() => void addLeads([row], false)} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
-                          <ListPlus data-icon="inline-start" /> Adicionar ao funil
-                        </Button>}
+                      {(() => {
+                        const state = leadState(row);
+                        if (state === "added") return <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Adicionado!</Button>;
+                        if (state === "existing") return <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Já estava no funil</Button>;
+                        if (state === "processing") return <span className="flex h-8 min-w-40 items-center justify-center"><Spinner aria-label={`Adicionando ${row.title || "empresa"} ao funil`} /></span>;
+                        if (state === "queued") return <span className="flex h-8 min-w-40 items-center justify-center gap-2 text-xs text-muted-foreground"><Clock3 className="size-3.5" aria-hidden="true" /> Na fila</span>;
+                        return <>
+                          {state === "failed" && <Badge variant="destructive">Falhou</Badge>}
+                          <Button size="sm" disabled={batch !== null || !row.title} onClick={() => void addLeads([row])} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
+                            <ListPlus data-icon="inline-start" /> {state === "failed" ? "Tentar de novo" : "Adicionar ao funil"}
+                          </Button>
+                        </>;
+                      })()}
                     </div>
                   </TableCell>
                 </TableRow>)}</TableBody>

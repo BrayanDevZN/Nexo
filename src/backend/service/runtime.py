@@ -37,6 +37,7 @@ from backend.service.dashboard import DashboardService
 from backend.service.databases import DatabaseAdminService
 from backend.service.documents import DocumentService
 from backend.service.email_messages import AccountMessages
+from backend.service.funnel_imports import FunnelImportService
 from backend.service.google import GoogleAuthService
 from backend.service.invitations import InvitationService
 from backend.service.maps import MapsService
@@ -109,6 +110,8 @@ class RuntimeServices:
             # Keep runtime startup compatible with older ClientService constructors
             # while enabling webhook events on the current implementation.
             self.clients.webhook_events = self.webhook_events
+            self.funnel_imports = FunnelImportService(self.clients)
+            self._cleanup.callback(self.funnel_imports.close)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")
             self.announcements = AnnouncementService(

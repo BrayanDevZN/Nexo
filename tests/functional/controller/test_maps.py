@@ -165,3 +165,22 @@ def test_developer_keys_reach_the_whole_api(client):
     key = {"Authorization": "Bearer " + client.post("/auth/api-keys", headers=headers, json={"name": "tudo"}).json()["key"]}
     for path in ("/clients", "/documents", "/dashboard", "/automations"):
         assert client.get(path, headers=key).status_code == 200, path
+
+
+def test_leads_are_saved_in_the_background_with_progress(client):
+    import time
+    headers = sign_in(client)
+    body = {"niche": "Alimentação", "leads": [{"title": "Padaria 1"}, {"title": "Padaria 2"}, {"title": "Padaria 1"}]}
+    started = client.post("/maps/funnel/batches", headers=headers, json=body)
+    assert started.status_code == 202 and started.json()["total"] == 3
+    batch = started.json()["id"]
+    for _ in range(100):
+        status = client.get(f"/maps/funnel/batches/{batch}").json()
+        if status["finished"]:
+            break
+        time.sleep(0.05)
+    assert status["items"] == ["created", "created", "duplicate"] and status["done"] == 3
+    assert {row["name"] for row in client.get("/clients").json()} >= {"Padaria 1", "Padaria 2"}
+    assert client.get("/maps/funnel/batches/unknown").status_code == 404
+    assert client.post("/maps/funnel/batches", headers=headers, json={"niche": "Inexistente", "leads": [{"title": "x"}]}).status_code == 422
+    assert client.post("/maps/funnel/batches", headers=headers, json={"niche": "Varejo", "leads": []}).status_code == 422

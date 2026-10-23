@@ -9,8 +9,8 @@ SENSITIVE_ROUTES = {
 }
 
 
-# The panel adds leads from the Maps one request at a time, so this route gets a larger per-route budget.
-BULK_ROUTES = {"/maps/funnel": 10}
+# Adding leads from the Maps sends many small requests and polls the progress, so these routes get a larger budget.
+BULK_ROUTES = {"/maps/funnel": 10, "/maps/funnel/batches": 10, "/maps/funnel/batches/{batch_id}": 10}
 
 
 class RateLimitService:
