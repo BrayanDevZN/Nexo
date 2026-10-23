@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 _EMAIL = TypeAdapter(EmailStr)
 
 
-def _lead_phone(value):
+def lead_phone(value):
     """Normalize a phone read from Google Maps; numbers without a country code are Brazilian."""
     if not value:
         return None
@@ -155,13 +155,13 @@ class ClientService:
 
     def import_leads(self, actor, niche, leads):
         """Save Google Maps leads as funnel clients, skipping ones already registered by name or phone."""
-        prepared = [(lead, _lead_phone(lead.get("phone"))) for lead in leads]
+        prepared = [(lead, lead_phone(lead.get("phone"))) for lead in leads]
         notices = []
         created, statuses = [], []
         with self.repositories.transaction() as repos:
             authorize_role(repos, actor, SALES)
             known_names, known_phones = repos.clients.known_contacts(
-                [lead["title"] for lead, _ in prepared], [phone for _, phone in prepared if phone])
+                [lead["title"].strip()[:160] for lead, _ in prepared], [phone for _, phone in prepared if phone])
             creator = repos.users.get(actor.id).name
             for lead, phone in prepared:
                 name = lead["title"].strip()[:160]

@@ -40,9 +40,18 @@ class Credentials:
         return had
 
 
+class Clients:
+    def __init__(self):
+        self.names, self.phones = set(), set()
+
+    def known_contacts(self, names, phones):
+        return ({name.lower() for name in names} & self.names, set(phones) & self.phones)
+
+
 class Repositories:
     def __init__(self):
         self.maps_credentials = Credentials()
+        self.clients = Clients()
 
     @contextmanager
     def transaction(self):
@@ -93,7 +102,7 @@ def test_create_sends_the_scraper_payload_with_string_coordinates(settings):
 
 def test_results_keep_only_lead_fields_and_cap_the_rows(settings, monkeypatch):
     rows = service(settings, lambda request: httpx.Response(200, content=CSV.encode())).results(JOB_ID)
-    assert rows["total"] == 2 and rows["truncated"] is False
+    assert rows["total"] == 2 and rows["truncated"] is False and rows["in_funnel"] == 0
     first, second = rows["rows"]
     assert first["title"] == "Padaria Santa Tereza" and first["review_rating"] == 4.4 and first["review_count"] == 120
     assert first["latitude"] == -23.5 and first["longitude"] == -46.6
@@ -102,6 +111,16 @@ def test_results_keep_only_lead_fields_and_cap_the_rows(settings, monkeypatch):
     monkeypatch.setattr("backend.service.maps.MAX_ROWS", 1)
     capped = service(settings, lambda request: httpx.Response(200, content=CSV.encode())).results(JOB_ID)
     assert len(capped["rows"]) == 1 and capped["total"] == 2 and capped["truncated"] is True
+
+
+def test_results_hide_leads_already_in_the_funnel(settings):
+    repositories = Repositories()
+    repositories.clients.names = {"padaria santa tereza"}
+    rows = service(settings, lambda request: httpx.Response(200, content=CSV.encode()), repositories=repositories).results(JOB_ID)
+    assert [row["title"] for row in rows["rows"]] == ["Sem Nota"] and rows["total"] == 1 and rows["in_funnel"] == 1
+    repositories.clients.names, repositories.clients.phones = set(), {"+551111111111"}
+    rows = service(settings, lambda request: httpx.Response(200, content=CSV.encode()), repositories=repositories).results(JOB_ID)
+    assert [row["title"] for row in rows["rows"]] == ["Sem Nota"] and rows["in_funnel"] == 1
 
 
 def test_upstream_failures_map_to_specific_errors(settings):

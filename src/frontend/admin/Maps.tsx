@@ -23,7 +23,7 @@ type Lead = {
   website: string | null; emails: string | null; review_rating: number | null; review_count: number | null;
   link: string | null; latitude: number | null; longitude: number | null;
 };
-type Results = { rows: Lead[]; total: number; truncated: boolean };
+type Results = { rows: Lead[]; total: number; truncated: boolean; in_funnel: number };
 
 const CITIES: { name: string; lat: string; lon: string }[] = [
   { name: "São Paulo (SP)", lat: "-23.5505", lon: "-46.6333" },
@@ -397,7 +397,7 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
     {status?.configured && selected && <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2">{selected.name || "Busca"} <Badge variant={statusOf(selected.status).variant}>{statusOf(selected.status).label}</Badge></CardTitle>
-        <CardDescription>{selected.status === "ok" ? (results ? `${results.total} empresa(s) encontradas${results.truncated ? `; mostrando as primeiras ${results.rows.length}` : ""}.` : "Carregando resultados…")
+        <CardDescription>{selected.status === "ok" ? (results ? `${results.total} empresa(s) nova(s) encontradas${results.in_funnel ? `; ${results.in_funnel} já estavam no funil e foram ocultadas` : ""}${results.truncated ? `; mostrando as primeiras ${results.rows.length}` : ""}.` : "Carregando resultados…")
           : ACTIVE.has(selected.status) ? "A busca está rodando. Esta tela atualiza sozinha." : "A busca não terminou com sucesso. Tente novamente com outra região ou menos profundidade."}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

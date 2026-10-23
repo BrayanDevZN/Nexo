@@ -7,6 +7,7 @@ from uuid import UUID
 from cryptography.fernet import Fernet, InvalidToken
 
 from backend.infra.connections.maps import MapsConnection, MapsUnavailable
+from backend.service.clients import lead_phone
 
 MAX_ROWS = 1000
 LEAD_FIELDS = ("title", "category", "address", "phone", "website", "emails",
@@ -127,15 +128,23 @@ class MapsService:
 
     def results(self, job_id: UUID) -> dict:
         text = self._call("GET", f"/api/v1/jobs/{job_id}/download").content.decode("utf-8", "replace")
-        rows, total = [], 0
         try:
-            for row in csv.DictReader(io.StringIO(text)):
-                total += 1
-                if len(rows) < MAX_ROWS:
-                    rows.append(self._lead(row))
+            leads = [self._lead(row) for row in csv.DictReader(io.StringIO(text))]
         except csv.Error:
             raise MapsUnavailable("Maps results could not be read") from None
-        return {"rows": rows, "total": total, "truncated": total > len(rows)}
+        fresh = self._without_funnel(leads)
+        rows = fresh[:MAX_ROWS]
+        return {"rows": rows, "total": len(fresh), "truncated": len(fresh) > len(rows),
+                "in_funnel": len(leads) - len(fresh)}
+
+    def _without_funnel(self, leads: list[dict]) -> list[dict]:
+        """Drop leads already registered as clients (same name or phone), so searches only offer new ones."""
+        phones = [lead_phone(lead["phone"]) for lead in leads]
+        with self.repositories.read_transaction() as repos:
+            names, known_phones = repos.clients.known_contacts(
+                [lead["title"].strip()[:160] for lead in leads if lead["title"]], [phone for phone in phones if phone])
+        return [lead for lead, phone in zip(leads, phones, strict=True)
+                if not ((lead["title"] and lead["title"].strip()[:160].lower() in names) or (phone and phone in known_phones))]
 
     @staticmethod
     def _lead(row: dict) -> dict:

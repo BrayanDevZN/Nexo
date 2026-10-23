@@ -126,3 +126,11 @@ def test_leads_are_saved_to_the_funnel_and_repeats_are_skipped(client):
     assert saved["pipeline_stage"] == "lead" and saved["address"] == "Rua A, 1"
     assert client.post("/maps/funnel", headers=headers, json={**body, "niche": "Inexistente"}).status_code == 422
     assert client.post("/maps/funnel", headers=headers, json={"niche": "Varejo", "leads": []}).status_code == 422
+
+
+def test_saved_leads_no_longer_appear_in_results(client):
+    headers = sign_in(client)
+    assert client.get(f"/maps/jobs/{JOB}/results").json()["total"] == 1
+    client.post("/maps/funnel", headers=headers, json={"niche": "Alimentação", "leads": [{"title": "Padaria X"}]})
+    results = client.get(f"/maps/jobs/{JOB}/results").json()
+    assert results["rows"] == [] and results["total"] == 0 and results["in_funnel"] == 1
