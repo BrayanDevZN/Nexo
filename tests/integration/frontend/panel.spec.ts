@@ -238,14 +238,16 @@ test("dev home shows keys, API usage, databases and automations, each tolerating
   await expect(page.getByRole("button", { name: "Início", exact: true })).toBeVisible();
 });
 
-async function openMaps(page: Page, status: "working" | "ok", leadRequests: Record<string, unknown>[] = []) {
+async function openMaps(page: Page, status: "working" | "ok", leadRequests: Record<string, unknown>[] = [], extraRows = 0) {
   await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
   const json = (body: unknown, code = 200) => ({ status: code, contentType: "application/json", body: JSON.stringify(body) });
   await page.route("**/api/maps/status", route => route.fulfill(json({ configured: true, source: "panel", key_prefix: "nexo_live_ab12", updated_at: null, own: true })));
   await page.route("**/api/maps/jobs", route => route.fulfill(json([{ id: "11111111-1111-4111-8111-111111111111", name: "Alimentação · São Paulo", status, created_at: "2026-10-23T10:00:00" }])));
-  await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: 2, in_funnel: 0, truncated: false, rows: [
+  const rows = [
     { title: "Padaria A", category: "Padaria", address: "Rua A, 1", phone: "11 3333-4444", website: null, emails: null, review_rating: 4.5, review_count: 10, link: null, latitude: -23.5, longitude: -46.6 },
-    { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }] })));
+    { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null },
+    ...Array.from({ length: extraRows }, (_, index) => ({ title: `Padaria X${index}`, category: "Padaria", address: `Rua X, ${index}`, phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }))];
+  await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: rows.length, in_funnel: 0, truncated: false, rows })));
   await page.route("**/api/maps/funnel", async route => {
     leadRequests.push(route.request().postDataJSON());
     await new Promise(resolve => setTimeout(resolve, 600));
@@ -276,13 +278,79 @@ test("adding a lead swaps its button for a spinner and then shows Adicionado!", 
   await expect(page.getByRole("button", { name: "Adicionar Padaria B ao funil" })).toBeEnabled();
 });
 
-test("adding all leads saves them one by one", async ({ page }) => {
+test("adding all leads runs one background task per lead, all spinning at once", async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await openMaps(page, "ok", requests);
   await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
-  await expect(page.getByText(/Adicionando 1 de 2/)).toBeVisible();
+  // Both leads spin together instead of waiting for each other.
+  await expect(page.getByRole("status", { name: "Adicionando Padaria A ao funil" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Adicionando Padaria B ao funil" })).toBeVisible();
   await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 10000 });
-  expect(requests.map(request => (request.leads as { title: string }[]).map(lead => lead.title))).toEqual([["Padaria A"], ["Padaria B"]]);
+  expect(requests.map(request => (request.leads as { title: string }[])[0].title).sort()).toEqual(["Padaria A", "Padaria B"]);
+  await expect(page.getByText("2 lead(s) adicionados ao funil.")).toBeVisible();
+});
+
+test("each lead leaves the spinner as soon as it is saved", async ({ page }) => {
+  await openMaps(page, "ok");
+  await page.route("**/api/maps/funnel", async route => {
+    const title = (route.request().postDataJSON().leads as { title: string }[])[0].title;
+    await new Promise(resolve => setTimeout(resolve, title === "Padaria A" ? 100 : 2500));
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ created: 1, skipped: 0, items: ["created"] }) });
+  });
+  await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
+  await expect(page.getByText("Adicionado!")).toHaveCount(1);
+  await expect(page.getByRole("status", { name: "Adicionando Padaria B ao funil" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Adicionando Padaria A ao funil" })).toHaveCount(0);
+  await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 10000 });
+});
+
+test("a long list is fully added, with a bounded number of requests at a time", async ({ page }) => {
+  await openMaps(page, "ok", [], 12);
+  let running = 0, peak = 0, total = 0;
+  await page.route("**/api/maps/funnel", async route => {
+    total += 1; running += 1; peak = Math.max(peak, running);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    running -= 1;
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ created: 1, skipped: 0, items: ["created"] }) });
+  });
+  await page.getByRole("button", { name: /Adicionar todos no funil \(14\)/ }).click();
+  await expect(page.getByText("Adicionado!")).toHaveCount(14, { timeout: 15000 });
+  await expect(page.getByText("14 lead(s) adicionados ao funil.")).toBeVisible();
+  expect(total).toBe(14);
+  expect(peak).toBeGreaterThan(1);
+  expect(peak).toBeLessThanOrEqual(6);
+});
+
+test("a lead that fails does not stop the others and can be retried", async ({ page }) => {
+  await openMaps(page, "ok");
+  let failB = true;
+  await page.route("**/api/maps/funnel", async route => {
+    const title = (route.request().postDataJSON().leads as { title: string }[])[0].title;
+    if (title === "Padaria B" && failB) return route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ detail: "invalid" }) });
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ created: 1, skipped: 0, items: ["created"] }) });
+  });
+  await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
+  await expect(page.getByText("Adicionado!")).toHaveCount(1);
+  await expect(page.getByText(/1 lead\(s\) não foram adicionados/)).toBeVisible();
+  const retry = page.getByRole("button", { name: "Tentar de novo: adicionar Padaria B ao funil" });
+  await expect(retry).toBeVisible();
+  failB = false;
+  await retry.click();
+  await expect(page.getByText("Adicionado!")).toHaveCount(2);
+});
+
+test("a busy server (429) is retried instead of dropping the lead", async ({ page }) => {
+  await openMaps(page, "ok");
+  const attempts: Record<string, number> = {};
+  await page.route("**/api/maps/funnel", async route => {
+    const title = (route.request().postDataJSON().leads as { title: string }[])[0].title;
+    attempts[title] = (attempts[title] ?? 0) + 1;
+    if (title === "Padaria A" && attempts[title] === 1) return route.fulfill({ status: 429, headers: { "Retry-After": "1" }, contentType: "application/json", body: JSON.stringify({ detail: "Too many requests" }) });
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ created: 1, skipped: 0, items: ["created"] }) });
+  });
+  await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
+  await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 10000 });
+  expect(attempts["Padaria A"]).toBe(2);
   await expect(page.getByText("2 lead(s) adicionados ao funil.")).toBeVisible();
 });
 

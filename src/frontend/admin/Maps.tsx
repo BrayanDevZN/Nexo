@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Download, KeyRound, ListPlus, MapPin, Check, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CLIENT_NICHES, type createApi } from "./api";
+import { ApiError, CLIENT_NICHES, type createApi } from "./api";
 import { mapsUrl } from "./contact";
 import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
@@ -73,6 +73,36 @@ const saveJobMeta = (id: string, meta: JobMeta) => {
   try { localStorage.setItem(JOB_META_KEY, JSON.stringify({ ...readJobMeta(), [id]: meta })); } catch { /* sem armazenamento: usa os padrões */ }
 };
 const leadKey = (lead: Lead) => `${lead.link ?? ""}|${lead.title ?? ""}|${lead.address ?? ""}`;
+// Every lead is saved by its own background task; at most SAVE_CONCURRENCY of them talk to the server at once.
+const SAVE_CONCURRENCY = 6;
+const SAVE_ATTEMPTS = 4;
+const RETRYABLE = new Set([0, 429, 502, 503]);
+const sleep = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+// Mirrors the server's phone normalization so a repeated company inside one batch is recognised before it is sent.
+function normalizePhone(value: string | null) {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "");
+  const full = !value.trim().startsWith("+") && (digits.length === 10 || digits.length === 11) ? "55" + digits : digits;
+  return full.length >= 10 && full.length <= 15 ? full : "";
+}
+function splitDuplicates(leads: Lead[]) {
+  const names = new Set<string>(), phones = new Set<string>();
+  const unique: Lead[] = [], duplicates: Lead[] = [];
+  for (const lead of leads) {
+    const name = (lead.title ?? "").trim().slice(0, 160).toLowerCase(), phone = normalizePhone(lead.phone);
+    if (names.has(name) || (phone && phones.has(phone))) { duplicates.push(lead); continue; }
+    names.add(name);
+    if (phone) phones.add(phone);
+    unique.push(lead);
+  }
+  return { unique, duplicates };
+}
+async function runPool<T>(items: T[], size: number, worker: (item: T) => Promise<void>) {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, async () => {
+    while (next < items.length) await worker(items[next++]);
+  }));
+}
 const DEPTHS = [
   { value: 1, label: "Rápida: poucos resultados" },
   { value: 3, label: "Normal" },
@@ -118,7 +148,9 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
-  const [adding, setAdding] = useState<string | null>(null);
+  const [loading, setLoading] = useState<Set<string>>(new Set());
+  const [failed, setFailed] = useState<Set<string>>(new Set());
+  const inFlight = useRef<Set<string>>(new Set());
   const [existing, setExisting] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [leadNiche, setLeadNiche] = useState<string>(NICHES[0]);
@@ -149,7 +181,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const selected = jobs?.find(job => job.id === selectedId);
   const selectedStatus = selected?.status;
   useEffect(() => {
-    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set());
+    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set()); setFailed(new Set());
     const meta = readJobMeta()[selectedId];
     setResultLimit(meta?.limit ?? 0);
     if (meta?.niche && NICHES.some(niche => niche === meta.niche)) setLeadNiche(meta.niche);
@@ -170,7 +202,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       (!term || [row.title, row.category, row.address, row.phone, row.website, row.emails].some(value => value?.toLowerCase().includes(term))));
     return resultLimit > 0 ? matching.slice(0, resultLimit) : matching;
   }, [results, filter, onlyPhone, resultLimit]);
-  const pending = visible.filter(row => row.title && !added.has(leadKey(row)) && !existing.has(leadKey(row)));
+  const pending = visible.filter(row => row.title && !added.has(leadKey(row)) && !existing.has(leadKey(row)) && !loading.has(leadKey(row)));
 
   function pickCity(name: string) {
     const city = CITIES.find(item => item.name === name);
@@ -234,24 +266,51 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
-  // Leads are saved one at a time: each one gets its own notice, and its button only changes once it is really saved.
-  async function addLeads(leads: Lead[], all: boolean) {
-    if (adding || bulk || !leads.length) return;
-    setError(""); setSuccess("");
-    if (all) setBulk({ done: 0, total: leads.length });
-    let created = 0, skipped = 0;
-    try {
-      for (const lead of leads) {
-        const key = leadKey(lead);
-        setAdding(key);
-        const result = await api.mutate<{ created: number; skipped: number }>("/maps/funnel", "POST", { niche: leadNiche, leads: [lead] });
-        created += result.created; skipped += result.skipped;
-        (result.created ? setAdded : setExisting)(current => new Set(current).add(key));
-        if (all) setBulk(current => current && { ...current, done: current.done + 1 });
+  async function saveLead(lead: Lead, niche: string) {
+    for (let attempt = 1; ; attempt++) {
+      try { return await api.mutate<{ created: number; skipped: number }>("/maps/funnel", "POST", { niche, leads: [lead] }); }
+      catch (e) {
+        // Busy or briefly unreachable server: wait and try again. Validation and permission errors are not retried.
+        if (attempt >= SAVE_ATTEMPTS || !(e instanceof ApiError) || !RETRYABLE.has(e.status)) throw e;
+        await sleep(1000 * 2 ** (attempt - 1));
       }
-      setSuccess(`${created} lead(s) adicionados ao funil${skipped ? `; ${skipped} já estavam cadastrados` : ""}.`);
-    } catch (e) { setError(message(e) + (created ? ` ${created} lead(s) já tinham sido adicionados.` : "")); }
-    finally { setAdding(null); setBulk(null); }
+    }
+  }
+  // Each lead becomes its own background task. All of them show the spinner at once and each one is released as soon as
+  // it is saved; a failure only marks that lead and never stops the others.
+  async function addLeads(leads: Lead[], all: boolean) {
+    const niche = leadNiche;
+    const fresh = leads.filter(lead => lead.title && !inFlight.current.has(leadKey(lead)));
+    if (!fresh.length) return;
+    setError(""); setSuccess("");
+    const { unique, duplicates } = splitDuplicates(fresh);
+    const keys = (items: Lead[]) => items.map(leadKey);
+    unique.forEach(lead => inFlight.current.add(leadKey(lead)));
+    setLoading(current => new Set([...current, ...keys(unique)]));
+    setFailed(current => { const next = new Set(current); keys(fresh).forEach(key => next.delete(key)); return next; });
+    if (duplicates.length) setExisting(current => new Set([...current, ...keys(duplicates)]));
+    if (all) setBulk({ done: 0, total: unique.length });
+    let created = 0, skipped = duplicates.length, failures = 0, firstError = "";
+    const finish = (lead: Lead, outcome: "created" | "skipped" | "failed") => {
+      const key = leadKey(lead);
+      inFlight.current.delete(key);
+      setLoading(current => { const next = new Set(current); next.delete(key); return next; });
+      (outcome === "created" ? setAdded : outcome === "skipped" ? setExisting : setFailed)(current => new Set(current).add(key));
+      if (all) setBulk(current => current && { ...current, done: current.done + 1 });
+    };
+    await runPool(unique, SAVE_CONCURRENCY, async lead => {
+      try {
+        const result = await saveLead(lead, niche);
+        created += result.created; skipped += result.skipped;
+        finish(lead, result.created ? "created" : "skipped");
+      } catch (e) {
+        failures += 1; firstError ||= message(e);
+        finish(lead, "failed");
+      }
+    });
+    setBulk(null);
+    if (created + skipped) setSuccess(`${created} lead(s) adicionados ao funil${skipped ? `; ${skipped} já estavam cadastrados` : ""}.`);
+    if (failures) setError(`${failures} lead(s) não foram adicionados: ${firstError} Use "Tentar de novo" nos que falharam.`);
   }
   function download() {
     const url = URL.createObjectURL(csvFile(visible));
@@ -432,8 +491,8 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 </NativeSelect>
               </Field>
             </div>
-            <Button disabled={adding !== null || bulk !== null || pending.length === 0} onClick={() => void addLeads(pending, true)}>
-              {bulk ? <><Spinner data-icon="inline-start" /> Adicionando {Math.min(bulk.done + 1, bulk.total)} de {bulk.total}…</> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
+            <Button disabled={bulk !== null || pending.length === 0} onClick={() => void addLeads(pending, true)}>
+              {bulk ? <><Spinner data-icon="inline-start" /> Adicionando… {bulk.done} de {bulk.total}</> : <><ListPlus data-icon="inline-start" /> Adicionar todos no funil ({pending.length})</>}
             </Button>
           </div>
           {visible.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nada encontrado</EmptyTitle>
@@ -460,8 +519,11 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                       })()}
                       {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Adicionado!</Button>
                         : existing.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> Já estava no funil</Button>
-                        : adding === leadKey(row) ? <span className="flex h-8 min-w-40 items-center justify-center"><Spinner aria-label={`Adicionando ${row.title || "empresa"} ao funil`} /></span>
-                        : <Button size="sm" disabled={adding !== null || bulk !== null || !row.title} onClick={() => void addLeads([row], false)} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
+                        : loading.has(leadKey(row)) ? <span className="flex h-8 min-w-40 items-center justify-center"><Spinner aria-label={`Adicionando ${row.title || "empresa"} ao funil`} /></span>
+                        : failed.has(leadKey(row)) ? <Button size="sm" variant="destructive" onClick={() => void addLeads([row], false)} aria-label={`Tentar de novo: adicionar ${row.title || "empresa"} ao funil`}>
+                          <RefreshCw data-icon="inline-start" /> Tentar de novo
+                        </Button>
+                        : <Button size="sm" disabled={!row.title} onClick={() => void addLeads([row], false)} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
                           <ListPlus data-icon="inline-start" /> Adicionar ao funil
                         </Button>}
                     </div>
