@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -132,6 +132,13 @@ const compactEvents: Record<string, string[]> = {
 
 type Scenario = (typeof scenarios)[number];
 
+// Writing the same inline style again still invalidates styles, so only touch what changed.
+function show(element: HTMLElement | null, visible: boolean) {
+  if (!element) return;
+  const next = visible ? "" : "none";
+  if (element.style.display !== next) element.style.display = next;
+}
+
 function StreamSimulation({
   scenario,
   running,
@@ -146,37 +153,89 @@ function StreamSimulation({
     (event) => Math.ceil(event.text.length / CHARS_PER_TICK) + HOLD_TICKS,
   );
   const totalTicks = lengths.reduce((sum, length) => sum + length, 0) + 60;
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!running) return;
-    const interval = window.setInterval(
-      () => setTick((value) => (value + 1) % totalTicks),
-      TICK_MS,
+  const tickRef = useRef(0);
+  const root = useRef<HTMLDivElement>(null);
+  // The state of every line at a given tick. Typing only changes a few text nodes and classes,
+  // so it is written straight to the DOM instead of re-rendering the whole card 15 times a second.
+  const snapshot = (tick: number) => {
+    let elapsed = 0;
+    const output = events.map((event, index) => {
+      const start = elapsed;
+      elapsed += lengths[index];
+      const count = reduced
+        ? event.text.length
+        : Math.max(
+            0,
+            Math.min(event.text.length, (tick - start) * CHARS_PER_TICK),
+          );
+      return {
+        ...event,
+        count,
+        started: reduced || tick >= start,
+        done: reduced || count === event.text.length,
+      };
+    });
+    const stage = Math.max(
+      0,
+      output.reduce((last, item, index) => (item.started ? index : last), 0),
     );
-    return () => window.clearInterval(interval);
-  }, [running, totalTicks]);
-  let elapsed = 0;
-  const output = events.map((event, index) => {
-    const start = elapsed;
-    elapsed += lengths[index];
-    const count = reduced
-      ? event.text.length
-      : Math.max(
-          0,
-          Math.min(event.text.length, (tick - start) * CHARS_PER_TICK),
-        );
-    return {
-      ...event,
-      count,
-      started: reduced || tick >= start,
-      done: reduced || count === event.text.length,
+    return { output, stage, finished: output.every((item) => item.done) };
+  };
+  const paint = (tick: number) => {
+    const node = root.current;
+    if (!node) return;
+    const { output, stage, finished } = snapshot(tick);
+    node.querySelectorAll<HTMLElement>("[data-step]").forEach((step, index) => {
+      step.classList.toggle("is-current", index <= stage);
+    });
+    node.querySelectorAll<HTMLElement>("[data-event]").forEach((line, index) => {
+      const item = output[index];
+      line.classList.toggle("is-started", item.started);
+      line.classList.toggle("is-complete", item.done);
+      const desktop = line.querySelector<HTMLElement>("[data-desktop]");
+      const mobile = line.querySelector<HTMLElement>("[data-mobile]");
+      const check = line.querySelector<HTMLElement>("[data-check]");
+      const caret = line.querySelector<HTMLElement>("[data-caret]");
+      const full = compactEvents[scenario.title][index];
+      const desktopText = item.text.slice(0, item.count);
+      const mobileText = full.slice(
+        0,
+        Math.ceil((item.count / item.text.length) * full.length),
+      );
+      if (desktop && desktop.textContent !== desktopText) desktop.textContent = desktopText;
+      if (mobile && mobile.textContent !== mobileText) mobile.textContent = mobileText;
+      show(check, item.done);
+      show(caret, item.started && !item.done);
+    });
+    const result = node.querySelector<HTMLElement>("[data-result]");
+    const label = finished ? scenario.result : "Simulação em andamento";
+    if (result && result.textContent !== label) result.textContent = label;
+  };
+  useEffect(() => {
+    if (reduced) paint(0);
+  }, [reduced]);
+  useEffect(() => {
+    if (!running || reduced) return;
+    // Time based: a slow computer skips steps instead of typing slower than a fast one.
+    let frame = 0;
+    let last = performance.now();
+    let pending = 0;
+    const loop = (now: number) => {
+      pending += now - last;
+      last = now;
+      const steps = Math.floor(pending / TICK_MS);
+      if (steps > 0) {
+        pending -= steps * TICK_MS;
+        tickRef.current = (tickRef.current + steps) % totalTicks;
+        paint(tickRef.current);
+      }
+      frame = window.requestAnimationFrame(loop);
     };
-  });
-  const stage = Math.max(
-    0,
-    output.reduce((last, item, index) => (item.started ? index : last), 0),
-  );
-  const finished = output.every((item) => item.done);
+    frame = window.requestAnimationFrame(loop);
+    return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, reduced, totalTicks]);
+  const first = snapshot(0);
   return (
     <Card className="stream-console [--card-spacing:--spacing(6)]">
       <CardHeader>
@@ -193,7 +252,7 @@ function StreamSimulation({
           Demonstração simulada · dados fictícios
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      <CardContent ref={root} className="flex flex-col gap-5">
         <div className="stream-input">
           <scenario.icon className="size-5" aria-hidden="true" />
           <div>
@@ -206,7 +265,8 @@ function StreamSimulation({
           {events.map((event, index) => (
             <span
               key={event.label}
-              className={cn("stream-step", index <= stage && "is-current")}
+              data-step
+              className={cn("stream-step", index <= first.stage && "is-current")}
             >
               <i />
               {event.label}
@@ -214,9 +274,10 @@ function StreamSimulation({
           ))}
         </div>
         <div className="stream-log" aria-hidden="true">
-          {output.map((event, index) => (
+          {first.output.map((event, index) => (
             <div
               key={event.label}
+              data-event
               className={cn(
                 "stream-event",
                 event.started && "is-started",
@@ -227,13 +288,17 @@ function StreamSimulation({
               <div>
                 <strong>
                   {event.label}
-                  {event.done && <Check className="size-3" />}
+                  <Check
+                    data-check
+                    className="size-3"
+                    style={{ display: event.done ? undefined : "none" }}
+                  />
                 </strong>
                 <p>
-                  <span className="desktop-copy">
+                  <span className="desktop-copy" data-desktop>
                     {event.text.slice(0, event.count)}
                   </span>
-                  <span className="mobile-copy">
+                  <span className="mobile-copy" data-mobile>
                     {compactEvents[scenario.title][index].slice(
                       0,
                       Math.ceil(
@@ -242,9 +307,13 @@ function StreamSimulation({
                       ),
                     )}
                   </span>
-                  {event.started && !event.done && (
-                    <span className="stream-caret" />
-                  )}
+                  <span
+                    data-caret
+                    className="stream-caret"
+                    style={{
+                      display: event.started && !event.done ? undefined : "none",
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -257,7 +326,9 @@ function StreamSimulation({
         </div>
         <div className="stream-result">
           <Badge variant="outline">
-            {finished ? scenario.result : "Simulação em andamento"}
+            <span data-result>
+              {first.finished ? scenario.result : "Simulação em andamento"}
+            </span>
           </Badge>
           <span>Execução conforme suas regras</span>
         </div>

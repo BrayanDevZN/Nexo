@@ -43,6 +43,8 @@ Na Vercel, configure **Root Directory** como `src/frontend`, build como `npm run
 - Sem controles visíveis de pausa ou reinício; temporizadores pausam fora da tela ou quando a aba está oculta. Movimento reduzido mostra o conteúdo completo sem animação.
 - Serviços com entregas e exemplos, processo com atividades de cada etapa, valor para o negócio com mecanismos, impactos potenciais e indicadores.
 
+- Desempenho em computadores fracos: o símbolo da marca tem 256 px (cerca de 40 KB, em vez de 720 KB); a chuva do fundo usa três camadas animadas em vez de oitenta e quatro; a digitação das demonstrações atualiza só os textos que mudam, no mesmo ritmo, em vez de renderizar o card inteiro a cada passo. Um teste de fluidez roda depois do carregamento e, só em aparelho lento (ou com 2 núcleos/2 GB), liga `html[data-perf="lite"]`: nenhuma animação nem elemento sai, apenas o desfoque ao vivo do cabeçalho vira um fundo quase opaco.
+
 As ilustrações e fluxos de aplicação são exemplos; não representam métricas ou resultados de clientes. Os links de contato abrem o WhatsApp existente da Nexo.
 
 ## Componentes

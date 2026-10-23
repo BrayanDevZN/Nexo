@@ -1789,10 +1789,16 @@ main,
   opacity: 0.85;
   animation: ambient-sweep-one 38s ease-in-out infinite alternate-reverse;
 }
+.ambient-rain {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  animation: ambient-rain-fall var(--rain-duration) linear infinite;
+}
 .ambient-drop {
   position: absolute;
-  left: var(--drop-x);
-  top: -70px;
+  left: calc(var(--drop-x) + var(--drop-progress) * (60vh + 84px));
+  top: calc(-70px + var(--drop-progress) * (100vh + 140px));
   width: 2px;
   height: var(--drop-length);
   border-radius: 999px;
@@ -1803,16 +1809,14 @@ main,
     var(--primary)
   );
   box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 15%, transparent);
-  animation: ambient-rain var(--drop-duration) linear infinite;
-  animation-delay: var(--drop-delay);
+  transform: rotate(-31deg);
 }
-@keyframes ambient-rain {
+@keyframes ambient-rain-fall {
   from {
-    transform: translate3d(0, 0, 0) rotate(-31deg);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0)
-      rotate(-31deg);
+    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0);
   }
 }
 @keyframes ambient-sweep-one {
@@ -2047,7 +2051,7 @@ main,
 }
 
 @media (max-width: 767px) {
-  .ambient-drop:nth-of-type(n + 49) {
+  .ambient-drop-extra {
     display: none;
   }
 }
@@ -2639,3 +2643,10 @@ main,
   .admin-auth-card [data-slot="card-header"], .admin-auth-card [data-slot="card-content"], .admin-auth-card [data-slot="card-footer"] { padding-inline: 1.25rem; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-layout *, .admin-auth * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Slow devices (detected at runtime): same animations and elements, cheaper effects.
+   A live blur behind the sticky header is redrawn every frame while the background moves. */
+html[data-perf="lite"] .site-header {
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--background) 96%, transparent);
+}
