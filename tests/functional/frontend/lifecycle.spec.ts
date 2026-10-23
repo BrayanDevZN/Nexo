@@ -28,13 +28,17 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await admin.getByLabel("E-mail", { exact: true }).fill("owner@example.com");
     await admin.getByLabel("Senha", { exact: true }).fill("initial-admin-password");
     await admin.getByRole("button", { name: "Entrar no painel" }).click();
-    await admin.getByRole("button", { name: "Entrar na área Comercial" }).click();
+    await admin.getByRole("button", { name: "Entrar na área Geral" }).click();
     await admin.getByRole("button", { name: "Ver solicitações" }).click();
     await admin.getByRole("button", { name: "Autorizar", exact: true }).click();
     await admin.getByRole("button", { name: "Confirmar decisão" }).click();
     await expect(admin.getByText("Acesso autorizado.")).toBeVisible();
+    await member.getByRole("button", { name: "Entrar na área Comercial" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await member.setViewportSize({ width: 360, height: 780 });
+    await member.getByRole("button", { name: "Abrir menu do painel" }).click();
+    await member.getByRole("dialog").getByRole("button", { name: "Trocar de área" }).click();
+    await member.getByRole("button", { name: "Entrar na área Geral" }).click();
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
     await member.getByRole("dialog").getByRole("button", { name: "Membros", exact: true }).click();
     await expect(member.getByRole("dialog")).toHaveCount(0);
@@ -44,7 +48,8 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
       return (await response.json()).every((row: Record<string, unknown>) => Object.keys(row).sort().join(",") === "has_photo,id,name,online,role");
     })).toBe(true);
     await member.getByRole("button", { name: "Abrir menu do painel" }).click();
-    await member.getByRole("dialog").getByRole("button", { name: "Clientes", exact: true }).click();
+    await member.getByRole("dialog").getByRole("button", { name: "Trocar de área" }).click();
+    await member.getByRole("button", { name: "Entrar na área Comercial" }).click();
     await member.setViewportSize({ width: 1280, height: 720 });
     await member.getByRole("button", { name: "Novo cliente" }).click();
     const dialog = member.getByRole("dialog");
@@ -84,6 +89,8 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByRole("button", { name: "Excluir documento contrato.txt" }).click();
     await member.getByRole("button", { name: "Confirmar exclusão do documento" }).click();
     await expect(member.getByText("Documento removido.")).toBeVisible();
+    await member.getByRole("button", { name: "Trocar de área" }).click();
+    await member.getByRole("button", { name: "Entrar na área Geral" }).click();
     await member.getByRole("button", { name: "Meu perfil", exact: true }).click();
     await member.getByLabel("Nome completo").fill("Ana Atualizada");
     await member.getByRole("button", { name: "Salvar perfil" }).click();
@@ -106,6 +113,7 @@ test("real API: signup, admin decision, cookie permissions, CRUD, profile and pa
     await member.getByLabel("E-mail", { exact: true }).fill(email);
     await member.getByLabel("Senha", { exact: true }).fill("browser-updated-password");
     await member.getByRole("button", { name: "Entrar no painel" }).click();
+    await member.getByRole("button", { name: "Entrar na área Comercial" }).click();
     await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
     await admin.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
     await admin.getByRole("button", { name: "Editar membro Ana Atualizada" }).first().click();

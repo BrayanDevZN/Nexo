@@ -20,11 +20,11 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await admin.getByLabel("E-mail", { exact: true }).fill("owner@example.com");
     await admin.getByLabel("Senha", { exact: true }).fill("initial-admin-password");
     await admin.getByRole("button", { name: "Entrar no painel" }).click();
-    await admin.getByRole("button", { name: "Entrar na área Comercial" }).click();
-    await expect(admin.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+    await admin.getByRole("button", { name: "Entrar na área Geral" }).click();
+    await expect(admin.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
     await admin.getByRole("button", { name: "Chat", exact: true }).click();
     await expect(admin.getByText("Conectado", { exact: true })).toBeVisible();
-    await admin.getByRole("button", { name: "Clientes", exact: true }).click();
+    await admin.getByRole("button", { name: "Início", exact: true }).click();
     const email = "chat-" + Date.now() + "@example.com";
     expect((await memberContext.request.post(origin + "/api/auth/register", { headers: { Origin: origin }, data: { name: "Chat Realtime", email, phone: "11999999999", password: "chat-member-password" } })).status()).toBe(202);
     expect((await memberContext.request.post(origin + "/api/auth/register/confirm", { headers: { Origin: origin }, data: { email, code: "12345678" } })).status()).toBe(201);
@@ -34,7 +34,8 @@ test("WebSocket: live approval, private chat, photos, audio and reconnect histor
     await admin.getByRole("button", { name: "Ver solicitações" }).click();
     await admin.getByRole("button", { name: "Autorizar", exact: true }).click();
     await admin.getByRole("button", { name: "Confirmar decisão" }).click();
-    await expect(member.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+    await member.getByRole("button", { name: "Entrar na área Geral" }).click();
+    await expect(member.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
     await member.getByRole("button", { name: "Chat", exact: true }).click();
     await member.getByRole("button", { name: "Conversar com Brayan", exact: true }).click();
     await expect(member.getByText("Conectado", { exact: true })).toBeVisible();

@@ -57,6 +57,19 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | --- | --- |
 | comercial | Clientes, funil, dashboard e documentos; biblioteca para consultar/baixar |
 | dev | Chaves de API, automações e acesso ao n8n; biblioteca para consultar/baixar |
+
+### Chaves de API por cargo
+
+Todo membro aprovado gera e revoga as próprias chaves (`/auth/api-keys`, sessão do painel). O alcance da chave depende
+do cargo do dono, lido a cada requisição:
+
+| Cargo do dono | O que a chave acessa |
+| --- | --- |
+| dev, admin, owner | Toda a API, conforme as regras de cada rota |
+| comercial | Apenas `/clients` e `/auth/api-keys/validate` (a checagem que o servidor do Maps usa); qualquer outra rota responde 403 |
+
+A chave que o painel usa no Maps é pessoal (cada membro salva a sua em `/maps/key`). Ela é guardada criptografada; a chave
+compartilhada antiga e `MAPS_API_KEY` continuam como reserva para quem ainda não salvou a sua.
 | admin | Áreas comerciais e de desenvolvimento; avisos; sem convites, aprovações ou gestão da equipe |
 | owner | Todas as áreas, inclusive convites, aprovações e gestão de membros |
 

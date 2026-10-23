@@ -1,17 +1,22 @@
-import { ArrowRight, Briefcase, LogOut, ShieldCheck, TerminalSquare } from "lucide-react";
+import { ArrowRight, Briefcase, House, LogOut, ShieldCheck, TerminalSquare } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS, type User } from "./api";
 
-export type Area = "commercial" | "dev";
+export type Area = "general" | "commercial" | "dev";
 
 export const AREAS: Record<Area, { label: string; description: string; items: string; icon: typeof Briefcase }> = {
+  general: {
+    label: "Geral", icon: House,
+    description: "O espaço de toda a equipe.",
+    items: "Início, Documentos, Chat, Avisos, Membros e Meu perfil",
+  },
   commercial: {
     label: "Comercial", icon: Briefcase,
     description: "Prospecção, relacionamento e vendas.",
-    items: "Início, Dashboard do negócio, Funil, Clientes, Maps e Documentos",
+    items: "Início, Dashboard do negócio, Funil, Clientes, Maps e Chaves",
   },
   dev: {
     label: "Desenvolvimento", icon: TerminalSquare,
@@ -24,7 +29,7 @@ export const AREAS: Record<Area, { label: string; description: string; items: st
 export function AreaGateway({ user, areas, loggingOut, onPick, onLogout }: {
   user: User; areas: Area[]; loggingOut: boolean; onPick: (area: Area) => void; onLogout: () => void;
 }) {
-  return <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col justify-center gap-8 px-4 py-10">
+  return <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-center gap-8 px-4 py-10">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
       <div className="flex items-center gap-2">
@@ -36,7 +41,7 @@ export function AreaGateway({ user, areas, loggingOut, onPick, onLogout }: {
       <h1 className="text-3xl font-semibold tracking-tight">Olá, {user.name.split(" ")[0]}.</h1>
       <p className="mt-2 text-muted-foreground">Escolha a área que você quer acessar agora.</p>
     </div>
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {areas.map(area => {
         const item = AREAS[area];
         return <button key={area} type="button" onClick={() => onPick(area)} aria-label={`Entrar na área ${item.label}`}

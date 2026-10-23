@@ -15,6 +15,8 @@ import { Approvals } from "./Approvals";
 import { Announcements } from "./Announcements";
 import { Home } from "./Home";
 import { DevHome } from "./DevHome";
+import { GeneralHome } from "./GeneralHome";
+import { MyKeys } from "./MyKeys";
 import { BusinessDashboard } from "./BusinessDashboard";
 import { Funnel } from "./Funnel";
 import { AutomationRequests } from "./AutomationRequests";
@@ -33,7 +35,7 @@ import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "dev-home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
+type Page = "home" | "dev-home" | "general-home" | "my-keys" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -46,21 +48,22 @@ export default function AdminApp() {
   const isOwner = user?.status === "approved" && user.role === "owner";
   // The areas come from the role the server just reported, so a stale choice (or another account's) is dropped.
   const allowedAreas: Area[] = user?.status === "approved"
-    ? [...(canSell ? ["commercial" as const] : []), ...(canDevelop ? ["dev" as const] : [])] : [];
+    ? ["general", ...(canSell ? ["commercial" as const] : []), ...(canDevelop ? ["dev" as const] : [])] : [];
   const [areaChoice, setAreaChoice] = useState<Area | null>(() => {
     if (new URLSearchParams(window.location.search).get("maps")) return "commercial";
-    try { const saved = sessionStorage.getItem("nexo:area"); return saved === "commercial" || saved === "dev" ? saved : null; } catch { return null; }
+    try { const saved = sessionStorage.getItem("nexo:area"); return saved === "general" || saved === "commercial" || saved === "dev" ? saved : null; } catch { return null; }
   });
   const area: Area | null = allowedAreas.length === 1 ? allowedAreas[0]
     : areaChoice && allowedAreas.includes(areaChoice) ? areaChoice : null;
-  const salesPages: Page[] = ["home", "business", "funnel", "clients", "documents", "maps"];
-  const devPages: Page[] = ["dev-home", "api-keys", "databases"];
-  const defaultPage = (target: Area | null): Page => target === "dev" || (target === null && !canSell) ? "dev-home" : "clients";
+  // Which pages belong to each area; anything else is sent back to the area's start page.
+  const AREA_PAGES: Record<Area, Page[]> = {
+    general: ["general-home", "documents", "chat", "approvals", "announcements", "directory", "members", "profile"],
+    commercial: ["home", "business", "funnel", "clients", "maps", "my-keys", "announcements"],
+    dev: ["dev-home", "automations", "api-keys", "databases", "announcements", "directory"],
+  };
+  const defaultPage = (target: Area | null): Page => target === "dev" ? "dev-home" : target === "commercial" ? "clients" : "general-home";
   const page: Page = user?.status === "approved" && (
-    (!canSell && salesPages.includes(selectedPage)) ||
-    (!canDevelop && devPages.includes(selectedPage)) ||
-    (area === "commercial" && devPages.includes(selectedPage)) ||
-    (area === "dev" && (salesPages.includes(selectedPage) || selectedPage === "chat" || selectedPage === "profile")) ||
+    (area !== null && !AREA_PAGES[area].includes(selectedPage)) ||
     (!isOwner && ["members", "approvals"].includes(selectedPage))
   ) ? defaultPage(area) : selectedPage;
   // The panel entrance animation is skipped on the chat, whose list updates live.
@@ -156,7 +159,7 @@ export default function AdminApp() {
   function onLogin(person: User) {
     generation.current++;
     if (complete || inviteToken) window.history.replaceState(null, "", "/admin");
-    api.resetSession(); setUser(person); setError(""); setPage(person.role === "dev" ? "dev-home" : "clients");
+    api.resetSession(); setUser(person); setError(""); setPage("general-home");
     setAreaChoice(null); try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
   }
   function pickArea(next: Area) {
@@ -182,22 +185,24 @@ export default function AdminApp() {
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
         {area && <div className="flex items-center justify-between gap-2 px-1 pb-1"><Badge variant="secondary">{AREAS[area].label}</Badge>
           {allowedAreas.length > 1 && <Button variant="ghost" size="sm" onClick={switchArea} aria-label="Trocar de área"><ArrowRightLeft data-icon="inline-start" /> Trocar</Button>}</div>}
+        {area === "general" && <Button variant={page === "general-home" ? "secondary" : "ghost"} onClick={() => navigate("general-home")} aria-current={page === "general-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "dev" && <Button variant={page === "dev-home" ? "secondary" : "ghost"} onClick={() => navigate("dev-home")} aria-current={page === "dev-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "business" ? "secondary" : "ghost"} onClick={() => navigate("business")} aria-current={page === "business" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Dashboard do negócio</Button>}
         {area === "commercial" && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
-        {user.status === "approved" && <Button variant={page === "automations" ? "secondary" : "ghost"} onClick={() => navigate("automations")} aria-current={page === "automations" ? "page" : undefined}><Workflow data-icon="inline-start" /> Automações</Button>}
         {area === "commercial" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
-        {area === "commercial" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
         {area === "commercial" && <Button variant={page === "maps" ? "secondary" : "ghost"} onClick={() => navigate("maps")} aria-current={page === "maps" ? "page" : undefined}><MapPin data-icon="inline-start" /> Maps</Button>}
-        {user.status === "approved" && area !== "dev" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
-        {isOwner && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
+        {area === "commercial" && <Button variant={page === "my-keys" ? "secondary" : "ghost"} onClick={() => navigate("my-keys")} aria-current={page === "my-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> Chaves</Button>}
+        {area === "dev" && <Button variant={page === "automations" ? "secondary" : "ghost"} onClick={() => navigate("automations")} aria-current={page === "automations" ? "page" : undefined}><Workflow data-icon="inline-start" /> Automações</Button>}
+        {area === "general" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
+        {area === "general" && <Button variant={page === "chat" ? "secondary" : "ghost"} onClick={() => { setIncoming(null); navigate("chat"); }} aria-current={page === "chat" ? "page" : undefined}><MessageCircle data-icon="inline-start" /> Chat {unreadCounts.chat_messages > 0 && <Badge>{unreadCounts.chat_messages}</Badge>}</Button>}
+        {isOwner && area === "general" && <Button variant={page === "approvals" ? "secondary" : "ghost"} onClick={() => navigate("approvals")} aria-current={page === "approvals" ? "page" : undefined}><Bell data-icon="inline-start" /> Solicitações {hasRequests && <Badge variant="default">Novas</Badge>}</Button>}
         {user.status === "approved" && <Button variant={page === "announcements" ? "secondary" : "ghost"} onClick={() => navigate("announcements")} aria-current={page === "announcements" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Avisos {unreadCounts.notices > 0 && <Badge aria-label={`${unreadCounts.notices} avisos novos`}>{unreadCounts.notices}</Badge>}</Button>}
-        {isOwner && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
-        {user.status === "approved" && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
+        {(area === "general" || area === "dev") && <Button variant={page === "directory" ? "secondary" : "ghost"} onClick={() => navigate("directory")} aria-current={page === "directory" ? "page" : undefined}><Users data-icon="inline-start" /> Membros</Button>}
+        {isOwner && area === "general" && <Button variant={page === "members" ? "secondary" : "ghost"} onClick={() => navigate("members")} aria-current={page === "members" ? "page" : undefined}><Settings2 data-icon="inline-start" /> Gerenciar membros</Button>}
         {area === "dev" && <Button variant={page === "api-keys" ? "secondary" : "ghost"} onClick={() => navigate("api-keys")} aria-current={page === "api-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> API</Button>}
         {area === "dev" && <Button variant={page === "databases" ? "secondary" : "ghost"} onClick={() => navigate("databases")} aria-current={page === "databases" ? "page" : undefined}><Database data-icon="inline-start" /> Bancos de dados</Button>}
-        {area !== "dev" && <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>}
+        {(area === "general" || user.status !== "approved") && <Button variant={page === "profile" ? "secondary" : "ghost"} onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserRound data-icon="inline-start" /> Meu perfil</Button>}
       </nav>
   );
   const account = (
@@ -225,10 +230,12 @@ export default function AdminApp() {
       </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
       <main className="admin-content" id="painel" ref={revealRef}>
         <Feedback error={error} />
-        {incoming && area !== "dev" && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
-        {hasRequests && user.role === "owner" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
+        {incoming && area === "general" && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
+        {hasRequests && user.role === "owner" && area === "general" && page !== "approvals" && <Alert role="status"><AlertTitle>Há solicitações de acesso aguardando sua decisão.</AlertTitle><AlertDescription><Button variant="link" onClick={() => setPage("approvals")}>Ver solicitações</Button></AlertDescription></Alert>}
         {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { api.resetSession(); setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
+          page === "general-home" ? <GeneralHome api={api} user={user} onOpen={navigate} /> :
+          page === "my-keys" && canSell ? <MyKeys api={api} onOpenMaps={() => navigate("maps")} /> :
           page === "home" ? <Home api={api} user={user} /> :
           page === "dev-home" && canDevelop ? <DevHome api={api} user={user} onOpen={navigate} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
@@ -237,7 +244,7 @@ export default function AdminApp() {
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
-          page === "maps" && canSell ? <Maps api={api} canManageKey={canDevelop} initialJobId={mapsJobId} /> :
+          page === "maps" && canSell ? <Maps api={api} canManageKey initialJobId={mapsJobId} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :

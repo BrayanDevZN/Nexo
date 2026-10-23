@@ -108,12 +108,23 @@ def test_a_rejected_or_malformed_key_is_not_saved(client):
     assert client.get("/maps/status").json()["source"] == "environment"
 
 
-def test_commercial_members_can_see_the_status_but_not_change_the_key(client):
+def test_commercial_members_save_their_own_key_without_touching_the_others(client):
     add_member(client, "commercial")
+    owner = sign_in(client)
+    assert client.put("/maps/key", headers=owner, json={"api_key": "nexo_live_ownerkey1234"}).json()["own"] is True
     headers = sign_in(client, "commercial@example.com", PASSWORD)
-    assert client.get("/maps/status").status_code == 200
-    assert client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_panelkey1234"}).status_code == 403
-    assert client.delete("/maps/key", headers=headers).status_code == 403
+    assert client.get("/maps/status").json()["own"] is False  # still on the environment key
+    saved = client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_commkey12345"})
+    assert saved.status_code == 200 and saved.json()["own"] is True and saved.json()["key_prefix"].startswith("nexo_live_comm")
+    assert client.delete("/maps/key", headers=headers).json()["own"] is False
+    owner = sign_in(client)
+    assert client.get("/maps/status").json()["key_prefix"].startswith("nexo_live_owne")
+
+
+def test_developers_who_cannot_use_maps_cannot_save_a_maps_key(client):
+    add_member(client, "dev")
+    headers = sign_in(client, "dev@example.com", PASSWORD)
+    assert client.put("/maps/key", headers=headers, json={"api_key": "nexo_live_devkey123456"}).status_code == 403
 
 
 def test_leads_are_saved_to_the_funnel_and_repeats_are_skipped(client):
@@ -134,3 +145,23 @@ def test_saved_leads_no_longer_appear_in_results(client):
     client.post("/maps/funnel", headers=headers, json={"niche": "Alimentação", "leads": [{"title": "Padaria X"}]})
     results = client.get(f"/maps/jobs/{JOB}/results").json()
     assert results["rows"] == [] and results["total"] == 0 and results["in_funnel"] == 1
+
+
+def test_commercial_members_generate_keys_that_only_reach_clients_and_the_maps_check(client):
+    add_member(client, "commercial")
+    headers = sign_in(client, "commercial@example.com", PASSWORD)
+    created = client.post("/auth/api-keys", headers=headers, json={"name": "meu maps"})
+    assert created.status_code == 201
+    key = {"Authorization": "Bearer " + created.json()["key"]}
+    assert client.get("/auth/api-keys/usage", headers=headers).status_code == 200
+    assert client.get("/clients", headers=key).status_code == 200
+    assert client.get("/auth/api-keys/validate", headers=key).json() == {"valid": True}
+    for path in ("/documents", "/dashboard", "/automations", "/notifications"):
+        assert client.get(path, headers=key).status_code == 403, path
+
+
+def test_developer_keys_reach_the_whole_api(client):
+    headers = sign_in(client)
+    key = {"Authorization": "Bearer " + client.post("/auth/api-keys", headers=headers, json={"name": "tudo"}).json()["key"]}
+    for path in ("/clients", "/documents", "/dashboard", "/automations"):
+        assert client.get(path, headers=key).status_code == 200, path

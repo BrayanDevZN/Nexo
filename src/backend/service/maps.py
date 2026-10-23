@@ -56,28 +56,29 @@ class MapsService:
         # The saved key is encrypted at rest. Rotating the JWT secret makes it unreadable (re-enter it).
         self._fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"nexo-maps-key:" + secret.encode()).digest()))
 
-    def _stored(self):
+    def _stored(self, user_id: str | None = None):
         with self.repositories.read_transaction() as repos:
-            row = repos.maps_credentials.current()
+            row = repos.maps_credentials.current(user_id)
             if row is None:
                 return None
             try:
-                return self._fernet.decrypt(row.api_key_encrypted.encode()).decode(), row.key_prefix, row.updated_at
+                return (self._fernet.decrypt(row.api_key_encrypted.encode()).decode(), row.key_prefix, row.updated_at,
+                        row.user_id is not None)
             except InvalidToken:
                 return None
 
-    def _key(self) -> str | None:
-        stored = self._stored()
+    def _key(self, user_id: str | None = None) -> str | None:
+        stored = self._stored(user_id)
         return stored[0] if stored else self.connection.env_key
 
-    def status(self) -> dict:
-        stored = self._stored()
+    def status(self, user_id: str | None = None) -> dict:
+        stored = self._stored(user_id)
         if stored:
             return {"configured": self.connection.available, "source": "panel", "key_prefix": stored[1],
-                    "updated_at": stored[2]}
+                    "updated_at": stored[2], "own": stored[3]}
         env_key = self.connection.env_key
         return {"configured": bool(env_key and self.connection.available), "source": "environment" if env_key else None,
-                "key_prefix": env_key[:14] if env_key else None, "updated_at": None}
+                "key_prefix": env_key[:14] if env_key else None, "updated_at": None, "own": False}
 
     def save_key(self, actor, raw: str) -> dict:
         if not self.connection.available:
@@ -90,16 +91,16 @@ class MapsService:
             raise MapsUnavailable("Maps server error")
         with self.repositories.transaction() as repos:
             repos.maps_credentials.replace(api_key_encrypted=self._fernet.encrypt(raw.encode()).decode(),
-                                           key_prefix=raw[:14], updated_by_id=actor.id)
-        return self.status()
+                                           key_prefix=raw[:14], updated_by_id=actor.id, user_id=actor.id)
+        return self.status(actor.id)
 
-    def clear_key(self) -> dict:
+    def clear_key(self, user_id: str | None = None) -> dict:
         with self.repositories.transaction() as repos:
-            repos.maps_credentials.clear()
-        return self.status()
+            repos.maps_credentials.clear(user_id)
+        return self.status(user_id)
 
-    def _call(self, method: str, path: str, **kwargs):
-        key = self._key()
+    def _call(self, method: str, path: str, *, user_id: str | None = None, **kwargs):
+        key = self._key(user_id)
         if not key or not self.connection.available:
             raise MapsNotConfigured("Maps server is not configured")
         response = self.connection.request(method, path, key, **kwargs)
@@ -119,8 +120,8 @@ class MapsService:
             "created_at": _pick(item, "Date", "date"),
         }
 
-    def jobs(self) -> list[dict]:
-        body = self._call("GET", "/api/v1/jobs").json() or []
+    def jobs(self, user_id: str | None = None) -> list[dict]:
+        body = self._call("GET", "/api/v1/jobs", user_id=user_id).json() or []
         jobs = [self._summary(item) for item in body if isinstance(item, dict)]
         return sorted(jobs, key=lambda job: job["created_at"] or "", reverse=True)
 
@@ -131,18 +132,18 @@ class MapsService:
             "radius": data["radius"], "depth": data["depth"], "email": data["email"],
             "fast_mode": data["fast_mode"], "max_time": data["max_time"],
         }
-        created = self._call("POST", "/api/v1/jobs", json=body).json()
+        created = self._call("POST", "/api/v1/jobs", user_id=actor_id, json=body).json()
         job_id = str(created["id"])
         if actor_id:
             with self.repositories.transaction() as repos:
                 repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"))
         return {"id": job_id}
 
-    def job(self, job_id: UUID) -> dict:
-        return self._summary(self._call("GET", f"/api/v1/jobs/{job_id}").json())
+    def job(self, job_id: UUID, user_id: str | None = None) -> dict:
+        return self._summary(self._call("GET", f"/api/v1/jobs/{job_id}", user_id=user_id).json())
 
-    def results(self, job_id: UUID) -> dict:
-        text = self._call("GET", f"/api/v1/jobs/{job_id}/download").content.decode("utf-8", "replace")
+    def results(self, job_id: UUID, user_id: str | None = None) -> dict:
+        text = self._call("GET", f"/api/v1/jobs/{job_id}/download", user_id=user_id).content.decode("utf-8", "replace")
         try:
             leads = [self._lead(row) for row in csv.DictReader(io.StringIO(text))]
         except csv.Error:
@@ -180,32 +181,34 @@ class MapsService:
                 lead[axis] = None
         return lead
 
-    def delete(self, job_id: UUID) -> None:
-        self._call("DELETE", f"/api/v1/jobs/{job_id}")
+    def delete(self, job_id: UUID, user_id: str | None = None) -> None:
+        self._call("DELETE", f"/api/v1/jobs/{job_id}", user_id=user_id)
 
     def finish_pending(self) -> int:
         """Tell the creators of finished searches. Returns how many were announced."""
-        if not self.connection.available or not self._key():
+        if not self.connection.available:
             return 0
         with self.repositories.read_transaction() as repos:
             pending = [(job.job_id, job.created_by_id, job.name) for job in repos.maps_jobs.pending(utc_now() - NOTIFY_WINDOW)]
-        if not pending:
-            return 0
-        try:
-            remote = {job["id"]: job for job in self.jobs()}
-        except (MapsNotConfigured, MapsUnauthorized, MapsUnavailable):
-            return 0
         announced = 0
-        for job_id, creator_id, name in pending:
-            job = remote.get(job_id)
-            if job is None:
-                # The search was deleted before finishing: nothing to announce.
-                with self.repositories.transaction() as repos:
-                    repos.maps_jobs.claim(job_id)
-            elif job["status"] == "ok":
-                announced += self._announce(job_id, creator_id, name, failed=False)
-            elif job["status"] == "failed":
-                announced += self._announce(job_id, creator_id, name, failed=True)
+        for creator_id in dict.fromkeys(creator for _, creator, _ in pending):
+            # Each search is checked with its creator's own key.
+            try:
+                remote = {job["id"]: job for job in self.jobs(creator_id)}
+            except (MapsNotConfigured, MapsUnauthorized, MapsUnavailable):
+                continue
+            for job_id, owner_id, name in pending:
+                if owner_id != creator_id:
+                    continue
+                job = remote.get(job_id)
+                if job is None:
+                    # The search was deleted before finishing: nothing to announce.
+                    with self.repositories.transaction() as repos:
+                        repos.maps_jobs.claim(job_id)
+                elif job["status"] == "ok":
+                    announced += self._announce(job_id, creator_id, name, failed=False)
+                elif job["status"] == "failed":
+                    announced += self._announce(job_id, creator_id, name, failed=True)
         return announced
 
     def _announce(self, job_id: str, creator_id: str, name: str, *, failed: bool) -> int:
@@ -213,7 +216,7 @@ class MapsService:
         leads: list[dict] = []
         if not failed:
             try:
-                result = self.results(UUID(job_id))
+                result = self.results(UUID(job_id), creator_id)
             except (MapsUnauthorized, MapsJobNotFound, MapsUnavailable):
                 return 0  # try again on the next round
             found, in_funnel, leads = result["total"], result["in_funnel"], result["rows"][:EMAIL_LEADS]

@@ -27,15 +27,15 @@ class Credentials:
     def __init__(self):
         self.row = None
 
-    def current(self):
+    def current(self, user_id=None):
         return self.row
 
-    def replace(self, *, api_key_encrypted, key_prefix, updated_by_id):
-        self.row = SimpleNamespace(api_key_encrypted=api_key_encrypted, key_prefix=key_prefix,
+    def replace(self, *, api_key_encrypted, key_prefix, updated_by_id, user_id=None):
+        self.row = SimpleNamespace(api_key_encrypted=api_key_encrypted, key_prefix=key_prefix, user_id=user_id,
                                    updated_at=datetime(2026, 10, 23, 12, 0))
         return self.row
 
-    def clear(self):
+    def clear(self, user_id=None):
         had, self.row = self.row is not None, None
         return had
 
@@ -180,4 +180,4 @@ def test_a_saved_key_that_cannot_be_decrypted_is_ignored(settings):
     maps = service(settings, lambda request: httpx.Response(200, content=b"null"), key=None, repositories=repositories)
     maps.save_key(ACTOR, PANEL_KEY)
     other = MapsService(maps.connection, repositories, "a-different-secret")
-    assert other.status() == {"configured": False, "source": None, "key_prefix": None, "updated_at": None}
+    assert other.status() == {"configured": False, "source": None, "key_prefix": None, "updated_at": None, "own": False}

@@ -16,7 +16,7 @@ import { mapsUrl } from "./contact";
 import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
-type MapsStatus = { configured: boolean; source: "panel" | "environment" | null; key_prefix: string | null; updated_at: string | null };
+type MapsStatus = { configured: boolean; source: "panel" | "environment" | null; key_prefix: string | null; updated_at: string | null; own?: boolean };
 type Job = { id: string; name: string; status: string; created_at: string | null };
 type Lead = {
   title: string | null; category: string | null; address: string | null; phone: string | null;
@@ -271,8 +271,8 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
         <CardTitle className="flex flex-wrap items-center gap-2"><KeyRound className="size-4" /> Chave de API do Maps
           <Badge variant={status?.configured ? "default" : "destructive"}>{status?.configured ? "Configurada" : "Não configurada"}</Badge></CardTitle>
         <CardDescription>{status?.configured
-          ? `Em uso: ${status.key_prefix ?? "chave"}… ${status.source === "panel" ? `(salva no painel${status.updated_at ? ` em ${dateLabel(status.updated_at)}` : ""})` : "(definida no servidor, variável MAPS_API_KEY)"}.`
-          : "O Maps usa uma chave de API da Nexo para falar com o servidor de buscas. Gere uma na página API e cole aqui."}</CardDescription>
+          ? `Em uso: ${status.key_prefix ?? "chave"}… ${status.source === "panel" ? `(${status.own ? "sua chave" : "chave compartilhada"}, salva no painel${status.updated_at ? ` em ${dateLabel(status.updated_at)}` : ""})` : "(definida no servidor, variável MAPS_API_KEY)"}.`
+          : "O Maps usa a sua chave de API da Nexo para falar com o servidor de buscas. Crie uma na página Chaves (ou API, para devs) e cole aqui."}</CardDescription>
       </CardHeader>
       {canManageKey ? <CardContent>
         <form onSubmit={event => void saveKey(event)} className="flex flex-col gap-3 sm:flex-row sm:items-end">

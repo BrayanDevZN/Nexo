@@ -76,6 +76,9 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
                 "UPDATE clients SET contract_closed_at = updated_at "
                 "WHERE (contract_closed = 1 OR pipeline_stage = 'won') AND updated_at IS NOT NULL"
             ))
+    if "user_id" not in {column["name"] for column in inspect(engine).get_columns("maps_credentials")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE maps_credentials ADD COLUMN user_id VARCHAR(36)"))
     if "address" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN address VARCHAR(300)"))

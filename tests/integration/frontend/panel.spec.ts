@@ -108,7 +108,7 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
 test("Owner sees notification and approves request", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" }, requests: true });
   await page.goto("/admin");
-  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
   await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
   await page.getByRole("button", { name: "Ver solicitações" }).click();
   await page.getByRole("button", { name: "Autorizar", exact: true }).click();
@@ -116,36 +116,80 @@ test("Owner sees notification and approves request", async ({ page }) => {
   await expect(page.getByText("Acesso autorizado.")).toBeVisible();
 });
 
-test("owner chooses an area and the menu follows it", async ({ page }) => {
+const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
+
+test("owner chooses among three areas and the menu follows each one", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
-  await expect(page.getByRole("button", { name: "Entrar na área Comercial" })).toBeVisible();
-  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
-  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Chat", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Meu perfil", exact: true })).toHaveCount(0);
+  for (const area of ["Geral", "Comercial", "Desenvolvimento"]) await expect(page.getByRole("button", { name: "Entrar na área " + area })).toBeVisible();
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  for (const item of ["Início", "Documentos", "Chat", "Solicitações", "Avisos", "Membros", "Gerenciar membros", "Meu perfil"]) await expect(button(page, item).first()).toBeVisible();
+  await expect(button(page, "Funil comercial")).toHaveCount(0);
+  await expect(button(page, "Bancos de dados")).toHaveCount(0);
   await page.getByRole("button", { name: "Trocar de área" }).click();
   await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
-  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chat", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Meu perfil", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toHaveCount(0);
+  for (const item of ["Início", "Dashboard do negócio", "Funil comercial", "Clientes", "Maps", "Chaves", "Avisos"]) await expect(button(page, item).first()).toBeVisible();
+  for (const gone of ["Chat", "Documentos", "Automações", "Solicitações", "Gerenciar membros", "Membros", "Meu perfil"]) await expect(button(page, gone)).toHaveCount(0);
+  await page.getByRole("button", { name: "Trocar de área" }).click();
+  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
+  for (const item of ["Início", "Automações", "API", "Bancos de dados"]) await expect(button(page, item).first()).toBeVisible();
+  for (const gone of ["Chat", "Meu perfil", "Funil comercial", "Chaves"]) await expect(button(page, gone)).toHaveCount(0);
 });
 
-test("commercial and dev accounts skip the choice and only get their own area", async ({ page }) => {
+test("each role is offered only the areas it may enter", async ({ page }) => {
   await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
   await page.goto("/admin");
-  await expect(page.getByRole("button", { name: /Entrar na área/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Funil comercial", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bancos de dados", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Trocar de área" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar na área Comercial" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toHaveCount(0);
   const dev = await page.context().newPage();
   await mock(dev, { user: { ...member, role: "dev", status: "approved" } });
   await dev.goto("/admin");
-  await expect(dev.getByRole("button", { name: /Entrar na área/ })).toHaveCount(0);
-  await expect(dev.getByRole("button", { name: "Bancos de dados", exact: true })).toBeVisible();
-  await expect(dev.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
+  await expect(dev.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
+  await expect(dev.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toBeVisible();
+  await expect(dev.getByRole("button", { name: "Entrar na área Comercial" })).toHaveCount(0);
+});
+
+test("general home explains Nexo without data from the other areas", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(page.getByText("agência de inteligência artificial")).toBeVisible();
+  await expect(page.getByText("Valor potencial")).toHaveCount(0);
+  await expect(page.getByText("Chaves de API ativas")).toHaveCount(0);
+});
+
+test("commercial keys page creates a key, uses it in Maps and revokes it, without code samples", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  let keys: Record<string, unknown>[] = [];
+  await page.route("**/api/auth/api-keys", async route => {
+    if (route.request().method() === "POST") {
+      const key = { id: "k1", name: route.request().postDataJSON().name, key_prefix: "nexo_live_abcd1234", created_at: "2026-10-23T10:00:00", last_used_at: null, key: "nexo_live_abcd1234secret" };
+      keys = [key];
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(key) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(keys) });
+  });
+  await page.route("**/api/auth/api-keys/usage?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  await page.route("**/api/auth/api-keys/k1", route => { keys = []; return route.fulfill({ status: 204 }); });
+  let mapsKey = "";
+  await page.route("**/api/maps/status", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: !!mapsKey, source: mapsKey ? "panel" : null, key_prefix: mapsKey.slice(0, 14) || null, updated_at: null, own: !!mapsKey }) }));
+  await page.route("**/api/maps/key", route => { mapsKey = route.request().postDataJSON?.()?.api_key ?? JSON.parse(route.request().postData() || "{}").api_key; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, source: "panel", key_prefix: mapsKey.slice(0, 14), updated_at: null, own: true }) }); });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Chaves").click();
+  await expect(page.getByRole("heading", { name: "Chaves", exact: true })).toBeVisible();
+  await expect(page.getByText("Authorization")).toHaveCount(0);
+  await expect(page.getByText("curl")).toHaveCount(0);
+  await page.getByRole("button", { name: "Criar chave" }).click();
+  await expect(page.getByTestId("new-key")).toHaveText("nexo_live_abcd1234secret");
+  await page.getByRole("button", { name: "Usar no Maps" }).click();
+  await expect(page.getByText("Pronto! Essa chave agora é a que o Maps usa para você.")).toBeVisible();
+  expect(mapsKey).toBe("nexo_live_abcd1234secret");
+  await page.getByRole("button", { name: "Revogar Minha chave do Maps" }).click();
+  await page.getByRole("button", { name: "Revogar", exact: true }).click();
+  await expect(page.getByText("Chave revogada.")).toBeVisible();
 });
 
 test("dev home shows keys, API usage, databases and automations, each tolerating failures", async ({ page }) => {
@@ -157,6 +201,7 @@ test("dev home shows keys, API usage, databases and automations, each tolerating
   await page.route("**/api/admin/databases", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
     { id: "sqlite", name: "SQLite", status: "online", details: {} }, { id: "qdrant", name: "Qdrant", status: "unreachable", details: {} }]) }));
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
   await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
   await expect(page.getByText("n8n produção")).toBeVisible();
   await expect(page.getByText("Sem conexão")).toBeVisible();
@@ -263,7 +308,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
-  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
   await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
   await page.getByRole("button", { name: "Editar membro Principal" }).click();

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from backend.controller.dependencies import current_user
 from backend.controller.schema.maps import MapsFunnelInput, MapsJobInput, MapsKeyInput
-from backend.domain.roles import DEVELOPERS, SALES
+from backend.domain.roles import SALES
 from backend.infra.connections.maps import MapsUnavailable
 from backend.service.access import AccessDenied
 from backend.service.maps import (
@@ -24,8 +24,8 @@ def _check(actor):
 
 
 def _check_key_admin(actor):
-    if actor.status != "approved" or actor.role not in DEVELOPERS:
-        raise HTTPException(status_code=403, detail="Developer access required")
+    # Everyone who can use Maps saves their own key; it is never shared with other members.
+    _check(actor)
 
 
 def _run(call, *args):
@@ -46,7 +46,7 @@ def _run(call, *args):
 @router.get("/status")
 def status(request: Request, actor=Depends(current_user)):
     _check(actor)
-    return request.app.state.services.maps.status()
+    return request.app.state.services.maps.status(actor.id)
 
 
 @router.put("/key")
@@ -58,13 +58,13 @@ def save_key(data: MapsKeyInput, request: Request, actor=Depends(current_user)):
 @router.delete("/key")
 def clear_key(request: Request, actor=Depends(current_user)):
     _check_key_admin(actor)
-    return request.app.state.services.maps.clear_key()
+    return request.app.state.services.maps.clear_key(actor.id)
 
 
 @router.get("/jobs")
 def jobs(request: Request, actor=Depends(current_user)):
     _check(actor)
-    return _run(request.app.state.services.maps.jobs)
+    return _run(request.app.state.services.maps.jobs, actor.id)
 
 
 @router.post("/jobs", status_code=201)
@@ -76,13 +76,13 @@ def create(data: MapsJobInput, request: Request, actor=Depends(current_user)):
 @router.get("/jobs/{job_id}")
 def job(job_id: UUID, request: Request, actor=Depends(current_user)):
     _check(actor)
-    return _run(request.app.state.services.maps.job, job_id)
+    return _run(request.app.state.services.maps.job, job_id, actor.id)
 
 
 @router.get("/jobs/{job_id}/results")
 def results(job_id: UUID, request: Request, actor=Depends(current_user)):
     _check(actor)
-    return _run(request.app.state.services.maps.results, job_id)
+    return _run(request.app.state.services.maps.results, job_id, actor.id)
 
 
 @router.post("/funnel", status_code=201)
@@ -98,5 +98,5 @@ def add_to_funnel(data: MapsFunnelInput, request: Request, actor=Depends(current
 @router.delete("/jobs/{job_id}", status_code=204)
 def delete(job_id: UUID, request: Request, actor=Depends(current_user)):
     _check(actor)
-    _run(request.app.state.services.maps.delete, job_id)
+    _run(request.app.state.services.maps.delete, job_id, actor.id)
     return Response(status_code=204)

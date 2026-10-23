@@ -1,6 +1,13 @@
 from fastapi import HTTPException, Request
 
-from backend.domain.roles import ADMINISTRATORS, DEVELOPERS, SALES, TEAM_MANAGERS, has_role
+from backend.domain.roles import (
+    ADMINISTRATORS,
+    DEVELOPERS,
+    SALES,
+    TEAM_MANAGERS,
+    has_role,
+    key_allows,
+)
 from backend.service.access import REQUEST_AUTHENTICATED
 from backend.service.api_keys import ApiKeyAuthenticationError
 from backend.service.security import AuthenticationError
@@ -23,10 +30,12 @@ def _header_api_key(request: Request):
         return None
     try:
         user = request.app.state.services.api_keys.authenticate(value.strip())
-        setattr(user, REQUEST_AUTHENTICATED, True)
-        return user
     except ApiKeyAuthenticationError:
         raise HTTPException(status_code=401, detail="Invalid API key") from None
+    if not key_allows(user, request.url.path):
+        raise HTTPException(status_code=403, detail="This API key cannot access this route")
+    setattr(user, REQUEST_AUTHENTICATED, True)
+    return user
 
 
 def api_key_user(request: Request):
