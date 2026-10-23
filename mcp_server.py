@@ -492,10 +492,15 @@ async def nexo_notifications_mark_chat_read(member_id: str) -> Any:
 
 
 @mcp.tool()
-async def nexo_announcement_create(title: str, body: str) -> Any:
-    """Create an administrative announcement. The Nexo API requires an admin key."""
+async def nexo_announcement_create(title: str, body: str, audience: str = "all") -> Any:
+    """Create an administrative announcement. The Nexo API requires an admin key.
+
+    audience is "all", "commercial" or "dev"; admins and owners always receive it."""
+    if audience not in {"all", "commercial", "dev"}:
+        raise ValueError("audience must be all, commercial or dev")
     return await _request(
-        "POST", "/admin/announcements", body={"title": title, "body": body}
+        "POST", "/admin/announcements",
+        body={"title": title, "body": body, "audience": audience},
     )
 
 

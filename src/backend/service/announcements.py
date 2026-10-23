@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4
 
-from backend.domain.roles import ADMINISTRATORS
+from backend.domain.roles import ADMINISTRATORS, AUDIENCES
 from backend.repository.cache.queries import snapshot
 from backend.service.access import ResourceNotFound, authorize, authorize_read
 
@@ -100,12 +100,14 @@ class AnnouncementService:
             repos.notifications.mark_read(note)
             return snapshot("notifications", note)
 
-    def create(self, actor, *, title: str, body: str, image_data: bytes | None = None):
+    def create(self, actor, *, title: str, body: str, image_data: bytes | None = None, audience: str = "all"):
+        if audience not in AUDIENCES:
+            raise ValueError("Escolha o público do aviso: todos, comercial ou desenvolvimento")
         image_key = None
         try:
             with self.repositories.transaction() as repos:
                 current = self._authorize(repos, actor)
-                recipients = repos.users.approved_recipients()
+                recipients = repos.users.approved_recipients(audience)
                 announcement_id = str(uuid4())
                 if image_data and recipients:
                     if self.image_storage is None:
@@ -114,6 +116,7 @@ class AnnouncementService:
                 notes = repos.notifications.create_announcements(
                     announcement_id=announcement_id, recipient_ids=[user.id for user in recipients],
                     creator_id=current.id, title=title, body=body, image_storage_key=image_key,
+                    audience=audience,
                 )
         except BaseException:
             if image_key and self.image_storage:
@@ -136,6 +139,6 @@ class AnnouncementService:
             except Exception:
                 logger.warning("Announcement push delivery failed after commit", exc_info=True)
         created_at = min((note.created_at for note in notes), default=None)
-        return {"id": announcement_id, "title": title, "body": body,
+        return {"id": announcement_id, "title": title, "body": body, "audience": audience,
                 "recipients": len(notes), "email_queued": queued, "created_at": created_at}
 

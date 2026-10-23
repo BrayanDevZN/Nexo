@@ -48,13 +48,15 @@ class DocumentService:
                 title = "Novo documento salvo"
                 body = (f"{filename} foi salvo para o cliente {client.name}."
                         if client else f"{filename} foi salvo na biblioteca de documentos.")
-                recipients = repos.users.approved_recipients()
+                # Only the commercial team uploads documents, so they and the admins are told.
+                recipients = repos.users.approved_recipients("commercial")
                 repos.notifications.create_announcements(
                     announcement_id=str(uuid4()),
                     recipient_ids=[member.id for member in recipients],
                     creator_id=user.id,
                     title=title,
                     body=body,
+                    audience="commercial",
                 )
                 notice = (recipients, title, body)
                 result = {**snapshot("documents", row), "created_by_name": user.name}

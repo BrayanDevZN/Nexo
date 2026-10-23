@@ -142,12 +142,40 @@ test("each role is offered only the areas it may enter", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Entrar na área Comercial" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toHaveCount(0);
+  // The area the role cannot enter is still listed, locked.
+  await expect(page.getByLabel("Área Desenvolvimento: sem acesso para o seu cargo")).toBeVisible();
+  await expect(page.getByText("Sem acesso")).toBeVisible();
   const dev = await page.context().newPage();
   await mock(dev, { user: { ...member, role: "dev", status: "approved" } });
   await dev.goto("/admin");
   await expect(dev.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
   await expect(dev.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toBeVisible();
   await expect(dev.getByRole("button", { name: "Entrar na área Comercial" })).toHaveCount(0);
+  await expect(dev.getByLabel("Área Comercial: sem acesso para o seu cargo")).toBeVisible();
+});
+
+test("announcements require choosing who receives them", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.route("**/api/notifications?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  const sent: Record<string, unknown>[] = [];
+  await page.route("**/api/admin/announcements", route => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "a1", title: "t", body: "b", audience: "commercial", recipients: 3, email_queued: 3, created_at: "2026-10-23T10:00:00" }) });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  await page.getByRole("button", { name: "Avisos", exact: true }).click();
+  await page.getByRole("button", { name: "Criar aviso" }).click();
+  await page.getByLabel("Título").fill("Reunião do comercial");
+  await page.getByLabel("Mensagem").fill("Sexta às 10h.");
+  await page.getByRole("button", { name: "Publicar aviso" }).click();
+  await expect(page.getByText("Escolha quem vai receber o aviso.")).toBeVisible();
+  expect(sent).toHaveLength(0);
+  await page.getByRole("radio", { name: "Público: Comercial" }).click();
+  await expect(page.getByText("Só o time Comercial recebe")).toBeVisible();
+  await page.getByRole("button", { name: "Publicar aviso" }).click();
+  await expect(page.getByText("Aviso publicado e enviado para comercial.")).toBeVisible();
+  expect(sent).toEqual([{ title: "Reunião do comercial", body: "Sexta às 10h.", audience: "commercial" }]);
 });
 
 test("general home explains Nexo without data from the other areas", async ({ page }) => {

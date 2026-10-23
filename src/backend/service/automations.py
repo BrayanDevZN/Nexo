@@ -59,14 +59,13 @@ class AutomationService:
                 row = repos.automations.create(name=name, description=description, filename=filename,
                                                file_content=file_content, image_data=image_data,
                                                created_by_id=current.id)
-                recipients = repos.users.approved_recipients()
+                recipients = repos.users.approved_recipients("dev")
                 if image_data and recipients and self.image_storage:
                     image_key = self.image_storage.write(image_data)
                 repos.notifications.create_announcements(
                     announcement_id=str(uuid4()), recipient_ids=[user.id for user in recipients],
                     creator_id=current.id, title=f"Nova automação disponível: {name}",
-                    body=f"{description}\n\nArquivo: {filename}", image_storage_key=image_key,
-                )
+                    body=f"{description}\n\nArquivo: {filename}", image_storage_key=image_key, audience="dev")
                 recipients_ids = [user.id for user in recipients]
                 result = {**snapshot("automations", row), "created_by_name": current.name,
                           "has_image": bool(image_data), "can_manage": True}
@@ -101,15 +100,14 @@ class AutomationService:
                 final_name = row.name
                 final_description = row.description
                 final_image = row.image_data
-                recipients = repos.users.approved_recipients()
+                recipients = repos.users.approved_recipients("dev")
                 if final_image and recipients and self.image_storage:
                     image_key = self.image_storage.write(final_image)
                 repos.notifications.create_announcements(
                     announcement_id=str(uuid4()), recipient_ids=[user.id for user in recipients],
                     creator_id=current.id, title=f"Automação atualizada: {final_name}",
                     body=f"A automação foi atualizada.\n\n{row.description}\n\nArquivo: {row.filename}",
-                    image_storage_key=image_key,
-                )
+                    image_storage_key=image_key, audience="dev")
                 ids = [user.id for user in recipients]
                 creator = repos.users.profile_summaries_by_ids([row.created_by_id]).get(row.created_by_id)
                 result = {**snapshot("automations", row),
@@ -140,15 +138,14 @@ class AutomationService:
                 if not self._can_manage(current, row.created_by_id, self._owner_id(repos)):
                     raise AccessDenied("Only the creator or owner can manage this automation")
                 name, description, filename, image_data = row.name, row.description, row.filename, row.image_data
-                recipients = repos.users.approved_recipients()
+                recipients = repos.users.approved_recipients("dev")
                 if image_data and recipients and self.image_storage:
                     image_key = self.image_storage.write(image_data)
                 repos.notifications.create_announcements(
                     announcement_id=str(uuid4()), recipient_ids=[user.id for user in recipients],
                     creator_id=current.id, title=f"Automação excluída: {name}",
                     body=f"A automação foi removida da biblioteca.\n\n{description}\n\nArquivo: {filename}",
-                    image_storage_key=image_key,
-                )
+                    image_storage_key=image_key, audience="dev")
                 repos.automations.delete(identifier)
                 ids = [user.id for user in recipients]
         except BaseException:

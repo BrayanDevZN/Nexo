@@ -58,6 +58,13 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | comercial | Clientes, funil, dashboard e documentos; biblioteca para consultar/baixar |
 | dev | Chaves de API, automações e acesso ao n8n; biblioteca para consultar/baixar |
 
+### Público dos avisos
+
+Todo aviso tem um público: `all` (todos), `commercial` ou `dev`. Notificação, push e e-mail vão só para quem tem o cargo do
+público, e administradores e owners recebem sempre todos. Os avisos automáticos seguem a mesma regra: eventos de clientes e
+de documentos vão ao comercial (mais admin e owner); eventos da biblioteca de automações vão ao dev (mais admin e owner).
+`POST /admin/announcements` aceita `audience` (padrão `all`).
+
 ### Chaves de API por cargo
 
 Todo membro aprovado gera e revoga as próprias chaves (`/auth/api-keys`, sessão do painel). O alcance da chave depende

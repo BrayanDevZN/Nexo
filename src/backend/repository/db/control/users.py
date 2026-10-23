@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import load_only
 
+from backend.domain.roles import audience_roles
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import User
 
@@ -76,9 +77,10 @@ class UserRepository(Repository[User]):
             ).all()
         }
 
-    def approved_recipients(self) -> list[User]:
-        """Minimal rows needed to fan out an announcement after the commit."""
-        query = select(User).options(load_only(User.id, User.email)).where(User.status == "approved")
+    def approved_recipients(self, audience: str = "all") -> list[User]:
+        """Minimal rows needed to fan out an announcement after the commit, limited to its audience."""
+        query = select(User).options(load_only(User.id, User.email)).where(
+            User.status == "approved", User.role.in_(audience_roles(audience)))
         return list(self.session.scalars(query))
 
     def approved_member_ids(self) -> list[str]:

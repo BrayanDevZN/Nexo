@@ -1,4 +1,4 @@
-import { ArrowRight, Briefcase, House, LogOut, ShieldCheck, TerminalSquare } from "lucide-react";
+import { ArrowRight, Briefcase, House, Lock, LogOut, ShieldCheck, TerminalSquare } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,9 @@ export const AREAS: Record<Area, { label: string; description: string; items: st
   },
 };
 
-/** Entry screen: each person only sees the areas their role allows. */
+const ALL_AREAS: Area[] = ["general", "commercial", "dev"];
+
+/** Entry screen: every area is listed; the ones the role may not enter are shown locked. */
 export function AreaGateway({ user, areas, loggingOut, onPick, onLogout }: {
   user: User; areas: Area[]; loggingOut: boolean; onPick: (area: Area) => void; onLogout: () => void;
 }) {
@@ -39,11 +41,24 @@ export function AreaGateway({ user, areas, loggingOut, onPick, onLogout }: {
     </div>
     <div>
       <h1 className="text-3xl font-semibold tracking-tight">Olá, {user.name.split(" ")[0]}.</h1>
-      <p className="mt-2 text-muted-foreground">Escolha a área que você quer acessar agora.</p>
+      <p className="mt-2 text-muted-foreground">Escolha a área que você quer acessar. As áreas com cadeado não estão liberadas para o seu cargo.</p>
     </div>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {areas.map(area => {
+      {ALL_AREAS.map(area => {
         const item = AREAS[area];
+        if (!areas.includes(area)) {
+          return <Card key={area} aria-disabled="true" aria-label={`Área ${item.label}: sem acesso para o seu cargo`} className="h-full cursor-not-allowed bg-muted/40">
+            <CardHeader>
+              <Lock className="size-9 text-muted-foreground" aria-hidden="true" />
+              <CardTitle className="text-xl text-muted-foreground">{item.label}</CardTitle>
+              <CardDescription>{item.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <Badge variant="secondary" className="w-fit"><Lock data-icon="inline-start" /> Sem acesso</Badge>
+              <p className="text-sm text-muted-foreground">O seu cargo não libera esta área. Fale com um administrador se precisar de acesso.</p>
+            </CardContent>
+          </Card>;
+        }
         return <button key={area} type="button" onClick={() => onPick(area)} aria-label={`Entrar na área ${item.label}`}
           className="group text-left outline-none">
           <Card className="h-full transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-primary">

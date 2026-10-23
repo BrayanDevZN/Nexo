@@ -62,10 +62,11 @@ class ClientService:
 
     @staticmethod
     def _record_team_notice(repos, actor_id, title, body):
-        recipients = repos.users.approved_recipients()
+        # Client events concern the commercial team (admins and owners always included).
+        recipients = repos.users.approved_recipients("commercial")
         repos.notifications.create_announcements(
             announcement_id=str(uuid4()), recipient_ids=[user.id for user in recipients],
-            creator_id=actor_id, title=title, body=body,
+            creator_id=actor_id, title=title, body=body, audience="commercial",
         )
         return recipients
 

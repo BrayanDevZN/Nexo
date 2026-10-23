@@ -357,10 +357,11 @@ const ENDPOINTS: Endpoint[] = [
     route: "/admin/announcements",
     path: "/admin/announcements",
     title: "Criar aviso",
-    description: "Cria um aviso para os membros. Esta rota exige uma chave pertencente a um administrador.",
+    description: "Cria um aviso. O campo audience define o público: all (todos), commercial ou dev; administradores e owners sempre recebem. Esta rota exige uma chave pertencente a um administrador.",
     body: `{
   "title": "Manutenção programada",
-  "body": "O painel ficará indisponível às 22h por alguns minutos."
+  "body": "O painel ficará indisponível às 22h por alguns minutos.",
+  "audience": "all"
 }`,
     response: `{
   "id": "uuid-do-aviso",

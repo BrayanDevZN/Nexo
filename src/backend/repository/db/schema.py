@@ -56,7 +56,7 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     # announcement fields in place so deploying this feature preserves history.
     columns = {column["name"] for column in inspect(engine).get_columns("notifications")}
     additions = {"announcement_id": "VARCHAR(36)", "title": "VARCHAR(160)", "body": "TEXT",
-                 "image_storage_key": "VARCHAR(64)"}
+                 "image_storage_key": "VARCHAR(64)", "audience": "VARCHAR(16)"}
     client_columns = {column["name"] for column in inspect(engine).get_columns("clients")}
     if "contract_value" not in client_columns:
         with engine.begin() as connection:

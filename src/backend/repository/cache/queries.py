@@ -15,7 +15,7 @@ FIELDS = {
     "clients": ("id", "name", "niche", "phone", "email", "contract_closed", "contract_closed_at", "contract_value",
                 "pipeline_stage", "next_follow_up", "address", "notes", "pain", "approach",
                 "created_by_id", "created_at", "updated_at"),
-    "notifications": ("id", "kind", "announcement_id", "title", "body", "recipient_id", "requested_user_id", "read_at",
+    "notifications": ("id", "kind", "announcement_id", "audience", "title", "body", "recipient_id", "requested_user_id", "read_at",
                       "resolved_at", "decision", "created_at", "updated_at"),
 }
 

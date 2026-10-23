@@ -25,3 +25,17 @@ def key_allows(user, path: str) -> bool:
     if user.role in DEVELOPERS:
         return True
     return any(path == allowed or path.startswith(allowed + "/") for allowed in COMMERCIAL_KEY_PATHS)
+
+
+# Who an announcement is for. Admins and owners are in every audience, so they always receive everything.
+AUDIENCES = ("all", "commercial", "dev")
+
+
+def audience_roles(audience: str) -> frozenset[str]:
+    if audience == "commercial":
+        return SALES
+    if audience == "dev":
+        return DEVELOPERS
+    if audience == "all":
+        return ALL_ROLES
+    raise ValueError("Unknown audience")
