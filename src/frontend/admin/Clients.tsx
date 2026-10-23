@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MapPin, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { DocumentPreviewButton } from "./DocumentPreviewButton";
 import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { mapsUrl, whatsappUrl } from "./contact";
+import { MapsButton } from "./MapsLink";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -160,7 +161,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.email && <p className="break-all text-sm">{client.email}</p>}
         {client.phone && <div className="flex flex-wrap items-center gap-2"><p className="text-sm">{client.phone}</p>{contactUrl && <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"><a href={contactUrl} target="_blank" rel="noreferrer" aria-label={"Entrar em contato com " + client.name + " pelo WhatsApp"}><MessageCircle data-icon="inline-start" /> WhatsApp</a></Button>}</div>}
-        {client.address && <div className="flex flex-wrap items-center gap-2"><p className="break-words text-sm">{client.address}</p><Button asChild size="sm" variant="outline"><a href={mapsUrl({ query: client.name + " " + client.address })} target="_blank" rel="noopener noreferrer" aria-label={"Ver " + client.name + " no mapa"}><MapPin data-icon="inline-start" /> Ver no mapa</a></Button></div>}
+        {client.address && <div className="flex flex-wrap items-center gap-2"><p className="break-words text-sm">{client.address}</p><MapsButton href={mapsUrl({ query: client.name + " " + client.address })} label={"Ver " + client.name + " no mapa"} /></div>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
@@ -180,7 +181,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
-            <div className="sm:col-span-2"><Detail label="Endereço" value={viewing.address} />{viewing.address && <Button asChild size="sm" variant="outline" className="mt-2"><a href={mapsUrl({ query: viewing.name + " " + viewing.address })} target="_blank" rel="noopener noreferrer"><MapPin data-icon="inline-start" /> Ver no mapa</a></Button>}</div>
+            <div className="sm:col-span-2"><Detail label="Endereço" value={viewing.address} />{viewing.address && <div className="mt-2"><MapsButton href={mapsUrl({ query: viewing.name + " " + viewing.address })} label={"Ver " + viewing.name + " no mapa"} /></div>}</div>
             <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
             <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
             <Detail label="Criado por" value={viewing.created_by_name} />

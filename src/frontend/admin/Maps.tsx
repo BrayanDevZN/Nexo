@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Download, ExternalLink, KeyRound, ListPlus, MapPin, Check, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Download, KeyRound, ListPlus, MapPin, Check, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CLIENT_NICHES, type createApi } from "./api";
 import { mapsUrl } from "./contact";
+import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
 type MapsStatus = { configured: boolean; source: "panel" | "environment" | null; key_prefix: string | null; updated_at: string | null };
@@ -447,7 +448,7 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         const url = mapsUrl({ latitude: row.latitude, longitude: row.longitude, query: [row.title, row.address].filter(Boolean).join(" ") });
-                        return url ? <Button asChild size="sm" variant="outline"><a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Ver ${row.title || "empresa"} no mapa`}><ExternalLink data-icon="inline-start" /> Ver no mapa</a></Button> : null;
+                        return url ? <MapsButton href={url} label={`Ver ${row.title || "empresa"} no mapa`} /> : null;
                       })()}
                       {added.has(leadKey(row)) ? <Button size="sm" variant="secondary" disabled><Check data-icon="inline-start" /> No funil</Button>
                         : <Button size="sm" disabled={adding !== null || !row.title} onClick={() => void addToFunnel([row], leadKey(row))} aria-label={`Adicionar ${row.title || "empresa"} ao funil`}>
