@@ -144,6 +144,23 @@ test("commercial and dev accounts skip the choice and only get their own area", 
   await expect(dev.getByRole("button", { name: "Funil comercial", exact: true })).toHaveCount(0);
 });
 
+test("dev home shows keys, API usage, databases and automations, each tolerating failures", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "dev", status: "approved" } });
+  await page.route("**/api/auth/api-keys", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: "k1", name: "n8n produção", key_prefix: "nexo_live_ab12", created_at: "2026-10-01T10:00:00", last_used_at: null }]) }));
+  await page.route("**/api/auth/api-keys/usage?*", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { date: new Date().toISOString().slice(0, 10), count: 7, api_key_id: "k1", api_key_name: "n8n" }]) }));
+  await page.route("**/api/admin/databases", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: "sqlite", name: "SQLite", status: "online", details: {} }, { id: "qdrant", name: "Qdrant", status: "unreachable", details: {} }]) }));
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(page.getByText("n8n produção")).toBeVisible();
+  await expect(page.getByText("Sem conexão")).toBeVisible();
+  await expect(page.getByText("Não foi possível carregar agora.").first()).toBeVisible();
+  await page.getByRole("button", { name: "Gerenciar chaves" }).click();
+  await expect(page.getByRole("button", { name: "Início", exact: true })).toBeVisible();
+});
+
 test("mobile login and panel fit the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await mock(page);

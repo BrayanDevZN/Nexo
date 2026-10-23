@@ -14,6 +14,7 @@ import { Clients } from "./Clients";
 import { Approvals } from "./Approvals";
 import { Announcements } from "./Announcements";
 import { Home } from "./Home";
+import { DevHome } from "./DevHome";
 import { BusinessDashboard } from "./BusinessDashboard";
 import { Funnel } from "./Funnel";
 import { AutomationRequests } from "./AutomationRequests";
@@ -32,7 +33,7 @@ import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
+type Page = "home" | "dev-home" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -53,8 +54,8 @@ export default function AdminApp() {
   const area: Area | null = allowedAreas.length === 1 ? allowedAreas[0]
     : areaChoice && allowedAreas.includes(areaChoice) ? areaChoice : null;
   const salesPages: Page[] = ["home", "business", "funnel", "clients", "documents", "maps"];
-  const devPages: Page[] = ["api-keys", "databases"];
-  const defaultPage = (target: Area | null): Page => target === "dev" || (target === null && !canSell) ? "automations" : "clients";
+  const devPages: Page[] = ["dev-home", "api-keys", "databases"];
+  const defaultPage = (target: Area | null): Page => target === "dev" || (target === null && !canSell) ? "dev-home" : "clients";
   const page: Page = user?.status === "approved" && (
     (!canSell && salesPages.includes(selectedPage)) ||
     (!canDevelop && devPages.includes(selectedPage)) ||
@@ -155,7 +156,7 @@ export default function AdminApp() {
   function onLogin(person: User) {
     generation.current++;
     if (complete || inviteToken) window.history.replaceState(null, "", "/admin");
-    api.resetSession(); setUser(person); setError(""); setPage(person.role === "dev" ? "automations" : "clients");
+    api.resetSession(); setUser(person); setError(""); setPage(person.role === "dev" ? "dev-home" : "clients");
     setAreaChoice(null); try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
   }
   function pickArea(next: Area) {
@@ -181,6 +182,7 @@ export default function AdminApp() {
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
         {area && <div className="flex items-center justify-between gap-2 px-1 pb-1"><Badge variant="secondary">{AREAS[area].label}</Badge>
           {allowedAreas.length > 1 && <Button variant="ghost" size="sm" onClick={switchArea} aria-label="Trocar de área"><ArrowRightLeft data-icon="inline-start" /> Trocar</Button>}</div>}
+        {area === "dev" && <Button variant={page === "dev-home" ? "secondary" : "ghost"} onClick={() => navigate("dev-home")} aria-current={page === "dev-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "business" ? "secondary" : "ghost"} onClick={() => navigate("business")} aria-current={page === "business" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Dashboard do negócio</Button>}
         {area === "commercial" && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
@@ -228,6 +230,7 @@ export default function AdminApp() {
         {page === "profile" ? <Profile api={api} user={user} onUpdate={setUser} onLoggedOut={() => { api.resetSession(); setUser(null); setError(""); }} /> :
           user.status !== "approved" ? <Card className="admin-pending"><CardHeader><Clock3 className="size-10 text-primary" /><CardTitle>Seu acesso está em análise</CardTitle><CardDescription>O administrador recebeu sua solicitação. Quando ele autorizar, os dados serão liberados aqui automaticamente.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-muted-foreground">Enquanto isso, você pode completar seu perfil e adicionar uma foto.</p><div className="flex flex-wrap gap-2"><Button onClick={() => setPage("profile")}>Completar meu perfil</Button><Button variant="outline" onClick={() => void refresh()}>Verificar aprovação</Button></div></CardContent></Card> :
           page === "home" ? <Home api={api} user={user} /> :
+          page === "dev-home" && canDevelop ? <DevHome api={api} user={user} onOpen={navigate} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
           page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger>{canDevelop && <TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger>}</TabsList><TabsContent value="library"><AutomationsLibrary api={api} user={user} /></TabsContent>{canDevelop && <TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent>}</Tabs></section> :
