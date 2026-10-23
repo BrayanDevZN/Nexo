@@ -36,7 +36,8 @@ export default function AdminApp() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedPage, setPage] = useState<Page>("clients");
+  const [mapsJobId] = useState(() => new URLSearchParams(window.location.search).get("maps") || "");
+  const [selectedPage, setPage] = useState<Page>(mapsJobId ? "maps" : "clients");
   const canSell = user?.status === "approved" && hasSalesAccess(user.role);
   const canDevelop = user?.status === "approved" && hasDeveloperAccess(user.role);
   const isOwner = user?.status === "approved" && user.role === "owner";
@@ -204,7 +205,7 @@ export default function AdminApp() {
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
-          page === "maps" && canSell ? <Maps api={api} canManageKey={canDevelop} /> :
+          page === "maps" && canSell ? <Maps api={api} canManageKey={canDevelop} initialJobId={mapsJobId} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :

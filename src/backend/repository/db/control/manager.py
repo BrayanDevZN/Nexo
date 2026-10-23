@@ -10,6 +10,7 @@ from backend.repository.db.control.chat import ChatRepository
 from backend.repository.db.control.clients import ClientRepository
 from backend.repository.db.control.documents import DocumentRepository
 from backend.repository.db.control.maps_credentials import MapsCredentialRepository
+from backend.repository.db.control.maps_jobs import MapsJobRepository
 from backend.repository.db.control.notifications import NotificationRepository
 from backend.repository.db.control.users import UserRepository
 
@@ -25,6 +26,7 @@ class Repositories:
         self.chat_messages = ChatRepository(session)
         self.notifications = NotificationRepository(session)
         self.maps_credentials = MapsCredentialRepository(session)
+        self.maps_jobs = MapsJobRepository(session)
 
 
 class RepositoryManager:

@@ -1,4 +1,6 @@
 import asyncio
+import contextlib
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -37,6 +39,19 @@ from backend.controller.middleware.rate_limits import RateLimitMiddleware
 from backend.infra.config.settings import Settings, get_settings
 from backend.service.runtime import RuntimeServices
 
+logger = logging.getLogger(__name__)
+MAPS_POLL_SECONDS = 20
+
+
+async def _announce_finished_searches(services) -> None:
+    """Poll the maps server so creators are told when a search ends, even with the panel closed."""
+    while True:
+        await asyncio.sleep(MAPS_POLL_SECONDS)
+        try:
+            await asyncio.to_thread(services.maps.finish_pending)
+        except Exception:
+            logger.warning("Maps search check failed", exc_info=True)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings if settings is not None else get_settings()
@@ -46,7 +61,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.services = services
         try:
             await asyncio.to_thread(services.initialize, config)
-            yield
+            poller = asyncio.create_task(_announce_finished_searches(services))
+            try:
+                yield
+            finally:
+                poller.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await poller
         finally:
             await services.realtime_connection.close()
             await asyncio.to_thread(services.close)

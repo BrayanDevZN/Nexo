@@ -13,6 +13,7 @@ class MapsJobInput(BaseModel):
     radius: int = Field(default=10000, ge=100, le=50000)
     zoom: int = Field(default=15, ge=1, le=21)
     depth: int = Field(default=3, ge=1, le=20)
+    niche: str | None = Field(default=None, max_length=120)
     email: bool = False
     fast_mode: bool = False
     max_time: int = Field(default=300, ge=60, le=1800)

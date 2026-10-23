@@ -102,6 +102,8 @@ class RuntimeServices:
             self._cleanup.callback(self.email.close)
             self.messages = AccountMessages(self.email)
             self.documents.messages = self.messages
+            self.maps.messages = self.messages
+            self.maps.push = self.push
             self.documents.push = self.push
             self.clients = ClientService(self.repositories, self.cached_repositories, self.messages, self.push)
             # Keep runtime startup compatible with older ClientService constructors

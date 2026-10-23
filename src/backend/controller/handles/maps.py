@@ -70,7 +70,7 @@ def jobs(request: Request, actor=Depends(current_user)):
 @router.post("/jobs", status_code=201)
 def create(data: MapsJobInput, request: Request, actor=Depends(current_user)):
     _check(actor)
-    return _run(request.app.state.services.maps.create, data.model_dump())
+    return _run(request.app.state.services.maps.create, data.model_dump(), actor.id)
 
 
 @router.get("/jobs/{job_id}")

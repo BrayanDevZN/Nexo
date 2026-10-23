@@ -102,14 +102,14 @@ function csvFile(rows: Lead[]) {
   return new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
 }
 
-export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>; canManageKey: boolean }) {
+export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType<typeof createApi>; canManageKey: boolean; initialJobId?: string }) {
   const [status, setStatus] = useState<MapsStatus>();
   const [keyInput, setKeyInput] = useState("");
   const [keyBusy, setKeyBusy] = useState(false);
   const [jobs, setJobs] = useState<Job[]>();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState(initialJobId);
   const [results, setResults] = useState<Results>();
   const [resultsLoading, setResultsLoading] = useState(false);
   const [filter, setFilter] = useState("");
@@ -188,7 +188,7 @@ export function Maps({ api, canManageKey }: { api: ReturnType<typeof createApi>;
     try {
       const created = await api.mutate<{ id: string }>("/maps/jobs", "POST", {
         name: form.name.trim() || `${form.niche} · ${form.city || "local personalizado"}`.slice(0, 80),
-        keywords, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
+        keywords, niche: form.niche, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
         email: form.email, fast_mode: form.fast,
       });
       saveJobMeta(created.id, { niche: form.niche, limit: form.limit });

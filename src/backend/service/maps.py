@@ -2,14 +2,22 @@ import base64
 import csv
 import hashlib
 import io
-from uuid import UUID
+import logging
+from datetime import timedelta
+from uuid import UUID, uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 
 from backend.infra.connections.maps import MapsConnection, MapsUnavailable
+from backend.repository.db.models.base import utc_now
 from backend.service.clients import lead_phone
 
+logger = logging.getLogger(__name__)
+
 MAX_ROWS = 1000
+# Searches older than this are no longer announced (the server may have been down for a long time).
+NOTIFY_WINDOW = timedelta(hours=6)
+EMAIL_LEADS = 10
 LEAD_FIELDS = ("title", "category", "address", "phone", "website", "emails",
                "review_rating", "review_count", "link", "latitude", "longitude")
 
@@ -42,6 +50,9 @@ class MapsService:
     def __init__(self, connection: MapsConnection, repositories, secret: str):
         self.connection = connection
         self.repositories = repositories
+        # Set by the runtime: emails, push and the in-app notice when a search finishes.
+        self.messages = None
+        self.push = None
         # The saved key is encrypted at rest. Rotating the JWT secret makes it unreadable (re-enter it).
         self._fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"nexo-maps-key:" + secret.encode()).digest()))
 
@@ -113,7 +124,7 @@ class MapsService:
         jobs = [self._summary(item) for item in body if isinstance(item, dict)]
         return sorted(jobs, key=lambda job: job["created_at"] or "", reverse=True)
 
-    def create(self, data: dict) -> dict:
+    def create(self, data: dict, actor_id: str | None = None) -> dict:
         body = {
             "name": data["name"], "keywords": data["keywords"], "lang": data["lang"],
             "zoom": data["zoom"], "lat": str(data["lat"]), "lon": str(data["lon"]),
@@ -121,7 +132,11 @@ class MapsService:
             "fast_mode": data["fast_mode"], "max_time": data["max_time"],
         }
         created = self._call("POST", "/api/v1/jobs", json=body).json()
-        return {"id": str(created["id"])}
+        job_id = str(created["id"])
+        if actor_id:
+            with self.repositories.transaction() as repos:
+                repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"))
+        return {"id": job_id}
 
     def job(self, job_id: UUID) -> dict:
         return self._summary(self._call("GET", f"/api/v1/jobs/{job_id}").json())
@@ -167,3 +182,67 @@ class MapsService:
 
     def delete(self, job_id: UUID) -> None:
         self._call("DELETE", f"/api/v1/jobs/{job_id}")
+
+    def finish_pending(self) -> int:
+        """Tell the creators of finished searches. Returns how many were announced."""
+        if not self.connection.available or not self._key():
+            return 0
+        with self.repositories.read_transaction() as repos:
+            pending = [(job.job_id, job.created_by_id, job.name) for job in repos.maps_jobs.pending(utc_now() - NOTIFY_WINDOW)]
+        if not pending:
+            return 0
+        try:
+            remote = {job["id"]: job for job in self.jobs()}
+        except (MapsNotConfigured, MapsUnauthorized, MapsUnavailable):
+            return 0
+        announced = 0
+        for job_id, creator_id, name in pending:
+            job = remote.get(job_id)
+            if job is None:
+                # The search was deleted before finishing: nothing to announce.
+                with self.repositories.transaction() as repos:
+                    repos.maps_jobs.claim(job_id)
+            elif job["status"] == "ok":
+                announced += self._announce(job_id, creator_id, name, failed=False)
+            elif job["status"] == "failed":
+                announced += self._announce(job_id, creator_id, name, failed=True)
+        return announced
+
+    def _announce(self, job_id: str, creator_id: str, name: str, *, failed: bool) -> int:
+        found = in_funnel = 0
+        leads: list[dict] = []
+        if not failed:
+            try:
+                result = self.results(UUID(job_id))
+            except (MapsUnauthorized, MapsJobNotFound, MapsUnavailable):
+                return 0  # try again on the next round
+            found, in_funnel, leads = result["total"], result["in_funnel"], result["rows"][:EMAIL_LEADS]
+        if failed:
+            title, body = "Busca do Maps não terminou", f"A busca \"{name}\" não foi concluída. Tente outra região ou menos profundidade."
+        else:
+            title = "Busca do Maps concluída"
+            body = (f"A busca \"{name}\" terminou com {found} empresa(s) nova(s)"
+                    + (f" ({in_funnel} já estavam no funil)" if in_funnel else "") + ". Abra o Maps para ver.")
+        with self.repositories.transaction() as repos:
+            if not repos.maps_jobs.claim(job_id):
+                return 0
+            user = repos.users.get(creator_id)
+            if user is None or user.status != "approved":
+                return 0
+            repos.notifications.create_announcements(
+                announcement_id=str(uuid4()), recipient_ids=[user.id], creator_id=user.id, title=title, body=body)
+            recipient = type("Recipient", (), {"id": user.id, "name": user.name, "email": user.email})()
+        if self.push:
+            try:
+                self.push.notify_users([recipient.id], title, body, url="/admin?maps=" + job_id)
+            except Exception:
+                logger.warning("Maps push could not be delivered", exc_info=True)
+        if self.messages:
+            try:
+                if failed:
+                    self.messages.maps_failed(recipient, job_id, name)
+                else:
+                    self.messages.maps_results(recipient, job_id, name, found, in_funnel, leads)
+            except Exception:
+                logger.warning("Maps email could not be queued", exc_info=True)
+        return 1

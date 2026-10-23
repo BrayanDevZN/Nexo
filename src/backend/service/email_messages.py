@@ -1,5 +1,6 @@
 import html
 import logging
+from urllib.parse import urlencode
 
 from backend.infra.connections.email import EmailQueueFullError, EmailUnavailableError
 
@@ -208,6 +209,46 @@ class AccountMessages:
             title, [body], eyebrow="AVISO DA EQUIPE",
         )
         return True
+
+    def maps_results(self, user, job_id: str, name: str, found: int, in_funnel: int, leads: list[dict]):
+        if not self.sender.configured:
+            return False
+        paragraphs = ["Olá, " + (getattr(user, "name", None) or "pessoa") + ". A busca \"" + name + "\" terminou."]
+        paragraphs.append(
+            f"Foram encontradas {found} empresa(s) nova(s)"
+            + (f"; {in_funnel} já estavam no funil e foram ocultadas." if in_funnel else "."))
+        if leads:
+            lines = []
+            for lead in leads:
+                details = [lead.get("phone"), lead.get("address")]
+                lines.append("• " + lead["title"] + "".join(" · " + detail for detail in details if detail))
+            if found > len(leads):
+                lines.append(f"… e mais {found - len(leads)} no painel.")
+            paragraphs.append("\n".join(lines))
+        paragraphs.append("Abra o painel para ver o resultado completo, abrir cada empresa no mapa e adicionar os leads ao funil.")
+        self._send(
+            user.email, "Sua busca no Maps terminou: " + name,
+            f"{found} empresa(s) nova(s) encontradas.",
+            "Busca do Maps concluída", paragraphs,
+            action_label="Ver resultados", action_url=self.maps_url(job_id), eyebrow="MAPS",
+        )
+        return True
+
+    def maps_failed(self, user, job_id: str, name: str):
+        if not self.sender.configured:
+            return False
+        self._send(
+            user.email, "Sua busca no Maps não terminou: " + name,
+            "A busca não foi concluída.",
+            "A busca do Maps falhou",
+            ["Olá, " + (getattr(user, "name", None) or "pessoa") + ". A busca \"" + name + "\" não terminou com sucesso.",
+             "Tente novamente com outra região ou com menos profundidade."],
+            action_label="Abrir o Maps", action_url=self.maps_url(job_id), eyebrow="MAPS",
+        )
+        return True
+
+    def maps_url(self, job_id: str) -> str:
+        return self.frontend_url.rstrip("/") + "/admin?" + urlencode({"maps": job_id})
 
     def automation_invitation(self, user, invite_url: str, message: str):
         if not self.sender.configured:
