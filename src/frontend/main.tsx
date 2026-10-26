@@ -4,6 +4,7 @@ import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { CookieNotice } from "./components/CookieNotice";
 import { MotionProvider } from "./components/MotionProvider";
+import { setCanonical, setNoIndex } from "./lib/seo";
 import "./styles/globals.css";
 import "./styles/site.css";
 
@@ -13,6 +14,9 @@ const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
 const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
 const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
+
+if (adminRoute) setNoIndex();
+else setCanonical(window.location.pathname);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

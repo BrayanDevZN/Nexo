@@ -99,3 +99,17 @@ test("both public pages show the privacy link and the contact email in the foote
     await expect(page.getByRole("link", { name: "nexo.bd.owners@gmail.com" })).toHaveAttribute("href", "mailto:nexo.bd.owners@gmail.com");
   }
 });
+
+test("each public page has its own canonical address and the panel is kept out of search", async ({ page }) => {
+  for (const [path, canonical] of [["/", "https://nexoaicompany.com/"], ["/contabilidade/", "https://nexoaicompany.com/contabilidade"], ["/privacidade", "https://nexoaicompany.com/privacidade"]]) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", canonical);
+  }
+  await page.goto("/admin");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex");
+  const robots = await (await page.request.get("/robots.txt")).text();
+  expect(robots).toContain("Disallow: /admin");
+  expect(robots).toContain("Sitemap: https://nexoaicompany.com/sitemap.xml");
+  const sitemap = await (await page.request.get("/sitemap.xml")).text();
+  for (const url of ["/", "/contabilidade", "/privacidade"]) expect(sitemap).toContain(`<loc>https://nexoaicompany.com${url}</loc>`);
+});
