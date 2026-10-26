@@ -75,3 +75,20 @@ test("the hero illustration is described, labelled as illustrative and shows no 
   await expect(figure).toContainText("Cliente A");
   await expect(figure).not.toContainText(/\d/);
 });
+
+test("the privacy policy is served at its own path and linked from both pages", async ({ page }) => {
+  await page.goto("/privacidade");
+  await expect(page).toHaveTitle(/privacidade/i);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Política de privacidade");
+  await expect(page.getByRole("heading", { name: "Cookies" })).toBeVisible();
+  for (const path of ["/", "/contabilidade"]) {
+    await page.goto(path);
+    await expect(page.getByRole("link", { name: "Política de privacidade" })).toHaveAttribute("href", "/privacidade");
+  }
+});
+
+test("no cookie notice and no Google script while no tag is configured", async ({ page }) => {
+  await page.goto("/contabilidade");
+  await expect(page.getByRole("dialog", { name: "Aviso de cookies" })).toHaveCount(0);
+  await expect(page.locator("script[src*='googletagmanager']")).toHaveCount(0);
+});

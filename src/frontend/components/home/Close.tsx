@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { Brand } from "@/components/Brand";
+import { CookiePreferencesButton } from "@/components/CookieNotice";
 import { Button } from "@/components/ui/button";
 import { useMotionPreferences } from "@/components/MotionProvider";
 import { contactUrl, navigation } from "@/lib/content";
@@ -56,6 +57,8 @@ export function Close() {
           >
             {reduced ? "Ativar animações" : "Reduzir animações"}
           </button>
+          <a href="/privacidade">Política de privacidade</a>
+          <CookiePreferencesButton />
           <a href="#inicio">Voltar ao topo</a>
         </div>
       </footer>

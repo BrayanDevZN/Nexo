@@ -1,9 +1,11 @@
 /**
  * Measurement for the paid-traffic pages.
  *
- * Nothing is loaded and no cookie is set until VITE_GOOGLE_TAG_ID holds a real Google tag ID (G-, GT- or AW-).
- * Only configure it once the privacy policy and the cookie notice are published.
+ * Nothing is loaded and no cookie is set until VITE_GOOGLE_TAG_ID holds a real Google tag ID (G-, GT- or AW-)
+ * AND the visitor accepted cookies in the notice. The privacy policy lives at /privacidade.
  */
+import { readConsent } from "./consent";
+
 type Gtag = (...args: unknown[]) => void;
 
 declare global {
@@ -16,8 +18,13 @@ declare global {
 const TAG_ID = (import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined)?.trim();
 const TAG_PATTERN = /^(G|GT|AW)-[A-Z0-9]{4,20}$/;
 
+/** True when a valid tag is configured, so the cookie notice has something to ask about. */
+export function trackingConfigured(): boolean {
+  return Boolean(TAG_ID && TAG_PATTERN.test(TAG_ID));
+}
+
 export function initTracking(): void {
-  if (!TAG_ID || !TAG_PATTERN.test(TAG_ID) || window.gtag) return;
+  if (!TAG_ID || !trackingConfigured() || readConsent() !== "granted" || window.gtag) return;
   window.dataLayer = window.dataLayer || [];
   // The gtag snippet must push the arguments object itself, not an array.
   window.gtag = function gtag() {

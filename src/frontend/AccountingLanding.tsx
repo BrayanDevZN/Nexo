@@ -26,7 +26,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Art } from "@/components/home/Art";
-import { initTracking, trackWhatsappClick } from "@/lib/tracking";
+import { CookiePreferencesButton } from "@/components/CookieNotice";
+import { trackWhatsappClick } from "@/lib/tracking";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import "./styles/landing.css";
@@ -40,7 +41,6 @@ export default function AccountingLanding() {
     document
       .querySelector('meta[name="description"]')
       ?.setAttribute("content", landingDescription);
-    initTracking();
   }, []);
   const whatsapp = (placement: string) => ({
     href,
@@ -321,6 +321,8 @@ export default function AccountingLanding() {
         <footer className="nx-wrap nx-footer">
           <div className="nx-footer-legal">
             <p>© {new Date().getFullYear()} Nexo. Todos os direitos reservados.</p>
+            <a href="/privacidade">Política de privacidade</a>
+            <CookiePreferencesButton />
           </div>
         </footer>
       </div>
