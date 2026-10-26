@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, FileText, Mail, CalendarDays, Database, Workflow, Folder, Clock3 } from "lucide-react";
+import { Check, Bot, FileText, Mail, CalendarDays, Database, Workflow, Folder, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,6 +130,39 @@ const scenes: Record<string, { label: string; draw: () => ReactNode }> = {
         </Message>
         <Badge variant="secondary" className={`${tag} art-chat-tag`}><Clock3 /> 20 minutos, sem custo</Badge>
       </div>
+    ),
+  },
+  whatsapp: {
+    label: "Um agente de atendimento responde a dúvida de um cliente do escritório no WhatsApp.",
+    draw: () => (
+      <div className="art-chat">
+        <Message>
+          <MessageContent><Bubble className="art-bubble"><BubbleContent>Quando vence o meu imposto deste mês?</BubbleContent></Bubble></MessageContent>
+        </Message>
+        <Message align="end">
+          <MessageContent><Bubble variant="default" className="art-bubble art-bubble-2"><BubbleContent>Vence dia 20. Já deixei a guia aqui para você.</BubbleContent></Bubble></MessageContent>
+        </Message>
+        <Badge variant="secondary" className={`${tag} art-chat-tag`}><Bot /> Agente de atendimento · resposta enviada</Badge>
+      </div>
+    ),
+  },
+  ledger: {
+    label: "Um agente compara o extrato com os lançamentos e envia a diferença para o contador revisar.",
+    draw: () => (
+      <Card className="art-card-ui">
+        <CardHeader>
+          <Badge variant="secondary" className={tag}><Bot /> Agente contábil</Badge>
+          <CardTitle>Conferência do período</CardTitle>
+          <CardDescription>Extrato comparado com os lançamentos.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="art-steps">
+            <Row icon={<Check />} delay={0}>Mensalidade <Badge className={tag}>Confere</Badge></Row>
+            <Row icon={<Check />} delay={0.8}>Fornecedor A <Badge className={tag}>Confere</Badge></Row>
+            <Row icon={<Clock3 />} delay={1.6}>Tarifa bancária <Badge variant="outline" className={tag}>Para revisão</Badge></Row>
+          </ul>
+        </CardContent>
+      </Card>
     ),
   },
   plan: {

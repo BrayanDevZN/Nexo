@@ -9,7 +9,7 @@ test("the accounting page has one goal and no way out to the rest of the site", 
   await expect(page.getByRole("link", { name: "Soluções" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Explorar soluções" })).toHaveCount(0);
   const links = page.locator("a[href^='https://wa.me/']");
-  await expect(links).toHaveCount(3);
+  await expect(links).toHaveCount(4);
   for (const href of await links.evaluateAll(nodes => nodes.map(node => node.getAttribute("href")))) {
     expect(href).toMatch(new RegExp(`^https://wa\\.me/${NUMBER}\\?text=`));
     expect(decodeURIComponent(href!)).toContain("página de contabilidade");

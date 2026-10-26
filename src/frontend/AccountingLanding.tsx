@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountingVisual } from "@/components/AccountingVisual";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,9 @@ import {
   landingTitle,
   landingWhatsappUrl,
   problems,
+  solutions,
+  benefits,
+  principles,
   steps,
 } from "@/lib/accountingLanding";
 import { IntelligenceCore } from "@/components/IntelligenceCore";
@@ -52,6 +56,12 @@ export default function AccountingLanding() {
       <header className="nx-header">
         <div className="nx-wrap nx-header-inner">
           <Brand />
+          <nav className="nx-nav" aria-label="Seções da página">
+            <a href="#agentes">Agentes</a>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#na-pratica">Na prática</a>
+            <a href="#duvidas">Dúvidas</a>
+          </nav>
           <Button size="lg" asChild>
             <a {...whatsapp("header")}>
               <MessageCircle data-icon="inline-start" /> WhatsApp
@@ -70,9 +80,10 @@ export default function AccountingLanding() {
           </div>
           <div className="nx-hero-foot">
             <p className="nx-lead">
-              A Nexo cria automações sob medida para escritórios de
-              contabilidade: documentos dos clientes organizados e menos
-              trabalho manual para a sua equipe.
+              A Nexo cria agentes de IA para escritórios de contabilidade:
+              agentes que atendem os seus clientes, agentes que ajudam na
+              rotina contábil e automações que organizam os documentos. A sua
+              equipe foca no que exige análise.
             </p>
             <div className="nx-actions">
               <Button size="lg" asChild>
@@ -88,6 +99,7 @@ export default function AccountingLanding() {
           </div>
           <Art name="docs" className="nx-hero-photo nx-reveal" />
         </section>
+
         <section className="nx-section nx-wrap" aria-labelledby="lp-problems-title">
           <div className="nx-process-head">
             <h2 id="lp-problems-title" className="nx-h2 nx-reveal">
@@ -95,15 +107,53 @@ export default function AccountingLanding() {
               <br />
               ser tão manual.
             </h2>
+            <p className="nx-lead nx-reveal">
+              Se algum destes pontos é do dia a dia do seu escritório, dá para
+              tirar do caminho da equipe.
+            </p>
           </div>
-          {problems.map((problem) => (
-            <article className="nx-benefit nx-reveal" key={problem.title}>
-              <h3 className="nx-h3">{problem.title}</h3>
-              <p className="nx-body nx-soft">{problem.text}</p>
+          <div className="nx-card-grid">
+            {problems.map((problem) => (
+              <Card key={problem.title} className="nx-lift nx-reveal">
+                <CardHeader>
+                  <problem.icon className="size-6 text-primary" aria-hidden="true" />
+                  <CardTitle>{problem.title}</CardTitle>
+                  <CardDescription>{problem.text}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section id="agentes" className="nx-section nx-wrap nx-features" aria-labelledby="lp-agents-title">
+          <div className="nx-features-head">
+            <h2 id="lp-agents-title" className="nx-h2 nx-reveal">
+              Agentes de IA que
+              <br />
+              trabalham pelo escritório.
+            </h2>
+            <p className="nx-lead nx-reveal">
+              Cada agente é montado para uma tarefa do escritório, com regras
+              claras e a revisão da sua equipe.
+            </p>
+          </div>
+          {solutions.map((solution) => (
+            <article className="nx-row" key={solution.title}>
+              <div className="nx-row-body nx-reveal">
+                <h3 className="nx-h3">{solution.title}</h3>
+                <p className="nx-body">{solution.text}</p>
+                <ul className="nx-list">
+                  {solution.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+              <Art name={solution.art} className="nx-reveal" />
             </article>
           ))}
         </section>
-        <section className="nx-section nx-band" aria-labelledby="lp-steps-title">
+
+        <section id="como-funciona" className="nx-section nx-band" aria-labelledby="lp-steps-title">
           <div className="nx-process-head">
             <h2 id="lp-steps-title" className="nx-h2 nx-reveal">
               Do primeiro contato
@@ -123,7 +173,8 @@ export default function AccountingLanding() {
             <Art name="plan" className="nx-reveal" />
           </div>
         </section>
-        <section className="nx-section nx-wrap nx-split" aria-labelledby="lp-demo-title">
+
+        <section id="na-pratica" className="nx-section nx-wrap nx-split" aria-labelledby="lp-demo-title">
           <div className="nx-split-text">
             <h2 id="lp-demo-title" className="nx-h2 nx-reveal">
               Um exemplo de como
@@ -144,32 +195,94 @@ export default function AccountingLanding() {
           </div>
           <AccountingVisual />
         </section>
-        <section className="nx-section nx-wrap" aria-labelledby="lp-offer-title">
-          <Art name="flow" className="nx-reveal nx-offer-photo" />
+
+        <section className="nx-section nx-wrap" aria-labelledby="lp-value-title">
+          <div className="nx-process-head">
+            <h2 id="lp-value-title" className="nx-h2 nx-reveal">
+              Mais capacidade
+              <br />
+              para o escritório.
+            </h2>
+            <p className="nx-lead nx-reveal">
+              O ganho aparece na rotina: menos retrabalho e mais clientes
+              atendidos com a mesma equipe.
+            </p>
+          </div>
+          <div className="nx-card-grid nx-card-grid-4">
+            {benefits.map((benefit) => (
+              <Card key={benefit.title} className="nx-lift nx-reveal">
+                <CardHeader>
+                  <CardTitle>{benefit.title}</CardTitle>
+                  <CardDescription>{benefit.text}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+          <div className="nx-value-cta nx-reveal">
+            <p className="nx-lead">Quer ver o que dá para fazer no seu escritório?</p>
+            <Button size="lg" asChild>
+              <a {...whatsapp("middle")}>
+                Falar com a Nexo no WhatsApp{" "}
+                <ArrowUpRight data-icon="inline-end" />
+              </a>
+            </Button>
+          </div>
+        </section>
+
+        <section className="nx-section nx-band" aria-labelledby="lp-offer-title">
           <div className="nx-process-head">
             <h2 id="lp-offer-title" className="nx-h2 nx-reveal">
               20 minutos para entender
               <br />a sua rotina.
             </h2>
           </div>
-          <div className="nx-benefit nx-reveal">
-            <h3 className="nx-h3">Para quem é</h3>
-            <ul className="nx-list">
-              {fit.yes.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="nx-benefit nx-reveal">
-            <h3 className="nx-h3">O que a Nexo é</h3>
-            <ul className="nx-list">
-              {fit.no.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
+          <div className="nx-offer-grid">
+            <Art name="flow" className="nx-reveal" />
+            <div className="nx-offer-text">
+              <div className="nx-reveal">
+                <h3 className="nx-h3">Para quem é</h3>
+                <ul className="nx-list">
+                  {fit.yes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="nx-reveal">
+                <h3 className="nx-h3">O que a Nexo é</h3>
+                <ul className="nx-list">
+                  {fit.no.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
-        <section className="nx-section nx-wrap nx-faq" aria-labelledby="lp-faq-title">
+
+        <section className="nx-section nx-wrap nx-about" aria-labelledby="lp-about-title">
+          <div className="nx-about-main">
+            <h2 id="lp-about-title" className="nx-h2 nx-reveal">
+              Quem constrói
+              <br />
+              os agentes.
+            </h2>
+            <p className="nx-statement nx-reveal">
+              A Nexo é uma agência de inteligência artificial. Criamos agentes
+              e automações para empresas, e para escritórios de contabilidade
+              desenhamos cada um a partir da rotina real da equipe.
+            </p>
+            <div className="nx-principles">
+              {principles.map((principle) => (
+                <div key={principle.title} className="nx-reveal">
+                  <h3>{principle.title}</h3>
+                  <p className="nx-body nx-soft">{principle.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="duvidas" className="nx-section nx-wrap nx-faq" aria-labelledby="lp-faq-title">
           <div className="nx-faq-row">
             <h2 id="lp-faq-title" className="nx-faq-q nx-faq-title nx-reveal">
               Vamos tirar as dúvidas.

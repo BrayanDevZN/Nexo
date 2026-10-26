@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
+Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -138,7 +138,7 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/webhook_events.py | 133 | 1.3K | source |
-| src/frontend/AccountingLanding.tsx | 209 | 1.9K | source |
+| src/frontend/AccountingLanding.tsx | 330 | 3.1K | source |
 | src/frontend/admin/AdminApp.tsx | 258 | 5.9K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 188 | 3.0K | source |
@@ -179,9 +179,9 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/home/About.tsx | 53 | 452 | source |
-| src/frontend/components/home/Art.tsx | 165 | 1.8K | source |
+| src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
 | src/frontend/components/home/Close.tsx | 65 | 562 | source |
-| src/frontend/components/home/Faq.tsx | 27 | 186 | source |
+| src/frontend/components/home/Faq.tsx | 35 | 250 | source |
 | src/frontend/components/home/Features.tsx | 57 | 506 | source |
 | src/frontend/components/home/Hero.tsx | 51 | 400 | source |
 | src/frontend/components/home/MarkSlot.tsx | 14 | 360 | source |
@@ -222,7 +222,7 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | src/frontend/hooks/useButtonFeedback.ts | 41 | 358 | source |
 | src/frontend/hooks/useScrollReveal.ts | 51 | 467 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 62 | 497 | source |
-| src/frontend/lib/accountingLanding.ts | 99 | 934 | source |
+| src/frontend/lib/accountingLanding.ts | 170 | 1.8K | source |
 | src/frontend/lib/content.ts | 175 | 2.0K | source |
 | src/frontend/lib/tracking.ts | 38 | 332 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
@@ -271,7 +271,7 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/landing.spec.ts | 74 | 976 | test |
+| tests/integration/frontend/landing.spec.ts | 78 | 1.0K | test |
 | tests/integration/frontend/panel.spec.ts | 580 | 10.2K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -347,7 +347,7 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/styles/globals.css | 2658 | 15.3K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/site.css | 225 | 3.9K | style |
+| src/frontend/styles/site.css | 254 | 4.4K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 71 | 555 | other |
 | .gitignore | 31 | 53 | other |
@@ -365,11 +365,11 @@ Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 | src/frontend/vite.config.mts | 17 | 146 | other |
 
 ## Summary
-- source: 228 files, ~246.4K tokens
+- source: 228 files, ~249.0K tokens
 - config: 11 files, ~2.9K tokens
 - test: 94 files, ~97.3K tokens
 - docs: 8 files, ~11.5K tokens
-- style: 3 files, ~20.3K tokens
+- style: 3 files, ~20.8K tokens
 - other: 15 files, ~3.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
