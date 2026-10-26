@@ -15,7 +15,8 @@ test("the accounting page has one goal and no way out to the rest of the site", 
     expect(decodeURIComponent(href!)).toContain("página de contabilidade");
     expect(decodeURIComponent(href!)).not.toContain("origem");
   }
-  await expect(page.locator(".page-ambient")).toHaveCount(0);
+  await expect(page.locator(".page-ambient")).toHaveCount(1);
+  await expect(page.locator(".cube-face")).toHaveCount(6);
 });
 
 test("an ad click tags the WhatsApp message with its origin", async ({ page }) => {

@@ -2,9 +2,7 @@ import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarkSlot } from "@/components/home/MarkSlot";
 import { IntelligenceCore } from "@/components/IntelligenceCore";
-import { Picture } from "@/components/home/Picture";
 import { contactUrl } from "@/lib/content";
-import { pictures } from "@/lib/pictures";
 
 export function Hero() {
   return (
@@ -46,7 +44,6 @@ export function Hero() {
           </Button>
         </div>
       </div>
-      <Picture picture={pictures.abacus} eager className="nx-hero-photo nx-reveal" />
       </div>
     </section>
   );

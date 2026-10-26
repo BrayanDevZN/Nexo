@@ -14,7 +14,7 @@ const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
-      {landingRoute ? null : <AnimatedBackground />}
+      <AnimatedBackground />
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
     </MotionProvider>
   </StrictMode>,

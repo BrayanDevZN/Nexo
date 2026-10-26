@@ -1,16 +1,10 @@
 import { ArrowUpRight } from "lucide-react";
-import { Picture } from "@/components/home/Picture";
+import { Art, type ArtName } from "@/components/home/Art";
 import { contactUrl, solutions } from "@/lib/content";
-import { pictures, type Picture as PictureData } from "@/lib/pictures";
 
 // One picture per solution, each from the history of the same job: routing requests, programming
 // a repeat task, plugging things together, counting for a business.
-const pictureFor: PictureData[] = [
-  pictures.exchange,
-  pictures.patternCards,
-  pictures.switchboard,
-  pictures.addingMachine,
-];
+const artFor: ArtName[] = ["agent", "flow", "systems", "custom"];
 
 export function Features() {
   return (
@@ -54,11 +48,7 @@ export function Features() {
               Explorar essa possibilidade <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
-          <Picture
-            picture={pictureFor[index]}
-            caption={false}
-            className={`nx-reveal nx-photo-${index + 1}`}
-          />
+          <Art name={artFor[index]} className="nx-reveal" />
         </article>
       ))}
     </section>

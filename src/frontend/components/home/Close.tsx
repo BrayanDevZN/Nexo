@@ -3,14 +3,6 @@ import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { useMotionPreferences } from "@/components/MotionProvider";
 import { contactUrl, navigation } from "@/lib/content";
-import { pictures } from "@/lib/pictures";
-
-const credited = [
-  pictures.exchange,
-  pictures.patternCards,
-  pictures.switchboard,
-  pictures.addingMachine,
-];
 
 export function Close() {
   const { reduced, setReduced } = useMotionPreferences();
@@ -65,22 +57,6 @@ export function Close() {
             {reduced ? "Ativar animações" : "Reduzir animações"}
           </button>
           <a href="#inicio">Voltar ao topo</a>
-        </div>
-        <p className="nx-credits">
-          Imagens do acervo aberto Wikimedia Commons:{" "}
-          {credited.map((picture, index) => (
-            <span key={picture.credit.title}>
-              {index > 0 ? "; " : ""}
-              <a href={picture.credit.page} target="_blank" rel="noopener noreferrer">
-                {picture.caption}
-              </a>{" "}
-              ({picture.credit.author}, {picture.credit.license})
-            </span>
-          ))}
-          .
-        </p>
-        <div className="nx-wordmark" aria-hidden="true">
-          nexo.
         </div>
       </footer>
     </div>

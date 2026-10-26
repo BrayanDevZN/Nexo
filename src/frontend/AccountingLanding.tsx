@@ -14,8 +14,8 @@ import {
   problems,
   steps,
 } from "@/lib/accountingLanding";
-import { Picture } from "@/components/home/Picture";
-import { pictures } from "@/lib/pictures";
+import { IntelligenceCore } from "@/components/IntelligenceCore";
+import { Art } from "@/components/home/Art";
 import { initTracking, trackWhatsappClick } from "@/lib/tracking";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -59,6 +59,9 @@ export default function AccountingLanding() {
             <span>Pare de correr atrás</span>{" "}
             <span>de documento todo mês.</span>
           </h1>
+          <div className="nx-hero-core nx-core" aria-hidden="true">
+            <IntelligenceCore />
+          </div>
           <div className="nx-hero-foot">
             <p className="nx-lead">
               A Nexo cria automações sob medida para escritórios de
@@ -77,7 +80,7 @@ export default function AccountingLanding() {
               Conversa inicial de 20 minutos, sem custo.
             </p>
           </div>
-          <Picture picture={pictures.addingMachine} eager className="nx-hero-photo nx-reveal" />
+          <Art name="docs" className="nx-hero-photo nx-reveal" />
         </section>
         <section className="nx-section nx-wrap" aria-labelledby="lp-problems-title">
           <div className="nx-process-head">
@@ -110,8 +113,8 @@ export default function AccountingLanding() {
             ))}
           </ol>
           <div className="nx-photo-pair">
-            <Picture picture={pictures.abacus} className="nx-reveal" />
-            <Picture picture={pictures.patternCards} className="nx-reveal" />
+            <Art name="talk" className="nx-reveal" />
+            <Art name="plan" className="nx-reveal" />
           </div>
         </section>
         <section className="nx-section nx-wrap nx-split" aria-labelledby="lp-demo-title">
@@ -136,7 +139,7 @@ export default function AccountingLanding() {
           <AccountingVisual />
         </section>
         <section className="nx-section nx-wrap" aria-labelledby="lp-offer-title">
-          <Picture picture={pictures.switchboard} caption={false} className="nx-reveal nx-offer-photo" />
+          <Art name="flow" className="nx-reveal nx-offer-photo" />
           <div className="nx-process-head">
             <h2 id="lp-offer-title" className="nx-h2 nx-reveal">
               20 minutos para entender
@@ -198,22 +201,6 @@ export default function AccountingLanding() {
           <div className="nx-footer-legal">
             <p>© {new Date().getFullYear()} Nexo. Todos os direitos reservados.</p>
           </div>
-          <p className="nx-credits">
-            Imagens do acervo aberto Wikimedia Commons:{" "}
-            {[pictures.addingMachine, pictures.abacus, pictures.patternCards, pictures.switchboard].map(
-              (picture, index) => (
-                <span key={picture.credit.title}>
-                  {index > 0 ? "; " : ""}
-                  <a href={picture.credit.page} target="_blank" rel="noopener noreferrer">
-                    {picture.caption}
-                  </a>{" "}
-                  ({picture.credit.author}, {picture.credit.license})
-                </span>
-              ),
-            )}
-            .
-          </p>
-          <div className="nx-wordmark" aria-hidden="true">nexo.</div>
         </footer>
       </div>
     </>
