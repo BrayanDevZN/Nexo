@@ -40,10 +40,14 @@ test("a WhatsApp click is reported as the conversion, with where it happened", a
   expect(events).toEqual([["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }]]);
 });
 
-test("every question is answered on the page, with nothing to open", async ({ page }) => {
+test("the questions open and close", async ({ page }) => {
   await page.goto("/contabilidade");
-  await expect(page.getByRole("heading", { name: "Quanto custa?" })).toBeVisible();
+  const question = page.getByRole("button", { name: "Quanto custa?" });
+  await question.scrollIntoViewIfNeeded();
+  await question.click();
   await expect(page.getByText("apresentamos uma proposta com valores claros")).toBeVisible();
+  await question.click();
+  await expect(page.getByText("apresentamos uma proposta com valores claros")).toBeHidden();
 });
 
 test("on a phone the button is on the first screen and nothing scrolls sideways", async ({ page }) => {

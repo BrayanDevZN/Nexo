@@ -1,3 +1,9 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { faqs } from "@/lib/content";
 
 export function Faq() {
@@ -15,12 +21,14 @@ export function Faq() {
           Cada operação tem seu contexto. A conversa começa por ele.
         </p>
       </div>
-      {faqs.map((faq) => (
-        <div className="nx-faq-row nx-reveal" key={faq.question}>
-          <h3 className="nx-faq-q">{faq.question}</h3>
-          <p className="nx-faq-a">{faq.answer}</p>
-        </div>
-      ))}
+      <Accordion type="single" collapsible className="nx-accordion nx-reveal">
+        {faqs.map((faq, index) => (
+          <AccordionItem key={faq.question} value={`faq-${index}`}>
+            <AccordionTrigger>{faq.question}</AccordionTrigger>
+            <AccordionContent>{faq.answer}</AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </section>
   );
 }

@@ -15,6 +15,12 @@ import {
   steps,
 } from "@/lib/accountingLanding";
 import { IntelligenceCore } from "@/components/IntelligenceCore";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Art } from "@/components/home/Art";
 import { initTracking, trackWhatsappClick } from "@/lib/tracking";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
@@ -169,12 +175,14 @@ export default function AccountingLanding() {
               Vamos tirar as dúvidas.
             </h2>
           </div>
-          {faqs.map((faq) => (
-            <div className="nx-faq-row nx-reveal" key={faq.question}>
-              <h3 className="nx-faq-q">{faq.question}</h3>
-              <p className="nx-faq-a">{faq.answer}</p>
-            </div>
-          ))}
+          <Accordion type="single" collapsible className="nx-accordion nx-reveal">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={faq.question} value={`faq-${index}`}>
+                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                <AccordionContent>{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </section>
       </main>
       <div className="nx-inverse nx-close">
