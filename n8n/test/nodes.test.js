@@ -338,7 +338,7 @@ test('client update can set, keep or remove the sales channel', async () => {
 
 test('sales channel options match the API values, with a way to leave it empty', () => {
 	const fields = new Nexo().description.properties.filter((field) => field.name === 'salesChannel');
-	const api = ['email', 'whatsapp', 'instagram', 'phone', 'in_person', 'other'];
+	const api = ['email', 'whatsapp', 'instagram', 'google_ads', 'phone', 'in_person', 'other'];
 	assert.equal(fields.length, 2);
 	for (const field of fields) {
 		assert.equal(field.type, 'options');

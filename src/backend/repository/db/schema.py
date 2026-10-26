@@ -3,6 +3,8 @@ import re
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
+from backend.domain.client_channels import SALES_CHANNELS
+from backend.domain.pipeline_stages import PIPELINE_STAGES
 from backend.repository.db.models import Base
 
 
@@ -48,6 +50,40 @@ def _migrate_user_roles(engine: Engine, principal_email: str | None) -> None:
         connection.commit()
 
 
+def _quoted(values: tuple[str, ...]) -> str:
+    return ", ".join(f"'{value}'" for value in values)
+
+
+def _migrate_client_checks(engine: Engine) -> None:
+    """Widen the stage and channel CHECKs of tables created before the paid-traffic funnel, keeping every row."""
+    with engine.connect() as connection:
+        sql = connection.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name='clients'")).scalar_one()
+        migrated = sql
+        for column, values in (("pipeline_stage", PIPELINE_STAGES), ("sales_channel", SALES_CHANNELS)):
+            pattern = rf"({column} (?:IS NULL OR {column} )?IN \()[^)]*(\))"
+            migrated = re.sub(pattern, lambda match: match.group(1) + _quoted(values) + match.group(2), migrated)
+        if migrated == sql:
+            return
+        migrated = re.sub(r'^CREATE TABLE ["`]?clients["`]?', "CREATE TABLE clients_check_migration", migrated, count=1)
+        if "clients_check_migration" not in migrated:
+            raise RuntimeError("Cannot safely migrate the clients constraints")
+        names = ", ".join('"' + column["name"].replace('"', '""') + '"' for column in inspect(connection).get_columns("clients"))
+        connection.commit()
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
+        try:
+            with connection.begin():
+                connection.exec_driver_sql(migrated)
+                connection.exec_driver_sql(f"INSERT INTO clients_check_migration ({names}) SELECT {names} FROM clients")
+                connection.exec_driver_sql("DROP TABLE clients")
+                connection.exec_driver_sql("ALTER TABLE clients_check_migration RENAME TO clients")
+                if connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall():
+                    raise RuntimeError("Client constraint migration would break foreign keys")
+        finally:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
+
+
 def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     """Create missing tables and apply additive, data-preserving schema changes."""
     Base.metadata.create_all(engine)
@@ -91,6 +127,7 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     if "approach" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN approach TEXT"))
+    _migrate_client_checks(engine)
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),

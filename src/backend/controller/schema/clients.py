@@ -17,8 +17,8 @@ from pydantic import (
 from backend.controller.schema.auth import ProfileInput
 from backend.domain.client_channels import SalesChannel
 from backend.domain.client_niches import validate_client_niche
+from backend.domain.pipeline_stages import PipelineStage
 
-PipelineStage = Literal["lead", "contacted", "diagnosis", "proposal", "negotiation", "won", "lost"]
 
 
 class ClientFields(BaseModel):

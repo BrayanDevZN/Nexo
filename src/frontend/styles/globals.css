@@ -35,6 +35,8 @@
   --color-primary: var(--primary);
   --color-funnel-lead: var(--funnel-lead);
   --color-funnel-contacted: var(--funnel-contacted);
+  --color-funnel-qualified: var(--funnel-qualified);
+  --color-funnel-meeting: var(--funnel-meeting);
   --color-funnel-diagnosis: var(--funnel-diagnosis);
   --color-funnel-proposal: var(--funnel-proposal);
   --color-funnel-negotiation: var(--funnel-negotiation);
@@ -80,6 +82,8 @@
   --shadow-tone: #7c3aed;
   --funnel-lead: #06b6d4;
   --funnel-contacted: #2563eb;
+  --funnel-qualified: #0d9488;
+  --funnel-meeting: #db2777;
   --funnel-diagnosis: #7c3aed;
   --funnel-proposal: #f59e0b;
   --funnel-negotiation: #f97316;

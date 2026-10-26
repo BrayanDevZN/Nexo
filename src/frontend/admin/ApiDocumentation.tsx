@@ -77,7 +77,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/clients",
     path: "/clients",
     title: "Criar cliente",
-    description: "Cria um cliente e registra a alteração no painel. sales_channel é opcional (email, whatsapp, instagram, phone, in_person ou other); omita ou envie null para ficar sem canal.",
+    description: "Cria um cliente e registra a alteração no painel. sales_channel é opcional (email, whatsapp, instagram, google_ads, phone, in_person ou other); omita ou envie null para ficar sem canal.",
     body: `{
   "name": "Empresa Exemplo",
   "niche": "Contabilidade",

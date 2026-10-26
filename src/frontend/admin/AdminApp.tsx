@@ -35,7 +35,7 @@ import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "dev-home" | "general-home" | "my-keys" | "business" | "funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
+type Page = "home" | "dev-home" | "general-home" | "my-keys" | "business" | "funnel" | "paid-funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -58,7 +58,7 @@ export default function AdminApp() {
   // Which pages belong to each area; anything else is sent back to the area's start page.
   const AREA_PAGES: Record<Area, Page[]> = {
     general: ["general-home", "documents", "chat", "approvals", "announcements", "directory", "members", "profile"],
-    commercial: ["home", "business", "funnel", "clients", "maps", "my-keys", "announcements"],
+    commercial: ["home", "business", "funnel", "paid-funnel", "clients", "maps", "my-keys", "announcements"],
     dev: ["dev-home", "automations", "api-keys", "databases", "announcements", "directory"],
   };
   const defaultPage = (target: Area | null): Page => target === "dev" ? "dev-home" : target === "commercial" ? "clients" : "general-home";
@@ -190,6 +190,7 @@ export default function AdminApp() {
         {area === "commercial" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "business" ? "secondary" : "ghost"} onClick={() => navigate("business")} aria-current={page === "business" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Dashboard do negócio</Button>}
         {area === "commercial" && <Button variant={page === "funnel" ? "secondary" : "ghost"} onClick={() => navigate("funnel")} aria-current={page === "funnel" ? "page" : undefined}><ChartNoAxesColumn data-icon="inline-start" /> Funil comercial</Button>}
+        {area === "commercial" && <Button variant={page === "paid-funnel" ? "secondary" : "ghost"} onClick={() => navigate("paid-funnel")} aria-current={page === "paid-funnel" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Funil tráfego pago</Button>}
         {area === "commercial" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {area === "commercial" && <Button variant={page === "maps" ? "secondary" : "ghost"} onClick={() => navigate("maps")} aria-current={page === "maps" ? "page" : undefined}><MapPin data-icon="inline-start" /> Maps</Button>}
         {area === "commercial" && <Button variant={page === "my-keys" ? "secondary" : "ghost"} onClick={() => navigate("my-keys")} aria-current={page === "my-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> Chaves</Button>}
@@ -240,6 +241,7 @@ export default function AdminApp() {
           page === "dev-home" && canDevelop ? <DevHome api={api} user={user} onOpen={navigate} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
+          page === "paid-funnel" ? <Funnel api={api} kind="paid" /> :
           page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger>{canDevelop && <TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger>}</TabsList><TabsContent value="library"><AutomationsLibrary api={api} user={user} /></TabsContent>{canDevelop && <TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent>}</Tabs></section> :
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :

@@ -4,9 +4,11 @@ from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Nu
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.domain.client_channels import SALES_CHANNELS
+from backend.domain.pipeline_stages import PIPELINE_STAGES
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
 
 _CHANNELS = ", ".join(f"'{channel}'" for channel in SALES_CHANNELS)
+_STAGES = ", ".join(f"'{stage}'" for stage in PIPELINE_STAGES)
 
 
 class Client(IdentityTimestampMixin, Base):
@@ -14,8 +16,7 @@ class Client(IdentityTimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("length(trim(name)) > 0", name="client_name_nonempty"),
         CheckConstraint("length(trim(niche)) > 0", name="client_niche_nonempty"),
-        CheckConstraint("pipeline_stage IN ('lead', 'contacted', 'diagnosis', 'proposal', 'negotiation', 'won', 'lost')",
-                        name="client_pipeline_stage"),
+        CheckConstraint(f"pipeline_stage IN ({_STAGES})", name="client_pipeline_stage"),
         CheckConstraint(f"sales_channel IS NULL OR sales_channel IN ({_CHANNELS})", name="client_sales_channel"),
         Index("client_created_at_id", "created_at", "id"),
         Index("client_closed_created_at", "contract_closed", "created_at"),

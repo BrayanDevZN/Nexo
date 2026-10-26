@@ -1,7 +1,7 @@
 """Sales channels a client can be approached through. The field is optional: no channel is stored as NULL."""
 from typing import Literal, get_args
 
-SalesChannel = Literal["email", "whatsapp", "instagram", "phone", "in_person", "other"]
+SalesChannel = Literal["email", "whatsapp", "instagram", "google_ads", "phone", "in_person", "other"]
 SALES_CHANNELS: tuple[str, ...] = get_args(SalesChannel)
 
 

@@ -26,19 +26,31 @@ export type ClientRecord = {
   created_by_id: string; created_by_name: string;
   created_at: string; updated_at: string;
 };
-export type SalesChannel = "email" | "whatsapp" | "instagram" | "phone" | "in_person" | "other";
+export type SalesChannel = "email" | "whatsapp" | "instagram" | "google_ads" | "phone" | "in_person" | "other";
 export const SALES_CHANNELS: { value: SalesChannel; label: string }[] = [
-  { value: "email", label: "E-mail" }, { value: "whatsapp", label: "WhatsApp" }, { value: "instagram", label: "Instagram" },
+  { value: "email", label: "E-mail" }, { value: "whatsapp", label: "WhatsApp" }, { value: "instagram", label: "Instagram" }, { value: "google_ads", label: "Google Ads" },
   { value: "phone", label: "Ligação" }, { value: "in_person", label: "Presencial" }, { value: "other", label: "Outro" },
 ];
 export const salesChannelLabel = (value: SalesChannel | null | undefined) => SALES_CHANNELS.find(channel => channel.value === value)?.label ?? null;
-export type PipelineStage = "lead" | "contacted" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
+export type PipelineStage = "lead" | "contacted" | "qualified" | "meeting" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "lead", label: "Lead" }, { value: "contacted", label: "Contato feito" },
   { value: "diagnosis", label: "Diagnóstico" }, { value: "proposal", label: "Proposta" },
   { value: "negotiation", label: "Negociação" }, { value: "won", label: "Fechado" },
   { value: "lost", label: "Perdido" },
 ];
+/** Leads that came from a Google ad follow the paid-traffic funnel; everyone else follows the outbound one. */
+export const PAID_STAGES: { value: PipelineStage; label: string }[] = [
+  { value: "lead", label: "Novo lead" }, { value: "contacted", label: "Em conversa" },
+  { value: "qualified", label: "Qualificado" }, { value: "meeting", label: "Reunião marcada" },
+  { value: "proposal", label: "Proposta" }, { value: "won", label: "Fechado" },
+  { value: "lost", label: "Perdido" },
+];
+export const isPaidChannel = (channel: SalesChannel | string | null | undefined) => channel === "google_ads";
+export const stagesFor = (channel: SalesChannel | string | null | undefined) => isPaidChannel(channel) ? PAID_STAGES : PIPELINE_STAGES;
+/** Every stage once, for filters that span both funnels. */
+export const ALL_STAGES = [...PIPELINE_STAGES, ...PAID_STAGES.filter(paid => !PIPELINE_STAGES.some(stage => stage.value === paid.value))];
+export const stageLabel = (row: Pick<ClientRecord, "pipeline_stage" | "sales_channel">) => stagesFor(row.sales_channel).find(stage => stage.value === row.pipeline_stage)?.label ?? row.pipeline_stage;
 export const CLIENT_NICHES = [
   "Contabilidade", "Saúde", "Beleza e estética", "Imobiliário", "Advocacia",
   "Educação", "Varejo", "Comércio", "Alimentação", "Tecnologia",

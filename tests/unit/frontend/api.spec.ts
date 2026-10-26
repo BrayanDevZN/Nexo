@@ -1,5 +1,5 @@
 import { test, expect } from "../../../src/frontend/test-kit";
-import { apiBase, ApiError, createApi } from "../../../src/frontend/admin/api";
+import { ALL_STAGES, PAID_STAGES, PIPELINE_STAGES, apiBase, ApiError, createApi, stageLabel, stagesFor } from "../../../src/frontend/admin/api";
 
 test("validates public backend URLs", () => {
   expect(apiBase("")).toBe("/api");
@@ -109,4 +109,13 @@ test("profile image fetch includes cookies and returns a private blob", async ()
   expect(credentials).toBe("include");
   expect(blob.type).toBe("image/jpeg");
   expect(await blob.text()).toBe("image-bytes");
+});
+
+test("leads from Google Ads follow the paid-traffic funnel and everyone else the outbound one", () => {
+  expect(stagesFor("google_ads")).toBe(PAID_STAGES);
+  for (const channel of ["whatsapp", "email", null, undefined]) expect(stagesFor(channel)).toBe(PIPELINE_STAGES);
+  expect(PAID_STAGES.map(stage => stage.value)).toEqual(["lead", "contacted", "qualified", "meeting", "proposal", "won", "lost"]);
+  expect(stageLabel({ pipeline_stage: "lead", sales_channel: "google_ads" })).toBe("Novo lead");
+  expect(stageLabel({ pipeline_stage: "lead", sales_channel: "whatsapp" })).toBe("Lead");
+  expect(new Set(ALL_STAGES.map(stage => stage.value)).size).toBe(ALL_STAGES.length);
 });

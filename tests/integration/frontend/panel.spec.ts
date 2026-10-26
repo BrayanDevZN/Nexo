@@ -128,8 +128,11 @@ test("owner chooses among three areas and the menu follows each one", async ({ p
   await expect(button(page, "Bancos de dados")).toHaveCount(0);
   await page.getByRole("button", { name: "Trocar de área" }).click();
   await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
-  for (const item of ["Início", "Dashboard do negócio", "Funil comercial", "Clientes", "Maps", "Chaves", "Avisos"]) await expect(button(page, item).first()).toBeVisible();
+  for (const item of ["Início", "Dashboard do negócio", "Funil comercial", "Funil tráfego pago", "Clientes", "Maps", "Chaves", "Avisos"]) await expect(button(page, item).first()).toBeVisible();
   for (const gone of ["Chat", "Documentos", "Automações", "Solicitações", "Gerenciar membros", "Membros", "Meu perfil"]) await expect(button(page, gone)).toHaveCount(0);
+  await button(page, "Funil tráfego pago").click();
+  await expect(page.getByRole("heading", { name: "Funil de tráfego pago" })).toBeVisible();
+  for (const stage of ["Novo lead", "Em conversa", "Qualificado", "Reunião marcada", "Proposta", "Fechado", "Perdido"]) await expect(page.getByRole("heading", { name: stage, exact: true }).or(page.getByText(stage, { exact: true })).first()).toBeVisible();
   await page.getByRole("button", { name: "Trocar de área" }).click();
   await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
   for (const item of ["Início", "Automações", "API", "Bancos de dados"]) await expect(button(page, item).first()).toBeVisible();

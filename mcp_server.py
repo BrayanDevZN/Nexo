@@ -246,7 +246,7 @@ async def nexo_clients_search(search_term: str, search_by: str = "auto") -> Any:
 
 @mcp.tool()
 async def nexo_clients_create(fields: dict[str, Any]) -> Any:
-    """Create a client. Supported fields: name, niche, phone, email, address, sales_channel (email, whatsapp, instagram, phone, in_person, other or null), pipeline_stage, contract_closed, contract_value, notes, next_follow_up, pain and approach."""
+    """Create a client. Supported fields: name, niche, phone, email, address, sales_channel (email, whatsapp, instagram, google_ads, phone, in_person, other or null), pipeline_stage, contract_closed, contract_value, notes, next_follow_up, pain and approach."""
     payload = _client_fields(fields, require_name_niche=True)
     return await _request("POST", "/clients", body=payload)
 
