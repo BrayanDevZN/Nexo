@@ -83,14 +83,27 @@ test("the privacy policy is served at its own path and linked from both pages", 
   await expect(page.getByRole("heading", { name: "Cookies" })).toBeVisible();
   for (const path of ["/", "/contabilidade"]) {
     await page.goto(path);
-    await expect(page.getByRole("link", { name: "Política de privacidade" })).toHaveAttribute("href", "/privacidade");
+    await expect(page.locator("footer").getByRole("link", { name: "Política de privacidade" })).toHaveAttribute("href", "/privacidade");
   }
 });
 
-test("no cookie notice and no Google script while no tag is configured", async ({ page }) => {
+test("the Google tag loads only after the visitor accepts cookies", async ({ page }) => {
+  const tagRequests: string[] = [];
+  await page.route(/googletagmanager\.com/, route => { tagRequests.push(route.request().url()); return route.fulfill({ status: 200, contentType: "text/javascript", body: "" }); });
   await page.goto("/contabilidade");
-  await expect(page.getByRole("dialog", { name: "Aviso de cookies" })).toHaveCount(0);
+  const notice = page.getByRole("dialog", { name: "Aviso de cookies" });
+  await expect(notice).toBeVisible();
   await expect(page.locator("script[src*='googletagmanager']")).toHaveCount(0);
+  expect(tagRequests).toHaveLength(0);
+  await notice.getByRole("button", { name: "Recusar" }).click();
+  await page.reload();
+  await expect(notice).toHaveCount(0);
+  expect(tagRequests).toHaveLength(0);
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+  await page.getByRole("dialog", { name: "Aviso de cookies" }).getByRole("button", { name: "Aceitar" }).click();
+  await expect.poll(() => tagRequests.length).toBeGreaterThan(0);
+  expect(tagRequests[0]).toContain("id=AW-18538355330");
 });
 
 test("both public pages show the privacy link and the contact email in the footer", async ({ page }) => {

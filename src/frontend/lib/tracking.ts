@@ -1,8 +1,9 @@
 /**
  * Measurement for the paid-traffic pages.
  *
- * Nothing is loaded and no cookie is set until VITE_GOOGLE_TAG_ID holds a real Google tag ID (G-, GT- or AW-)
- * AND the visitor accepted cookies in the notice. The privacy policy lives at /privacidade.
+ * Nothing is loaded and no cookie is set until the visitor accepted cookies in the notice. The privacy policy lives
+ * at /privacidade. The tag ID is public (it is visible in any page that uses it), so it ships with the code;
+ * VITE_GOOGLE_TAG_ID overrides it (for example to point a staging build at another account).
  */
 import { readConsent } from "./consent";
 
@@ -15,7 +16,8 @@ declare global {
   }
 }
 
-const TAG_ID = (import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined)?.trim();
+const DEFAULT_TAG_ID = "AW-18538355330";
+const TAG_ID = (import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined)?.trim() || DEFAULT_TAG_ID;
 const TAG_PATTERN = /^(G|GT|AW)-[A-Z0-9]{4,20}$/;
 
 /** True when a valid tag is configured, so the cookie notice has something to ask about. */
