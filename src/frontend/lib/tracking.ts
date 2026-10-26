@@ -42,13 +42,8 @@ export function initTracking(): void {
   document.head.append(script);
 }
 
-/** The visitor was sent to WhatsApp. A click is not yet a conversation. */
+/** The main conversion: someone clicked to talk on WhatsApp. A click is not yet a conversation. */
 export function trackWhatsappClick(page: string, placement: string): void {
   window.gtag?.("event", "whatsapp_click", { page, placement });
-}
-
-/** The main conversion: a visitor left a name and a phone and the lead is saved in the CRM. */
-export function trackLeadSaved(page: string, placement: string): void {
-  window.gtag?.("event", "lead_saved", { page, placement });
   window.gtag?.("event", "conversion", CONVERSION);
 }

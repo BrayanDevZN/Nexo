@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "../../../src/frontend/test-kit";
+import { test, expect } from "../../../src/frontend/test-kit";
 
 const NUMBER = "553199705688";
 
@@ -26,85 +26,21 @@ test("an ad click tags the WhatsApp message with its origin", async ({ page }) =
   }
 });
 
-async function trackEvents(page: Page) {
+test("a WhatsApp click is reported as the conversion, with where it happened", async ({ page }) => {
   await page.addInitScript(() => {
     const events: unknown[][] = [];
     (window as unknown as { __events: unknown[][] }).__events = events;
     (window as unknown as { gtag: (...args: unknown[]) => void }).gtag = (...args) => { events.push(args); };
   });
-}
-const events = (page: Page) => page.evaluate(() => (window as unknown as { __events: unknown[][] }).__events);
-
-async function fillLead(page: Page, placementLink = 1) {
-  await page.locator("a[href^='https://wa.me/']").nth(placementLink).click();
-  const dialog = page.getByRole("dialog", { name: "Fale com a Nexo" });
-  await dialog.getByLabel("Seu nome").fill("Maria Souza");
-  await dialog.getByLabel("WhatsApp com DDD").fill("(31) 99999-8888");
-  await dialog.getByRole("checkbox").check();
-  return dialog;
-}
-
-test("a button opens the contact form, the lead is saved with its origin and only then WhatsApp opens", async ({ page }) => {
-  await trackEvents(page);
-  const saved: Record<string, unknown>[] = [];
-  await page.route("**/api/public/leads", route => { saved.push(route.request().postDataJSON()); return route.fulfill({ status: 201, contentType: "application/json", body: '{"ok":true}' }); });
-  await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
-  await page.goto("/contabilidade?gclid=Cj0abc_123");
-  const dialog = await fillLead(page);
-  const popup = page.waitForEvent("popup");
-  await dialog.getByRole("button", { name: "Continuar no WhatsApp" }).click();
-  const opened = await popup;
-  await expect.poll(() => opened.url()).toMatch(/^https:\/\/wa\.me\/553199705688\?text=/);
-  await opened.close();
-  expect(saved).toEqual([{ name: "Maria Souza", phone: "(31) 99999-8888", email: "", website: "", page: "contabilidade", consent: true, origin: "google-ads", click_id: "Cj0abc_123" }]);
-  await expect(page.getByText("Recebemos seu contato")).toBeVisible();
-  expect(await events(page)).toEqual([
-    ["event", "lead_saved", { page: "contabilidade", placement: "hero" }],
-    ["event", "conversion", { send_to: "AW-18538355330/NOysCLr2yKodEIK144dF", value: 1, currency: "BRL" }],
-    ["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }],
-  ]);
-});
-
-test("the form cannot be sent without the name, a phone and the consent", async ({ page }) => {
-  let calls = 0;
-  await page.route("**/api/public/leads", route => { calls += 1; return route.fulfill({ status: 201, body: "{}" }); });
   await page.goto("/contabilidade");
+  const popup = page.waitForEvent("popup");
   await page.locator("a[href^='https://wa.me/']").nth(1).click();
-  const dialog = page.getByRole("dialog", { name: "Fale com a Nexo" });
-  await dialog.getByRole("button", { name: "Continuar no WhatsApp" }).click();
-  await dialog.getByLabel("Seu nome").fill("Maria");
-  await dialog.getByLabel("WhatsApp com DDD").fill("31999998888");
-  await dialog.getByRole("button", { name: "Continuar no WhatsApp" }).click();
-  expect(calls).toBe(0);
-  await expect(dialog.getByRole("checkbox")).toBeFocused();
-});
-
-test("a rejected phone shows an error and does not open WhatsApp or report a conversion", async ({ page }) => {
-  await trackEvents(page);
-  await page.route("**/api/public/leads", route => route.fulfill({ status: 422, contentType: "application/json", body: '{"detail":[]}' }));
-  await page.goto("/contabilidade");
-  const dialog = await fillLead(page);
-  let popups = 0;
-  page.on("popup", () => { popups += 1; });
-  await dialog.getByRole("button", { name: "Continuar no WhatsApp" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("Confira o nome e o WhatsApp");
-  expect(await events(page)).toEqual([]);
-  await expect(dialog.getByRole("button", { name: "Continuar no WhatsApp" })).toBeEnabled();
-  void popups;
-});
-
-test("if the lead cannot be saved the visitor still reaches WhatsApp, with no conversion reported", async ({ page }) => {
-  await trackEvents(page);
-  await page.route("**/api/public/leads", route => route.fulfill({ status: 503, body: "down" }));
-  await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
-  await page.goto("/contabilidade");
-  const dialog = await fillLead(page);
-  const popup = page.waitForEvent("popup");
-  await dialog.getByRole("button", { name: "Continuar no WhatsApp" }).click();
-  const opened = await popup;
-  await expect.poll(() => opened.url()).toContain("wa.me/553199705688");
-  await opened.close();
-  expect(await events(page)).toEqual([["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }]]);
+  await (await popup).close();
+  const events = await page.evaluate(() => (window as unknown as { __events: unknown[][] }).__events);
+  expect(events).toEqual([
+    ["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }],
+    ["event", "conversion", { send_to: "AW-18538355330/NOysCLr2yKodEIK144dF", value: 1, currency: "BRL" }],
+  ]);
 });
 
 test("the questions open and close", async ({ page }) => {

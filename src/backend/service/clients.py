@@ -5,16 +5,21 @@ from uuid import uuid4
 from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from backend.domain.phones import brazilian_phone
 from backend.domain.roles import SALES
-from backend.repository.db.models.base import utc_now
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize_role
 
 logger = logging.getLogger(__name__)
 _EMAIL = TypeAdapter(EmailStr)
 
 
-lead_phone = brazilian_phone
+def lead_phone(value):
+    """Normalize a phone read from Google Maps; numbers without a country code are Brazilian."""
+    if not value:
+        return None
+    digits = re.sub(r"\D", "", value)
+    if not value.strip().startswith("+") and len(digits) in (10, 11):
+        digits = "55" + digits
+    return "+" + digits if 10 <= len(digits) <= 15 else None
 
 
 def _lead_email(value):
@@ -38,19 +43,6 @@ def _lead_notes(lead):
         if lead.get("latitude") is not None and lead.get("longitude") is not None else None,
     ]
     return "\n".join(line for line in lines if line)[:10000]
-
-
-PUBLIC_LEAD_NICHE = "Contabilidade"
-_ORIGIN_CHANNELS = {"google-ads": "google_ads", "instagram": "instagram", "email": "email", "whatsapp": "whatsapp"}
-
-
-def _public_lead_notes(page, origin, click_id, accepted_at):
-    return "\n".join(line for line in (
-        f"Origem: formulário da página /{page}",
-        f"Fonte da visita: {origin}" if origin else None,
-        f"Identificador do clique (gclid): {click_id}" if click_id else None,
-        f"Aceitou ser contatado em {accepted_at:%d/%m/%Y %H:%M} UTC",
-    ) if line)
 
 
 class ClientService:
@@ -194,32 +186,6 @@ class ClientService:
         for row in created:
             self._emit("newClient", row)
         return {"created": len(created), "skipped": statuses.count("duplicate"), "items": statuses}
-
-    def create_public_lead(self, *, name, phone, email, page, origin=None, click_id=None):
-        """Save a visitor who asked to be contacted through a public landing page.
-
-        The lead is created by the principal owner in the first funnel stage, in the channel that brought the visit.
-        Returns None, without saving, when a client with that phone already exists.
-        """
-        notices = []
-        with self.repositories.transaction() as repos:
-            owner = repos.users.principal_admin()
-            if owner is None:
-                raise LookupError("No owner account can receive the lead")
-            _, known_phones = repos.clients.known_contacts([], [phone])
-            if phone in known_phones:
-                return None
-            row = repos.clients.create(
-                created_by_id=owner.id, name=name, niche=PUBLIC_LEAD_NICHE, phone=phone, email=email,
-                notes=_public_lead_notes(page, origin, click_id, utc_now()), pipeline_stage="lead",
-                sales_channel=_ORIGIN_CHANNELS.get(origin or ""))
-            row.created_by_name = repos.users.get(owner.id).name
-            title, body = "Novo lead do site", f"{name} deixou o contato na página /{page}."
-            notices.append((self._record_team_notice(repos, owner.id, title, body), title, body))
-        for notice in notices:
-            self._deliver_team_notice(*notice)
-        self._emit("newClient", row)
-        return row
 
     def update(self, actor, identifier, **changes):
         notice = None

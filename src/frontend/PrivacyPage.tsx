@@ -31,12 +31,6 @@ export default function PrivacyPage() {
         <h2>Quais dados tratamos</h2>
         <ul>
           <li>
-            <strong>Formulário de contato.</strong> Na página de contabilidade, antes de abrir o WhatsApp, pedimos o
-            seu nome, o seu WhatsApp e, se você quiser, o seu e-mail. Guardamos esses dados, junto com a página e a
-            origem da visita (por exemplo, que você veio de um anúncio do Google e o código desse clique), no nosso
-            cadastro de contatos comerciais, para retornar o seu contato.
-          </li>
-          <li>
             <strong>Conversa pelo WhatsApp.</strong> Quando você clica para falar conosco, a conversa acontece no
             WhatsApp. Recebemos o seu número, o seu nome de perfil e o que você escrever. Usamos isso para responder
             e para tratar do seu pedido.
@@ -55,7 +49,6 @@ export default function PrivacyPage() {
         <h2>Para que usamos</h2>
         <ul>
           <li>Responder a você e apresentar a nossa solução (execução de procedimentos preliminares a um contrato).</li>
-          <li>Entrar em contato por WhatsApp ou e-mail com quem preencheu o formulário (consentimento, dado ao marcar a caixa do formulário).</li>
           <li>Medir quais anúncios e páginas trazem contatos, para melhorar o site e investir melhor (consentimento).</li>
           <li>Cumprir obrigações legais e proteger nossos direitos (obrigação legal e exercício regular de direitos).</li>
         </ul>
@@ -78,9 +71,8 @@ export default function PrivacyPage() {
 
         <h2>Por quanto tempo guardamos</h2>
         <p>
-          Guardamos o histórico de contato, inclusive os dados do formulário, enquanto houver conversa ou relação
-          comercial, e pelo prazo necessário para cumprir obrigações legais. Se você pedir a exclusão, apagamos o
-          seu cadastro, salvo o que a lei nos obrigue a manter. Os dados de medição seguem os prazos configurados no Google, e você pode
+          Guardamos o histórico de contato enquanto houver conversa ou relação comercial, e pelo prazo necessário
+          para cumprir obrigações legais. Os dados de medição seguem os prazos configurados no Google, e você pode
           pedir a exclusão antes disso.
         </p>
 

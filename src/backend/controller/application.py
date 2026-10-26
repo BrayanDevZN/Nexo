@@ -21,7 +21,6 @@ from backend.controller.handles.automation_requests import router as automation_
 from backend.controller.handles.automations import router as automations_router
 from backend.controller.handles.chat import router as chat_router
 from backend.controller.handles.clients import router as clients_router
-from backend.controller.handles.public_leads import router as public_leads_router
 from backend.controller.handles.dashboard import router as dashboard_router
 from backend.controller.handles.databases import router as databases_router
 from backend.controller.handles.documents import router as documents_router
@@ -95,7 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"], expose_headers=["Retry-After"],
     )
     routers = [chat_router, realtime_router, health_router, auth_router, api_keys_router, account_deletion_router,
-               automation_requests_router, automations_router, documents_router, passwords_router, clients_router, public_leads_router,
+               automation_requests_router, automations_router, documents_router, passwords_router, clients_router,
                dashboard_router, databases_router, maps_router, profiles_router, push_router, webhook_events_router, google_router, users_router,
                members_router, invitations_router, directory_router, notifications_router, announcements_router,
                member_notifications_router]
