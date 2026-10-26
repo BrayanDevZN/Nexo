@@ -17,6 +17,8 @@ declare global {
 }
 
 const DEFAULT_TAG_ID = "AW-18538355330";
+/** The "Contato" conversion created in Google Ads. The value and currency are the ones the account's snippet gives. */
+const CONVERSION = { send_to: "AW-18538355330/NOysCLr2yKodEIK144dF", value: 1.0, currency: "BRL" };
 const TAG_ID = (import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined)?.trim() || DEFAULT_TAG_ID;
 const TAG_PATTERN = /^(G|GT|AW)-[A-Z0-9]{4,20}$/;
 
@@ -43,4 +45,5 @@ export function initTracking(): void {
 /** The main conversion: someone clicked to talk on WhatsApp. A click is not yet a conversation. */
 export function trackWhatsappClick(page: string, placement: string): void {
   window.gtag?.("event", "whatsapp_click", { page, placement });
+  window.gtag?.("event", "conversion", CONVERSION);
 }

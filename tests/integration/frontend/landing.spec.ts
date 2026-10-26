@@ -37,7 +37,10 @@ test("a WhatsApp click is reported as the conversion, with where it happened", a
   await page.locator("a[href^='https://wa.me/']").nth(1).click();
   await (await popup).close();
   const events = await page.evaluate(() => (window as unknown as { __events: unknown[][] }).__events);
-  expect(events).toEqual([["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }]]);
+  expect(events).toEqual([
+    ["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }],
+    ["event", "conversion", { send_to: "AW-18538355330/NOysCLr2yKodEIK144dF", value: 1, currency: "BRL" }],
+  ]);
 });
 
 test("the questions open and close", async ({ page }) => {
