@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarkSlot } from "@/components/home/MarkSlot";
+import { IntelligenceCore } from "@/components/IntelligenceCore";
 import { Picture } from "@/components/home/Picture";
 import { contactUrl } from "@/lib/content";
 import { pictures } from "@/lib/pictures";
@@ -23,6 +24,9 @@ export function Hero() {
           exo.
         </span>
       </h1>
+      <div className="nx-hero-core nx-core" aria-hidden="true">
+        <IntelligenceCore />
+      </div>
       <div className="nx-hero-grid">
       <div className="nx-hero-foot">
         <p className="nx-lead">

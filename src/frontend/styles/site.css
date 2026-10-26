@@ -171,3 +171,14 @@
 .lp-visual-board li { border: 0 !important; }
 .lp-visual-board, .lp-visual-incoming > * { border: 0 !important; background: var(--background) !important; }
 html[data-perf="lite"] .nx-header { backdrop-filter: none; }
+
+/* the 3D core and the rain come back to the first screen */
+.nx-hero { position: relative; }
+.nx-hero-core { position: absolute; right: 2%; top: clamp(1rem, 4vw, 3rem); width: clamp(10rem, 28vw, 24rem); height: clamp(10rem, 28vw, 24rem); display: grid; place-items: center; pointer-events: none; }
+.nx-hero-core > * { transform: scale(2.4); transform-origin: center; }
+@media (max-width: 899px) { .nx-hero-core { top: 0.5rem; right: 0; width: 9rem; height: 9rem; opacity: 0.9; } .nx-hero-core > * { transform: scale(1.2); } }
+.nx-band { background: color-mix(in srgb, var(--muted) 72%, transparent); }
+.nx-inverse { background: color-mix(in srgb, var(--foreground) 90%, transparent); }
+.ambient-wash { opacity: 1; }
+.nx-hero-core.nx-core { overflow: visible; right: 6%; }
+.nx-hero-core > * { transform: scale(2); }
