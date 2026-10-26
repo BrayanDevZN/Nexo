@@ -1,5 +1,5 @@
 import { test, expect } from "../../../src/frontend/test-kit";
-import { campaignOrigin, whatsappLink } from "../../../src/frontend/lib/whatsapp";
+import { campaignOrigin, clickId, whatsappLink } from "../../../src/frontend/lib/whatsapp";
 
 test("reads the campaign origin from the ad click or the UTM source", () => {
   expect(campaignOrigin("")).toBeNull();
@@ -22,4 +22,14 @@ test("builds the WhatsApp link with an encoded message and the origin when known
   const tagged = new URL(whatsappLink("5531999999999", "Olá!", "google-ads"));
   expect(tagged.origin + tagged.pathname).toBe("https://wa.me/5531999999999");
   expect(tagged.searchParams.get("text")).toBe("Olá! (origem: google-ads)");
+});
+
+test("reads the ad click id and ignores anything that is not a plain token", () => {
+  expect(clickId("")).toBeNull();
+  expect(clickId("?gclid=Cj0KCQ_abc-123")).toBe("Cj0KCQ_abc-123");
+  expect(clickId("?gbraid=abc")).toBe("abc");
+  expect(clickId("?wbraid=xyz&utm_source=google")).toBe("xyz");
+  expect(clickId("?gclid=a b")).toBeNull();
+  expect(clickId(`?gclid=${"x".repeat(201)}`)).toBeNull();
+  expect(clickId("?gclid=<script>")).toBeNull();
 });

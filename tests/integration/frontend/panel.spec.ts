@@ -132,7 +132,7 @@ test("owner chooses among three areas and the menu follows each one", async ({ p
   for (const gone of ["Chat", "Documentos", "Automações", "Solicitações", "Gerenciar membros", "Membros", "Meu perfil"]) await expect(button(page, gone)).toHaveCount(0);
   await button(page, "Funil tráfego pago").click();
   await expect(page.getByRole("heading", { name: "Funil de tráfego pago" })).toBeVisible();
-  for (const stage of ["Novo lead", "Em conversa", "Qualificado", "Reunião marcada", "Proposta", "Fechado", "Perdido"]) await expect(page.getByRole("heading", { name: stage, exact: true }).or(page.getByText(stage, { exact: true })).first()).toBeVisible();
+  for (const stage of ["Visitou a página", "Clicou no WhatsApp", "Em conversa", "Qualificado", "Reunião marcada", "Proposta", "Fechado", "Perdido"]) await expect(page.getByRole("heading", { name: stage, exact: true }).or(page.getByText(stage, { exact: true })).first()).toBeVisible();
   await page.getByRole("button", { name: "Trocar de área" }).click();
   await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
   for (const item of ["Início", "Automações", "API", "Bancos de dados"]) await expect(button(page, item).first()).toBeVisible();
@@ -579,4 +579,42 @@ test("chat lists members and switches private conversations on desktop and mobil
   await directory.getByRole("button", { name: "Conversar com Principal", exact: true }).click();
   await expect(page.getByText("Mensagem de Principal", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test("the paid-traffic funnel lists the leads the site recorded and the team moves, edits and removes them", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  const lead = { id: "11111111-1111-1111-1111-111111111111", stage: "whatsapp_click", source: "google-ads", click_id: "gclid-1", page: "contabilidade", placement: "hero",
+    whatsapp_clicked_at: "2026-10-26T19:00:00", name: null, phone: null, email: null, notes: null, contract_value: null, created_at: "2026-10-26T18:59:00", updated_at: "2026-10-26T19:00:00" };
+  const visitor = { ...lead, id: "22222222-2222-2222-2222-222222222222", stage: "visited", placement: null, whatsapp_clicked_at: null, click_id: "gclid-2" };
+  const rows = [lead, visitor];
+  const patches: Record<string, unknown>[] = [];
+  await page.route("**/api/paid-leads**", async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace("/api", "");
+    if (request.method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(path === "/paid-leads" && new URL(request.url()).searchParams.get("offset") === "0" ? rows : []) });
+    const row = rows.find(item => path.endsWith(item.id))!;
+    if (request.method() === "PATCH") { expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); patches.push(request.postDataJSON()); Object.assign(row, request.postDataJSON()); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(row) }); }
+    rows.splice(rows.indexOf(row), 1);
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Funil tráfego pago").click();
+  const board = page.getByLabel("Quadro do funil de tráfego pago");
+  await expect(page.getByText("Visitas do anúncio").locator("..").getByText("2", { exact: true })).toBeVisible();
+  await expect(page.getByText("50% das visitas")).toBeVisible();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Visitante do anúncio" })).toHaveCount(2);
+  await page.getByRole("button", { name: "Avançar Visitante do anúncio" }).first().click();
+  await expect.poll(() => patches).toEqual([{ stage: "whatsapp_click" }]);
+  await page.getByRole("button", { name: "Editar Visitante do anúncio" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Editar lead do anúncio" });
+  await dialog.getByLabel("Nome").fill("Maria Souza");
+  await dialog.getByLabel("Celular").fill("(31) 99999-8888");
+  await dialog.getByRole("button", { name: "Salvar" }).click();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Maria Souza" })).toBeVisible();
+  expect(patches.at(-1)).toMatchObject({ name: "Maria Souza", phone: "(31) 99999-8888" });
+  await page.getByRole("button", { name: "Remover Maria Souza do quadro" }).click();
+  await page.getByRole("button", { name: "Remover lead" }).click();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Maria Souza" })).toHaveCount(0);
 });

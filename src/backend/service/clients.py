@@ -5,6 +5,7 @@ from uuid import uuid4
 from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from backend.domain.phones import brazilian_phone
 from backend.domain.roles import SALES
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize_role
 
@@ -12,14 +13,7 @@ logger = logging.getLogger(__name__)
 _EMAIL = TypeAdapter(EmailStr)
 
 
-def lead_phone(value):
-    """Normalize a phone read from Google Maps; numbers without a country code are Brazilian."""
-    if not value:
-        return None
-    digits = re.sub(r"\D", "", value)
-    if not value.strip().startswith("+") and len(digits) in (10, 11):
-        digits = "55" + digits
-    return "+" + digits if 10 <= len(digits) <= 15 else None
+lead_phone = brazilian_phone
 
 
 def _lead_email(value):

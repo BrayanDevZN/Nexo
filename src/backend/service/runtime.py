@@ -33,6 +33,7 @@ from backend.service.automation_requests import AutomationRequestService
 from backend.service.automations import AutomationService
 from backend.service.chat import ChatService
 from backend.service.clients import ClientService
+from backend.service.paid_leads import PaidLeadService
 from backend.service.dashboard import DashboardService
 from backend.service.databases import DatabaseAdminService
 from backend.service.documents import DocumentService
@@ -111,6 +112,7 @@ class RuntimeServices:
             # while enabling webhook events on the current implementation.
             self.clients.webhook_events = self.webhook_events
             self.funnel_imports = FunnelImportService(self.clients)
+            self.paid_leads = PaidLeadService(self.repositories)
             self._cleanup.callback(self.funnel_imports.close)
             self.approvals = ApprovalService(self.repositories, self.cached_repositories, self.messages)
             self.announcement_storage = DocumentStorage(settings.upload_dir / "announcements")

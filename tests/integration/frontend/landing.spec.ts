@@ -129,3 +129,44 @@ test("each public page has its own canonical address and the panel is kept out o
   const sitemap = await (await page.request.get("/sitemap.xml")).text();
   for (const url of ["/", "/contabilidade", "/privacidade"]) expect(sitemap).toContain(`<loc>https://nexoaicompany.com${url}</loc>`);
 });
+
+
+test("an ad visit is saved in the paid-traffic funnel and the WhatsApp click moves it to the next stage", async ({ page }) => {
+  const calls: { url: string; body: unknown }[] = [];
+  await page.route("**/api/public/paid-leads/**", route => {
+    calls.push({ url: new URL(route.request().url()).pathname, body: route.request().postDataJSON() });
+    return route.fulfill({ status: 201, contentType: "application/json", body: '{"id":"11111111-1111-1111-1111-111111111111"}' });
+  });
+  await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
+  await page.goto("/contabilidade?gclid=Cj0abc_123");
+  await expect.poll(() => calls.length).toBe(1);
+  expect(calls[0]).toEqual({ url: "/api/public/paid-leads/visit", body: { page: "contabilidade", origin: "google-ads", click_id: "Cj0abc_123" } });
+  const popup = page.waitForEvent("popup");
+  await page.locator("a[href^='https://wa.me/']").nth(1).click();
+  await (await popup).close();
+  await expect.poll(() => calls.length).toBe(2);
+  expect(calls[1]).toEqual({ url: "/api/public/paid-leads/11111111-1111-1111-1111-111111111111/whatsapp", body: { placement: "hero" } });
+});
+
+test("a visit that did not come from an ad is not recorded and the button still works", async ({ page }) => {
+  let calls = 0;
+  await page.route("**/api/public/paid-leads/**", route => { calls += 1; return route.fulfill({ status: 201, body: "{}" }); });
+  await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
+  await page.goto("/contabilidade");
+  const popup = page.waitForEvent("popup");
+  await page.locator("a[href^='https://wa.me/']").nth(1).click();
+  await (await popup).close();
+  await page.waitForTimeout(500);
+  expect(calls).toBe(0);
+});
+
+test("if saving the visit fails the visitor still reaches WhatsApp", async ({ page }) => {
+  await page.route("**/api/public/paid-leads/**", route => route.fulfill({ status: 503, body: "down" }));
+  await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
+  await page.goto("/contabilidade?gclid=abc");
+  const popup = page.waitForEvent("popup");
+  await page.locator("a[href^='https://wa.me/']").nth(1).click();
+  const opened = await popup;
+  await expect.poll(() => opened.url()).toContain("wa.me/553199705688");
+  await opened.close();
+});

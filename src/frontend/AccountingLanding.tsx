@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/accordion";
 import { Art } from "@/components/home/Art";
 import { CookiePreferencesButton } from "@/components/CookieNotice";
+import { recordVisit, recordWhatsappClick } from "@/lib/paidLeads";
 import { trackWhatsappClick } from "@/lib/tracking";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -41,12 +42,16 @@ export default function AccountingLanding() {
     document
       .querySelector('meta[name="description"]')
       ?.setAttribute("content", landingDescription);
+    void recordVisit(landingPage, window.location.search);
   }, []);
   const whatsapp = (placement: string) => ({
     href,
     target: "_blank",
     rel: "noopener noreferrer",
-    onClick: () => trackWhatsappClick(landingPage, placement),
+    onClick: () => {
+      trackWhatsappClick(landingPage, placement);
+      void recordWhatsappClick(placement);
+    },
   });
   return (
     <>

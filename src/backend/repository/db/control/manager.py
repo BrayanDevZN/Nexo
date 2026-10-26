@@ -12,6 +12,7 @@ from backend.repository.db.control.documents import DocumentRepository
 from backend.repository.db.control.maps_credentials import MapsCredentialRepository
 from backend.repository.db.control.maps_jobs import MapsJobRepository
 from backend.repository.db.control.notifications import NotificationRepository
+from backend.repository.db.control.paid_leads import PaidLeadRepository
 from backend.repository.db.control.users import UserRepository
 
 
@@ -27,6 +28,7 @@ class Repositories:
         self.notifications = NotificationRepository(session)
         self.maps_credentials = MapsCredentialRepository(session)
         self.maps_jobs = MapsJobRepository(session)
+        self.paid_leads = PaidLeadRepository(session)
 
 
 class RepositoryManager:
@@ -42,7 +44,7 @@ class RepositoryManager:
         def track_changes(session, _context, _instances):
             for row in set(session.new) | set(session.dirty) | set(session.deleted):
                 table = getattr(row, "__tablename__", None)
-                if table in {"users", "api_keys", "automation_requests", "automations", "clients", "notifications", "documents", "chat_messages"}:
+                if table in {"users", "api_keys", "automation_requests", "automations", "clients", "notifications", "documents", "chat_messages", "paid_leads"}:
                     changed.add(table)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:

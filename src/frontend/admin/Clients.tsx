@@ -9,7 +9,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DocumentPreviewButton } from "./DocumentPreviewButton";
-import { ALL_STAGES, CLIENT_NICHES, SALES_CHANNELS, salesChannelLabel, stageLabel, stagesFor, type createApi, type ClientRecord, type ClientInput } from "./api";
+import { CLIENT_NICHES, PIPELINE_STAGES, SALES_CHANNELS, salesChannelLabel, type createApi, type ClientRecord, type ClientInput } from "./api";
 import { mapsUrl, whatsappUrl } from "./contact";
 import { MapsButton } from "./MapsLink";
 import { type DirectoryMember } from "./Directory";
@@ -41,12 +41,10 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     return () => { active = false; };
   }, [api]);
   const [draftNiche, setDraftNiche] = useState("");
-  const [formChannel, setFormChannel] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [editor, setEditor] = useState<ClientRecord | "new" | null>(null);
-  useEffect(() => { setFormChannel(editor && editor !== "new" ? editor.sales_channel || "" : ""); }, [editor]);
   const [deleting, setDeleting] = useState<ClientRecord | null>(null);
   const [viewing, setViewing] = useState<ClientRecord | null>(null);
   const [attachments, setAttachments] = useState<ClientDocument[]>([]);
@@ -145,7 +143,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <TextField label="Nome do cliente" placeholder="Pesquisar nome" value={draftName} onChange={e => setDraftName(e.target.value)} maxLength={160} />
           <Field><FieldLabel htmlFor="creator-filter">Criado por</FieldLabel><NativeSelect id="creator-filter" value={filters.created_by_id} onChange={e => { setOffset(0); setFilters({ ...filters, created_by_id: e.target.value }); }}><NativeSelectOption value="">Todos os membros</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="niche-filter">Nicho</FieldLabel><NativeSelect id="niche-filter" value={draftNiche} onChange={e => setDraftNiche(e.target.value)}><NativeSelectOption value="">Todos os nichos</NativeSelectOption>{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
-          <Field><FieldLabel htmlFor="stage-filter">Etapa</FieldLabel><NativeSelect id="stage-filter" value={filters.stage} onChange={e => { setOffset(0); setFilters({ ...filters, stage: e.target.value }); }}><NativeSelectOption value="">Todas</NativeSelectOption>{ALL_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
+          <Field><FieldLabel htmlFor="stage-filter">Etapa</FieldLabel><NativeSelect id="stage-filter" value={filters.stage} onChange={e => { setOffset(0); setFilters({ ...filters, stage: e.target.value }); }}><NativeSelectOption value="">Todas</NativeSelectOption>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="channel-filter">Canal de vendas</FieldLabel><NativeSelect id="channel-filter" value={filters.channel} onChange={e => { setOffset(0); setFilters({ ...filters, channel: e.target.value }); }}><NativeSelectOption value="">Todos</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="contract-filter">Contrato</FieldLabel><NativeSelect id="contract-filter" value={filters.status} onChange={e => { setOffset(0); setFilters({ ...filters, status: e.target.value }); }}>
             <NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption><NativeSelectOption value="false">Em negociação</NativeSelectOption>
@@ -160,7 +158,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     </Empty> : <div className="admin-client-grid">{rows.map(client => {
       const contactUrl = client.phone ? whatsappUrl(client.phone, client.name) : "";
       return <Card key={client.id}>
-      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : stageLabel(client) || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
+      <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.sales_channel && <p className="text-sm text-muted-foreground">Canal de vendas: {salesChannelLabel(client.sales_channel)}</p>}
@@ -182,7 +180,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     <Dialog open={!!viewing} onOpenChange={open => { if (!open) setViewing(null); }}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-scroll overscroll-y-contain touch-pan-y sm:max-w-2xl">
         <DialogHeader><DialogTitle>Dados do cliente</DialogTitle><DialogDescription>Informações completas do contato e acompanhamento.</DialogDescription></DialogHeader>
-        {viewing && <Card className="shrink-0"><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{viewing.name}</CardTitle><CardDescription>{viewing.niche}</CardDescription></div><Badge variant={viewing.contract_closed || viewing.pipeline_stage === "won" ? "default" : viewing.pipeline_stage === "lost" ? "destructive" : "secondary"}>{viewing.contract_closed || viewing.pipeline_stage === "won" ? "Contrato fechado" : stageLabel(viewing) || "Em negociação"}</Badge></div></CardHeader>
+        {viewing && <Card className="shrink-0"><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{viewing.name}</CardTitle><CardDescription>{viewing.niche}</CardDescription></div><Badge variant={viewing.contract_closed || viewing.pipeline_stage === "won" ? "default" : viewing.pipeline_stage === "lost" ? "destructive" : "secondary"}>{viewing.contract_closed || viewing.pipeline_stage === "won" ? "Contrato fechado" : PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || "Em negociação"}</Badge></div></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
@@ -190,7 +188,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
             <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
             <Detail label="Criado por" value={viewing.created_by_name} />
-            <Detail label="Etapa do funil" value={stageLabel(viewing)} />
+            <Detail label="Etapa do funil" value={PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || viewing.pipeline_stage} />
             <Detail label="Canal de vendas" value={salesChannelLabel(viewing.sales_channel)} />
             <Detail label="Possível dor do cliente" value={viewing.pain} multiline />
             <Detail label="Melhor forma de abordagem" value={viewing.approach} multiline />
@@ -212,9 +210,9 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
             <TextField label="Endereço (opcional)" name="address" maxLength={300} placeholder="Rua, número, bairro, cidade" defaultValue={row?.address || ""} />
-            <Field><FieldLabel htmlFor="client-channel">Canal de vendas (opcional)</FieldLabel><NativeSelect id="client-channel" name="sales_channel" defaultValue={row?.sales_channel || ""} onChange={e => setFormChannel(e.target.value)}><NativeSelectOption value="">Sem canal</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>
+            <Field><FieldLabel htmlFor="client-channel">Canal de vendas (opcional)</FieldLabel><NativeSelect id="client-channel" name="sales_channel" defaultValue={row?.sales_channel || ""}><NativeSelectOption value="">Sem canal</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
-            <Field><FieldLabel htmlFor="pipeline-stage">Etapa do funil</FieldLabel><NativeSelect key={formChannel === "google_ads" ? "paid" : "outbound"} id="pipeline-stage" name="pipeline_stage" defaultValue={stagesFor(formChannel).some(stage => stage.value === row?.pipeline_stage) ? row?.pipeline_stage : "lead"}>{stagesFor(formChannel).map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
+            <Field><FieldLabel htmlFor="pipeline-stage">Etapa do funil</FieldLabel><NativeSelect id="pipeline-stage" name="pipeline_stage" defaultValue={row?.pipeline_stage || "lead"}>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="Próximo follow-up (opcional)" name="next_follow_up" type="date" defaultValue={row?.next_follow_up ? row.next_follow_up.slice(0, 10) : ""} />
             <Field><FieldLabel htmlFor="client-contract">Situação do contrato</FieldLabel><NativeSelect id="client-contract" name="contract" defaultValue={String(row?.contract_closed || false)}>
               <NativeSelectOption value="false">Em negociação</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption>

@@ -19,6 +19,7 @@ import { GeneralHome } from "./GeneralHome";
 import { MyKeys } from "./MyKeys";
 import { BusinessDashboard } from "./BusinessDashboard";
 import { Funnel } from "./Funnel";
+import { PaidFunnel } from "./PaidFunnel";
 import { AutomationRequests } from "./AutomationRequests";
 import { AutomationsLibrary } from "./AutomationsLibrary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -241,7 +242,7 @@ export default function AdminApp() {
           page === "dev-home" && canDevelop ? <DevHome api={api} user={user} onOpen={navigate} /> :
           page === "business" ? <BusinessDashboard api={api} /> :
           page === "funnel" ? <Funnel api={api} /> :
-          page === "paid-funnel" ? <Funnel api={api} kind="paid" /> :
+          page === "paid-funnel" ? <PaidFunnel api={api} /> :
           page === "automations" ? <section className="flex flex-col gap-5"><Tabs defaultValue="library"><TabsList><TabsTrigger value="library"><Workflow data-icon="inline-start" /> Biblioteca</TabsTrigger>{canDevelop && <TabsTrigger value="n8n"><Workflow data-icon="inline-start" /> Acesso ao n8n</TabsTrigger>}</TabsList><TabsContent value="library"><AutomationsLibrary api={api} user={user} /></TabsContent>{canDevelop && <TabsContent value="n8n"><AutomationRequests api={api} user={user} /></TabsContent>}</Tabs></section> :
           page === "chat" ? <Chat key={chatMember} api={api} actor={user} realtime={realtime} initialMember={chatMember} onSelect={setActiveChat} onNotificationsRead={refreshUnreadCounts} /> :
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :

@@ -28,7 +28,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 response = JSONResponse({"detail": "Untrusted request origin"}, status_code=403)
             elif request.url.path not in {"/auth/login", "/auth/register", "/auth/register/confirm", "/auth/google/complete",
                                                 "/auth/password/recovery/request",
-                                                "/auth/password/recovery/confirm"}:
+                                                "/auth/password/recovery/confirm"} \
+                    and not request.url.path.startswith("/public/"):
                 if not (request.url.path.startswith("/auth/invitations/")
                         and request.url.path.endswith("/register")):
                     try:
@@ -39,6 +40,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                         response = JSONResponse({"detail": "Invalid or expired session"}, status_code=401)
         if response is None:
             response = await call_next(request)
-        if request.url.path.startswith(("/auth/", "/admin/", "/clients", "/members", "/documents", "/automations", "/chat", "/realtime")):
+        if request.url.path.startswith(("/auth/", "/admin/", "/clients", "/public/", "/paid-leads", "/members", "/documents", "/automations", "/chat", "/realtime")):
             response.headers["Cache-Control"] = "no-store"
         return response

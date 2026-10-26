@@ -9,6 +9,7 @@ from backend.repository.db.models.document import Document
 from backend.repository.db.models.maps_credential import MapsCredential
 from backend.repository.db.models.maps_job import MapsJob
 from backend.repository.db.models.notification import Notification
+from backend.repository.db.models.paid_lead import PaidLead
 from backend.repository.db.models.user import User
 
-__all__ = ["ApiKey", "ApiKeyUsage", "Automation", "AutomationRequest", "Base", "ChatMessage", "Client", "Document", "MapsCredential", "MapsJob", "Notification", "User"]
+__all__ = ["ApiKey", "ApiKeyUsage", "Automation", "AutomationRequest", "Base", "ChatMessage", "Client", "Document", "MapsCredential", "MapsJob", "Notification", "PaidLead", "User"]

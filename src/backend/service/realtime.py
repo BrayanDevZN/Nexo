@@ -18,7 +18,7 @@ class RealtimeService:
         try:
             if "notifications" in tables:
                 self.events.publish({"type": "notifications.changed"})
-            if "clients" in tables:
+            if "clients" in tables or "paid_leads" in tables:
                 self.events.publish({"type": "clients.changed"})
             if "users" in tables:
                 self.events.publish({"type": "account.changed"})
