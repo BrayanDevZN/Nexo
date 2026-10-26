@@ -13,6 +13,13 @@ class NexoApi {
 				description: 'URL base da API da Nexo, sem barra no final.',
 			},
 			{
+				displayName: 'Maps URL',
+				name: 'mapsUrl',
+				type: 'string',
+				default: 'https://nexo-production-52a1.up.railway.app',
+				description: 'URL base do servidor do Maps, sem barra no final. Usa a mesma API Key.',
+			},
+			{
 				displayName: 'API Key',
 				name: 'apiKey',
 				type: 'string',

@@ -9,6 +9,7 @@ adiciona esses arquivos à imagem oficial `n8nio/n8n:latest`.
 No n8n, crie uma credencial **Nexo API** com:
 
 - **Base URL:** `https://nexo-production-60a0.up.railway.app`
+- **Maps URL:** `https://nexo-production-52a1.up.railway.app` (servidor do Maps; já vem preenchida)
 - **API Key:** uma chave criada pelo próprio usuário na seção API da Nexo
 
 A chave é armazenada pelo n8n na credencial. O node envia `Authorization: Bearer <chave>`
@@ -24,6 +25,7 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 | Notificações | Get Many; Get por ID; contar não lidas, marcar notificação como lida e marcar chat como lido |
 | Dashboard | Obter resumo |
 | Avisos administrativos | Criar aviso |
+| Maps | Criar busca; Get Many; Get (status); baixar resultados; excluir busca |
 
 O node de ações **Nexo** pode ser conectado à entrada **Tool** do **AI Agent**
 (`usableAsTool`). Configure uma operação por node — por exemplo, um node para
@@ -56,6 +58,26 @@ usado como ferramenta do **AI Agent**. Para habilitar o node como ferramenta, li
 Uploads recebem o arquivo de uma propriedade binária do item de entrada. Para salvar
 uma automação, informe também nome e descrição; a propriedade binária de imagem é opcional.
 Downloads retornam os dados em uma propriedade binária `data`.
+
+### Maps
+
+O recurso **Maps** fala com o servidor do Maps (`/api/v1/jobs`), que aceita a mesma chave da Nexo e
+aparece na aba **API** do painel. Funciona com chave de qualquer cargo, inclusive Comercial. O fluxo é:
+
+1. **Criar busca** com palavras-chave (separadas por vírgula, até 10), latitude e longitude. Devolve `{ "id": ... }`.
+2. **Get** pelo ID até o campo `Status` chegar a `ok` (começa em `working`; `failed` se não terminou).
+3. **Baixar resultados** devolve uma empresa por item, com as colunas do CSV (`title`, `category`, `address`,
+   `phone`, `website`, `emails`, `review_rating`, `review_count`, `link`, `latitude`, `longitude`...) e o campo extra
+   `phone_e164` (telefone normalizado como `+55...`, ou `null` se não houver número válido). Telefones fixos
+   aparecem no resultado; filtre antes de enviar mensagens.
+4. **Excluir busca** apaga a busca e os resultados do servidor e devolve `{ "id": ..., "deleted": true }`.
+
+Para levar os resultados ao funil, ligue **Baixar resultados** a um node **Clientes → Criar** mapeando
+`title` → Nome, `phone_e164` → Telefone, `address` → Endereço e o nicho desejado. Diferente do painel,
+essa rota não ignora duplicados: confira o funil antes (por exemplo com **Clientes → Buscar por ID ou nome**).
+
+Ficam de fora o cadastro da chave do Maps e a adição em lote ao funil do painel: elas usam a sessão do navegador,
+não a chave de API. Quanto maior a profundidade da busca, mais empresas e mais demora.
 
 As operações respeitam as permissões existentes na API Nexo. Criar avisos, por exemplo,
 requer uma chave de um administrador; uma chave de membro comum recebe a resposta 403.

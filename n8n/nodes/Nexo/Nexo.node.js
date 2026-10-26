@@ -1,4 +1,5 @@
 const DEFAULT_BASE_URL = 'https://nexo-production-60a0.up.railway.app';
+const DEFAULT_MAPS_URL = 'https://nexo-production-52a1.up.railway.app';
 
 function safeFilename(value) {
 	return String(value || 'file').replace(/[\r\n"\\]/g, '_').slice(0, 180);
@@ -23,6 +24,43 @@ function multipart(fields, files) {
 
 function encodedPath(value) { return encodeURIComponent(String(value)); }
 function normalizePhone(value) { return String(value || '').replace(/\D/g, ''); }
+// Same rule as the backend: numbers without a country code are Brazilian.
+function phoneE164(value) {
+	const raw = String(value || '').trim();
+	let digits = raw.replace(/\D/g, '');
+	if (!raw.startsWith('+') && (digits.length === 10 || digits.length === 11)) digits = `55${digits}`;
+	return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null;
+}
+function parseCsv(text) {
+	const rows = []; let row = [], field = '', quoted = false;
+	const source = String(text || '').replace(/^\uFEFF/, '');
+	for (let index = 0; index < source.length; index++) {
+		const char = source[index];
+		if (quoted) {
+			if (char === '"') { if (source[index + 1] === '"') { field += '"'; index++; } else quoted = false; } else field += char;
+		} else if (char === '"') quoted = true;
+		else if (char === ',') { row.push(field); field = ''; }
+		else if (char === '\n' || char === '\r') { if (char === '\r' && source[index + 1] === '\n') index++; row.push(field); field = ''; rows.push(row); row = []; }
+		else field += char;
+	}
+	if (field !== '' || row.length) { row.push(field); rows.push(row); }
+	const [header, ...records] = rows.filter((cells) => cells.some((cell) => cell !== ''));
+	if (!header) return [];
+	return records.map((cells) => Object.fromEntries(header.map((name, column) => [name, cells[column] ?? ''])));
+}
+function mapsKeywords(value) {
+	const keywords = String(value || '').split(/[,\n]/).map((keyword) => keyword.trim()).filter(Boolean);
+	if (keywords.length === 0) throw new Error('Informe ao menos uma palavra-chave para a busca no Maps.');
+	if (keywords.length > 10) throw new Error('A busca aceita no máximo 10 palavras-chave.');
+	if (keywords.some((keyword) => keyword.length > 120)) throw new Error('Cada palavra-chave pode ter no máximo 120 caracteres.');
+	return keywords;
+}
+function mapsCoordinate(value, label, limit) {
+	const text = String(value ?? '').trim().replace(',', '.');
+	const number = Number(text);
+	if (text === '' || !Number.isFinite(number) || Math.abs(number) > limit) throw new Error(`${label} inválida: informe um número entre -${limit} e ${limit}.`);
+	return text;
+}
 function parseFilename(headers, fallback) {
 	const disposition = headers?.['content-disposition'] || headers?.['Content-Disposition'] || '';
 	const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
@@ -35,6 +73,7 @@ const resourceOptions = [
 	{ name: 'Clientes', value: 'clients' }, { name: 'Automações', value: 'automations' },
 	{ name: 'Documentos', value: 'documents' }, { name: 'Notificações', value: 'notifications' },
 	{ name: 'Dashboard', value: 'dashboard' }, { name: 'Avisos administrativos', value: 'announcements' },
+	{ name: 'Maps', value: 'maps' },
 ];
 const operationOptions = {
 	clients: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Buscar por ID ou nome', value: 'search' }, { name: 'Criar', value: 'create' }, { name: 'Atualizar', value: 'update' }, { name: 'Excluir', value: 'delete' }],
@@ -42,6 +81,7 @@ const operationOptions = {
 	documents: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Enviar arquivo', value: 'upload' }, { name: 'Baixar arquivo', value: 'download' }, { name: 'Excluir', value: 'delete' }],
 	notifications: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Contar não lidas', value: 'unreadCount' }, { name: 'Marcar como lida', value: 'markRead' }, { name: 'Marcar conversa como lida', value: 'markChatRead' }],
 	dashboard: [{ name: 'Obter resumo', value: 'get' }], announcements: [{ name: 'Criar aviso', value: 'create' }],
+	maps: [{ name: 'Criar busca', value: 'create' }, { name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Baixar resultados', value: 'results' }, { name: 'Excluir busca', value: 'delete' }],
 };
 const toolOperationDescriptions = {
 	clients: { getMany: 'Listar clientes, com filtros opcionais.', get: 'Consultar um cliente pelo ID.', search: 'Localizar cliente pelo ID ou nome.', create: 'Cadastrar um cliente na Nexo.', update: 'Atualizar um cliente localizando-o por ID, nome ou telefone.', delete: 'Excluir um cliente da Nexo.' },
@@ -49,6 +89,7 @@ const toolOperationDescriptions = {
 	documents: { getMany: 'Listar documentos, opcionalmente filtrados por cliente.', get: 'Consultar um documento pelo ID.', upload: 'Enviar um documento para a Nexo.', download: 'Baixar um documento.', delete: 'Excluir um documento.' },
 	notifications: { getMany: 'Listar notificações da conta.', get: 'Consultar uma notificação pelo ID.', unreadCount: 'Consultar a contagem de notificações não lidas.', markRead: 'Marcar uma notificação como lida.', markChatRead: 'Marcar as mensagens de um membro como lidas.' },
 	dashboard: { get: 'Consultar o resumo do dashboard da Nexo.' }, announcements: { create: 'Publicar um aviso para os membros aprovados.' },
+	maps: { create: 'Criar uma busca de empresas no Google Maps (palavras-chave, latitude e longitude).', getMany: 'Listar as buscas do Maps.', get: 'Consultar o status de uma busca do Maps (working, ok ou failed).', results: 'Baixar as empresas encontradas por uma busca concluída, uma por item.', delete: 'Apagar uma busca do Maps e seus resultados.' },
 };
 
 const fields = [];
@@ -74,6 +115,18 @@ for (const resource of ['clients', 'automations', 'documents', 'notifications'])
 add('ID da automação', 'identifier', 'string', '', 'automations', ['get', 'download', 'image'], { required: true }); add('Nome', 'automationName', 'string', '', 'automations', ['create'], { required: true }); add('Descrição', 'automationDescription', 'string', '', 'automations', ['create'], { required: true, typeOptions: { rows: 3 } }); add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'automations', ['create'], { required: true }); add('Propriedade binária da imagem', 'imageBinaryProperty', 'string', '', 'automations', ['create']);
 add('ID do cliente', 'documentClientId', 'string', '', 'documents', ['getMany', 'upload']); add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'documents', ['upload'], { required: true }); add('ID do documento', 'identifier', 'string', '', 'documents', ['get', 'download', 'delete'], { required: true });
 add('Tipo', 'notificationKind', 'options', 'all', 'notifications', ['getMany'], { options: [{ name: 'Todas', value: 'all' }, { name: 'Avisos', value: 'announcement' }, { name: 'Novos membros', value: 'member_joined' }, { name: 'Mensagens do chat', value: 'chat_message' }, { name: 'Solicitações de automação', value: 'automation_request' }, { name: 'Convites de automação', value: 'automation_invitation' }, { name: 'Solicitações rejeitadas', value: 'automation_rejected' }] }); add('ID da notificação', 'identifier', 'string', '', 'notifications', ['get', 'markRead'], { required: true }); add('ID do membro do chat', 'memberId', 'string', '', 'notifications', ['markChatRead'], { required: true }); add('Título', 'title', 'string', '', 'announcements', ['create'], { required: true }); add('Conteúdo', 'body', 'string', '', 'announcements', ['create'], { required: true, typeOptions: { rows: 4 } }); add('Público', 'audience', 'options', 'all', 'announcements', ['create'], { options: [{ name: 'Todos', value: 'all' }, { name: 'Comercial', value: 'commercial' }, { name: 'Desenvolvimento', value: 'dev' }], description: 'Quem recebe o aviso. Administradores e owners sempre recebem.' });
+add('Nome da busca', 'mapsName', 'string', 'Busca Nexo', 'maps', ['create']);
+add('Palavras-chave', 'mapsKeywords', 'string', '', 'maps', ['create'], { required: true, description: 'O que procurar no Google Maps, separado por vírgula ou quebra de linha (até 10). Ex.: escritório de contabilidade, contador.' });
+add('Latitude', 'mapsLat', 'string', '', 'maps', ['create'], { required: true, description: 'Centro da busca, ex.: -23.5505.' });
+add('Longitude', 'mapsLon', 'string', '', 'maps', ['create'], { required: true, description: 'Centro da busca, ex.: -46.6333.' });
+add('Raio (metros)', 'mapsRadius', 'number', 10000, 'maps', ['create'], { typeOptions: { minValue: 100, maxValue: 50000 } });
+add('Zoom', 'mapsZoom', 'number', 15, 'maps', ['create'], { typeOptions: { minValue: 1, maxValue: 21 } });
+add('Profundidade', 'mapsDepth', 'number', 3, 'maps', ['create'], { typeOptions: { minValue: 1, maxValue: 20 }, description: 'Quanto maior, mais empresas e mais demora.' });
+add('Idioma', 'mapsLang', 'string', 'pt', 'maps', ['create']);
+add('Buscar e-mails nos sites', 'mapsEmail', 'boolean', false, 'maps', ['create']);
+add('Modo rápido', 'mapsFastMode', 'boolean', false, 'maps', ['create']);
+add('Tempo máximo (segundos)', 'mapsMaxTime', 'number', 300, 'maps', ['create'], { typeOptions: { minValue: 60, maxValue: 1800 } });
+add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
 class Nexo {
 	constructor() { this.description = { displayName: 'Nexo', name: 'nexo', icon: 'file:nexo-mark.svg', group: ['transform'], version: 1, subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}', description: 'Node de ações da Nexo. Conecte à porta Tool do AI Agent e configure o recurso e a operação que o agente deve executar.', defaults: { name: 'Nexo', color: '#6D4AFF' }, usableAsTool: true, inputs: ['main'], outputs: ['main'], credentials: [{ name: 'nexoApi', required: true }], properties: fields }; }
@@ -81,7 +134,7 @@ class Nexo {
 	async execute() {
 		const items = this.getInputData(); const returnData = []; const resource = this.getNodeParameter('resource', 0); const operation = this.getNodeParameter('operation', 0); const credentials = await this.getCredentials('nexoApi'); const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 		for (let i = 0; i < items.length; i++) {
-			let method = 'GET', path = '', qs = {}, body, headers = {}, binaryResult = false, fallbackFilename = 'nexo-file';
+			let method = 'GET', path = '', qs = {}, body, headers = {}, binaryResult = false, csvResult = false, fallbackFilename = 'nexo-file', requestBase = baseUrl;
 			if (resource === 'dashboard') path = '/dashboard';
 			else if (resource === 'clients') {
 				const identifier = this.getNodeParameter('identifier', i, '');
@@ -135,7 +188,24 @@ class Nexo {
 			} else if (resource === 'notifications') {
 				if (operation === 'getMany') { path = '/notifications'; qs = { limit: this.getNodeParameter('limit', i, 50), offset: this.getNodeParameter('offset', i, 0) }; const kind = this.getNodeParameter('notificationKind', i, 'all'); if (kind !== 'all') qs.kind = kind; } else if (operation === 'get') path = `/notifications/${encodedPath(this.getNodeParameter('identifier', i))}`; else if (operation === 'unreadCount') path = '/notifications/unread-count'; else if (operation === 'markRead') { method = 'PATCH'; path = `/notifications/${encodedPath(this.getNodeParameter('identifier', i))}/read`; } else { method = 'PATCH'; path = `/notifications/chat/${encodedPath(this.getNodeParameter('memberId', i))}/read`; }
 			} else if (resource === 'announcements') { method = 'POST'; path = '/admin/announcements'; body = { title: this.getNodeParameter('title', i), body: this.getNodeParameter('body', i), audience: this.getNodeParameter('audience', i, 'all') }; }
-			const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method, baseURL: `${baseUrl}/`, url: path.replace(/^\//, ''), qs, body, headers, json: !binaryResult, returnFullResponse: binaryResult, encoding: binaryResult ? 'arraybuffer' : 'json', timeout: 30000 });
+			else if (resource === 'maps') {
+				// The Maps server is a separate service that accepts the same Nexo API key.
+				requestBase = String(credentials.mapsUrl || DEFAULT_MAPS_URL).replace(/\/+$/, '');
+				if (operation === 'getMany') path = '/api/v1/jobs';
+				else if (operation === 'create') {
+					method = 'POST'; path = '/api/v1/jobs';
+					const bounded = (name, label, min, max, fallback) => { const value = Number(this.getNodeParameter(name, i, fallback)); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`${label} deve estar entre ${min} e ${max}.`); return value; };
+					body = { name: String(this.getNodeParameter('mapsName', i, 'Busca Nexo') || 'Busca Nexo').trim().slice(0, 80), keywords: mapsKeywords(this.getNodeParameter('mapsKeywords', i, '')), lang: String(this.getNodeParameter('mapsLang', i, 'pt') || 'pt').trim(), lat: mapsCoordinate(this.getNodeParameter('mapsLat', i, ''), 'Latitude', 90), lon: mapsCoordinate(this.getNodeParameter('mapsLon', i, ''), 'Longitude', 180), zoom: bounded('mapsZoom', 'Zoom', 1, 21, 15), radius: bounded('mapsRadius', 'O raio', 100, 50000, 10000), depth: bounded('mapsDepth', 'A profundidade', 1, 20, 3), email: Boolean(this.getNodeParameter('mapsEmail', i, false)), fast_mode: Boolean(this.getNodeParameter('mapsFastMode', i, false)), max_time: bounded('mapsMaxTime', 'O tempo máximo', 60, 1800, 300) };
+				} else {
+					const jobId = String(this.getNodeParameter('identifier', i, '')).trim(); if (!jobId) throw new Error('Informe o ID da busca.');
+					path = `/api/v1/jobs/${encodedPath(jobId)}`;
+					if (operation === 'results') { path += '/download'; csvResult = true; headers.Accept = 'text/csv'; } else if (operation === 'delete') method = 'DELETE';
+				}
+			}
+			const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method, baseURL: `${requestBase}/`, url: path.replace(/^\//, ''), qs, body, headers, json: !binaryResult && !csvResult, returnFullResponse: binaryResult, encoding: binaryResult ? 'arraybuffer' : csvResult ? 'text' : 'json', timeout: 30000 });
+			if (csvResult) { for (const lead of parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''))) returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone) }, pairedItem: { item: i } }); continue; }
+			if (resource === 'maps' && operation === 'delete') { returnData.push({ json: { id: String(this.getNodeParameter('identifier', i, '')).trim(), deleted: true }, pairedItem: { item: i } }); continue; }
+			if (resource === 'maps' && operation === 'getMany' && !response) continue; // the server answers null when there are no searches
 			if (binaryResult) { const payload = response?.body ?? response; const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload); const fileName = parseFilename(response?.headers, fallbackFilename); const binary = await this.helpers.prepareBinaryData(buffer, fileName, response?.headers?.['content-type']); returnData.push({ json: { fileName, mimeType: binary.mimeType }, binary: { data: binary }, pairedItem: { item: i } }); continue; }
 			if (Array.isArray(response)) for (const row of response) returnData.push({ json: row, pairedItem: { item: i } }); else if (response === undefined || response === null) returnData.push({ json: {}, pairedItem: { item: i } }); else returnData.push({ json: response, pairedItem: { item: i } });
 		}
