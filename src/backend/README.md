@@ -110,14 +110,14 @@ Contas antigas `member` são migradas para `commercial`; a conta configurada por
 | GET /admin/notifications | somente owner; filtro unresolved_only, limit/offset |
 | PATCH /admin/notifications/{id}/read | somente owner destinatário |
 | POST /admin/notifications/{id}/decision | somente owner; decision approved/rejected |
-| GET /clients | comercial/admin/owner; filtros niche, contract_closed, limit/offset |
+| GET /clients | comercial/admin/owner; filtros niche, pipeline_stage, sales_channel, contract_closed, limit/offset |
 | GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
 | POST /automations | dev/admin/owner; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
 | PATCH /automations/{id} | dev/admin/owner; multipart com qualquer combinação de `name`, `description`, `file` e `image`; campos omitidos são preservados; gera aviso com a imagem atual |
 | DELETE /automations/{id} | dev/admin/owner; exclui e gera aviso preservando a imagem |
 | GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
 | GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
-| POST /clients | comercial/admin/owner; name, niche, phone/email/notes opcionais, contract_closed |
+| POST /clients | comercial/admin/owner; name, niche, phone/email/notes opcionais, sales_channel opcional (email, whatsapp, instagram, phone, in_person, other; vazio = sem canal), contract_closed |
 | GET/PATCH/DELETE /clients/{id} | comercial/admin/owner; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |
 | PUT/GET/DELETE /auth/profile/photo | própria foto; upload multipart no campo file |

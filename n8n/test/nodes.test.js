@@ -313,3 +313,38 @@ test('existing resources still use the Nexo API base URL', async () => {
 	const { request } = await executeNexo({ resource: 'dashboard', operation: 'get' }, {});
 	assert.equal(request.baseURL, 'https://nexo.test/');
 });
+
+test('client sales channel is optional on create and filterable', async () => {
+	const withChannel = await executeNexo({ resource: 'clients', operation: 'create', name: 'Escritório X', niche: 'Contabilidade', salesChannel: 'email' }, { id: 'c1' });
+	assert.equal(withChannel.request.body.sales_channel, 'email');
+	const without = await executeNexo({ resource: 'clients', operation: 'create', name: 'Escritório Y', niche: 'Contabilidade', salesChannel: '' }, { id: 'c2' });
+	assert.equal(Object.hasOwn(without.request.body, 'sales_channel'), false);
+
+	const filtered = await executeNexo({ resource: 'clients', operation: 'getMany', filterSalesChannel: 'whatsapp', pipelineStage: 'lead', limit: 5, offset: 0 }, []);
+	assert.equal(filtered.request.qs.sales_channel, 'whatsapp');
+	assert.equal(filtered.request.qs.pipeline_stage, 'lead');
+	const unfiltered = await executeNexo({ resource: 'clients', operation: 'getMany', filterSalesChannel: '', limit: 5, offset: 0 }, []);
+	assert.equal(Object.hasOwn(unfiltered.request.qs, 'sales_channel'), false);
+});
+
+test('client update can set, keep or remove the sales channel', async () => {
+	const base = { resource: 'clients', operation: 'update', updateLookupBy: 'id', updateLookupValue: 'client-1', notes: 'x' };
+	assert.equal((await executeNexo({ ...base, salesChannel: 'instagram' }, { id: 'client-1' })).request.body.sales_channel, 'instagram');
+	assert.equal(Object.hasOwn((await executeNexo({ ...base, salesChannel: '' }, { id: 'client-1' })).request.body, 'sales_channel'), false);
+	const cleared = await executeNexo({ ...base, salesChannel: '__clear' }, { id: 'client-1' });
+	assert.equal(Object.hasOwn(cleared.request.body, 'sales_channel'), true);
+	assert.equal(cleared.request.body.sales_channel, null);
+});
+
+test('sales channel options match the API values, with a way to leave it empty', () => {
+	const fields = new Nexo().description.properties.filter((field) => field.name === 'salesChannel');
+	const api = ['email', 'whatsapp', 'instagram', 'phone', 'in_person', 'other'];
+	assert.equal(fields.length, 2);
+	for (const field of fields) {
+		assert.equal(field.type, 'options');
+		assert.equal(field.options[0].value, '');
+		assert.deepEqual(field.options.map((option) => option.value).filter((value) => api.includes(value)), api);
+	}
+	const filter = new Nexo().description.properties.find((field) => field.name === 'filterSalesChannel');
+	assert.deepEqual(filter.options.map((option) => option.value), ['', ...api]);
+});

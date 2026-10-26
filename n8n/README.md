@@ -19,7 +19,7 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 
 | Recurso | Operações |
 | --- | --- |
-| Clientes | Get Many com filtros de nicho, contrato fechado e nome; Get por ID; buscar por ID ou nome; criar, atualizar e excluir |
+| Clientes | Get Many com filtros de nicho, canal de vendas, etapa, contrato fechado e nome; Get por ID; buscar por ID ou nome; criar, atualizar e excluir |
 | Automações | Get Many; Get por ID; salvar arquivo, baixar arquivo e baixar imagem |
 | Documentos | Get Many; Get por ID; enviar arquivo, baixar arquivo e excluir |
 | Notificações | Get Many; Get por ID; contar não lidas, marcar notificação como lida e marcar chat como lido |
@@ -58,6 +58,13 @@ usado como ferramenta do **AI Agent**. Para habilitar o node como ferramenta, li
 Uploads recebem o arquivo de uma propriedade binária do item de entrada. Para salvar
 uma automação, informe também nome e descrição; a propriedade binária de imagem é opcional.
 Downloads retornam os dados em uma propriedade binária `data`.
+
+### Canal de vendas
+
+Cada cliente pode ter um **canal de vendas** (E-mail, WhatsApp, Instagram, Ligação, Presencial ou Outro) ou ficar
+sem canal. Em **Clientes → Criar**, deixe **Sem canal** para não preencher. Em **Atualizar**, **Não alterar**
+mantém o valor atual e **Remover canal** deixa o cliente sem canal. **Get Many** aceita o filtro
+**Filtrar por canal de vendas**, por exemplo para listar só os leads que serão abordados por e-mail.
 
 ### Maps
 

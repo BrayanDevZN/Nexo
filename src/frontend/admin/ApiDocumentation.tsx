@@ -48,7 +48,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/clients",
     title: "Listar clientes",
     description: "Lista clientes com paginação e filtros opcionais.",
-    query: ["niche", "name", "created_by_id", "pipeline_stage", "contract_closed", "limit", "offset"],
+    query: ["niche", "name", "created_by_id", "pipeline_stage", "sales_channel", "contract_closed", "limit", "offset"],
     response: `[
   {
     "id": "uuid-do-cliente",
@@ -77,13 +77,14 @@ const ENDPOINTS: Endpoint[] = [
     route: "/clients",
     path: "/clients",
     title: "Criar cliente",
-    description: "Cria um cliente e registra a alteração no painel.",
+    description: "Cria um cliente e registra a alteração no painel. sales_channel é opcional (email, whatsapp, instagram, phone, in_person ou other); omita ou envie null para ficar sem canal.",
     body: `{
   "name": "Empresa Exemplo",
   "niche": "Contabilidade",
   "phone": "31999999999",
   "email": "contato@empresa.com",
   "address": "Rua das Flores, 100, Centro, Belo Horizonte",
+  "sales_channel": "email",
   "pipeline_stage": "lead",
   "contract_closed": false,
   "contract_value": 1500,
@@ -120,7 +121,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/clients",
     path: "/clients/{identifier}",
     title: "Atualizar cliente",
-    description: "Atualiza somente os campos enviados no corpo da requisição.",
+    description: "Atualiza somente os campos enviados no corpo da requisição. Envie \"sales_channel\": null para remover o canal de vendas.",
     body: `{
   "pipeline_stage": "won",
   "contract_closed": true,

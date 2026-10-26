@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 from sqlalchemy import case, func, or_, select, update
 
+from backend.domain.client_channels import validate_sales_channel
 from backend.domain.client_niches import validate_client_niche
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import Client
@@ -16,10 +17,11 @@ class ClientRepository(Repository[Client]):
                email: str | None = None, address: str | None = None, notes: str | None = None,
                pain: str | None = None, approach: str | None = None,
                contract_value=None, pipeline_stage: str = "lead",
-               next_follow_up=None) -> Client:
+               next_follow_up=None, sales_channel: str | None = None) -> Client:
         if not name.strip() or not niche.strip():
             raise ValueError("Name and niche are required")
         niche = validate_client_niche(niche.strip())
+        sales_channel = validate_sales_channel(sales_channel)
         if contract_closed and pipeline_stage == "lead":
             pipeline_stage = "won"
         if pipeline_stage == "won":
@@ -29,14 +31,14 @@ class ClientRepository(Repository[Client]):
                      contract_closed_at=utc_now() if contract_closed else None,
                      phone=phone, email=email, address=address, notes=notes, pain=pain, approach=approach,
                      contract_value=contract_value,
-                     pipeline_stage=pipeline_stage, next_follow_up=next_follow_up)
+                     pipeline_stage=pipeline_stage, next_follow_up=next_follow_up, sales_channel=sales_channel)
         if identifier is not None:
             row.id = identifier
         return self.add(row)
 
     def list(self, *, niche: str | None = None, contract_closed: bool | None = None,
              name: str | None = None, created_by_id: str | None = None,
-             pipeline_stage: str | None = None,
+             pipeline_stage: str | None = None, sales_channel: str | None = None,
              limit: int = 50, offset: int = 0) -> list[Client]:
         pagination(limit, offset)
         query = select(Client).order_by(Client.created_at, Client.id)
@@ -50,6 +52,8 @@ class ClientRepository(Repository[Client]):
             query = query.where(Client.contract_closed == contract_closed)
         if pipeline_stage is not None:
             query = query.where(Client.pipeline_stage == pipeline_stage)
+        if sales_channel is not None:
+            query = query.where(Client.sales_channel == validate_sales_channel(sales_channel))
         return list(self.session.scalars(query.limit(limit).offset(offset)))
 
     def known_contacts(self, names: Sequence[str], phones: Sequence[str]) -> tuple[set[str], set[str]]:
@@ -66,7 +70,7 @@ class ClientRepository(Repository[Client]):
 
     def update(self, client: Client, **changes) -> Client:
         allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value",
-                   "pipeline_stage", "next_follow_up", "address", "notes", "pain", "approach"}
+                   "pipeline_stage", "next_follow_up", "sales_channel", "address", "notes", "pain", "approach"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         was_closed = bool(client.contract_closed or client.pipeline_stage == "won")
@@ -77,6 +81,8 @@ class ClientRepository(Repository[Client]):
                 value = value.strip()
                 if field == "niche":
                     value = validate_client_niche(value)
+            if field == "sales_channel":
+                value = validate_sales_channel(value)
             setattr(client, field, value)
         if changes.get("contract_closed") is False and client.pipeline_stage == "won":
             # A closed contract cannot remain in the won stage after cancellation.

@@ -19,12 +19,19 @@ export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
   address: string | null; notes: string | null; pain: string | null; approach: string | null;
+  sales_channel: SalesChannel | null;
   contract_closed_at: string | null;
   contract_closed: boolean; contract_value: number | string | null;
   pipeline_stage: PipelineStage; next_follow_up: string | null;
   created_by_id: string; created_by_name: string;
   created_at: string; updated_at: string;
 };
+export type SalesChannel = "email" | "whatsapp" | "instagram" | "phone" | "in_person" | "other";
+export const SALES_CHANNELS: { value: SalesChannel; label: string }[] = [
+  { value: "email", label: "E-mail" }, { value: "whatsapp", label: "WhatsApp" }, { value: "instagram", label: "Instagram" },
+  { value: "phone", label: "Ligação" }, { value: "in_person", label: "Presencial" }, { value: "other", label: "Outro" },
+];
+export const salesChannelLabel = (value: SalesChannel | null | undefined) => SALES_CHANNELS.find(channel => channel.value === value)?.label ?? null;
 export type PipelineStage = "lead" | "contacted" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "lead", label: "Lead" }, { value: "contacted", label: "Contato feito" },
@@ -38,7 +45,7 @@ export const CLIENT_NICHES = [
   "Construção civil", "Indústria", "Logística", "Serviços profissionais",
   "Marketing e publicidade", "Automotivo", "Outro",
 ] as const;
-export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "address" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
+export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "address" | "sales_channel" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;
 };

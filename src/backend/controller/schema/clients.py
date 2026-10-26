@@ -15,6 +15,7 @@ from pydantic import (
 )
 
 from backend.controller.schema.auth import ProfileInput
+from backend.domain.client_channels import SalesChannel
 from backend.domain.client_niches import validate_client_niche
 
 PipelineStage = Literal["lead", "contacted", "diagnosis", "proposal", "negotiation", "won", "lost"]
@@ -28,6 +29,7 @@ class ClientFields(BaseModel):
     contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     pipeline_stage: PipelineStage = "lead"
     next_follow_up: datetime | None = None
+    sales_channel: SalesChannel | None = None
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
     address: str | None = Field(default=None, max_length=300)

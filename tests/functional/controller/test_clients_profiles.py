@@ -62,6 +62,34 @@ def test_clients_crud_filters_and_server_selected_creator(client):
     assert client.get("/clients").json() == []
 
 
+def test_sales_channel_is_optional_filterable_and_can_be_cleared(client):
+    headers = login(client)
+    plain = client.post("/clients", headers=headers, json={"name": "Sem canal", "niche": "Contabilidade"})
+    assert plain.status_code == 201 and plain.json()["sales_channel"] is None
+    by_email = client.post("/clients", headers=headers,
+                           json={"name": "Por e-mail", "niche": "Contabilidade", "sales_channel": "email"})
+    assert by_email.status_code == 201 and by_email.json()["sales_channel"] == "email"
+    client.post("/clients", headers=headers, json={"name": "Por zap", "niche": "Varejo", "sales_channel": "whatsapp"})
+
+    names = lambda **params: sorted(row["name"] for row in client.get("/clients", params=params).json())  # noqa: E731
+    assert names() == ["Por e-mail", "Por zap", "Sem canal"]
+    assert names(sales_channel="email") == ["Por e-mail"]
+    assert names(sales_channel="email", niche="Varejo") == []
+    assert names(sales_channel="instagram") == []
+    assert client.get("/clients", params={"sales_channel": "telegram"}).status_code == 422
+
+    path = "/clients/" + plain.json()["id"]
+    assert client.patch(path, headers=headers, json={"sales_channel": "instagram"}).json()["sales_channel"] == "instagram"
+    assert client.patch(path, headers=headers, json={"notes": "só nota"}).json()["sales_channel"] == "instagram"
+    assert client.patch(path, headers=headers, json={"sales_channel": None}).json()["sales_channel"] is None
+    assert client.get(path).json()["sales_channel"] is None
+    assert client.patch(path, headers=headers, json={"sales_channel": "pombo-correio"}).status_code == 422
+    assert client.post("/clients", headers=headers,
+                       json={"name": "Inválido", "niche": "Varejo", "sales_channel": "pombo-correio"}).status_code == 422
+    # The filtered list must not serve a stale cached answer after the change.
+    assert names(sales_channel="email") == ["Por e-mail"] and names(sales_channel="instagram") == []
+
+
 def test_api_key_client_creation_notifies_site_and_queues_email(client, monkeypatch):
     from unittest.mock import Mock
 

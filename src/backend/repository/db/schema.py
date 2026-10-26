@@ -82,6 +82,9 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     if "address" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN address VARCHAR(300)"))
+    if "sales_channel" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN sales_channel VARCHAR(24)"))
     if "pain" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN pain TEXT"))

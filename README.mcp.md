@@ -25,8 +25,9 @@ The API key documentation in src/frontend/admin/ApiDocumentation.tsx and the
 n8n API node in n8n/nodes/Nexo/Nexo.node.js define these tools:
 
 - Dashboard: summary.
-- Clients: list with filters/pagination, get, search by ID/name, create,
-  update and delete.
+- Clients: list with filters/pagination (including sales channel), get, search by
+  ID/name, create, update and delete. `sales_channel` is optional (email, whatsapp,
+  instagram, phone, in_person, other); send null on update to clear it.
 - Automations: list, get metadata, save, update, delete, download and image.
 - Documents: list, get metadata, upload, download and delete.
 - Notifications: list, get, unread count, mark one read and mark chat read.

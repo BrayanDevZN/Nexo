@@ -3,7 +3,10 @@ from datetime import datetime
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.domain.client_channels import SALES_CHANNELS
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
+
+_CHANNELS = ", ".join(f"'{channel}'" for channel in SALES_CHANNELS)
 
 
 class Client(IdentityTimestampMixin, Base):
@@ -13,6 +16,7 @@ class Client(IdentityTimestampMixin, Base):
         CheckConstraint("length(trim(niche)) > 0", name="client_niche_nonempty"),
         CheckConstraint("pipeline_stage IN ('lead', 'contacted', 'diagnosis', 'proposal', 'negotiation', 'won', 'lost')",
                         name="client_pipeline_stage"),
+        CheckConstraint(f"sales_channel IS NULL OR sales_channel IN ({_CHANNELS})", name="client_sales_channel"),
         Index("client_created_at_id", "created_at", "id"),
         Index("client_closed_created_at", "contract_closed", "created_at"),
         Index("client_creator_created_at", "created_by_id", "created_at"),
@@ -28,6 +32,7 @@ class Client(IdentityTimestampMixin, Base):
     contract_value: Mapped[float | None] = mapped_column(Numeric(12, 2))
     pipeline_stage: Mapped[str] = mapped_column(String(24), default="lead")
     next_follow_up: Mapped[datetime | None] = mapped_column(DateTime)
+    sales_channel: Mapped[str | None] = mapped_column(String(24))
     address: Mapped[str | None] = mapped_column(String(300))
     notes: Mapped[str | None] = mapped_column(Text)
     pain: Mapped[str | None] = mapped_column(Text)
