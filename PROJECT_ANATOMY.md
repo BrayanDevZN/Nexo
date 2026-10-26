@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-10-26 | 359 files | ~382.2K tokens if all read
+Generated: 2026-10-26 | 359 files | ~382.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -179,7 +179,7 @@ Generated: 2026-10-26 | 359 files | ~382.2K tokens if all read
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/home/About.tsx | 53 | 452 | source |
-| src/frontend/components/home/Art.tsx | 164 | 2.0K | source |
+| src/frontend/components/home/Art.tsx | 165 | 1.8K | source |
 | src/frontend/components/home/Close.tsx | 65 | 562 | source |
 | src/frontend/components/home/Faq.tsx | 27 | 186 | source |
 | src/frontend/components/home/Features.tsx | 57 | 506 | source |
@@ -347,7 +347,7 @@ Generated: 2026-10-26 | 359 files | ~382.2K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/styles/globals.css | 2658 | 15.3K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/site.css | 204 | 3.5K | style |
+| src/frontend/styles/site.css | 225 | 3.9K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 71 | 555 | other |
 | .gitignore | 31 | 53 | other |
@@ -365,11 +365,11 @@ Generated: 2026-10-26 | 359 files | ~382.2K tokens if all read
 | src/frontend/vite.config.mts | 17 | 146 | other |
 
 ## Summary
-- source: 228 files, ~246.7K tokens
+- source: 228 files, ~246.4K tokens
 - config: 11 files, ~2.9K tokens
 - test: 94 files, ~97.3K tokens
 - docs: 8 files, ~11.5K tokens
-- style: 3 files, ~19.9K tokens
+- style: 3 files, ~20.3K tokens
 - other: 15 files, ~3.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
