@@ -15,26 +15,26 @@ import { contactUrl, navigation } from "@/lib/content";
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="site-header">
-      <div className="shell header-inner">
+    <header className="nx-header">
+      <div className="nx-wrap nx-header-inner">
         <a href="#inicio" aria-label="Nexo: início">
           <Brand />
         </a>
-        <nav className="desktop-nav" aria-label="Navegação principal">
+        <nav className="nx-nav" aria-label="Navegação principal">
           {navigation.map((item) => (
             <a key={item.href} href={item.href}>
               {item.label}
             </a>
           ))}
         </nav>
-        <div className="desktop-cta">
+        <div className="nx-header-cta">
           <Button variant="outline" size="lg" asChild>
             <a href={contactUrl} target="_blank" rel="noopener noreferrer">
               Vamos conversar <ArrowUpRight data-icon="inline-end" />
             </a>
           </Button>
         </div>
-        <div className="mobile-nav">
+        <div className="nx-header-menu">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon-lg" aria-label="Abrir menu">

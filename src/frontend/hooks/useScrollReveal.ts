@@ -9,7 +9,7 @@ export function useScrollReveal() {
     if (!root || !("IntersectionObserver" in window)) return;
     const nodes = Array.from(
       root.querySelectorAll<HTMLElement>(
-        '.section-heading, .solution-card, [data-slot="carousel-item"], .value-card, .value-validation, .value-cta, .about-grid > div, .faq-grid > div:first-child, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console',
+        '.section-heading, .solution-card, [data-slot="carousel-item"], .value-card, .value-validation, .value-cta, .about-grid > div, .faq-grid > div:first-child, [data-slot="accordion-item"], .contact-panel, .streaming-copy, .stream-console, .nx-reveal, .nx-row, .nx-stage',
       ),
     );
     if (paused || reduced) {
@@ -35,7 +35,7 @@ export function useScrollReveal() {
         rect.bottom > 0 && rect.top < window.innerHeight
           ? "visible"
           : "pending";
-      if (node.matches('.solution-card, [data-slot="accordion-item"]')) {
+      if (node.matches('.solution-card, [data-slot="accordion-item"], .nx-stage')) {
         const siblings = Array.from(node.parentElement?.children ?? []);
         node.style.setProperty(
           "--reveal-delay",

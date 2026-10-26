@@ -14,7 +14,7 @@ test("a weak device gets the lite rendering without losing any animation or elem
     washes: document.querySelectorAll(".ambient-wash").length,
     cubeFaces: document.querySelectorAll(".cube-face").length,
     orbits: document.querySelectorAll(".core-orbit").length,
-    blur: getComputedStyle(document.querySelector(".site-header")!).backdropFilter,
+    blur: getComputedStyle(document.querySelector(".nx-header")!).backdropFilter,
   }));
   expect(fullState.blur).toContain("blur");
 
@@ -28,7 +28,7 @@ test("a weak device gets the lite rendering without losing any animation or elem
     washes: document.querySelectorAll(".ambient-wash").length,
     cubeFaces: document.querySelectorAll(".cube-face").length,
     orbits: document.querySelectorAll(".core-orbit").length,
-    blur: getComputedStyle(document.querySelector(".site-header")!).backdropFilter,
+    blur: getComputedStyle(document.querySelector(".nx-header")!).backdropFilter,
   }));
   // Only the live blur behind the header is dropped; everything else is identical.
   expect(liteState.blur).toBe("none");

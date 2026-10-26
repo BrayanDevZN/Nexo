@@ -29,7 +29,7 @@ export function AccountingVisual() {
       aria-label="Ilustração: extratos, notas fiscais e comprovantes chegam soltos e são organizados por cliente. Uma pendência fica sinalizada para a equipe conferir."
     >
       <div className="visual-topline" aria-hidden="true">
-        <span className="tiny-label">DOCUMENTOS DO PERÍODO</span>
+        <span className="tiny-label">Documentos do período</span>
         <Badge variant="outline">Visão ilustrativa</Badge>
       </div>
       <div className="lp-visual-incoming" aria-hidden="true">

@@ -284,7 +284,7 @@ function StreamSimulation({
                 event.done && "is-complete",
               )}
             >
-              <span className="stream-event-index">0{index + 1}</span>
+              
               <div>
                 <strong>
                   {event.label}
@@ -369,7 +369,6 @@ export function StreamingDemo() {
       data-motion={active ? "running" : "paused"}
     >
       <div className="streaming-copy">
-        <p className="eyebrow">EXEMPLOS DE IA EM DIFERENTES ÁREAS</p>
         <h2 id="stream-title">
           Da contabilidade
           <br />
@@ -382,7 +381,6 @@ export function StreamingDemo() {
         </p>
         <ol className="stream-explainer">
           <li>
-            <span>01</span>
             <div>
               <h3>Entende o contexto</h3>
               <p>
@@ -392,7 +390,6 @@ export function StreamingDemo() {
             </div>
           </li>
           <li>
-            <span>02</span>
             <div>
               <h3>Conecta as etapas</h3>
               <p>
@@ -402,7 +399,6 @@ export function StreamingDemo() {
             </div>
           </li>
           <li>
-            <span>03</span>
             <div>
               <h3>Mantém a equipe no controle</h3>
               <p>
@@ -421,7 +417,6 @@ export function StreamingDemo() {
       </div>
       <div className="stream-gallery">
         <div className="stream-example-notice">
-          <Badge>EXEMPLOS EM AÇÃO</Badge>
           <p>
             Simulações com dados fictícios para mostrar possibilidades de uso da
             IA.
@@ -451,7 +446,7 @@ export function StreamingDemo() {
           </CarouselContent>
           <div className="carousel-toolbar">
             <p aria-live="polite">
-              {current + 1} / {scenarios.length} · {scenarios[current].title}
+              Exemplo {current + 1} de {scenarios.length}: {scenarios[current].title}
               <br />
               Arraste para ver outro exemplo
             </p>

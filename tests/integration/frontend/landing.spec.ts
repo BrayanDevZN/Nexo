@@ -39,14 +39,10 @@ test("a WhatsApp click is reported as the conversion, with where it happened", a
   expect(events).toEqual([["event", "whatsapp_click", { page: "contabilidade", placement: "hero" }]]);
 });
 
-test("the questions open and close", async ({ page }) => {
+test("every question is answered on the page, with nothing to open", async ({ page }) => {
   await page.goto("/contabilidade");
-  const question = page.getByRole("button", { name: "Quanto custa?" });
-  await question.scrollIntoViewIfNeeded();
-  await question.click();
+  await expect(page.getByRole("heading", { name: "Quanto custa?" })).toBeVisible();
   await expect(page.getByText("apresentamos uma proposta com valores claros")).toBeVisible();
-  await question.click();
-  await expect(page.getByText("apresentamos uma proposta com valores claros")).toBeHidden();
 });
 
 test("on a phone the button is on the first screen and nothing scrolls sideways", async ({ page }) => {
@@ -60,7 +56,7 @@ test("on a phone the button is on the first screen and nothing scrolls sideways"
 
 test("the main site is unchanged and the page is only served at its own path", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Menos gargalos.");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Mais capacidade.");
   await expect(page.getByRole("link", { name: "Soluções" }).first()).toBeVisible();
   await page.goto("/contabilidade/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Pare de correr atrás de documento");

@@ -1,22 +1,8 @@
 import { useEffect, useMemo } from "react";
-import { ArrowUpRight, Check, MessageCircle } from "lucide-react";
+import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { AccountingVisual } from "@/components/AccountingVisual";
 import { Brand } from "@/components/Brand";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   faqs,
   fit,
@@ -25,10 +11,11 @@ import {
   landingPage,
   landingTitle,
   landingWhatsappUrl,
-  outcomes,
   problems,
   steps,
 } from "@/lib/accountingLanding";
+import { Picture } from "@/components/home/Picture";
+import { pictures } from "@/lib/pictures";
 import { initTracking, trackWhatsappClick } from "@/lib/tracking";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -56,8 +43,8 @@ export default function AccountingLanding() {
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
-      <header className="site-header">
-        <div className="shell header-inner">
+      <header className="nx-header">
+        <div className="nx-wrap nx-header-inner">
           <Brand />
           <Button size="lg" asChild>
             <a {...whatsapp("header")}>
@@ -67,240 +54,168 @@ export default function AccountingLanding() {
         </div>
       </header>
       <main id="conteudo" ref={revealRef}>
-        <section className="lp-hero shell" aria-labelledby="lp-hero-title">
-          <div className="lp-hero-copy">
-            <Badge variant="outline">
-              <span className="signal-dot" /> AUTOMAÇÃO PARA ESCRITÓRIOS DE
-              CONTABILIDADE
-            </Badge>
-            <h1 id="lp-hero-title">
-              Pare de correr atrás de documento <span>todo mês.</span>
-            </h1>
-            <p>
-              A Nexo cria automações sob medida para escritórios de contabilidade:
-              documentos dos clientes organizados e menos trabalho manual para a
-              sua equipe.
+        <section className="lp-hero nx-hero nx-wrap" aria-labelledby="lp-hero-title">
+          <h1 id="lp-hero-title" className="nx-display">
+            <span>Pare de correr atrás</span>{" "}
+            <span>de documento todo mês.</span>
+          </h1>
+          <div className="nx-hero-foot">
+            <p className="nx-lead">
+              A Nexo cria automações sob medida para escritórios de
+              contabilidade: documentos dos clientes organizados e menos
+              trabalho manual para a sua equipe.
             </p>
-            <div className="lp-hero-actions">
+            <div className="nx-actions">
               <Button size="lg" asChild>
                 <a {...whatsapp("hero")}>
                   Falar com a Nexo no WhatsApp{" "}
                   <ArrowUpRight data-icon="inline-end" />
                 </a>
               </Button>
-              <span className="lp-note">
-                CONVERSA INICIAL DE 20 MINUTOS, SEM CUSTO
-              </span>
             </div>
+            <p className="nx-body nx-soft">
+              Conversa inicial de 20 minutos, sem custo.
+            </p>
           </div>
-          <AccountingVisual />
+          <Picture picture={pictures.addingMachine} eager className="nx-hero-photo nx-reveal" />
         </section>
-        <div className="shell outcomes" aria-label="Objetivos da automação">
-          {outcomes.map((outcome, index) => (
-            <div key={outcome}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <p>{outcome}</p>
-            </div>
-          ))}
-          <ArrowUpRight aria-hidden="true" />
-        </div>
-        <section
-          className="section shell"
-          aria-labelledby="lp-problems-title"
-        >
-          <div className="section-heading">
-            <p className="eyebrow">01 / SE ISSO SOA FAMILIAR</p>
-            <h2 id="lp-problems-title">
-              A rotina do escritório não precisa
+        <section className="nx-section nx-wrap" aria-labelledby="lp-problems-title">
+          <div className="nx-process-head">
+            <h2 id="lp-problems-title" className="nx-h2 nx-reveal">
+              A rotina não precisa
               <br />
-              <span>ser tão manual.</span>
+              ser tão manual.
             </h2>
           </div>
-          <div className="lp-grid">
-            {problems.map((problem) => (
-              <Card key={problem.title}>
-                <CardHeader>
-                  <problem.icon
-                    className="size-6 text-primary"
-                    aria-hidden="true"
-                  />
-                  <CardTitle>{problem.title}</CardTitle>
-                  <CardDescription>{problem.text}</CardDescription>
-                </CardHeader>
-              </Card>
+          {problems.map((problem) => (
+            <article className="nx-benefit nx-reveal" key={problem.title}>
+              <h3 className="nx-h3">{problem.title}</h3>
+              <p className="nx-body nx-soft">{problem.text}</p>
+            </article>
+          ))}
+        </section>
+        <section className="nx-section nx-band" aria-labelledby="lp-steps-title">
+          <div className="nx-process-head">
+            <h2 id="lp-steps-title" className="nx-h2 nx-reveal">
+              Do primeiro contato
+              <br />à rotina funcionando.
+            </h2>
+          </div>
+          <ol className="nx-stages nx-stages-3">
+            {steps.map((step) => (
+              <li className="nx-stage nx-reveal" key={step.title}>
+                <h3 className="nx-h3">{step.title}</h3>
+                <p>{step.text}</p>
+              </li>
             ))}
+          </ol>
+          <div className="nx-photo-pair">
+            <Picture picture={pictures.abacus} className="nx-reveal" />
+            <Picture picture={pictures.patternCards} className="nx-reveal" />
           </div>
         </section>
-        <section
-          className="section section-tinted"
-          aria-labelledby="lp-steps-title"
-        >
-          <div className="shell">
-            <div className="section-heading">
-              <p className="eyebrow">02 / COMO FUNCIONA</p>
-              <h2 id="lp-steps-title">
-                Do primeiro contato
-                <br />
-                <span>à rotina funcionando.</span>
-              </h2>
-            </div>
-            <ol className="lp-steps">
-              {steps.map((step, index) => (
-                <li key={step.title}>
-                  <span className="lp-step-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h3>{step.title}</h3>
-                  <p className="body-copy">{step.text}</p>
+        <section className="nx-section nx-wrap nx-split" aria-labelledby="lp-demo-title">
+          <div className="nx-split-text">
+            <h2 id="lp-demo-title" className="nx-h2 nx-reveal">
+              Um exemplo de como
+              <br />
+              isso funciona.
+            </h2>
+            <p className="nx-lead nx-reveal">
+              Uma automação organiza o material do período e a sua equipe
+              confere antes do registro final. Exemplo ilustrativo.
+            </p>
+            <ol className="nx-flow">
+              {flow.map((event) => (
+                <li key={event.label} className="nx-reveal">
+                  <strong>{event.label}.</strong> {event.text}
                 </li>
               ))}
             </ol>
           </div>
+          <AccountingVisual />
         </section>
-        <section
-          className="section shell lp-split"
-          aria-labelledby="lp-demo-title"
-        >
-          <div>
-            <p className="eyebrow">03 / NA PRÁTICA</p>
-            <h2 id="lp-demo-title">
-              Um exemplo de como
-              <br />
-              <span>isso funciona.</span>
-            </h2>
-            <p className="section-description">
-              Uma automação organiza o material e a sua equipe decide.
-            </p>
-          </div>
-          <Card>
-            <CardHeader>
-              <Badge variant="secondary">EXEMPLO ILUSTRATIVO</Badge>
-              <CardTitle>Do extrato ao resumo para conferência</CardTitle>
-              <CardDescription>
-                A automação organiza o material do período e a sua equipe
-                confere antes do registro final.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ol className="lp-flow">
-                {flow.map((event) => (
-                  <li key={event.label}>
-                    <Check aria-hidden="true" />
-                    <div>
-                      <strong>{event.label}</strong>
-                      <p>{event.text}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-          </Card>
-        </section>
-        <section
-          className="section section-tinted"
-          aria-labelledby="lp-offer-title"
-        >
-          <div className="shell">
-            <div className="section-heading">
-              <p className="eyebrow">04 / A CONVERSA INICIAL</p>
-              <h2 id="lp-offer-title">
-                20 minutos para entender
-                <br />
-                <span>a sua rotina.</span>
-              </h2>
-            </div>
-            <div className="lp-fit">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Para quem é</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="lp-list">
-                    {fit.yes.map((item) => (
-                      <li key={item}>
-                        <Check aria-hidden="true" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>O que a Nexo é</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="lp-list">
-                    {fit.no.map((item) => (
-                      <li key={item}>
-                        <Check aria-hidden="true" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-        <section
-          className="section shell faq-grid"
-          aria-labelledby="lp-faq-title"
-        >
-          <div>
-            <p className="eyebrow">ANTES DO PRIMEIRO PASSO</p>
-            <h2 id="lp-faq-title">
-              Vamos tirar
-              <br />
-              <span>as dúvidas.</span>
+        <section className="nx-section nx-wrap" aria-labelledby="lp-offer-title">
+          <Picture picture={pictures.switchboard} caption={false} className="nx-reveal nx-offer-photo" />
+          <div className="nx-process-head">
+            <h2 id="lp-offer-title" className="nx-h2 nx-reveal">
+              20 minutos para entender
+              <br />a sua rotina.
             </h2>
           </div>
-          <Accordion type="single" collapsible>
-            {faqs.map((faq, index) => (
-              <AccordionItem key={faq.question} value={`faq-${index}`}>
-                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                <AccordionContent>{faq.answer}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <div className="nx-benefit nx-reveal">
+            <h3 className="nx-h3">Para quem é</h3>
+            <ul className="nx-list">
+              {fit.yes.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="nx-benefit nx-reveal">
+            <h3 className="nx-h3">O que a Nexo é</h3>
+            <ul className="nx-list">
+              {fit.no.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
         </section>
-        <section
-          className="shell contact-section"
-          aria-labelledby="lp-contact-title"
-        >
-          <div className="contact-panel">
-            <div className="contact-decoration" aria-hidden="true">
-              <Brand compact />
-            </div>
-            <p className="eyebrow">O PRÓXIMO PASSO</p>
-            <h2 id="lp-contact-title">
-              Vamos olhar a rotina
-              <br />
-              <span>do seu escritório?</span>
+        <section className="nx-section nx-wrap nx-faq" aria-labelledby="lp-faq-title">
+          <div className="nx-faq-row">
+            <h2 id="lp-faq-title" className="nx-faq-q nx-faq-title nx-reveal">
+              Vamos tirar as dúvidas.
             </h2>
-            <p>
+          </div>
+          {faqs.map((faq) => (
+            <div className="nx-faq-row nx-reveal" key={faq.question}>
+              <h3 className="nx-faq-q">{faq.question}</h3>
+              <p className="nx-faq-a">{faq.answer}</p>
+            </div>
+          ))}
+        </section>
+      </main>
+      <div className="nx-inverse nx-close">
+        <section className="nx-wrap nx-cta" aria-labelledby="lp-contact-title">
+          <h2 id="lp-contact-title" className="nx-display nx-cta-title nx-reveal">
+            Vamos olhar a rotina
+            <br />
+            do seu escritório?
+          </h2>
+          <div className="nx-cta-foot">
+            <p className="nx-lead">
               Conte como o escritório trabalha hoje e veja o que dá para
-              automatizar.
+              automatizar. Conversa inicial de 20 minutos, sem custo.
             </p>
-            <Button size="lg" asChild>
+            <Button size="lg" asChild className="nx-cta-button">
               <a {...whatsapp("footer")}>
                 Falar com a Nexo no WhatsApp{" "}
                 <ArrowUpRight data-icon="inline-end" />
               </a>
             </Button>
-            <span className="contact-note">
-              CONVERSA INICIAL DE 20 MINUTOS, SEM CUSTO
-            </span>
           </div>
         </section>
-      </main>
-      <footer className="shell footer">
-        <div className="footer-bottom">
-          <p>
-            © {new Date().getFullYear()} Nexo. Todos os direitos reservados.
+        <footer className="nx-wrap nx-footer">
+          <div className="nx-footer-legal">
+            <p>© {new Date().getFullYear()} Nexo. Todos os direitos reservados.</p>
+          </div>
+          <p className="nx-credits">
+            Imagens do acervo aberto Wikimedia Commons:{" "}
+            {[pictures.addingMachine, pictures.abacus, pictures.patternCards, pictures.switchboard].map(
+              (picture, index) => (
+                <span key={picture.credit.title}>
+                  {index > 0 ? "; " : ""}
+                  <a href={picture.credit.page} target="_blank" rel="noopener noreferrer">
+                    {picture.caption}
+                  </a>{" "}
+                  ({picture.credit.author}, {picture.credit.license})
+                </span>
+              ),
+            )}
+            .
           </p>
-        </div>
-      </footer>
+          <div className="nx-wordmark" aria-hidden="true">nexo.</div>
+        </footer>
+      </div>
     </>
   );
 }

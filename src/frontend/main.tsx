@@ -4,6 +4,7 @@ import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { MotionProvider } from "./components/MotionProvider";
 import "./styles/globals.css";
+import "./styles/site.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 const AccountingLanding = lazy(() => import("./AccountingLanding"));
