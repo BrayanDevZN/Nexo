@@ -10,6 +10,9 @@ SENSITIVE_ROUTES = {
 
 
 # Adding leads from the Maps sends many small requests and polls the progress, so these routes get a larger budget.
+# Public forms accept anonymous writes, so each address gets only a few per window, on top of the default budget.
+PUBLIC_FORM_LIMIT = 5
+PUBLIC_FORM_ROUTES = {"/public/leads"}
 BULK_ROUTES = {"/maps/funnel": 10, "/maps/funnel/batches": 10, "/maps/funnel/batches/{batch_id}": 10}
 
 
@@ -31,6 +34,10 @@ class RateLimitService:
             budgets.append(RateBudget(
                 f"{self.namespace}:auth:{identity}:{config.auth_rate_limit_window_seconds}",
                 config.auth_rate_limit, config.auth_rate_limit_window_seconds))
+        if route in PUBLIC_FORM_ROUTES:
+            budgets.append(RateBudget(
+                f"{self.namespace}:form:{identity}:{operation}:{config.auth_rate_limit_window_seconds}",
+                PUBLIC_FORM_LIMIT, config.auth_rate_limit_window_seconds))
         return budgets
 
     def check(self, peer, method, route):

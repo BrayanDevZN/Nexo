@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountingVisual } from "@/components/AccountingVisual";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/accordion";
 import { Art } from "@/components/home/Art";
 import { CookiePreferencesButton } from "@/components/CookieNotice";
-import { trackWhatsappClick } from "@/lib/tracking";
+import { LeadDialog } from "@/components/LeadDialog";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import "./styles/landing.css";
@@ -42,14 +42,20 @@ export default function AccountingLanding() {
       .querySelector('meta[name="description"]')
       ?.setAttribute("content", landingDescription);
   }, []);
+  const [leadPlacement, setLeadPlacement] = useState<string | null>(null);
+  // Every button opens the contact form first; the plain WhatsApp link is only the fallback if scripts fail.
   const whatsapp = (placement: string) => ({
     href,
     target: "_blank",
     rel: "noopener noreferrer",
-    onClick: () => trackWhatsappClick(landingPage, placement),
+    onClick: (event: { preventDefault: () => void }) => {
+      event.preventDefault();
+      setLeadPlacement(placement);
+    },
   });
   return (
     <>
+      <LeadDialog page={landingPage} placement={leadPlacement} whatsappHref={href} search={window.location.search} onClose={() => setLeadPlacement(null)} />
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>

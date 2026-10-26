@@ -34,3 +34,12 @@ def test_leads_route_gets_a_larger_budget_than_the_default(settings):
     service = RateLimitService(Mock(), settings, "test:rate")
     assert service.budgets("peer", "POST", "/maps/funnel")[1].limit == 600
     assert service.budgets("peer", "POST", "/clients")[1].limit == 60
+
+
+def test_public_lead_form_gets_a_small_extra_budget_per_address(settings):
+    service = RateLimitService(Mock(), settings, "test:rate")
+    budgets = service.budgets("peer", "POST", "/public/leads")
+    assert len(budgets) == 3
+    assert budgets[2].limit == 5 and budgets[2].window_seconds == settings.auth_rate_limit_window_seconds
+    assert service.budgets("other", "POST", "/public/leads")[2].key != budgets[2].key
+    assert len(service.budgets("peer", "POST", "/clients")) == 2

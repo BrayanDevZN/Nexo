@@ -13,3 +13,13 @@ export function whatsappLink(number: string, message: string, origin: string | n
   const text = origin ? `${message} (origem: ${origin})` : message;
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }
+
+/** The ad click identifier (gclid and its iOS variants), kept so the sale can later be tied back to the ad. */
+export function clickId(search: string): string | null {
+  const params = new URLSearchParams(search);
+  for (const key of ["gclid", "gbraid", "wbraid"]) {
+    const value = (params.get(key) || "").trim();
+    if (/^[A-Za-z0-9_-]{1,200}$/.test(value)) return value;
+  }
+  return null;
+}
