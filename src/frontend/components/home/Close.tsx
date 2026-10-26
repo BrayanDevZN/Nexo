@@ -58,6 +58,7 @@ export function Close() {
             {reduced ? "Ativar animações" : "Reduzir animações"}
           </button>
           <a href="/privacidade">Política de privacidade</a>
+          <a href="mailto:nexo.bd.owners@gmail.com">nexo.bd.owners@gmail.com</a>
           <CookiePreferencesButton />
           <a href="#inicio">Voltar ao topo</a>
         </div>

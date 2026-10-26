@@ -322,6 +322,7 @@ export default function AccountingLanding() {
           <div className="nx-footer-legal">
             <p>© {new Date().getFullYear()} Nexo. Todos os direitos reservados.</p>
             <a href="/privacidade">Política de privacidade</a>
+            <a href="mailto:nexo.bd.owners@gmail.com">nexo.bd.owners@gmail.com</a>
             <CookiePreferencesButton />
           </div>
         </footer>

@@ -92,3 +92,10 @@ test("no cookie notice and no Google script while no tag is configured", async (
   await expect(page.getByRole("dialog", { name: "Aviso de cookies" })).toHaveCount(0);
   await expect(page.locator("script[src*='googletagmanager']")).toHaveCount(0);
 });
+
+test("both public pages show the privacy link and the contact email in the footer", async ({ page }) => {
+  for (const path of ["/", "/contabilidade"]) {
+    await page.goto(path);
+    await expect(page.getByRole("link", { name: "nexo.bd.owners@gmail.com" })).toHaveAttribute("href", "mailto:nexo.bd.owners@gmail.com");
+  }
+});
