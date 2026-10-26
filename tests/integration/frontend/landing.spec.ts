@@ -65,3 +65,12 @@ test("the main site is unchanged and the page is only served at its own path", a
   await page.goto("/contabilidade/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Pare de correr atrás de documento");
 });
+
+test("the hero illustration is described, labelled as illustrative and shows no real client", async ({ page }) => {
+  await page.goto("/contabilidade");
+  const figure = page.getByRole("figure", { name: /Ilustração: extratos, notas fiscais e comprovantes/ });
+  await expect(figure).toBeVisible();
+  await expect(figure).toContainText("Visão ilustrativa");
+  await expect(figure).toContainText("Cliente A");
+  await expect(figure).not.toContainText(/\d/);
+});

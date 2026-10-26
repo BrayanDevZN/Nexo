@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { ArrowUpRight, Check, MessageCircle } from "lucide-react";
+import { AccountingVisual } from "@/components/AccountingVisual";
 import { Brand } from "@/components/Brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,29 +68,32 @@ export default function AccountingLanding() {
       </header>
       <main id="conteudo" ref={revealRef}>
         <section className="lp-hero shell" aria-labelledby="lp-hero-title">
-          <Badge variant="outline">
-            <span className="signal-dot" /> AUTOMAÇÃO PARA ESCRITÓRIOS DE
-            CONTABILIDADE
-          </Badge>
-          <h1 id="lp-hero-title">
-            Pare de correr atrás de documento <span>todo mês.</span>
-          </h1>
-          <p>
-            A Nexo cria automações sob medida para escritórios de contabilidade:
-            documentos dos clientes organizados e menos trabalho manual para a
-            sua equipe.
-          </p>
-          <div className="lp-hero-actions">
-            <Button size="lg" asChild>
-              <a {...whatsapp("hero")}>
-                Falar com a Nexo no WhatsApp{" "}
-                <ArrowUpRight data-icon="inline-end" />
-              </a>
-            </Button>
-            <span className="lp-note">
-              CONVERSA INICIAL DE 20 MINUTOS, SEM CUSTO
-            </span>
+          <div className="lp-hero-copy">
+            <Badge variant="outline">
+              <span className="signal-dot" /> AUTOMAÇÃO PARA ESCRITÓRIOS DE
+              CONTABILIDADE
+            </Badge>
+            <h1 id="lp-hero-title">
+              Pare de correr atrás de documento <span>todo mês.</span>
+            </h1>
+            <p>
+              A Nexo cria automações sob medida para escritórios de contabilidade:
+              documentos dos clientes organizados e menos trabalho manual para a
+              sua equipe.
+            </p>
+            <div className="lp-hero-actions">
+              <Button size="lg" asChild>
+                <a {...whatsapp("hero")}>
+                  Falar com a Nexo no WhatsApp{" "}
+                  <ArrowUpRight data-icon="inline-end" />
+                </a>
+              </Button>
+              <span className="lp-note">
+                CONVERSA INICIAL DE 20 MINUTOS, SEM CUSTO
+              </span>
+            </div>
           </div>
+          <AccountingVisual />
         </section>
         <div className="shell outcomes" aria-label="Objetivos da automação">
           {outcomes.map((outcome, index) => (
