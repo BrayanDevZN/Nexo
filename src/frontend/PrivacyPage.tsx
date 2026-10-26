@@ -23,7 +23,7 @@ export default function PrivacyPage() {
 
         <h2>Quem somos</h2>
         <p>
-          A Nexo desenvolve agentes de inteligência artificial e automações para empresas e escritórios de
+          A Nexo, controladora dos dados tratados neste site, desenvolve agentes de inteligência artificial e automações para empresas e escritórios de
           contabilidade. Esta política explica quais dados pessoais tratamos quando você visita este site ou fala
           conosco, e quais são os seus direitos, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
         </p>
@@ -85,8 +85,9 @@ export default function PrivacyPage() {
 
         <h2>Como falar com a gente sobre seus dados</h2>
         <p>
-          Envie o seu pedido pelo nosso <a href={contactUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>,
-          informando que é sobre privacidade. Respondemos no prazo da lei.
+          Envie o seu pedido para <a href="mailto:nexo.bd.owners@gmail.com">nexo.bd.owners@gmail.com</a> ou pelo nosso{" "}
+          <a href={contactUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>, informando que é sobre
+          privacidade. Respondemos no prazo da lei.
         </p>
 
         <h2>Mudanças nesta política</h2>
