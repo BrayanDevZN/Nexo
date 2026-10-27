@@ -21,6 +21,7 @@ class _Batch:
     actor: object
     niche: str
     items: list[str]
+    sales_channel: str | None = None
     created_at: float = field(default_factory=time.monotonic)
     finished_at: float | None = None
 
@@ -39,14 +40,15 @@ class FunnelImportService:
         # A single worker keeps leads in order and makes the duplicate check deterministic.
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="nexo-funnel")
 
-    def submit(self, actor, niche: str, leads: list[dict]) -> dict:
+    def submit(self, actor, niche: str, leads: list[dict], sales_channel: str | None = None) -> dict:
         if not leads or len(leads) > MAX_LEADS:
             raise ValueError(f"Envie de 1 a {MAX_LEADS} leads")
         with self._lock:
             self._forget_old()
             if any(batch.owner_id == actor.id and batch.finished_at is None for batch in self._batches.values()):
                 raise ResourceConflict("Já existe uma adição ao funil em andamento. Aguarde terminar.")
-            batch = _Batch(id=str(uuid4()), owner_id=actor.id, actor=actor, niche=niche, items=["queued"] * len(leads))
+            batch = _Batch(id=str(uuid4()), owner_id=actor.id, actor=actor, niche=niche, items=["queued"] * len(leads),
+                           sales_channel=sales_channel)
             self._batches[batch.id] = batch
         for index, lead in enumerate(leads):
             self._executor.submit(self._run, batch, index, lead)
@@ -63,7 +65,7 @@ class FunnelImportService:
         with self._lock:
             batch.items[index] = "processing"
         try:
-            result = self.clients.import_leads(batch.actor, batch.niche, [lead])
+            result = self.clients.import_leads(batch.actor, batch.niche, [lead], sales_channel=batch.sales_channel)
             status = "created" if result["created"] else "duplicate"
         except AccessDenied:
             status = "failed"

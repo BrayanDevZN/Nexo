@@ -148,7 +148,7 @@ class ClientService:
             self._emit("closedContract", row)
         return row
 
-    def import_leads(self, actor, niche, leads):
+    def import_leads(self, actor, niche, leads, sales_channel=None):
         """Save Google Maps leads as funnel clients, skipping ones already registered by name or phone."""
         prepared = [(lead, lead_phone(lead.get("phone"))) for lead in leads]
         notices = []
@@ -165,7 +165,8 @@ class ClientService:
                     continue
                 row = repos.clients.create(
                     created_by_id=actor.id, name=name, niche=niche, phone=phone, email=_lead_email(lead.get("emails")),
-                    address=(lead.get("address") or None), notes=_lead_notes(lead), pipeline_stage="lead")
+                    address=(lead.get("address") or None), notes=_lead_notes(lead), pipeline_stage="lead",
+                    sales_channel=sales_channel)
                 row.created_by_name = creator
                 known_names.add(name.lower())
                 if phone:

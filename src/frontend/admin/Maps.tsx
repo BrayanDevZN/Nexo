@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError, CLIENT_NICHES, type createApi } from "./api";
 import { mapsUrl } from "./contact";
+import { CONTACT_CHOICES, channelFor, matchesContact, needsEmailSearch, type ContactChoice } from "./leadContact";
 import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -72,7 +73,8 @@ const NICHE_SEARCH: Record<string, string[]> = {
 const NICHES = CLIENT_NICHES.filter(niche => NICHE_SEARCH[niche]);
 const LIMITS = [10, 20, 50, 100, 200];
 const JOB_META_KEY = "nexo-maps-job-meta";
-type JobMeta = { niche?: string; limit?: number };
+type JobMeta = { niche?: string; limit?: number; contact?: ContactChoice };
+const isContactChoice = (value: unknown): value is ContactChoice => CONTACT_CHOICES.some(choice => choice.value === value);
 const readJobMeta = (): Record<string, JobMeta> => {
   try { return JSON.parse(localStorage.getItem(JOB_META_KEY) || "{}") as Record<string, JobMeta>; } catch { return {}; }
 };
@@ -121,7 +123,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const [results, setResults] = useState<Results>();
   const [resultsLoading, setResultsLoading] = useState(false);
   const [filter, setFilter] = useState("");
-  const [onlyPhone, setOnlyPhone] = useState(false);
+  const [contact, setContact] = useState<ContactChoice>("any");
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
@@ -132,7 +134,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const [resultLimit, setResultLimit] = useState(0);
   const [form, setForm] = useState({
     name: "", niche: NICHES[0] as string, limit: 20, city: CITIES[0].name, lat: CITIES[0].lat, lon: CITIES[0].lon, radius: "5000",
-    depth: 3, lang: "pt", duration: 300, email: false, fast: false,
+    depth: 3, lang: "pt", duration: 300, email: false, fast: false, contact: "any" as ContactChoice,
   });
 
   const load = useCallback(async () => {
@@ -156,9 +158,10 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const selected = jobs?.find(job => job.id === selectedId);
   const selectedStatus = selected?.status;
   useEffect(() => {
-    setResults(undefined); setFilter(""); setOnlyPhone(false); setAdded(new Set()); setExisting(new Set()); setFailed(new Set());
+    setResults(undefined); setFilter(""); setContact("any"); setAdded(new Set()); setExisting(new Set()); setFailed(new Set());
     const meta = readJobMeta()[selectedId];
     setResultLimit(meta?.limit ?? 0);
+    if (isContactChoice(meta?.contact)) setContact(meta.contact);
     if (meta?.niche && NICHES.some(niche => niche === meta.niche)) setLeadNiche(meta.niche);
     if (!selectedId || selectedStatus !== "ok") return;
     let active = true;
@@ -173,10 +176,10 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
   const visible = useMemo(() => {
     const term = filter.trim().toLowerCase();
     const matching = (results?.rows ?? []).filter(row =>
-      (!onlyPhone || row.phone) &&
+      matchesContact(row, contact) &&
       (!term || [row.title, row.category, row.address, row.phone, row.website, row.emails].some(value => value?.toLowerCase().includes(term))));
     return resultLimit > 0 ? matching.slice(0, resultLimit) : matching;
-  }, [results, filter, onlyPhone, resultLimit]);
+  }, [results, filter, contact, resultLimit]);
   const pending = visible.filter(row => row.title && !added.has(leadKey(row)) && !existing.has(leadKey(row)));
 
   function pickCity(name: string) {
@@ -199,9 +202,9 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       const created = await api.mutate<{ id: string }>("/maps/jobs", "POST", {
         name: form.name.trim() || `${form.niche} · ${form.city || "local personalizado"}`.slice(0, 80),
         keywords, niche: form.niche, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
-        email: form.email, fast_mode: form.fast,
+        email: form.email || needsEmailSearch(form.contact), fast_mode: form.fast,
       });
-      saveJobMeta(created.id, { niche: form.niche, limit: form.limit });
+      saveJobMeta(created.id, { niche: form.niche, limit: form.limit, contact: form.contact });
       setLeadNiche(form.niche);
       setSuccess("Busca iniciada. Os resultados aparecem aqui quando ela terminar.");
       await load();
@@ -249,7 +252,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     setFailed(current => { const next = new Set(current); keys.forEach(key => next.delete(key)); return next; });
     setBatch({ id: "", jobId: selectedId, keys });
     try {
-      const started = await api.mutate<BatchStatus>("/maps/funnel/batches", "POST", { niche: leadNiche, leads });
+      const started = await api.mutate<BatchStatus>("/maps/funnel/batches", "POST", { niche: leadNiche, leads, sales_channel: channelFor(contact) });
       const next: Batch = { id: started.id, jobId: selectedId, keys, status: started };
       setBatch(next); saveBatch(next);
     } catch (e) { setError(message(e)); setBatch(null); }
@@ -406,8 +409,15 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 </Field>
                 <TextField label="Nome da busca (opcional)" maxLength={80} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} />
               </div>
+              <Field>
+                <FieldLabel htmlFor="maps-contact">Contato que você quer nos leads</FieldLabel>
+                <NativeSelect id="maps-contact" value={form.contact} onChange={event => setForm({ ...form, contact: event.target.value as ContactChoice })}>
+                  {CONTACT_CHOICES.map(choice => <NativeSelectOption key={choice.value} value={choice.value}>{choice.label}</NativeSelectOption>)}
+                </NativeSelect>
+                <FieldDescription>WhatsApp conta só celular (o mapa também lista telefone fixo, que quase nunca tem WhatsApp). Ao escolher e-mail, a busca lê os sites das empresas. O contato escolhido vira o canal de vendas dos leads que você adicionar.</FieldDescription>
+              </Field>
               <Field orientation="horizontal">
-                <Switch id="maps-email" checked={form.email} onCheckedChange={checked => setForm({ ...form, email: checked })} />
+                <Switch id="maps-email" checked={form.email || needsEmailSearch(form.contact)} disabled={needsEmailSearch(form.contact)} onCheckedChange={checked => setForm({ ...form, email: checked })} />
                 <FieldLabel htmlFor="maps-email">Buscar e-mails nos sites das empresas</FieldLabel>
               </Field>
               <FieldDescription>Deixa a busca mais lenta, mas traz o contato que mais interessa para prospecção.</FieldDescription>
@@ -461,7 +471,12 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
         {results && <>
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-[14rem] flex-1"><Input value={filter} onChange={event => setFilter(event.target.value)} placeholder="Filtrar por nome, categoria, endereço…" aria-label="Filtrar resultados" /></div>
-            <Field orientation="horizontal" className="w-auto"><Switch id="maps-phone" checked={onlyPhone} onCheckedChange={setOnlyPhone} /><FieldLabel htmlFor="maps-phone">Só com telefone</FieldLabel></Field>
+            <Field orientation="horizontal" className="w-auto">
+              <FieldLabel htmlFor="maps-result-contact">Contato</FieldLabel>
+              <NativeSelect id="maps-result-contact" value={contact} onChange={event => setContact(event.target.value as ContactChoice)}>
+                {CONTACT_CHOICES.map(choice => <NativeSelectOption key={choice.value} value={choice.value}>{choice.label}</NativeSelectOption>)}
+              </NativeSelect>
+            </Field>
             <Button variant="outline" disabled={!visible.length} onClick={download}><Download data-icon="inline-start" /> Baixar CSV ({visible.length})</Button>
           </div>
           <div className="flex flex-wrap items-end justify-between gap-3">

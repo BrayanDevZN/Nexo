@@ -241,14 +241,14 @@ test("dev home shows keys, API usage, databases and automations, each tolerating
   await expect(page.getByRole("button", { name: "Início", exact: true })).toBeVisible();
 });
 
-async function openMaps(page: Page, status: "working" | "ok", leadRequests: Record<string, unknown>[] = []) {
+async function openMaps(page: Page, status: "working" | "ok", leadRequests: Record<string, unknown>[] = [], extraRows: Record<string, unknown>[] = []) {
   await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
   const json = (body: unknown, code = 200) => ({ status: code, contentType: "application/json", body: JSON.stringify(body) });
   await page.route("**/api/maps/status", route => route.fulfill(json({ configured: true, source: "panel", key_prefix: "nexo_live_ab12", updated_at: null, own: true })));
   await page.route("**/api/maps/jobs", route => route.fulfill(json([{ id: "11111111-1111-4111-8111-111111111111", name: "Alimentação · São Paulo", status, created_at: "2026-10-23T10:00:00" }])));
-  await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: 2, in_funnel: 0, truncated: false, rows: [
+  await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: 2 + extraRows.length, in_funnel: 0, truncated: false, rows: [
     { title: "Padaria A", category: "Padaria", address: "Rua A, 1", phone: "11 3333-4444", website: null, emails: null, review_rating: 4.5, review_count: 10, link: null, latitude: -23.5, longitude: -46.6 },
-    { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }] })));
+    { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }, ...extraRows] })));
   // The server saves the leads in the background: one more lead is done every two status polls.
   let total = 0, polls = 0;
   const snapshot = () => {
@@ -653,4 +653,31 @@ test("the night mode button is also in the panel's top bar once signed in", asyn
   await page.locator(".admin-topbar").getByRole("button", { name: "Ativar modo noturno" }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
   await expect(page.locator(".admin-topbar").getByRole("button", { name: "Desativar modo noturno" })).toBeVisible();
+});
+
+
+test("maps lets the team choose WhatsApp, e-mail or both and saves it as the leads' channel", async ({ page }) => {
+  const lead = (title: string, phone: string | null, emails: string | null) => ({ title, category: "Contabilidade", address: "Rua " + title, phone, website: null, emails, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
+  const requests: Record<string, unknown>[] = [];
+  await openMaps(page, "ok", requests, [lead("Padaria Celular", "(31) 99999-1111", null), lead("Padaria Email", null, "oi@soemail.com"), lead("Padaria Completa", "+55 31 98888-2222", "a@b.com, c@d.com")]);
+  const choose = async (label: string) => { await page.getByLabel("Contato", { exact: true }).click(); await page.getByRole("option", { name: label, exact: true }).click(); };
+  await choose("WhatsApp (celular)");
+  await expect(page.getByText("Padaria Celular").first()).toBeVisible();
+  await expect(page.getByText("Padaria Completa").first()).toBeVisible();
+  await expect(page.getByText("Padaria A")).toHaveCount(0); // a landline does not count as WhatsApp
+  await expect(page.getByText("Padaria Email")).toHaveCount(0);
+  await choose("E-mail");
+  await expect(page.getByText("Padaria Email").first()).toBeVisible();
+  await expect(page.getByText("Padaria Celular")).toHaveCount(0);
+  await choose("WhatsApp e e-mail");
+  await expect(page.getByText("Padaria Completa").first()).toBeVisible();
+  await expect(page.getByText("Padaria Email")).toHaveCount(0);
+  await expect(page.getByText("Padaria Celular")).toHaveCount(0);
+  await page.getByRole("button", { name: "Adicionar Padaria Completa ao funil" }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0].sales_channel).toBeNull();
+  await choose("E-mail");
+  await page.getByRole("button", { name: "Adicionar Padaria Email ao funil" }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].sales_channel).toBe("email");
 });

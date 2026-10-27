@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.domain.client_channels import SalesChannel
 from backend.domain.client_niches import validate_client_niche
 
 
@@ -59,6 +60,8 @@ class MapsFunnelInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     niche: str
     leads: list[MapsLead] = Field(min_length=1, max_length=200)
+    # The contact the team will use with these leads (for example whatsapp or email); null leaves it empty.
+    sales_channel: SalesChannel | None = None
 
     @field_validator("niche")
     @classmethod

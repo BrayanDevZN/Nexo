@@ -139,6 +139,15 @@ def test_leads_are_saved_to_the_funnel_and_repeats_are_skipped(client):
     assert client.post("/maps/funnel", headers=headers, json={"niche": "Varejo", "leads": []}).status_code == 422
 
 
+def test_the_chosen_contact_channel_is_kept_on_the_saved_leads(client):
+    headers = sign_in(client)
+    body = {"niche": "Alimentação", "leads": [{"title": "Padaria Z", "phone": "(11) 99999-1111"}], "sales_channel": "whatsapp"}
+    assert client.post("/maps/funnel", headers=headers, json=body).status_code == 201
+    assert client.get("/clients", params={"name": "Padaria Z"}).json()[0]["sales_channel"] == "whatsapp"
+    assert client.post("/maps/funnel", headers=headers, json={**body, "sales_channel": "pombo"}).status_code == 422
+    assert client.post("/maps/funnel/batches", headers=headers, json={**body, "sales_channel": "pombo"}).status_code == 422
+
+
 def test_saved_leads_no_longer_appear_in_results(client):
     headers = sign_in(client)
     assert client.get(f"/maps/jobs/{JOB}/results").json()["total"] == 1

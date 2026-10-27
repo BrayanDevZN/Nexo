@@ -56,10 +56,10 @@ def test_a_failing_lead_does_not_stop_the_others(runtime, monkeypatch):
     service, actor, _ = runtime
     original = service.clients.import_leads
 
-    def flaky(who, niche, leads):
+    def flaky(who, niche, leads, sales_channel=None):
         if leads[0]["title"] == "Quebra":
             raise RuntimeError("boom")
-        return original(who, niche, leads)
+        return original(who, niche, leads, sales_channel=sales_channel)
 
     monkeypatch.setattr(service.clients, "import_leads", flaky)
     status = wait_finished(service, actor, service.funnel_imports.submit(
@@ -71,7 +71,7 @@ def test_one_batch_at_a_time_per_member_and_batches_are_private(runtime, monkeyp
     service, actor, other = runtime
     gate = threading.Event()
     original = service.clients.import_leads
-    monkeypatch.setattr(service.clients, "import_leads", lambda *args: (gate.wait(5), original(*args))[1])
+    monkeypatch.setattr(service.clients, "import_leads", lambda *args, **kwargs: (gate.wait(5), original(*args, **kwargs))[1])
     first = service.funnel_imports.submit(actor, "Alimentação", [{"title": "Lenta"}])
     with pytest.raises(ResourceConflict):
         service.funnel_imports.submit(actor, "Alimentação", [{"title": "Outra"}])
@@ -89,3 +89,14 @@ def test_batch_size_is_limited(runtime):
         service.funnel_imports.submit(actor, "Alimentação", [])
     with pytest.raises(ValueError):
         service.funnel_imports.submit(actor, "Alimentação", [{"title": str(n)} for n in range(201)])
+
+
+def test_the_chosen_contact_channel_is_saved_on_every_lead_of_the_batch(runtime):
+    service, actor, _ = runtime
+    leads = [{"title": "Padaria A", "phone": "(11) 99999-1111"}, {"title": "Padaria B", "emails": "b@padaria.com"}]
+    status = wait_finished(service, actor, service.funnel_imports.submit(actor, "Alimentação", leads, sales_channel="whatsapp")["id"])
+    assert status["created"] == 2
+    assert {row["name"]: row["sales_channel"] for row in service.clients.list(actor)} == {"Padaria A": "whatsapp", "Padaria B": "whatsapp"}
+    other = wait_finished(service, actor, service.funnel_imports.submit(actor, "Alimentação", [{"title": "Padaria C"}])["id"])
+    assert other["created"] == 1
+    assert {row["name"]: row["sales_channel"] for row in service.clients.list(actor)}["Padaria C"] is None

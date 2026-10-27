@@ -90,7 +90,7 @@ def add_to_funnel(data: MapsFunnelInput, request: Request, actor=Depends(current
     _check(actor)
     try:
         return request.app.state.services.clients.import_leads(
-            actor, data.niche, [lead.model_dump() for lead in data.leads])
+            actor, data.niche, [lead.model_dump() for lead in data.leads], sales_channel=data.sales_channel)
     except AccessDenied as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
 
@@ -100,7 +100,8 @@ def start_funnel_batch(data: MapsFunnelInput, request: Request, actor=Depends(cu
     """Queue the leads; each one becomes its own background task that creates the client."""
     _check(actor)
     try:
-        return request.app.state.services.funnel_imports.submit(actor, data.niche, [lead.model_dump() for lead in data.leads])
+        return request.app.state.services.funnel_imports.submit(
+            actor, data.niche, [lead.model_dump() for lead in data.leads], sales_channel=data.sales_channel)
     except ResourceConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     except ValueError as exc:
