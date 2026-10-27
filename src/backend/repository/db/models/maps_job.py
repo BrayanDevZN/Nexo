@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
@@ -16,3 +16,10 @@ class MapsJob(IdentityTimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     niche: Mapped[str | None] = mapped_column(String(120))
     notified_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # Searches in the default place widen their radius by themselves when they find nothing.
+    auto_expand: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+    radius: Mapped[int | None] = mapped_column(Integer)
+    start_radius: Mapped[int | None] = mapped_column(Integer)
+    # The request sent to the maps server (JSON), so the same search can be repeated with a bigger radius.
+    params: Mapped[str | None] = mapped_column(Text)
+    expanded_to: Mapped[str | None] = mapped_column(String(36))

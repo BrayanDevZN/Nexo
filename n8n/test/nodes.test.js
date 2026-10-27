@@ -328,7 +328,8 @@ test('Maps Get Many and Get read from the maps server and return one item per se
 	assert.equal(list.request.url, 'api/v1/jobs');
 	assert.equal(list.request.baseURL, 'https://nexo-production-52a1.up.railway.app/');
 	assert.deepEqual(list.output[0].map((item) => item.json), jobs);
-	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'getMany' }, null)).output[0], []);
+	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'getMany' }, null)).output[0], [{ json: { found: 0, message: 'Nenhuma busca do Maps encontrada.' }, pairedItem: { item: 0 } }]);
+	assert.equal((await executeNexo({ resource: 'maps', operation: 'getMany' }, [])).output[0][0].json.found, 0);
 
 	const one = await executeNexo({ resource: 'maps', operation: 'get', identifier: MAPS_JOB }, jobs[0]);
 	assert.equal(one.request.url, `api/v1/jobs/${MAPS_JOB}`);
@@ -353,8 +354,80 @@ test('Maps results parse the CSV into one item per company, with a normalized ph
 	assert.equal(rows[1].phone_e164, '+5511971555292');
 	assert.equal(rows[2].phone_e164, null);
 	assert.deepEqual(rows.map((row) => [row.is_mobile, row.has_email]), [[false, false], [true, true], [false, false]]);
-	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'results', identifier: MAPS_JOB }, 'title,phone\n')).output[0], []);
-	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'results', identifier: MAPS_JOB }, '')).output[0], []);
+});
+
+// Answers every request the node makes with the function's result and remembers them all.
+async function executeNexoWith(parameters, answer) {
+	const requests = [];
+	const context = {
+		getInputData: () => [{ json: {} }],
+		getNodeParameter: (name, _index, fallback) => parameters[name] ?? fallback,
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test', apiKey: 'test' }),
+		helpers: { httpRequestWithAuthentication: async function (_credential, options) { requests.push(options); return answer(options); } },
+	};
+	return { output: await Nexo.prototype.execute.call(context), requests };
+}
+const EMPTY_CSV = 'title,phone,emails\r\n';
+const SEARCH_JOB = (overrides = {}) => ({ ID: MAPS_JOB, Name: 'Contabilidade · São Paulo (SP)', Status: 'ok', Data: { keywords: ['escritório de contabilidade', 'contador'], lang: 'pt', zoom: 15, lat: '-23.5505', lon: '-46.6333', radius: 5000, depth: 3, email: true, fast_mode: false, max_time: 300000000000, ...overrides } });
+const RESULTS = { resource: 'maps', operation: 'results', identifier: MAPS_JOB };
+const answerEmptySearch = (job) => (options) => options.method === 'POST' ? { id: 'new-job' } : options.url.endsWith('/download') ? EMPTY_CSV : job;
+
+test('Maps results of a search with no companies in the default place start a wider search and say so', async () => {
+	const { output, requests } = await executeNexoWith(RESULTS, answerEmptySearch(SEARCH_JOB()));
+	assert.deepEqual(requests.map((request) => `${request.method} ${request.url}`), [`GET api/v1/jobs/${MAPS_JOB}/download`, `GET api/v1/jobs/${MAPS_JOB}`, 'POST api/v1/jobs']);
+	assert.deepEqual(requests[2].body, { name: 'Contabilidade · São Paulo (SP) · 10 km', keywords: ['escritório de contabilidade', 'contador'], lang: 'pt', lat: '-23.5505', lon: '-46.6333', zoom: 15, radius: 10000, depth: 3, email: true, fast_mode: false, max_time: 300 });
+	assert.equal(output[0].length, 1);
+	assert.deepEqual(output[0][0].json, { found: 0, job_id: MAPS_JOB, total_in_search: 0, contact: 'any', expanded: true, previous_radius: 5000, new_radius: 10000, new_job_id: 'new-job', message: 'Nenhuma empresa em 5 km. Criamos uma busca nova com 10 km: aguarde ela terminar e baixe os resultados do new_job_id.' });
+	const again = await executeNexoWith(RESULTS, answerEmptySearch(SEARCH_JOB({ radius: 20000 })));
+	assert.equal(again.requests[2].body.radius, 40000);
+	const last = await executeNexoWith(RESULTS, answerEmptySearch({ ...SEARCH_JOB({ radius: 40000 }), Name: 'Contabilidade · São Paulo (SP) · 40 km' }));
+	assert.equal(last.requests[2].body.radius, 50000);
+	assert.equal(last.requests[2].body.name, 'Contabilidade · São Paulo (SP) · 50 km');
+});
+
+test('Maps results never widen a place typed by the user, the maximum radius or when switched off, but still answer', async () => {
+	const cases = [
+		[SEARCH_JOB({ lat: '-19.9', lon: '-43.9' }), {}, 'custom_place', /só no perímetro informado/],
+		[SEARCH_JOB({ radius: 50000 }), {}, 'max_radius', /até 50 km/],
+		[SEARCH_JOB(), { mapsExpand: false }, 'disabled', /desligada/],
+	];
+	for (const [job, extra, reason, message] of cases) {
+		const { output, requests } = await executeNexoWith({ ...RESULTS, ...extra }, answerEmptySearch(job));
+		assert.equal(requests.some((request) => request.method === 'POST'), false, reason);
+		assert.equal(output[0].length, 1);
+		assert.equal(output[0][0].json.found, 0);
+		assert.equal(output[0][0].json.expanded, false);
+		assert.equal(output[0][0].json.reason, reason);
+		assert.match(output[0][0].json.message, message);
+	}
+});
+
+test('Maps results answer even when the search has no body at all', async () => {
+	const { output } = await executeNexoWith(RESULTS, (options) => options.url.endsWith('/download') ? '' : {});
+	assert.equal(output[0].length, 1);
+	assert.equal(output[0][0].json.found, 0);
+	assert.equal(output[0][0].json.reason, 'custom_place');
+});
+
+test('Maps results say when companies were found but none has the chosen contact, without widening', async () => {
+	const csv = 'title,phone,emails\r\nSó fixo,(31) 3333-4444,\r\n';
+	const { output, requests } = await executeNexoWith({ ...RESULTS, mapsResultsContact: 'whatsapp' }, () => csv);
+	assert.equal(requests.length, 1);
+	assert.deepEqual(output[0][0].json, { found: 0, job_id: MAPS_JOB, total_in_search: 1, contact: 'whatsapp', expanded: false, reason: 'no_contact', message: 'A busca achou 1 empresa(s), mas nenhuma tem o contato escolhido.' });
+});
+
+test('Maps results with companies return them and make no extra request', async () => {
+	const { output, requests } = await executeNexoWith(RESULTS, () => 'title,phone,emails\r\nAlfa,(31) 99999-1111,\r\n');
+	assert.equal(requests.length, 1);
+	assert.equal(output[0].length, 1);
+	assert.equal(output[0][0].json.title, 'Alfa');
+});
+
+test('Maps results expose the widening switch, on by default', () => {
+	const field = new Nexo().description.properties.find((candidate) => candidate.name === 'mapsExpand');
+	assert.equal(field.type, 'boolean');
+	assert.equal(field.default, true);
+	assert.deepEqual(field.displayOptions.show.operation, ['results']);
 });
 
 test('Maps results keep only the companies that have the chosen contact and suggest the sales channel', async () => {

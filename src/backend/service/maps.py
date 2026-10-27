@@ -2,7 +2,9 @@ import base64
 import csv
 import hashlib
 import io
+import json
 import logging
+import threading
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -15,6 +17,8 @@ from backend.service.clients import lead_phone
 logger = logging.getLogger(__name__)
 
 MAX_ROWS = 1000
+# A search in the default place that finds nothing is repeated with a radius twice as big, up to this one (meters).
+MAX_RADIUS = 50000
 # Searches older than this are no longer announced (the server may have been down for a long time).
 NOTIFY_WINDOW = timedelta(hours=6)
 EMAIL_LEADS = 10
@@ -53,6 +57,7 @@ class MapsService:
         # Set by the runtime: emails, push and the in-app notice when a search finishes.
         self.messages = None
         self.push = None
+        self._expand_lock = threading.Lock()
         # The saved key is encrypted at rest. Rotating the JWT secret makes it unreadable (re-enter it).
         self._fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"nexo-maps-key:" + secret.encode()).digest()))
 
@@ -135,23 +140,83 @@ class MapsService:
         created = self._call("POST", "/api/v1/jobs", user_id=actor_id, json=body).json()
         job_id = str(created["id"])
         if actor_id:
+            params = json.dumps({"body": body, "base_name": data["name"]})
             with self.repositories.transaction() as repos:
-                repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"))
+                repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"),
+                                      auto_expand=bool(data.get("auto_expand")), radius=data["radius"],
+                                      start_radius=data["radius"], params=params)
         return {"id": job_id}
 
     def job(self, job_id: UUID, user_id: str | None = None) -> dict:
         return self._summary(self._call("GET", f"/api/v1/jobs/{job_id}", user_id=user_id).json())
 
-    def results(self, job_id: UUID, user_id: str | None = None) -> dict:
+    def _download(self, job_id: UUID | str, user_id: str | None = None) -> list[dict]:
         text = self._call("GET", f"/api/v1/jobs/{job_id}/download", user_id=user_id).content.decode("utf-8", "replace")
         try:
-            leads = [self._lead(row) for row in csv.DictReader(io.StringIO(text))]
+            return [self._lead(row) for row in csv.DictReader(io.StringIO(text))]
         except csv.Error:
             raise MapsUnavailable("Maps results could not be read") from None
+
+    def results(self, job_id: UUID, user_id: str | None = None) -> dict:
+        leads = self._download(job_id, user_id)
         fresh = self._without_funnel(leads)
         rows = fresh[:MAX_ROWS]
+        info = self._expansion(str(job_id))
+        if not leads:
+            # Nothing at all on the map: a search in the default place goes on with a bigger radius.
+            info["expanded_to"] = self._try_expand(str(job_id), known_count=0) or info["expanded_to"]
         return {"rows": rows, "total": len(fresh), "truncated": len(fresh) > len(rows),
-                "in_funnel": len(leads) - len(fresh)}
+                "in_funnel": len(leads) - len(fresh), **info}
+
+    def _expansion(self, job_id: str) -> dict:
+        """What the panel needs to explain a widened search: the radius now, where it started and what replaced it."""
+        with self.repositories.read_transaction() as repos:
+            tracked = repos.maps_jobs.by_job_id(job_id)
+            if tracked is None:
+                return {"auto_expand": False, "radius": None, "start_radius": None, "expanded_to": None}
+            return {"auto_expand": bool(tracked.auto_expand), "radius": tracked.radius,
+                    "start_radius": tracked.start_radius, "expanded_to": tracked.expanded_to}
+
+    def _try_expand(self, job_id: str, known_count: int | None = None) -> str | None:
+        try:
+            return self.expand_if_empty(job_id, known_count)
+        except (MapsNotConfigured, MapsUnauthorized, MapsJobNotFound, MapsUnavailable):
+            logger.warning("Maps search could not be widened", exc_info=True)
+            return None
+
+    def expand_if_empty(self, job_id: str, known_count: int | None = None) -> str | None:
+        """Repeat a finished search that found nothing with a radius twice as big. Returns the new search's id.
+
+        Only searches made in the default place are widened (the creator picked "auto_expand"); a place typed
+        by the user is searched only in that perimeter. A search is widened once, up to MAX_RADIUS.
+        """
+        with self._expand_lock:
+            with self.repositories.read_transaction() as repos:
+                tracked = repos.maps_jobs.by_job_id(job_id)
+                if tracked is None or not tracked.auto_expand:
+                    return None
+                if tracked.expanded_to:
+                    return tracked.expanded_to
+                radius, start, params, name, niche, owner = (tracked.radius or 0, tracked.start_radius, tracked.params,
+                                                             tracked.name, tracked.niche, tracked.created_by_id)
+            if not params or not radius or radius >= MAX_RADIUS:
+                return None
+            if self.job(UUID(job_id), owner)["status"] != "ok":
+                return None
+            if known_count is None:
+                known_count = len(self._download(job_id, owner))
+            if known_count:
+                return None
+            data = json.loads(params)
+            bigger = min(radius * 2, MAX_RADIUS)
+            body = {**data["body"], "radius": bigger, "name": f"{data.get('base_name') or name} · {bigger / 1000:g} km"[:80]}
+            created = self._call("POST", "/api/v1/jobs", user_id=owner, json=body).json()
+            new_id = str(created["id"])
+            with self.repositories.transaction() as repos:
+                repos.maps_jobs.track(job_id=new_id, created_by_id=owner, name=body["name"], niche=niche, auto_expand=True,
+                                      radius=bigger, start_radius=start, params=json.dumps({**data, "body": body}))
+                repos.maps_jobs.mark_expanded(job_id, new_id)
+            return new_id
 
     def _without_funnel(self, leads: list[dict]) -> list[dict]:
         """Drop leads already registered as clients (same name or phone), so searches only offer new ones."""
@@ -206,6 +271,11 @@ class MapsService:
                     with self.repositories.transaction() as repos:
                         repos.maps_jobs.claim(job_id)
                 elif job["status"] == "ok":
+                    if self._try_expand(job_id):
+                        # Nothing was found, so a wider search was started: the creator is told when that one ends.
+                        with self.repositories.transaction() as repos:
+                            repos.maps_jobs.claim(job_id)
+                        continue
                     announced += self._announce(job_id, creator_id, name, failed=False)
                 elif job["status"] == "failed":
                     announced += self._announce(job_id, creator_id, name, failed=True)
@@ -224,8 +294,18 @@ class MapsService:
             title, body = "Busca do Maps não terminou", f"A busca \"{name}\" não foi concluída. Tente outra região ou menos profundidade."
         else:
             title = "Busca do Maps concluída"
-            body = (f"A busca \"{name}\" terminou com {found} empresa(s) nova(s)"
-                    + (f" ({in_funnel} já estavam no funil)" if in_funnel else "") + ". Abra o Maps para ver.")
+            info = self._expansion(job_id)
+            radius, start = info["radius"], info["start_radius"]
+            widened = bool(radius and start and radius > start)
+            if not found and not in_funnel:
+                body = (f"A busca \"{name}\" não encontrou nenhuma empresa"
+                        + (f", nem ampliando o raio de {start / 1000:g} km até {radius / 1000:g} km" if widened else "")
+                        + ". Tente outro nicho ou outra cidade.")
+            else:
+                body = (f"A busca \"{name}\" terminou com {found} empresa(s) nova(s)"
+                        + (f" ({in_funnel} já estavam no funil)" if in_funnel else "")
+                        + (f", com o raio ampliado de {start / 1000:g} km para {radius / 1000:g} km" if widened else "")
+                        + ". Abra o Maps para ver.")
         with self.repositories.transaction() as repos:
             if not repos.maps_jobs.claim(job_id):
                 return 0

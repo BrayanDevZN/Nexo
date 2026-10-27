@@ -86,6 +86,15 @@ aparece na aba **API** do painel. Funciona com chave de qualquer cargo, inclusiv
    quem tem **celular** (telefone fixo quase nunca tem WhatsApp), **E-mail** só quem tem e-mail e **WhatsApp e
    e-mail** só quem tem os dois. `sales_channel` vem como `whatsapp` ou `email` quando você escolhe um só contato, e
    `null` nos outros casos, pronto para mapear em **Clientes → Criar → Canal de vendas**.
+   **Quando não há nada para devolver** (a busca não achou empresas, ou nenhuma tem o contato escolhido), o node
+   não devolve uma lista vazia, que pararia o fluxo: devolve **um item** com `found: 0`, `message` e `reason`
+   (`no_contact`, `custom_place`, `max_radius` ou `disabled`). Use um **IF** em `found` para tratar esse caso.
+   Se a busca foi no **local padrão** (uma das cidades da lista) e não achou nenhuma empresa, a opção
+   **Ampliar o raio se não achar nada** (ligada por padrão) cria uma busca nova com o **dobro do raio** (5, 10, 20,
+   40 e até 50 km) e o item traz `expanded: true`, `new_radius` e `new_job_id`. Espere essa busca terminar (**Get**) e
+   baixe os resultados do `new_job_id`; repita enquanto `expanded` for `true`. Buscas com latitude e longitude
+   informadas em **Adicionar opção** ficam só naquele perímetro: o item volta com `reason: "custom_place"`.
+   **Get Many** sem nenhuma busca também devolve um item (`found: 0`).
 4. **Excluir busca** apaga a busca e os resultados do servidor e devolve `{ "id": ..., "deleted": true }`.
 
 Para levar os resultados ao funil, ligue **Baixar resultados** a um node **Clientes → Criar** mapeando

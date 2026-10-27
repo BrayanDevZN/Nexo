@@ -681,3 +681,80 @@ test("maps lets the team choose WhatsApp, e-mail or both and saves it as the lea
   await expect.poll(() => requests.length).toBe(2);
   expect(requests[1].sales_channel).toBe("email");
 });
+
+
+async function mapsWithJobs(page: Page, options: { jobs: () => unknown[]; results: Record<string, unknown>; created: Record<string, unknown>[] }) {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  const json = (body: unknown, code = 200) => ({ status: code, contentType: "application/json", body: JSON.stringify(body) });
+  await page.route("**/api/maps/status", route => route.fulfill(json({ configured: true, source: "panel", key_prefix: "nexo_live_ab12", updated_at: null, own: true })));
+  await page.route("**/api/maps/jobs", route => {
+    if (route.request().method() === "POST") { options.created.push(route.request().postDataJSON()); return route.fulfill(json({ id: "99999999-9999-4999-8999-999999999999" }, 201)); }
+    return route.fulfill(json(options.jobs()));
+  });
+  await page.route("**/api/maps/jobs/*/results", route => {
+    const id = route.request().url().split("/jobs/")[1].split("/")[0];
+    return route.fulfill(json(options.results[id] ?? { rows: [], total: 0, truncated: false, in_funnel: 0 }));
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Maps").click();
+}
+
+test("maps hides latitude, longitude and radius until the button is pressed, and widens only the default place", async ({ page }) => {
+  const created: Record<string, unknown>[] = [];
+  await mapsWithJobs(page, { jobs: () => [], results: {}, created });
+  await expect(page.getByLabel("Latitude")).toHaveCount(0);
+  await expect(page.getByLabel("Longitude")).toHaveCount(0);
+  await expect(page.getByLabel("Raio (m)")).toHaveCount(0);
+  await expect(page.getByText("o raio cresce sozinho")).toBeVisible();
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(1);
+  expect(created[0]).toMatchObject({ lat: -23.5505, lon: -46.6333, radius: 5000, auto_expand: true, niche: "Contabilidade" });
+
+  await page.getByRole("button", { name: "Adicionar latitude, longitude e raio" }).click();
+  await expect(page.getByLabel("Latitude")).toHaveValue("-23.5505");
+  await expect(page.getByText("sem ampliar o raio")).toBeVisible();
+  await page.getByLabel("Latitude").fill("-19.9");
+  await page.getByLabel("Raio (m)").fill("3000");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(2);
+  expect(created[1]).toMatchObject({ lat: -19.9, radius: 3000, auto_expand: false });
+
+  await page.getByRole("button", { name: "Voltar ao local padrão" }).click();
+  await expect(page.getByLabel("Latitude")).toHaveCount(0);
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(3);
+  expect(created[2]).toMatchObject({ lat: -23.5505, lon: -46.6333, radius: 5000, auto_expand: true });
+});
+
+test("maps follows a search that was widened because it found nothing", async ({ page }) => {
+  const first = "11111111-1111-4111-8111-111111111111", wider = "22222222-2222-4222-8222-222222222222";
+  const lead = { title: "Contábil Alfa", category: "Contador", address: "Rua A", phone: "(31) 99999-1111", website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null };
+  const jobs = [{ id: first, name: "Contabilidade · São Paulo (SP)", status: "ok", created_at: "2026-10-27T10:00:00" }];
+  const results = {
+    [first]: { rows: [], total: 0, truncated: false, in_funnel: 0, auto_expand: true, radius: 5000, start_radius: 5000, expanded_to: wider },
+    [wider]: { rows: [lead], total: 1, truncated: false, in_funnel: 0, auto_expand: true, radius: 10000, start_radius: 5000, expanded_to: null },
+  };
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  jobs.push({ id: wider, name: "Contabilidade · São Paulo (SP) · 10 km", status: "ok", created_at: "2026-10-27T10:05:00" });
+  await page.getByRole("button", { name: /^Contabilidade · São Paulo \(SP\)\s*27/ }).first().click();
+  await expect(page.getByText("Raio ampliado")).toBeVisible();
+  await expect(page.getByText("Esta cobre 10 km (começou em 5 km).")).toBeVisible();
+  await expect(page.getByText("Contábil Alfa").first()).toBeVisible();
+});
+
+test("maps says when nothing was found, with the reason", async ({ page }) => {
+  const mine = "33333333-3333-4333-8333-333333333333", maxed = "44444444-4444-4444-8444-444444444444";
+  const jobs = [
+    { id: mine, name: "Local do usuário", status: "ok", created_at: "2026-10-27T10:00:00" },
+    { id: maxed, name: "Já ampliada", status: "ok", created_at: "2026-10-27T09:00:00" },
+  ];
+  const empty = { rows: [], total: 0, truncated: false, in_funnel: 0 };
+  const results = { [mine]: { ...empty, auto_expand: false, radius: 2000, start_radius: 2000, expanded_to: null }, [maxed]: { ...empty, auto_expand: true, radius: 50000, start_radius: 5000, expanded_to: null } };
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  await page.getByRole("button", { name: /^Local do usuário/ }).click();
+  await expect(page.getByText("Nenhuma empresa encontrada")).toBeVisible();
+  await expect(page.getByText("A busca foi só em 2 km ao redor do ponto informado")).toBeVisible();
+  await page.getByRole("button", { name: /^Já ampliada/ }).click();
+  await expect(page.getByText("Nem ampliando o raio até 50 km")).toBeVisible();
+});

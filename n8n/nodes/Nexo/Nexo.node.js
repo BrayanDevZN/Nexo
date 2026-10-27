@@ -78,6 +78,12 @@ const MAPS_CITIES = [
 	{ name: 'Belém (PA)', lat: '-1.4558', lon: '-48.4902' },
 ];
 const MAPS_DEFAULT_CITY = MAPS_CITIES[0];
+const MAPS_MAX_RADIUS = 50000;
+// A place is the default when it is one of the listed cities; a place typed by the user is searched only there.
+function isDefaultPlace(lat, lon) {
+	return MAPS_CITIES.some((city) => Math.abs(Number(city.lat) - Number(lat)) < 1e-6 && Math.abs(Number(city.lon) - Number(lon)) < 1e-6);
+}
+const kmLabel = (meters) => `${Number(meters) / 1000} km`;
 const MAPS_DEFAULT_RADIUS = 5000;
 // Which contact the team wants from the leads. Same choices and rules as the panel's Maps screen.
 const CONTACT_CHOICES = [{ name: 'Qualquer contato', value: 'any' }, { name: 'WhatsApp (celular)', value: 'whatsapp' }, { name: 'E-mail', value: 'email' }, { name: 'WhatsApp e e-mail', value: 'both' }];
@@ -183,6 +189,7 @@ add('Opções', 'mapsOptions', 'collection', {}, 'maps', ['create'], {
 		{ displayName: 'Tempo máximo (segundos)', name: 'mapsMaxTime', type: 'number', default: 300, typeOptions: { minValue: 60, maxValue: 1800 } },
 	],
 });
+add('Ampliar o raio se não achar nada', 'mapsExpand', 'boolean', true, 'maps', ['results'], { description: 'Só vale para buscas no local padrão (uma das cidades da lista). Se a busca não achou nenhuma empresa, cria uma busca nova com o dobro do raio (até 50 km) e devolve o ID dela em new_job_id. Aguarde ela terminar e baixe os resultados da nova busca. Buscas com latitude e longitude informadas ficam só naquele perímetro.' });
 add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 'maps', ['results'], { options: CONTACT_CHOICES, description: 'Devolve só as empresas que têm esse contato. WhatsApp conta só celular. Cada item traz o canal de vendas sugerido (sales_channel).' });
 add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
@@ -271,9 +278,37 @@ class Nexo {
 				}
 			}
 			const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method, baseURL: `${requestBase}/`, url: path.replace(/^\//, ''), qs, body, headers, json: !binaryResult && !csvResult, returnFullResponse: binaryResult, encoding: binaryResult ? 'arraybuffer' : csvResult ? 'text' : 'json', timeout: 30000 });
-			if (csvResult) { const contact = contactChoice(this.getNodeParameter('mapsResultsContact', i, 'any')); for (const lead of parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''))) { if (!matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email }, contact)) continue; returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone), is_mobile: isMobilePhone(lead.phone), has_email: hasEmail(lead.emails ?? lead.email), sales_channel: salesChannelFor(contact) }, pairedItem: { item: i } }); } continue; }
+			if (csvResult) {
+				const contact = contactChoice(this.getNodeParameter('mapsResultsContact', i, 'any'));
+				const leads = parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''));
+				const kept = leads.filter((lead) => matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email }, contact));
+				for (const lead of kept) returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone), is_mobile: isMobilePhone(lead.phone), has_email: hasEmail(lead.emails ?? lead.email), sales_channel: salesChannelFor(contact) }, pairedItem: { item: i } });
+				if (kept.length > 0) continue;
+				// Nothing to return: say so (an empty output would stop the workflow) and, when allowed, widen the search.
+				const jobId = String(this.getNodeParameter('identifier', i, '')).trim();
+				const summary = { found: 0, job_id: jobId, total_in_search: leads.length, contact };
+				if (leads.length > 0) { returnData.push({ json: { ...summary, expanded: false, reason: 'no_contact', message: `A busca achou ${leads.length} empresa(s), mas nenhuma tem o contato escolhido.` }, pairedItem: { item: i } }); continue; }
+				const job = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method: 'GET', baseURL: `${requestBase}/`, url: `api/v1/jobs/${encodedPath(jobId)}`, json: true, timeout: 30000 });
+				const data = job?.Data ?? job?.data ?? {};
+				const radius = Number(data.radius);
+				let reason = null;
+				if (!this.getNodeParameter('mapsExpand', i, true)) reason = 'disabled';
+				else if (!isDefaultPlace(data.lat, data.lon)) reason = 'custom_place';
+				else if (!Number.isFinite(radius) || radius >= MAPS_MAX_RADIUS) reason = 'max_radius';
+				if (reason) {
+					const why = { disabled: 'A ampliação do raio está desligada.', custom_place: 'A busca foi só no perímetro informado, sem ampliar.', max_radius: `Nem ampliando o raio até ${kmLabel(MAPS_MAX_RADIUS)}.` }[reason];
+					returnData.push({ json: { ...summary, expanded: false, reason, radius: Number.isFinite(radius) ? radius : null, message: `Nenhuma empresa encontrada. ${why}` }, pairedItem: { item: i } });
+					continue;
+				}
+				const bigger = Math.min(radius * 2, MAPS_MAX_RADIUS);
+				const baseName = String(job?.Name ?? job?.name ?? 'Busca Nexo').replace(/ · [\d.,]+ km$/, '');
+				const maxTime = Number(data.max_time); const seconds = maxTime >= 1e9 ? maxTime / 1e9 : maxTime;
+				const created = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method: 'POST', baseURL: `${requestBase}/`, url: 'api/v1/jobs', json: true, timeout: 30000, headers: {}, body: { name: `${baseName} · ${kmLabel(bigger)}`.slice(0, 80), keywords: data.keywords, lang: data.lang || 'pt', lat: String(data.lat), lon: String(data.lon), zoom: Number(data.zoom) || 15, radius: bigger, depth: Number(data.depth) || 3, email: Boolean(data.email), fast_mode: Boolean(data.fast_mode), max_time: Number.isFinite(seconds) && seconds >= 60 ? seconds : 300 } });
+				returnData.push({ json: { ...summary, expanded: true, previous_radius: radius, new_radius: bigger, new_job_id: created?.id ?? null, message: `Nenhuma empresa em ${kmLabel(radius)}. Criamos uma busca nova com ${kmLabel(bigger)}: aguarde ela terminar e baixe os resultados do new_job_id.` }, pairedItem: { item: i } });
+				continue;
+			}
 			if (resource === 'maps' && operation === 'delete') { returnData.push({ json: { id: String(this.getNodeParameter('identifier', i, '')).trim(), deleted: true }, pairedItem: { item: i } }); continue; }
-			if (resource === 'maps' && operation === 'getMany' && !response) continue; // the server answers null when there are no searches
+			if (resource === 'maps' && operation === 'getMany' && (!response || (Array.isArray(response) && response.length === 0))) { returnData.push({ json: { found: 0, message: 'Nenhuma busca do Maps encontrada.' }, pairedItem: { item: i } }); continue; } // the server answers null when there are no searches
 			if (binaryResult) { const payload = response?.body ?? response; const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload); const fileName = parseFilename(response?.headers, fallbackFilename); const binary = await this.helpers.prepareBinaryData(buffer, fileName, response?.headers?.['content-type']); returnData.push({ json: { fileName, mimeType: binary.mimeType }, binary: { data: binary }, pairedItem: { item: i } }); continue; }
 			if (Array.isArray(response)) for (const row of response) returnData.push({ json: row, pairedItem: { item: i } }); else if (response === undefined || response === null) returnData.push({ json: {}, pairedItem: { item: i } }); else returnData.push({ json: response, pairedItem: { item: i } });
 		}

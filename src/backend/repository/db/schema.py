@@ -128,6 +128,12 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN approach TEXT"))
     _migrate_client_checks(engine)
+    maps_job_columns = {column["name"] for column in inspect(engine).get_columns("maps_jobs")}
+    with engine.begin() as connection:
+        for name, definition in (("auto_expand", "BOOLEAN NOT NULL DEFAULT 0"), ("radius", "INTEGER"),
+                                 ("start_radius", "INTEGER"), ("params", "TEXT"), ("expanded_to", "VARCHAR(36)")):
+            if name not in maps_job_columns:
+                connection.execute(text(f"ALTER TABLE maps_jobs ADD COLUMN {name} {definition}"))
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),

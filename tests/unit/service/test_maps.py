@@ -48,10 +48,16 @@ class Clients:
         return ({name.lower() for name in names} & self.names, set(phones) & self.phones)
 
 
+class MapsJobs:
+    def by_job_id(self, job_id):
+        return None
+
+
 class Repositories:
     def __init__(self):
         self.maps_credentials = Credentials()
         self.clients = Clients()
+        self.maps_jobs = MapsJobs()
 
     @contextmanager
     def transaction(self):

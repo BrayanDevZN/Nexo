@@ -10,8 +10,20 @@ from backend.repository.db.models.base import utc_now
 class MapsJobRepository(Repository[MapsJob]):
     model = MapsJob
 
-    def track(self, *, job_id: str, created_by_id: str, name: str, niche: str | None) -> MapsJob:
-        return self.add(MapsJob(job_id=job_id, created_by_id=created_by_id, name=name[:120], niche=niche))
+    def track(self, *, job_id: str, created_by_id: str, name: str, niche: str | None, auto_expand: bool = False,
+              radius: int | None = None, start_radius: int | None = None, params: str | None = None) -> MapsJob:
+        return self.add(MapsJob(job_id=job_id, created_by_id=created_by_id, name=name[:120], niche=niche,
+                                auto_expand=auto_expand, radius=radius, start_radius=start_radius, params=params))
+
+    def by_job_id(self, job_id: str) -> MapsJob | None:
+        return self.session.scalar(select(MapsJob).where(MapsJob.job_id == job_id))
+
+    def mark_expanded(self, job_id: str, new_job_id: str) -> bool:
+        """Remember which search replaced this one; only one caller can win, so a search is widened once."""
+        result = self.session.execute(update(MapsJob).where(
+            MapsJob.job_id == job_id, MapsJob.expanded_to.is_(None)).values(expanded_to=new_job_id),
+            execution_options={"synchronize_session": False})
+        return result.rowcount > 0
 
     def pending(self, since: datetime) -> list[MapsJob]:
         return list(self.session.scalars(select(MapsJob).where(

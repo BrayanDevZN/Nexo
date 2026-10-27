@@ -18,6 +18,8 @@ class MapsJobInput(BaseModel):
     email: bool = False
     fast_mode: bool = False
     max_time: int = Field(default=300, ge=60, le=1800)
+    # When nothing is found, repeat the search with a bigger radius (only for searches in the default place).
+    auto_expand: bool = False
 
     @field_validator("keywords")
     @classmethod
