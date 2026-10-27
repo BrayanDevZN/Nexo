@@ -4,6 +4,7 @@ import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { CookieNotice } from "./components/CookieNotice";
 import { MotionProvider } from "./components/MotionProvider";
+import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
 import "./styles/globals.css";
 import "./styles/site.css";
@@ -15,7 +16,7 @@ const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
 const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
 const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
 
-if (adminRoute) setNoIndex();
+if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); }
 else setCanonical(window.location.pathname);
 
 createRoot(document.getElementById("root")!).render(

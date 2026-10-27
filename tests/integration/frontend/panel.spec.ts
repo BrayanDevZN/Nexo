@@ -618,3 +618,39 @@ test("the paid-traffic funnel lists the leads the site recorded and the team mov
   await page.getByRole("button", { name: "Remover lead" }).click();
   await expect(board.locator("[data-slot=card-title]", { hasText: "Maria Souza" })).toHaveCount(0);
 });
+
+test("the admin panel has a night mode button that turns the background black and is remembered", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  const html = page.locator("html");
+  const toggle = page.getByRole("button", { name: "Ativar modo noturno" });
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(html).not.toHaveClass(/dark/);
+  await toggle.click();
+  await expect(html).toHaveClass(/dark/);
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(page.getByRole("button", { name: "Desativar modo noturno" })).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(html).toHaveClass(/dark/);
+  await page.getByRole("button", { name: "Desativar modo noturno" }).click();
+  await expect(html).not.toHaveClass(/dark/);
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+});
+
+test("night mode is only for the panel: the public site stays light", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem("nexo:admin-theme", "dark"));
+  for (const path of ["/", "/contabilidade", "/privacidade"]) {
+    await page.goto(path);
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
+  }
+});
+
+test("the night mode button is also in the panel's top bar once signed in", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await page.locator(".admin-topbar").getByRole("button", { name: "Ativar modo noturno" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.locator(".admin-topbar").getByRole("button", { name: "Desativar modo noturno" })).toBeVisible();
+});

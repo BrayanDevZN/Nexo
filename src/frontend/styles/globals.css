@@ -91,6 +91,33 @@
   --funnel-lost: #dc2626;
 }
 
+/* Dark mode of the admin panel: the panel puts .dark on <html> (see admin/theme.ts), so portals follow it. */
+.dark {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #f1ebfb;
+  --card: #0c0814;
+  --card-foreground: #f1ebfb;
+  --popover: #0c0814;
+  --popover-foreground: #f1ebfb;
+  --primary: #a78bfa;
+  --primary-foreground: #12071f;
+  --secondary: #1c1330;
+  --secondary-foreground: #d9c9ff;
+  --muted: #120d1d;
+  --muted-foreground: #b5a8c9;
+  --accent: #1f1535;
+  --accent-foreground: #e4d9ff;
+  --destructive: #f87171;
+  --border: #2a2040;
+  --input: #66559a;
+  --ring: #a78bfa;
+  --highlight: #8b5cf6;
+}
+/* The animated background stays, only much quieter, so the panel reads as black. */
+.dark .ambient-wash { opacity: 0.3; }
+.dark .ambient-drop { opacity: calc(var(--drop-opacity) * 0.45); }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

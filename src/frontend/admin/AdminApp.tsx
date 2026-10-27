@@ -19,6 +19,7 @@ import { GeneralHome } from "./GeneralHome";
 import { MyKeys } from "./MyKeys";
 import { BusinessDashboard } from "./BusinessDashboard";
 import { Funnel } from "./Funnel";
+import { ThemeToggle } from "./ThemeToggle";
 import { PaidFunnel } from "./PaidFunnel";
 import { AutomationRequests } from "./AutomationRequests";
 import { AutomationsLibrary } from "./AutomationsLibrary";
@@ -176,10 +177,10 @@ export default function AdminApp() {
     try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setUnreadCounts({ total: 0, notices: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setPage("clients"); setAreaChoice(null); setMobileOpen(false); setPushEnabled(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
-  if (loading) return <main className="admin-loading"><Loading /></main>;
-  if (!user && error) return <main className="admin-loading"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar novamente</Button><Button variant="link" asChild><a href="/">Voltar ao site</a></Button></main>;
-  if (!user) return <Auth api={api} complete={complete} inviteToken={inviteToken} onLogin={onLogin} />;
-  if (allowedAreas.length > 1 && area === null) return <AreaGateway user={user} areas={allowedAreas} loggingOut={loggingOut} onPick={pickArea} onLogout={() => void logout()} />;
+  if (loading) return <><main className="admin-loading"><Loading /></main><ThemeToggle className="fixed right-4 top-4" /></>;
+  if (!user && error) return <><main className="admin-loading"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar novamente</Button><Button variant="link" asChild><a href="/">Voltar ao site</a></Button></main><ThemeToggle className="fixed right-4 top-4" /></>;
+  if (!user) return <><Auth api={api} complete={complete} inviteToken={inviteToken} onLogin={onLogin} /><ThemeToggle className="fixed right-4 top-4" /></>;
+  if (allowedAreas.length > 1 && area === null) return <><AreaGateway user={user} areas={allowedAreas} loggingOut={loggingOut} onPick={pickArea} onLogout={() => void logout()} /><ThemeToggle className="fixed right-4 top-4" /></>;
   function navigate(next: Page) { setPage(next); setMobileOpen(false); }
   function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
@@ -229,7 +230,7 @@ export default function AdminApp() {
       <header className="admin-topbar"><div className="flex min-w-0 items-center gap-3"><Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild><Button variant="outline" size="icon-lg" className="admin-mobile-menu" aria-label="Abrir menu do painel"><Menu /></Button></SheetTrigger>
         <SheetContent side="left" className="overflow-y-auto"><SheetHeader><SheetTitle>Menu do painel</SheetTitle><SheetDescription>Navegue pelo seu espaço na Nexo.</SheetDescription></SheetHeader><div className="px-4"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a></div><div className="px-4">{navigation}</div><SheetFooter>{account}</SheetFooter></SheetContent>
-      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
+      </Sheet><p className="truncate">Olá, <strong>{user.name.split(" ")[0]}</strong>.</p></div><div className="flex items-center gap-2">{user.status === "approved" && <Button variant="outline" size="sm" disabled={pushBusy} onClick={() => void (pushEnabled ? deactivatePush() : activatePush())}>{pushEnabled ? <BellOff data-icon="inline-start" /> : <Bell data-icon="inline-start" />}{pushBusy ? (pushEnabled ? "Desativando…" : "Ativando…") : pushEnabled ? "Desativar notificações" : pushNeedsInstall() ? "Instalar Nexo" : "Ativar notificações"}</Button>}<ThemeToggle /><Button variant="outline" size="sm" asChild><a href="/">Visitar site</a></Button></div></header>
       <main className="admin-content" id="painel" ref={revealRef}>
         <Feedback error={error} />
         {incoming && area === "general" && <Alert role="status"><AlertTitle>Nova mensagem de {incoming.sender_name}</AlertTitle><AlertDescription><span>{incoming.kind === "text" ? incoming.text : incoming.kind === "image" ? "Enviou uma foto." : "Enviou um áudio."}</span><Button variant="link" onClick={() => { setChatMember(incoming.sender_id); setIncoming(null); navigate("chat"); }}>Abrir conversa</Button></AlertDescription></Alert>}
