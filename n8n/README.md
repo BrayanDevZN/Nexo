@@ -82,10 +82,13 @@ aparece na aba **API** do painel. Funciona com chave de qualquer cargo, inclusiv
 3. **Baixar resultados** devolve uma empresa por item, com as colunas do CSV (`title`, `category`, `address`,
    `phone`, `website`, `emails`, `review_rating`, `review_count`, `link`, `latitude`, `longitude`...) e os campos extras
    `phone_e164` (telefone normalizado como `+55...`, ou `null` se não houver número válido), `is_mobile` (celular),
-   `has_email` e `sales_channel`. O campo **Contato que você quer nos leads** também filtra: **WhatsApp** deixa só
-   quem tem **celular** (telefone fixo quase nunca tem WhatsApp), **E-mail** só quem tem e-mail e **WhatsApp e
-   e-mail** só quem tem os dois. `sales_channel` vem como `whatsapp` ou `email` quando você escolhe um só contato, e
-   `null` nos outros casos, pronto para mapear em **Clientes → Criar → Canal de vendas**.
+   `has_email`, `instagram`, `site` e `sales_channel`. O campo **Contato que você quer nos leads** filtra **e define o
+   que cada item mostra**: **Todos os contatos** traz tudo; **WhatsApp** deixa só quem tem **celular** (telefone fixo
+   quase nunca tem WhatsApp) e traz só o telefone; **E-mail** só quem tem e-mail e traz só o e-mail (sem telefone nem
+   site); **Instagram** e **Site** saem do site cadastrado no Maps (link do Instagram conta como Instagram; Facebook,
+   WhatsApp e links de redes sociais não contam como site); **WhatsApp e e-mail** exige os dois. `sales_channel` vem
+   como `whatsapp`, `email` ou `instagram` quando você escolhe um só desses contatos, e `null` nos outros casos, pronto
+   para mapear em **Clientes → Criar → Canal de vendas**.
    **Quando não há nada para devolver** (a busca não achou empresas, ou nenhuma tem o contato escolhido), o node
    não devolve uma lista vazia, que pararia o fluxo: devolve **um item** com `found: 0`, `message` e `reason`
    (`no_contact`, `custom_place`, `max_radius` ou `disabled`). Use um **IF** em `found` para tratar esse caso.

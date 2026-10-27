@@ -348,7 +348,7 @@ test('Maps results parse the CSV into one item per company, with a normalized ph
 	assert.equal(request.json, false);
 	const rows = output[0].map((item) => item.json);
 	assert.equal(rows.length, 3);
-	assert.deepEqual(rows[0], { title: 'Tavares Contabilidade', category: 'Escritório de contabilidade', address: 'R. Exemplo, 389 - Santa Cecília', phone: '(11) 3361-8832', website: 'https://t.example', emails: '', phone_e164: '+551133618832', is_mobile: false, has_email: false, sales_channel: null });
+	assert.deepEqual(rows[0], { title: 'Tavares Contabilidade', category: 'Escritório de contabilidade', address: 'R. Exemplo, 389 - Santa Cecília', phone: '(11) 3361-8832', website: 'https://t.example', emails: '', phone_e164: '+551133618832', is_mobile: false, has_email: false, instagram: null, site: 'https://t.example', sales_channel: null });
 	assert.equal(rows[1].title, 'Contador "Zé"');
 	assert.equal(rows[1].address, 'Linha 1\nLinha 2');
 	assert.equal(rows[1].phone_e164, '+5511971555292');
@@ -414,6 +414,30 @@ test('Maps results say when companies were found but none has the chosen contact
 	const { output, requests } = await executeNexoWith({ ...RESULTS, mapsResultsContact: 'whatsapp' }, () => csv);
 	assert.equal(requests.length, 1);
 	assert.deepEqual(output[0][0].json, { found: 0, job_id: MAPS_JOB, total_in_search: 1, contact: 'whatsapp', expanded: false, reason: 'no_contact', message: 'A busca achou 1 empresa(s), mas nenhuma tem o contato escolhido.' });
+});
+
+test('Maps results include Instagram and Site as contacts, and show only the contact that was chosen', async () => {
+	const csv = 'title,phone,website,emails\r\n'
+		+ 'Só celular,(31) 99999-1111,https://celular.example.com,\r\n'
+		+ 'Padaria Insta,,https://www.instagram.com/padaria,oi@padaria.com\r\n'
+		+ 'Só Facebook,(31) 98888-2222,https://www.facebook.com/loja,\r\n';
+	const run = async (mapsResultsContact) => (await executeNexo({ ...RESULTS, mapsResultsContact }, csv)).output[0].map((item) => item.json);
+	const instagram = await run('instagram');
+	assert.deepEqual(instagram.map((row) => row.title), ['Padaria Insta']);
+	assert.deepEqual(instagram[0], { title: 'Padaria Insta', website: 'https://www.instagram.com/padaria', instagram: 'https://www.instagram.com/padaria', sales_channel: 'instagram' });
+	const site = await run('site');
+	assert.deepEqual(site.map((row) => row.title), ['Só celular']);
+	assert.deepEqual(site[0], { title: 'Só celular', website: 'https://celular.example.com', site: 'https://celular.example.com', sales_channel: null });
+	const email = await run('email');
+	assert.deepEqual(email, [{ title: 'Padaria Insta', has_email: true, emails: 'oi@padaria.com', sales_channel: 'email' }]);
+	const whatsapp = await run('whatsapp');
+	assert.deepEqual(whatsapp.map((row) => row.title), ['Só celular', 'Só Facebook']);
+	for (const row of whatsapp) { assert.equal('website' in row, false); assert.equal('emails' in row, false); assert.equal(row.sales_channel, 'whatsapp'); }
+	const all = await run('any');
+	assert.equal(all.length, 3);
+	assert.equal(all[2].instagram, null);
+	assert.equal(all[2].site, null); // Facebook is not a site
+	assert.equal(all[2].website, 'https://www.facebook.com/loja'); // but "Todos os contatos" still shows the link the map gave
 });
 
 test('Maps results with companies return them and make no extra request', async () => {

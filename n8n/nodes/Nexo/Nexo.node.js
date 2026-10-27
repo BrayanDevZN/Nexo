@@ -86,10 +86,10 @@ function isDefaultPlace(lat, lon) {
 const kmLabel = (meters) => `${Number(meters) / 1000} km`;
 const MAPS_DEFAULT_RADIUS = 5000;
 // Which contact the team wants from the leads. Same choices and rules as the panel's Maps screen.
-const CONTACT_CHOICES = [{ name: 'Qualquer contato', value: 'any' }, { name: 'WhatsApp (celular)', value: 'whatsapp' }, { name: 'E-mail', value: 'email' }, { name: 'WhatsApp e e-mail', value: 'both' }];
+const CONTACT_CHOICES = [{ name: 'Todos os contatos', value: 'any' }, { name: 'WhatsApp (celular)', value: 'whatsapp' }, { name: 'E-mail', value: 'email' }, { name: 'Instagram', value: 'instagram' }, { name: 'Site', value: 'site' }, { name: 'WhatsApp e e-mail', value: 'both' }];
 function contactChoice(value) {
 	const choice = String(value || 'any');
-	if (!CONTACT_CHOICES.some((option) => option.value === choice)) throw new Error('Contato inválido: escolha qualquer, WhatsApp, e-mail ou WhatsApp e e-mail.');
+	if (!CONTACT_CHOICES.some((option) => option.value === choice)) throw new Error('Contato inválido: escolha todos, WhatsApp, e-mail, Instagram, site ou WhatsApp e e-mail.');
 	return choice;
 }
 // A Brazilian mobile number (area code + nine digits starting with 9). Landlines rarely have WhatsApp.
@@ -99,13 +99,29 @@ function isMobilePhone(value) {
 	return digits.length === 11 && digits[2] === '9';
 }
 function hasEmail(value) { return /[^\s,;@]+@[^\s,;@]+\.[^\s,;@]+/.test(String(value || '')); }
+// The map gives one "website" per company: an Instagram link is the Instagram contact, and networks and link pages are not a site.
+const SOCIAL_HOSTS = ['facebook.com', 'fb.com', 'fb.me', 'wa.me', 'whatsapp.com', 'linktr.ee', 'tiktok.com', 'youtube.com', 'youtu.be', 'x.com', 'twitter.com', 'linkedin.com', 'beacons.ai'];
+function hostOf(url) {
+	const text = String(url || '').trim();
+	if (!text) return null;
+	try { return new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`).hostname.toLowerCase().replace(/^(www|m)\./, ''); } catch { return null; }
+}
+const onHost = (host, domain) => host === domain || host.endsWith(`.${domain}`);
+function instagramUrl(url) { const host = hostOf(url); return host && (onHost(host, 'instagram.com') || host === 'instagr.am') ? String(url).trim() : null; }
+function siteUrl(url) { const host = hostOf(url); return !host || instagramUrl(url) || SOCIAL_HOSTS.some((domain) => onHost(host, domain)) ? null : String(url).trim(); }
 function matchesContact(lead, choice) {
 	const whatsapp = isMobilePhone(lead.phone), email = hasEmail(lead.emails);
+	if (choice === 'instagram') return instagramUrl(lead.website) !== null;
+	if (choice === 'site') return siteUrl(lead.website) !== null;
 	return choice === 'whatsapp' ? whatsapp : choice === 'email' ? email : choice === 'both' ? whatsapp && email : true;
 }
+// Which contacts each choice shows. "Todos os contatos" shows them all.
+function contactParts(choice) {
+	return { phone: ['any', 'whatsapp', 'both'].includes(choice), email: ['any', 'email', 'both'].includes(choice), instagram: ['any', 'instagram'].includes(choice), site: ['any', 'site'].includes(choice) };
+}
 const needsEmailSearch = (choice) => choice === 'email' || choice === 'both';
-// One contact is a sales channel; two (or none) leave it empty.
-const salesChannelFor = (choice) => (choice === 'whatsapp' ? 'whatsapp' : choice === 'email' ? 'email' : null);
+// One contact is a sales channel (the site has none); several, or all, leave it empty.
+const salesChannelFor = (choice) => (choice === 'whatsapp' ? 'whatsapp' : choice === 'email' ? 'email' : choice === 'instagram' ? 'instagram' : null);
 function mapsCoordinate(value, label, limit) {
 	const text = String(value ?? '').trim().replace(',', '.');
 	const number = Number(text);
@@ -190,7 +206,7 @@ add('Opções', 'mapsOptions', 'collection', {}, 'maps', ['create'], {
 	],
 });
 add('Ampliar o raio se não achar nada', 'mapsExpand', 'boolean', true, 'maps', ['results'], { description: 'Só vale para buscas no local padrão (uma das cidades da lista). Se a busca não achou nenhuma empresa, cria uma busca nova com o dobro do raio (até 50 km) e devolve o ID dela em new_job_id. Aguarde ela terminar e baixe os resultados da nova busca. Buscas com latitude e longitude informadas ficam só naquele perímetro.' });
-add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 'maps', ['results'], { options: CONTACT_CHOICES, description: 'Devolve só as empresas que têm esse contato. WhatsApp conta só celular. Cada item traz o canal de vendas sugerido (sales_channel).' });
+add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 'maps', ['results'], { options: CONTACT_CHOICES, description: 'Devolve só as empresas que têm esse contato, e cada item traz só esse contato (Todos os contatos traz tudo). WhatsApp conta só celular; Instagram e Site saem do site cadastrado no Maps (link do Instagram conta como Instagram; Facebook e links de redes sociais não contam como site). Cada item traz o canal de vendas sugerido (sales_channel).' });
 add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
 class Nexo {
@@ -281,8 +297,19 @@ class Nexo {
 			if (csvResult) {
 				const contact = contactChoice(this.getNodeParameter('mapsResultsContact', i, 'any'));
 				const leads = parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''));
-				const kept = leads.filter((lead) => matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email }, contact));
-				for (const lead of kept) returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone), is_mobile: isMobilePhone(lead.phone), has_email: hasEmail(lead.emails ?? lead.email), sales_channel: salesChannelFor(contact) }, pairedItem: { item: i } });
+				const kept = leads.filter((lead) => matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email, website: lead.website }, contact));
+				const parts = contactParts(contact);
+				for (const lead of kept) {
+					// Only the contact that was chosen is shown, so an e-mail search does not come back full of sites and phones.
+					const json = { ...lead };
+					if (parts.phone) { json.phone_e164 = phoneE164(lead.phone); json.is_mobile = isMobilePhone(lead.phone); } else delete json.phone;
+					if (parts.email) json.has_email = hasEmail(lead.emails ?? lead.email); else { delete json.emails; delete json.email; }
+					if (parts.instagram) json.instagram = instagramUrl(lead.website);
+					if (parts.site) json.site = siteUrl(lead.website);
+					if (!parts.instagram && !parts.site) delete json.website;
+					json.sales_channel = salesChannelFor(contact);
+					returnData.push({ json, pairedItem: { item: i } });
+				}
 				if (kept.length > 0) continue;
 				// Nothing to return: say so (an empty output would stop the workflow) and, when allowed, widen the search.
 				const jobId = String(this.getNodeParameter('identifier', i, '')).trim();

@@ -25,12 +25,18 @@ def _lead_email(value):
     return None
 
 
+def _is_instagram(url):
+    host = re.sub(r"^(?:https?://)?(?:www\.|m\.)?", "", (url or "").strip().lower()).split("/")[0]
+    return host == "instagram.com" or host.endswith(".instagram.com") or host == "instagr.am"
+
+
 def _lead_notes(lead):
     rating = lead.get("review_rating")
     lines = [
         "Origem: Google Maps",
         f"Categoria no Maps: {lead['category']}" if lead.get("category") else None,
-        f"Site: {lead['website']}" if lead.get("website") else None,
+        (f"Instagram: {lead['website']}" if _is_instagram(lead["website"]) else f"Site: {lead['website']}")
+        if lead.get("website") else None,
         f"Nota: {rating:.1f} ({lead.get('review_count') or 0} avaliações)" if rating is not None else None,
         f"Google Maps: {lead['link']}" if lead.get("link") else None,
         f"Coordenadas: {lead['latitude']}, {lead['longitude']}"

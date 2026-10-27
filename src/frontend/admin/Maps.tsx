@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError, CLIENT_NICHES, type createApi } from "./api";
 import { mapsUrl } from "./contact";
-import { CONTACT_CHOICES, channelFor, matchesContact, needsEmailSearch, type ContactChoice } from "./leadContact";
+import { CONTACT_CHOICES, channelFor, contactParts, instagramHandle, instagramUrl, matchesContact, needsEmailSearch, siteUrl, type ContactChoice } from "./leadContact";
 import { MapsButton } from "./MapsLink";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -110,9 +110,11 @@ const dateLabel = (value: string | null) => {
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 };
 
-function csvFile(rows: Lead[]) {
-  const columns: [keyof Lead, string][] = [["title", "Nome"], ["category", "Categoria"], ["phone", "Telefone"], ["website", "Site"],
-    ["emails", "E-mails"], ["review_rating", "Nota"], ["review_count", "Avaliações"], ["address", "Endereço"], ["link", "Link no Maps"]];
+function csvFile(rows: Lead[], choice: ContactChoice) {
+  const parts = contactParts(choice);
+  const all: [keyof Lead, string, boolean][] = [["title", "Nome", true], ["category", "Categoria", true], ["phone", "Telefone", parts.phone], ["website", "Site ou Instagram", parts.site || parts.instagram],
+    ["emails", "E-mails", parts.email], ["review_rating", "Nota", true], ["review_count", "Avaliações", true], ["address", "Endereço", true], ["link", "Link no Maps", true]];
+  const columns = all.filter(([, , shown]) => shown).map(([key, label]) => [key, label] as [keyof Lead, string]);
   const cell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   const lines = [columns.map(([, label]) => cell(label)).join(","), ...rows.map(row => columns.map(([key]) => cell(row[key])).join(","))];
   return new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
@@ -331,7 +333,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     return failed.has(key) ? "failed" : "idle";
   };
   function download() {
-    const url = URL.createObjectURL(csvFile(visible));
+    const url = URL.createObjectURL(csvFile(visible, contact));
     const link = document.createElement("a");
     link.href = url; link.download = `maps-${(selected?.name || "resultados").replace(/[^\w-]+/g, "-").toLowerCase()}.csv`;
     link.click();
@@ -445,7 +447,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                 <NativeSelect id="maps-contact" value={form.contact} onChange={event => setForm({ ...form, contact: event.target.value as ContactChoice })}>
                   {CONTACT_CHOICES.map(choice => <NativeSelectOption key={choice.value} value={choice.value}>{choice.label}</NativeSelectOption>)}
                 </NativeSelect>
-                <FieldDescription>WhatsApp conta só celular (o mapa também lista telefone fixo, que quase nunca tem WhatsApp). Ao escolher e-mail, a busca lê os sites das empresas. O contato escolhido vira o canal de vendas dos leads que você adicionar.</FieldDescription>
+                <FieldDescription>A tela e o CSV mostram só o contato escolhido; "Todos os contatos" mostra tudo. WhatsApp conta só celular (telefone fixo quase nunca tem WhatsApp). Instagram e Site saem do site cadastrado no Maps: se for link do Instagram, conta como Instagram; Facebook e links de redes sociais não contam como site. Ao escolher e-mail, a busca lê os sites das empresas. O contato escolhido vira o canal de vendas dos leads que você adicionar (WhatsApp, e-mail ou Instagram).</FieldDescription>
               </Field>
               <Field orientation="horizontal">
                 <Switch id="maps-email" checked={form.email || needsEmailSearch(form.contact)} disabled={needsEmailSearch(form.contact)} onCheckedChange={checked => setForm({ ...form, email: checked })} />
@@ -551,10 +553,19 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
                   <TableCell className="max-w-64 whitespace-normal"><p className="font-medium">{row.link ? <a className="underline-offset-4 hover:underline" href={row.link} target="_blank" rel="noopener noreferrer">{row.title || "Sem nome"}</a> : row.title || "Sem nome"}</p>
                     {row.category && <p className="text-xs text-muted-foreground">{row.category}</p>}</TableCell>
                   <TableCell className="max-w-64 whitespace-normal text-sm">
-                    {row.phone && <p>{row.phone}</p>}
-                    {row.emails && <p className="break-all">{row.emails}</p>}
-                    {row.website && <p className="truncate"><a className="underline-offset-4 hover:underline" href={/^https?:\/\//i.test(row.website) ? row.website : undefined} target="_blank" rel="noopener noreferrer">{row.website.replace(/^https?:\/\/(www\.)?/i, "")}</a></p>}
-                    {!row.phone && !row.emails && !row.website && <span className="text-muted-foreground">—</span>}
+                    {(() => {
+                      const parts = contactParts(contact);
+                      const instagram = parts.instagram ? instagramUrl(row.website) : null;
+                      const site = parts.site ? (contact === "any" && !instagramUrl(row.website) ? row.website?.trim() || null : siteUrl(row.website)) : null;
+                      const shown = [parts.phone && row.phone, parts.email && row.emails, instagram, site].some(Boolean);
+                      return <>
+                        {parts.phone && row.phone && <p>{row.phone}</p>}
+                        {parts.email && row.emails && <p className="break-all">{row.emails}</p>}
+                        {instagram && <p className="truncate"><a className="underline-offset-4 hover:underline" href={/^https?:\/\//i.test(instagram) ? instagram : undefined} target="_blank" rel="noopener noreferrer">Instagram: {instagramHandle(instagram)}</a></p>}
+                        {site && <p className="truncate"><a className="underline-offset-4 hover:underline" href={/^https?:\/\//i.test(site) ? site : undefined} target="_blank" rel="noopener noreferrer">{site.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "")}</a></p>}
+                        {!shown && <span className="text-muted-foreground">—</span>}
+                      </>;
+                    })()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">{row.review_rating !== null ? <>{row.review_rating.toFixed(1)} <span className="text-muted-foreground">({row.review_count ?? 0})</span></> : "—"}</TableCell>
                   <TableCell className="max-w-72 whitespace-normal text-sm text-muted-foreground">{row.address || "—"}</TableCell>

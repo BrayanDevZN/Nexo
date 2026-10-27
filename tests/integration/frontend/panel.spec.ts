@@ -656,32 +656,63 @@ test("the night mode button is also in the panel's top bar once signed in", asyn
 });
 
 
-test("maps lets the team choose WhatsApp, e-mail or both and saves it as the leads' channel", async ({ page }) => {
-  const lead = (title: string, phone: string | null, emails: string | null) => ({ title, category: "Contabilidade", address: "Rua " + title, phone, website: null, emails, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
+test("maps shows only the contact the team chose, filters by it and saves it as the leads' channel", async ({ page }) => {
+  const lead = (title: string, phone: string | null, emails: string | null, website: string | null) => ({ title, category: "Contabilidade", address: "Rua " + title, phone, website, emails, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
   const requests: Record<string, unknown>[] = [];
-  await openMaps(page, "ok", requests, [lead("Padaria Celular", "(31) 99999-1111", null), lead("Padaria Email", null, "oi@soemail.com"), lead("Padaria Completa", "+55 31 98888-2222", "a@b.com, c@d.com")]);
+  await openMaps(page, "ok", requests, [
+    lead("Padaria Celular", "(31) 99999-1111", null, "https://celular.example.com"),
+    lead("Padaria Email", null, "oi@padariaemail.com", "https://www.instagram.com/padariaemail"),
+    lead("Padaria Completa", "+55 31 98888-2222", "a@b.com, c@d.com", "https://completa.example.com/"),
+  ]);
   const choose = async (label: string) => { await page.getByLabel("Contato", { exact: true }).click(); await page.getByRole("option", { name: label, exact: true }).click(); };
+  // "Todos os contatos" shows everything the map has.
+  await expect(page.getByText("Padaria A", { exact: true })).toBeVisible();
+  await expect(page.getByText("celular.example.com")).toBeVisible();
+  await expect(page.getByText("Instagram: @padariaemail")).toBeVisible();
+  await expect(page.getByText("oi@padariaemail.com")).toBeVisible();
+
   await choose("WhatsApp (celular)");
-  await expect(page.getByText("Padaria Celular").first()).toBeVisible();
-  await expect(page.getByText("Padaria Completa").first()).toBeVisible();
-  await expect(page.getByText("Padaria A")).toHaveCount(0); // a landline does not count as WhatsApp
-  await expect(page.getByText("Padaria Email")).toHaveCount(0);
+  await expect(page.getByText("Padaria Celular", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria A", { exact: true })).toHaveCount(0); // a landline does not count as WhatsApp
+  await expect(page.getByText("Padaria Email", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("(31) 99999-1111")).toBeVisible();
+  await expect(page.getByText("celular.example.com")).toHaveCount(0); // only the contact that was chosen
+  await expect(page.getByText("a@b.com")).toHaveCount(0);
+
   await choose("E-mail");
-  await expect(page.getByText("Padaria Email").first()).toBeVisible();
-  await expect(page.getByText("Padaria Celular")).toHaveCount(0);
+  await expect(page.getByText("Padaria Email", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Celular", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("oi@padariaemail.com")).toBeVisible();
+  await expect(page.getByText("completa.example.com")).toHaveCount(0);
+  await expect(page.getByText("Instagram: @padariaemail")).toHaveCount(0);
+  await expect(page.getByText("98888-2222")).toHaveCount(0);
+
+  await choose("Instagram");
+  await expect(page.getByText("Instagram: @padariaemail")).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("oi@padariaemail.com")).toHaveCount(0);
+
+  await choose("Site");
+  await expect(page.getByText("Padaria Celular", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Email", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("celular.example.com")).toBeVisible();
+  await expect(page.getByText("(31) 99999-1111")).toHaveCount(0);
+
   await choose("WhatsApp e e-mail");
-  await expect(page.getByText("Padaria Completa").first()).toBeVisible();
-  await expect(page.getByText("Padaria Email")).toHaveCount(0);
-  await expect(page.getByText("Padaria Celular")).toHaveCount(0);
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Celular", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("completa.example.com")).toHaveCount(0);
   await page.getByRole("button", { name: "Adicionar Padaria Completa ao funil" }).click();
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0].sales_channel).toBeNull();
-  await choose("E-mail");
+
+  await choose("Instagram");
   await page.getByRole("button", { name: "Adicionar Padaria Email ao funil" }).click();
   await expect.poll(() => requests.length).toBe(2);
-  expect(requests[1].sales_channel).toBe("email");
+  expect(requests[1].sales_channel).toBe("instagram");
 });
-
 
 async function mapsWithJobs(page: Page, options: { jobs: () => unknown[]; results: Record<string, unknown>; created: Record<string, unknown>[] }) {
   await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
