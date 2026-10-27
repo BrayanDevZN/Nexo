@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 
+from backend.domain.lead_contacts import CONTACT_LABELS, matches_contact
 from backend.infra.connections.maps import MapsConnection, MapsUnavailable
 from backend.repository.db.models.base import utc_now
 from backend.service.clients import lead_phone
@@ -145,7 +146,7 @@ class MapsService:
                 repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"),
                                       auto_expand=bool(data.get("auto_expand")), radius=data["radius"],
                                       start_radius=data["radius"], params=params,
-                                      max_leads=data.get("limit"))
+                                      max_leads=data.get("limit"), contact=data.get("contact"))
         return {"id": job_id}
 
     def job(self, job_id: UUID, user_id: str | None = None) -> dict:
@@ -159,6 +160,9 @@ class MapsService:
             raise MapsUnavailable("Maps results could not be read") from None
 
     def results(self, job_id: UUID, user_id: str | None = None) -> dict:
+        return {key: value for key, value in self._results(job_id, user_id).items() if key != "matching"}
+
+    def _results(self, job_id: UUID, user_id: str | None = None, contact: str = "any") -> dict:
         leads = self._download(job_id, user_id)
         fresh = self._without_funnel(leads)
         info = self._expansion(str(job_id))
@@ -169,8 +173,10 @@ class MapsService:
         # The creator's limit is enforced here, so every client sees the same number of companies.
         cap = min(info["limit"], MAX_ROWS) if info["limit"] else MAX_ROWS
         rows = fresh[:cap]
+        # With a contact choice, "matching" are the new companies that have it (the panel filters by the same rule).
+        matching = [lead for lead in fresh if matches_contact(lead, contact)]
         return {"rows": rows, "total": len(fresh), "truncated": len(fresh) > len(rows),
-                "in_funnel": len(leads) - len(fresh), **info}
+                "in_funnel": len(leads) - len(fresh), "matching": matching, **info}
 
     def widen(self, job_id: UUID, user_id: str) -> dict:
         """Widen a finished search that has nothing usable for the creator (e.g. no company with the chosen contact)."""
@@ -205,9 +211,9 @@ class MapsService:
                     return None
                 if tracked.expanded_to:
                     return tracked.expanded_to
-                radius, start, params, name, niche, owner, max_leads = (
+                radius, start, params, name, niche, owner, max_leads, contact = (
                     tracked.radius or 0, tracked.start_radius, tracked.params, tracked.name, tracked.niche,
-                    tracked.created_by_id, tracked.max_leads)
+                    tracked.created_by_id, tracked.max_leads, tracked.contact)
             if not params or not radius or radius >= MAX_RADIUS:
                 return None
             if self.job(UUID(job_id), owner)["status"] != "ok":
@@ -224,7 +230,7 @@ class MapsService:
             with self.repositories.transaction() as repos:
                 repos.maps_jobs.track(job_id=new_id, created_by_id=owner, name=body["name"], niche=niche, auto_expand=True,
                                       radius=bigger, start_radius=start, params=json.dumps({**data, "body": body}),
-                                      max_leads=max_leads)
+                                      max_leads=max_leads, contact=contact)
                 repos.maps_jobs.mark_expanded(job_id, new_id)
             return new_id
 
@@ -292,14 +298,20 @@ class MapsService:
         return announced
 
     def _announce(self, job_id: str, creator_id: str, name: str, *, failed: bool) -> int:
-        found = in_funnel = 0
+        found = in_funnel = without_contact = 0
         leads: list[dict] = []
+        with self.repositories.read_transaction() as repos:
+            tracked = repos.maps_jobs.by_job_id(job_id)
+            contact = (tracked.contact if tracked else None) or "any"
+        label = CONTACT_LABELS.get(contact)
         if not failed:
             try:
-                result = self.results(UUID(job_id), creator_id)
+                result = self._results(UUID(job_id), creator_id, contact)
             except (MapsUnauthorized, MapsJobNotFound, MapsUnavailable):
                 return 0  # try again on the next round
-            found, in_funnel, leads = result["total"], result["in_funnel"], result["rows"][:EMAIL_LEADS]
+            # Only the companies with the contact the creator asked for count as found.
+            found, in_funnel, leads = len(result["matching"]), result["in_funnel"], result["matching"][:EMAIL_LEADS]
+            without_contact = result["total"] - found
         if failed:
             title, body = "Busca do Maps não terminou", f"A busca \"{name}\" não foi concluída. Tente outra região ou menos profundidade."
         else:
@@ -307,12 +319,15 @@ class MapsService:
             info = self._expansion(job_id)
             radius, start = info["radius"], info["start_radius"]
             widened = bool(radius and start and radius > start)
+            with_label = f" com {label}" if label else ""
             if not found and not in_funnel:
-                body = (f"A busca \"{name}\" não encontrou nenhuma empresa"
+                body = (f"A busca \"{name}\" não encontrou nenhuma empresa{with_label}"
+                        + (f" ({without_contact} sem esse contato)" if without_contact else "")
                         + (f", nem ampliando o raio de {start / 1000:g} km até {radius / 1000:g} km" if widened else "")
                         + ". Tente outro nicho ou outra cidade.")
             else:
-                body = (f"A busca \"{name}\" terminou com {found} empresa(s) nova(s)"
+                body = (f"A busca \"{name}\" terminou com {found} empresa(s) nova(s){with_label}"
+                        + (f" ({without_contact} sem esse contato ficaram de fora)" if without_contact else "")
                         + (f" ({in_funnel} já estavam no funil)" if in_funnel else "")
                         + (f", com o raio ampliado de {start / 1000:g} km para {radius / 1000:g} km" if widened else "")
                         + ". Abra o Maps para ver.")
@@ -335,7 +350,7 @@ class MapsService:
                 if failed:
                     self.messages.maps_failed(recipient, job_id, name)
                 else:
-                    self.messages.maps_results(recipient, job_id, name, found, in_funnel, leads)
+                    self.messages.maps_results(recipient, job_id, name, found, in_funnel, leads, label, without_contact)
             except Exception:
                 logger.warning("Maps email could not be queued", exc_info=True)
         return 1

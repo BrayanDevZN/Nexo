@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
+Generated: 2026-10-27 | 390 files | ~429.5K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -49,7 +49,7 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/backend/controller/schema/documents.py | 15 | 68 | source |
 | src/backend/controller/schema/health.py | 9 | 46 | source |
 | src/backend/controller/schema/invitations.py | 20 | 109 | source |
-| src/backend/controller/schema/maps.py | 74 | 754 | source |
+| src/backend/controller/schema/maps.py | 78 | 809 | source |
 | src/backend/controller/schema/members.py | 43 | 340 | source |
 | src/backend/controller/schema/paid_leads.py | 98 | 815 | source |
 | src/backend/controller/schema/passwords.py | 37 | 227 | source |
@@ -61,6 +61,7 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/backend/domain/documents.py | 24 | 190 | source |
 | src/backend/domain/email_codes.py | 18 | 131 | source |
 | src/backend/domain/google.py | 51 | 573 | source |
+| src/backend/domain/lead_contacts.py | 60 | 556 | source |
 | src/backend/domain/paid_leads.py | 7 | 91 | source |
 | src/backend/domain/passwords.py | 39 | 360 | source |
 | src/backend/domain/phones.py | 12 | 98 | source |
@@ -91,7 +92,7 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
 | src/backend/repository/db/control/manager.py | 69 | 889 | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
-| src/backend/repository/db/control/maps_jobs.py | 40 | 512 | source |
+| src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
@@ -107,7 +108,7 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/backend/repository/db/models/client.py | 44 | 594 | source |
 | src/backend/repository/db/models/document.py | 16 | 216 | source |
 | src/backend/repository/db/models/maps_credential.py | 15 | 178 | source |
-| src/backend/repository/db/models/maps_job.py | 28 | 392 | source |
+| src/backend/repository/db/models/maps_job.py | 30 | 435 | source |
 | src/backend/repository/db/models/notification.py | 32 | 388 | source |
 | src/backend/repository/db/models/paid_lead.py | 31 | 365 | source |
 | src/backend/repository/db/models/user.py | 28 | 377 | source |
@@ -130,11 +131,11 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/backend/service/dashboard.py | 55 | 680 | source |
 | src/backend/service/databases.py | 143 | 1.6K | source |
 | src/backend/service/documents.py | 115 | 1.3K | source |
-| src/backend/service/email_messages.py | 269 | 3.5K | source |
+| src/backend/service/email_messages.py | 271 | 3.6K | source |
 | src/backend/service/funnel_imports.py | 96 | 976 | source |
 | src/backend/service/google.py | 123 | 1.6K | source |
 | src/backend/service/invitations.py | 57 | 676 | source |
-| src/backend/service/maps.py | 342 | 4.3K | source |
+| src/backend/service/maps.py | 357 | 4.7K | source |
 | src/backend/service/members.py | 158 | 1.8K | source |
 | src/backend/service/paid_leads.py | 49 | 526 | source |
 | src/backend/service/passwords.py | 81 | 1.0K | source |
@@ -319,7 +320,7 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | tests/integration/service/test_funnel_imports.py | 103 | 1.3K | test |
 | tests/integration/service/test_google_linking.py | 73 | 962 | test |
 | tests/integration/service/test_maps_expansion.py | 143 | 1.9K | test |
-| tests/integration/service/test_maps_notifications.py | 75 | 867 | test |
+| tests/integration/service/test_maps_notifications.py | 87 | 1.0K | test |
 | tests/integration/service/test_members.py | 180 | 2.2K | test |
 | tests/integration/service/test_paid_leads.py | 68 | 941 | test |
 | tests/integration/service/test_passwords.py | 91 | 1.1K | test |
@@ -395,9 +396,9 @@ Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 | src/frontend/vite.config.mts | 17 | 146 | other |
 
 ## Summary
-- source: 247 files, ~269.8K tokens
+- source: 248 files, ~270.9K tokens
 - config: 11 files, ~2.9K tokens
-- test: 102 files, ~114.3K tokens
+- test: 102 files, ~114.5K tokens
 - docs: 10 files, ~15.9K tokens
 - style: 3 files, ~21.4K tokens
 - other: 16 files, ~4.0K tokens

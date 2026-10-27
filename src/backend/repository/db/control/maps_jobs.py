@@ -12,10 +12,10 @@ class MapsJobRepository(Repository[MapsJob]):
 
     def track(self, *, job_id: str, created_by_id: str, name: str, niche: str | None, auto_expand: bool = False,
               radius: int | None = None, start_radius: int | None = None, params: str | None = None,
-              max_leads: int | None = None) -> MapsJob:
+              max_leads: int | None = None, contact: str | None = None) -> MapsJob:
         return self.add(MapsJob(job_id=job_id, created_by_id=created_by_id, name=name[:120], niche=niche,
                                 auto_expand=auto_expand, radius=radius, start_radius=start_radius, params=params,
-                                max_leads=max_leads))
+                                max_leads=max_leads, contact=contact))
 
     def by_job_id(self, job_id: str) -> MapsJob | None:
         return self.session.scalar(select(MapsJob).where(MapsJob.job_id == job_id))

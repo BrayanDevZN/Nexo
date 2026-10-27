@@ -65,6 +65,18 @@ def test_creator_is_told_once_when_the_search_finishes(runtime):
     assert service.maps.push.notify_users.call_args.kwargs["url"] == "/admin?maps=" + JOB
 
 
+def test_notice_counts_only_companies_with_the_chosen_contact(runtime, monkeypatch):
+    service, actor, status = runtime
+    service.maps.create({**BODY, "contact": "email"}, actor.id)
+    status["value"] = "ok"
+    assert service.maps.finish_pending() == 1
+
+    notice = [n for n in service.announcements.list_for_user(actor) if n["title"] == "Busca do Maps concluída"][0]
+    assert "não encontrou nenhuma empresa com e-mail" in notice["body"] and "2 sem esse contato" in notice["body"]
+    args = service.maps.messages.maps_results.call_args.args
+    assert args[3] == 0 and args[5] == [] and args[6:] == ("e-mail", 2)
+
+
 def test_failed_search_is_reported(runtime):
     service, actor, status = runtime
     service.maps.create(BODY, actor.id)

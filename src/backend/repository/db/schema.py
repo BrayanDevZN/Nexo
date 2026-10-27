@@ -132,7 +132,7 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     with engine.begin() as connection:
         for name, definition in (("auto_expand", "BOOLEAN NOT NULL DEFAULT 0"), ("radius", "INTEGER"),
                                  ("start_radius", "INTEGER"), ("params", "TEXT"), ("expanded_to", "VARCHAR(36)"),
-                                 ("max_leads", "INTEGER")):
+                                 ("max_leads", "INTEGER"), ("contact", "VARCHAR(16)")):
             if name not in maps_job_columns:
                 connection.execute(text(f"ALTER TABLE maps_jobs ADD COLUMN {name} {definition}"))
     blob_columns = {

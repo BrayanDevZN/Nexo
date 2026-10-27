@@ -25,3 +25,5 @@ class MapsJob(IdentityTimestampMixin, Base):
     expanded_to: Mapped[str | None] = mapped_column(String(36))
     # How many companies the creator wants to see (None = all); kept when the search is widened.
     max_leads: Mapped[int | None] = mapped_column(Integer)
+    # Which contact the creator wants in the leads (any, whatsapp, email, ...); the notices only count those.
+    contact: Mapped[str | None] = mapped_column(String(16))

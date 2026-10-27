@@ -237,7 +237,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       const created = await api.mutate<{ id: string }>("/maps/jobs", "POST", {
         name: form.name.trim() || `${form.niche} · ${form.city || "local personalizado"}`.slice(0, 80),
         keywords, niche: form.niche, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
-        email: form.email || needsEmailSearch(form.contact), fast_mode: form.fast, auto_expand: expand, limit: form.limit,
+        email: form.email || needsEmailSearch(form.contact), fast_mode: form.fast, auto_expand: expand, limit: form.limit, contact: form.contact,
       });
       saveJobMeta(created.id, { niche: form.niche, limit: form.limit, contact: form.contact });
       setLeadNiche(form.niche);

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.domain.client_channels import SalesChannel
@@ -22,6 +24,8 @@ class MapsJobInput(BaseModel):
     auto_expand: bool = False
     # How many companies to show from the results (None = all).
     limit: int | None = Field(default=None, ge=1, le=1000)
+    # Which contact the creator wants in the leads; the finish notices count only companies that have it.
+    contact: Literal["any", "whatsapp", "email", "instagram", "site", "both"] = "any"
 
     @field_validator("keywords")
     @classmethod

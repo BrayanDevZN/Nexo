@@ -210,12 +210,14 @@ class AccountMessages:
         )
         return True
 
-    def maps_results(self, user, job_id: str, name: str, found: int, in_funnel: int, leads: list[dict]):
+    def maps_results(self, user, job_id: str, name: str, found: int, in_funnel: int, leads: list[dict],
+                     contact_label: str | None = None, without_contact: int = 0):
         if not self.sender.configured:
             return False
         paragraphs = ["Olá, " + (getattr(user, "name", None) or "pessoa") + ". A busca \"" + name + "\" terminou."]
         paragraphs.append(
-            f"Foram encontradas {found} empresa(s) nova(s)"
+            f"Foram encontradas {found} empresa(s) nova(s)" + (f" com {contact_label}" if contact_label else "")
+            + (f"; {without_contact} sem esse contato ficaram de fora" if without_contact else "")
             + (f"; {in_funnel} já estavam no funil e foram ocultadas." if in_funnel else "."))
         if leads:
             lines = []
@@ -228,7 +230,7 @@ class AccountMessages:
         paragraphs.append("Abra o painel para ver o resultado completo, abrir cada empresa no mapa e adicionar os leads ao funil.")
         self._send(
             user.email, "Sua busca no Maps terminou: " + name,
-            f"{found} empresa(s) nova(s) encontradas.",
+            f"{found} empresa(s) nova(s) encontradas" + (f" com {contact_label}." if contact_label else "."),
             "Busca do Maps concluída", paragraphs,
             action_label="Ver resultados", action_url=self.maps_url(job_id), eyebrow="MAPS",
         )
