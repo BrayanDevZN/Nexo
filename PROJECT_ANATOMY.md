@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
+Generated: 2026-10-27 | 389 files | ~428.2K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -7,9 +7,9 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | maps-server/start.sh | 36 | 294 | source |
 | mcp_server.py | 587 | 4.9K | source |
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
-| n8n/nodes/Nexo/Nexo.node.js | 222 | 8.1K | source |
+| n8n/nodes/Nexo/Nexo.node.js | 350 | 11.3K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
-| src/backend/controller/application.py | 105 | 1.3K | source |
+| src/backend/controller/application.py | 107 | 1.3K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
 | src/backend/controller/dependencies.py | 82 | 674 | source |
 | src/backend/controller/handles/account_deletion.py | 43 | 532 | source |
@@ -25,14 +25,16 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/backend/controller/handles/documents.py | 66 | 742 | source |
 | src/backend/controller/handles/google.py | 100 | 1.2K | source |
 | src/backend/controller/handles/health.py | 23 | 170 | source |
-| src/backend/controller/handles/maps.py | 124 | 1.1K | source |
+| src/backend/controller/handles/maps.py | 131 | 1.2K | source |
 | src/backend/controller/handles/members.py | 68 | 759 | source |
+| src/backend/controller/handles/paid_leads.py | 39 | 425 | source |
 | src/backend/controller/handles/passwords.py | 56 | 609 | source |
 | src/backend/controller/handles/profiles.py | 60 | 615 | source |
+| src/backend/controller/handles/public_paid_leads.py | 24 | 238 | source |
 | src/backend/controller/handles/push.py | 25 | 246 | source |
 | src/backend/controller/handles/realtime.py | 131 | 1.6K | source |
 | src/backend/controller/handles/webhook_events.py | 37 | 352 | source |
-| src/backend/controller/middleware/csrf.py | 45 | 616 | source |
+| src/backend/controller/middleware/csrf.py | 46 | 640 | source |
 | src/backend/controller/middleware/rate_limits.py | 42 | 482 | source |
 | src/backend/controller/schema/account_deletion.py | 16 | 104 | source |
 | src/backend/controller/schema/api_keys.py | 29 | 160 | source |
@@ -41,25 +43,29 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/backend/controller/schema/automation_requests.py | 78 | 531 | source |
 | src/backend/controller/schema/automations.py | 18 | 83 | source |
 | src/backend/controller/schema/chat.py | 28 | 154 | source |
-| src/backend/controller/schema/clients.py | 95 | 869 | source |
+| src/backend/controller/schema/clients.py | 95 | 859 | source |
 | src/backend/controller/schema/dashboard.py | 23 | 128 | source |
 | src/backend/controller/schema/databases.py | 7 | 46 | source |
 | src/backend/controller/schema/documents.py | 15 | 68 | source |
 | src/backend/controller/schema/health.py | 9 | 46 | source |
 | src/backend/controller/schema/invitations.py | 20 | 109 | source |
-| src/backend/controller/schema/maps.py | 67 | 636 | source |
+| src/backend/controller/schema/maps.py | 74 | 754 | source |
 | src/backend/controller/schema/members.py | 43 | 340 | source |
+| src/backend/controller/schema/paid_leads.py | 98 | 815 | source |
 | src/backend/controller/schema/passwords.py | 37 | 227 | source |
 | src/backend/controller/schema/push.py | 19 | 118 | source |
 | src/backend/domain/chat.py | 34 | 323 | source |
-| src/backend/domain/client_channels.py | 13 | 160 | source |
+| src/backend/domain/client_channels.py | 13 | 164 | source |
 | src/backend/domain/client_niches.py | 30 | 183 | source |
 | src/backend/domain/csrf.py | 15 | 118 | source |
 | src/backend/domain/documents.py | 24 | 190 | source |
 | src/backend/domain/email_codes.py | 18 | 131 | source |
 | src/backend/domain/google.py | 51 | 573 | source |
+| src/backend/domain/paid_leads.py | 7 | 91 | source |
 | src/backend/domain/passwords.py | 39 | 360 | source |
+| src/backend/domain/phones.py | 12 | 98 | source |
 | src/backend/domain/photos.py | 42 | 453 | source |
+| src/backend/domain/pipeline_stages.py | 6 | 84 | source |
 | src/backend/domain/roles.py | 42 | 341 | source |
 | src/backend/domain/tokens.py | 61 | 638 | source |
 | src/backend/infra/config/settings.py | 215 | 2.4K | source |
@@ -83,27 +89,29 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/backend/repository/db/control/chat.py | 70 | 816 | source |
 | src/backend/repository/db/control/clients.py | 146 | 2.0K | source |
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
-| src/backend/repository/db/control/manager.py | 67 | 854 | source |
+| src/backend/repository/db/control/manager.py | 69 | 889 | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
-| src/backend/repository/db/control/maps_jobs.py | 26 | 283 | source |
+| src/backend/repository/db/control/maps_jobs.py | 40 | 512 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
+| src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
 | src/backend/repository/db/migrations/owner_role.py | 92 | 1.1K | source |
-| src/backend/repository/db/models/__init__.py | 15 | 227 | source |
+| src/backend/repository/db/models/__init__.py | 16 | 245 | source |
 | src/backend/repository/db/models/api_key_usage.py | 20 | 199 | source |
 | src/backend/repository/db/models/api_key.py | 22 | 228 | source |
 | src/backend/repository/db/models/automation_request.py | 33 | 358 | source |
 | src/backend/repository/db/models/automation.py | 18 | 226 | source |
 | src/backend/repository/db/models/base.py | 23 | 180 | source |
 | src/backend/repository/db/models/chat.py | 38 | 372 | source |
-| src/backend/repository/db/models/client.py | 43 | 586 | source |
+| src/backend/repository/db/models/client.py | 44 | 594 | source |
 | src/backend/repository/db/models/document.py | 16 | 216 | source |
 | src/backend/repository/db/models/maps_credential.py | 15 | 178 | source |
-| src/backend/repository/db/models/maps_job.py | 19 | 212 | source |
+| src/backend/repository/db/models/maps_job.py | 28 | 392 | source |
 | src/backend/repository/db/models/notification.py | 32 | 388 | source |
+| src/backend/repository/db/models/paid_lead.py | 31 | 365 | source |
 | src/backend/repository/db/models/user.py | 28 | 377 | source |
-| src/backend/repository/db/schema.py | 138 | 2.2K | source |
+| src/backend/repository/db/schema.py | 182 | 2.9K | source |
 | src/backend/repository/redis/email_codes.py | 52 | 434 | source |
 | src/backend/repository/redis/invitations.py | 37 | 304 | source |
 | src/backend/repository/redis/oauth.py | 47 | 395 | source |
@@ -118,30 +126,31 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/backend/service/automation_requests.py | 177 | 2.0K | source |
 | src/backend/service/automations.py | 181 | 2.4K | source |
 | src/backend/service/chat.py | 127 | 1.5K | source |
-| src/backend/service/clients.py | 237 | 2.8K | source |
+| src/backend/service/clients.py | 238 | 2.8K | source |
 | src/backend/service/dashboard.py | 55 | 680 | source |
 | src/backend/service/databases.py | 143 | 1.6K | source |
 | src/backend/service/documents.py | 115 | 1.3K | source |
 | src/backend/service/email_messages.py | 269 | 3.5K | source |
-| src/backend/service/funnel_imports.py | 94 | 936 | source |
+| src/backend/service/funnel_imports.py | 96 | 976 | source |
 | src/backend/service/google.py | 123 | 1.6K | source |
 | src/backend/service/invitations.py | 57 | 676 | source |
-| src/backend/service/maps.py | 252 | 2.9K | source |
+| src/backend/service/maps.py | 342 | 4.3K | source |
 | src/backend/service/members.py | 158 | 1.8K | source |
+| src/backend/service/paid_leads.py | 49 | 526 | source |
 | src/backend/service/passwords.py | 81 | 1.0K | source |
 | src/backend/service/profiles.py | 67 | 694 | source |
 | src/backend/service/push.py | 51 | 509 | source |
-| src/backend/service/rate_limits.py | 38 | 466 | source |
-| src/backend/service/realtime.py | 39 | 402 | source |
+| src/backend/service/rate_limits.py | 44 | 588 | source |
+| src/backend/service/realtime.py | 39 | 409 | source |
 | src/backend/service/registration.py | 55 | 640 | source |
-| src/backend/service/runtime.py | 178 | 2.8K | source |
+| src/backend/service/runtime.py | 180 | 2.9K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 38 | 368 | source |
-| src/backend/service/webhook_events.py | 133 | 1.3K | source |
-| src/frontend/AccountingLanding.tsx | 330 | 3.1K | source |
-| src/frontend/admin/AdminApp.tsx | 258 | 5.9K | source |
+| src/backend/service/webhook_events.py | 158 | 1.7K | source |
+| src/frontend/AccountingLanding.tsx | 338 | 3.2K | source |
+| src/frontend/admin/AdminApp.tsx | 262 | 6.1K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
-| src/frontend/admin/api.ts | 188 | 3.0K | source |
+| src/frontend/admin/api.ts | 205 | 3.4K | source |
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
@@ -149,6 +158,7 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/frontend/admin/Auth.tsx | 158 | 3.1K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
+| src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
 | src/frontend/admin/BusinessDashboard.tsx | 424 | 7.5K | source |
 | src/frontend/admin/Chat.tsx | 129 | 5.0K | source |
 | src/frontend/admin/Clients.tsx | 236 | 6.1K | source |
@@ -162,25 +172,30 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/frontend/admin/Funnel.tsx | 181 | 3.3K | source |
 | src/frontend/admin/GeneralHome.tsx | 68 | 1.4K | source |
 | src/frontend/admin/Home.tsx | 43 | 1.8K | source |
-| src/frontend/admin/Maps.tsx | 547 | 9.0K | source |
+| src/frontend/admin/leadContact.ts | 97 | 1.1K | source |
+| src/frontend/admin/Maps.tsx | 619 | 10.7K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
 | src/frontend/admin/MemberPhoto.tsx | 21 | 341 | source |
 | src/frontend/admin/Members.tsx | 103 | 3.3K | source |
 | src/frontend/admin/MyKeys.tsx | 178 | 3.0K | source |
+| src/frontend/admin/PaidFunnel.tsx | 158 | 3.6K | source |
 | src/frontend/admin/PhotoPicker.tsx | 42 | 649 | source |
 | src/frontend/admin/Profile.tsx | 87 | 1.5K | source |
 | src/frontend/admin/push.ts | 119 | 1.1K | source |
 | src/frontend/admin/realtime.ts | 52 | 1.1K | source |
 | src/frontend/admin/shared.tsx | 31 | 463 | source |
+| src/frontend/admin/theme.ts | 26 | 192 | source |
+| src/frontend/admin/ThemeToggle.tsx | 21 | 223 | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 37 | 282 | source |
 | src/frontend/components/AccountingVisual.tsx | 65 | 506 | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
+| src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
 | src/frontend/components/home/About.tsx | 53 | 452 | source |
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
-| src/frontend/components/home/Close.tsx | 65 | 562 | source |
+| src/frontend/components/home/Close.tsx | 69 | 624 | source |
 | src/frontend/components/home/Faq.tsx | 35 | 250 | source |
 | src/frontend/components/home/Features.tsx | 57 | 506 | source |
 | src/frontend/components/home/Hero.tsx | 51 | 400 | source |
@@ -223,12 +238,16 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/frontend/hooks/useScrollReveal.ts | 51 | 467 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 62 | 497 | source |
 | src/frontend/lib/accountingLanding.ts | 170 | 1.8K | source |
+| src/frontend/lib/consent.ts | 23 | 160 | source |
 | src/frontend/lib/content.ts | 175 | 2.0K | source |
-| src/frontend/lib/tracking.ts | 38 | 332 | source |
+| src/frontend/lib/paidLeads.ts | 38 | 475 | source |
+| src/frontend/lib/seo.ts | 22 | 187 | source |
+| src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
-| src/frontend/lib/whatsapp.ts | 16 | 225 | source |
-| src/frontend/main.tsx | 22 | 244 | source |
+| src/frontend/lib/whatsapp.ts | 26 | 325 | source |
+| src/frontend/main.tsx | 31 | 379 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
+| src/frontend/PrivacyPage.tsx | 110 | 1.4K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
 | src/frontend/test-kit.ts | 3 | 24 | source |
 | src/frontend/vite-env.d.ts | 2 | 10 | source |
@@ -242,8 +261,8 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/frontend/components.json | 26 | 131 | config |
 | src/frontend/package.json | 44 | 291 | config |
 | src/frontend/tsconfig.json | 42 | 187 | config |
-| src/frontend/vercel.json | 16 | 140 | config |
-| n8n/test/nodes.test.js | 351 | 4.8K | test |
+| src/frontend/vercel.json | 18 | 171 | config |
+| n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
 | tests/functional/controller/test_account_deletion.py | 47 | 633 | test |
 | tests/functional/controller/test_application.py | 55 | 641 | test |
@@ -256,8 +275,9 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/functional/controller/test_databases.py | 79 | 915 | test |
 | tests/functional/controller/test_documents.py | 53 | 719 | test |
 | tests/functional/controller/test_google.py | 207 | 2.9K | test |
-| tests/functional/controller/test_maps.py | 187 | 2.5K | test |
+| tests/functional/controller/test_maps.py | 196 | 2.6K | test |
 | tests/functional/controller/test_members.py | 124 | 1.8K | test |
+| tests/functional/controller/test_paid_leads.py | 75 | 1.1K | test |
 | tests/functional/controller/test_passwords.py | 117 | 1.5K | test |
 | tests/functional/controller/test_rate_limits.py | 92 | 1.1K | test |
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
@@ -271,8 +291,8 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/landing.spec.ts | 78 | 1.0K | test |
-| tests/integration/frontend/panel.spec.ts | 580 | 10.2K | test |
+| tests/integration/frontend/landing.spec.ts | 173 | 2.4K | test |
+| tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
@@ -280,7 +300,9 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/integration/infra/test_redis_connection.py | 21 | 169 | test |
 | tests/integration/repository/test_cache_manager.py | 88 | 974 | test |
 | tests/integration/repository/test_client_channel_migration.py | 28 | 360 | test |
+| tests/integration/repository/test_client_stage_migration.py | 37 | 513 | test |
 | tests/integration/repository/test_email_codes.py | 62 | 628 | test |
+| tests/integration/repository/test_maps_job_migration.py | 24 | 335 | test |
 | tests/integration/repository/test_oauth_flows.py | 26 | 262 | test |
 | tests/integration/repository/test_rate_limits.py | 53 | 487 | test |
 | tests/integration/repository/test_repositories.py | 121 | 1.6K | test |
@@ -294,10 +316,12 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/integration/service/test_clients_profiles.py | 144 | 1.8K | test |
 | tests/integration/service/test_dashboard_performance.py | 66 | 841 | test |
 | tests/integration/service/test_documents.py | 40 | 480 | test |
-| tests/integration/service/test_funnel_imports.py | 92 | 1.1K | test |
+| tests/integration/service/test_funnel_imports.py | 103 | 1.3K | test |
 | tests/integration/service/test_google_linking.py | 73 | 962 | test |
+| tests/integration/service/test_maps_expansion.py | 143 | 1.9K | test |
 | tests/integration/service/test_maps_notifications.py | 75 | 867 | test |
 | tests/integration/service/test_members.py | 180 | 2.2K | test |
+| tests/integration/service/test_paid_leads.py | 68 | 941 | test |
 | tests/integration/service/test_passwords.py | 91 | 1.1K | test |
 | tests/integration/service/test_registration.py | 57 | 564 | test |
 | tests/README.md | 22 | 299 | test |
@@ -305,6 +329,7 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/unit/controller/test_client_schema.py | 66 | 746 | test |
 | tests/unit/controller/test_google_cookies.py | 37 | 444 | test |
 | tests/unit/controller/test_main.py | 17 | 176 | test |
+| tests/unit/controller/test_paid_lead_schema.py | 39 | 421 | test |
 | tests/unit/controller/test_password_schema.py | 18 | 209 | test |
 | tests/unit/controller/test_rate_middleware.py | 29 | 322 | test |
 | tests/unit/controller/test_role_access.py | 130 | 1.6K | test |
@@ -315,8 +340,9 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/unit/domain/test_passwords.py | 29 | 247 | test |
 | tests/unit/domain/test_photos.py | 37 | 328 | test |
 | tests/unit/domain/test_tokens.py | 53 | 450 | test |
-| tests/unit/frontend/api.spec.ts | 113 | 1.4K | test |
-| tests/unit/frontend/landing.spec.ts | 26 | 336 | test |
+| tests/unit/frontend/api.spec.ts | 119 | 1.5K | test |
+| tests/unit/frontend/landing.spec.ts | 36 | 452 | test |
+| tests/unit/frontend/leadContact.spec.ts | 63 | 1.1K | test |
 | tests/unit/frontend/xlsx.spec.ts | 79 | 1.3K | test |
 | tests/unit/infra/test_email_connection.py | 215 | 2.3K | test |
 | tests/unit/infra/test_google_connection.py | 22 | 224 | test |
@@ -332,22 +358,25 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | tests/unit/service/test_approvals.py | 42 | 462 | test |
 | tests/unit/service/test_email_messages.py | 111 | 1.2K | test |
 | tests/unit/service/test_google_linking.py | 34 | 414 | test |
-| tests/unit/service/test_maps.py | 184 | 1.9K | test |
+| tests/unit/service/test_lead_notes.py | 19 | 233 | test |
+| tests/unit/service/test_maps.py | 190 | 1.9K | test |
 | tests/unit/service/test_members.py | 75 | 939 | test |
-| tests/unit/service/test_rate_limits.py | 37 | 414 | test |
+| tests/unit/service/test_rate_limits.py | 47 | 571 | test |
 | tests/unit/service/test_registration.py | 71 | 745 | test |
-| tests/unit/service/test_webhook_events.py | 101 | 815 | test |
+| tests/unit/service/test_webhook_events.py | 182 | 1.6K | test |
+| docs/prompts/first-contact-whatsapp.md | 237 | 3.6K | docs |
 | maps-server/README.md | 35 | 351 | docs |
-| n8n/README.md | 123 | 1.7K | docs |
-| README.mcp.md | 83 | 880 | docs |
+| n8n/README.md | 150 | 2.4K | docs |
+| README.mcp.md | 83 | 883 | docs |
 | README.md | 82 | 1.6K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
 | requirements.txt | 14 | 65 | docs |
 | src/backend/README.md | 295 | 5.3K | docs |
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
-| src/frontend/styles/globals.css | 2658 | 15.3K | style |
+| src/frontend/public/robots.txt | 7 | 26 | docs |
+| src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/site.css | 254 | 4.4K | style |
+| src/frontend/styles/site.css | 267 | 4.7K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 71 | 555 | other |
 | .gitignore | 31 | 53 | other |
@@ -362,19 +391,21 @@ Generated: 2026-10-26 | 359 files | ~385.4K tokens if all read
 | src/frontend/.env.example | 9 | 88 | other |
 | src/frontend/index.html | 25 | 224 | other |
 | src/frontend/public/manifest.webmanifest | 13 | 91 | other |
+| src/frontend/public/sitemap.xml | 7 | 94 | other |
 | src/frontend/vite.config.mts | 17 | 146 | other |
 
 ## Summary
-- source: 228 files, ~249.0K tokens
+- source: 247 files, ~269.8K tokens
 - config: 11 files, ~2.9K tokens
-- test: 94 files, ~97.3K tokens
-- docs: 8 files, ~11.5K tokens
-- style: 3 files, ~20.8K tokens
-- other: 15 files, ~3.9K tokens
+- test: 102 files, ~114.3K tokens
+- docs: 10 files, ~15.9K tokens
+- style: 3 files, ~21.4K tokens
+- other: 16 files, ~4.0K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
-1. src/frontend/styles/globals.css — 2658 lines (~15.3K tokens)
-2. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
-3. mcp_server.py — 587 lines (~4.9K tokens)
-4. tests/integration/frontend/panel.spec.ts — 580 lines (~10.2K tokens)
-5. src/frontend/admin/Maps.tsx — 547 lines (~9.0K tokens)
+1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
+2. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
+3. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
+4. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)
+5. mcp_server.py — 587 lines (~4.9K tokens)
+6. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
