@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-10-27 | 390 files | ~429.5K tokens if all read
+Generated: 2026-10-27 | 391 files | ~429.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -162,18 +162,19 @@ Generated: 2026-10-27 | 390 files | ~429.5K tokens if all read
 | src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
 | src/frontend/admin/BusinessDashboard.tsx | 424 | 7.5K | source |
 | src/frontend/admin/Chat.tsx | 129 | 5.0K | source |
-| src/frontend/admin/Clients.tsx | 236 | 6.1K | source |
+| src/frontend/admin/Clients.tsx | 237 | 6.0K | source |
 | src/frontend/admin/contact.ts | 14 | 200 | source |
+| src/frontend/admin/ContactButtons.tsx | 26 | 511 | source |
 | src/frontend/admin/Databases.tsx | 100 | 1.7K | source |
 | src/frontend/admin/DeleteAccount.tsx | 35 | 822 | source |
 | src/frontend/admin/DevHome.tsx | 122 | 2.9K | source |
 | src/frontend/admin/Directory.tsx | 35 | 802 | source |
 | src/frontend/admin/DocumentPreviewButton.tsx | 122 | 1.9K | source |
 | src/frontend/admin/Documents.tsx | 58 | 1.6K | source |
-| src/frontend/admin/Funnel.tsx | 181 | 3.3K | source |
+| src/frontend/admin/Funnel.tsx | 181 | 3.2K | source |
 | src/frontend/admin/GeneralHome.tsx | 68 | 1.4K | source |
 | src/frontend/admin/Home.tsx | 43 | 1.8K | source |
-| src/frontend/admin/leadContact.ts | 97 | 1.1K | source |
+| src/frontend/admin/leadContact.ts | 105 | 1.2K | source |
 | src/frontend/admin/Maps.tsx | 619 | 10.7K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
 | src/frontend/admin/MemberPhoto.tsx | 21 | 341 | source |
@@ -396,7 +397,7 @@ Generated: 2026-10-27 | 390 files | ~429.5K tokens if all read
 | src/frontend/vite.config.mts | 17 | 146 | other |
 
 ## Summary
-- source: 248 files, ~270.9K tokens
+- source: 249 files, ~271.3K tokens
 - config: 11 files, ~2.9K tokens
 - test: 102 files, ~114.5K tokens
 - docs: 10 files, ~15.9K tokens

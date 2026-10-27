@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DocumentPreviewButton } from "./DocumentPreviewButton";
 import { CLIENT_NICHES, PIPELINE_STAGES, SALES_CHANNELS, salesChannelLabel, type createApi, type ClientRecord, type ClientInput } from "./api";
-import { mapsUrl, whatsappUrl } from "./contact";
+import { mapsUrl } from "./contact";
+import { ContactButtons } from "./ContactButtons";
 import { MapsButton } from "./MapsLink";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
@@ -156,14 +157,14 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     {loading ? <Loading /> : rows.length === 0 && !error ? <Empty>
       <EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente nesta lista</EmptyTitle><EmptyDescription>Cadastre um cliente ou ajuste os filtros para encontrar seus contatos.</EmptyDescription></EmptyHeader>
     </Empty> : <div className="admin-client-grid">{rows.map(client => {
-      const contactUrl = client.phone ? whatsappUrl(client.phone, client.name) : "";
       return <Card key={client.id}>
       <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
         {client.sales_channel && <p className="text-sm text-muted-foreground">Canal de vendas: {salesChannelLabel(client.sales_channel)}</p>}
         {client.email && <p className="break-all text-sm">{client.email}</p>}
-        {client.phone && <div className="flex flex-wrap items-center gap-2"><p className="text-sm">{client.phone}</p>{contactUrl && <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"><a href={contactUrl} target="_blank" rel="noreferrer" aria-label={"Entrar em contato com " + client.name + " pelo WhatsApp"}><MessageCircle data-icon="inline-start" /> WhatsApp</a></Button>}</div>}
+        {client.phone && <p className="text-sm">{client.phone}</p>}
+        <div className="flex flex-wrap items-center gap-2"><ContactButtons client={client} whatsappClassName="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" /></div>
         {client.address && <div className="flex flex-wrap items-center gap-2"><p className="break-words text-sm">{client.address}</p><MapsButton href={mapsUrl({ query: client.name + " " + client.address })} label={"Ver " + client.name + " no mapa"} /></div>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
