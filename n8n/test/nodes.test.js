@@ -211,7 +211,7 @@ test('trigger recreates subscription missing from the backend', async () => {
 });
 
 const MAPS_JOB = '3f2c1c1e-0000-4000-8000-000000000001';
-const MAPS_SEARCH = { resource: 'maps', operation: 'create', mapsName: 'Contadores SP', mapsKeywords: 'escritório de contabilidade, contador\n', mapsLat: '-23,5505', mapsLon: '-46.6333', mapsRadius: 5000, mapsZoom: 15, mapsDepth: 2, mapsLang: 'pt', mapsEmail: true, mapsFastMode: false, mapsMaxTime: 300 };
+const MAPS_SEARCH = { resource: 'maps', operation: 'create', mapsNiche: 'Contabilidade' };
 
 test('Maps is a resource with search operations that expose an action and description', () => {
 	const node = new Nexo();
@@ -223,16 +223,70 @@ test('Maps is a resource with search operations that expose an action and descri
 	assert.ok(new NexoApi().properties.some((field) => field.name === 'mapsUrl'));
 });
 
-test('Maps create sends the documented body to the maps server, with coordinates as text', async () => {
+const fs = require('node:fs');
+const panelMaps = fs.readFileSync(require('node:path').join(__dirname, '../../src/frontend/admin/Maps.tsx'), 'utf8');
+
+test('Maps search only offers the fixed niches of the panel, with the same search terms', () => {
+	const node = new Nexo();
+	const field = node.description.properties.find((candidate) => candidate.name === 'mapsNiche');
+	assert.equal(field.type, 'options');
+	assert.equal(field.default, 'Contabilidade');
+	assert.equal(node.description.properties.some((candidate) => ['mapsKeywords', 'mapsLat', 'mapsLon', 'mapsRadius'].includes(candidate.name)), false);
+	const terms = Object.fromEntries([...panelMaps.matchAll(/^\s*"([^"]+)": \[(.+)\],$/gm)].map(([, niche, list]) => [niche, [...list.matchAll(/"([^"]+)"/g)].map((match) => match[1])]));
+	assert.ok(Object.keys(terms).length >= 16);
+	assert.deepEqual(field.options.map((option) => option.value), Object.keys(terms));
+	for (const option of field.options) assert.ok(option.description.includes(terms[option.value].join(', ')), option.value);
+});
+
+test('Maps cities and the default place are the same as the panel', () => {
+	const node = new Nexo();
+	const options = node.description.properties.find((candidate) => candidate.name === 'mapsOptions');
+	const cities = options.options.find((option) => option.name === 'mapsCity').options.map((option) => option.value);
+	const panelCities = [...panelMaps.matchAll(/\{ name: "([^"]+)", lat: "(-?[\d.]+)", lon: "(-?[\d.]+)" \}/g)].map(([, name, lat, lon]) => ({ name, lat, lon }));
+	assert.deepEqual(cities, panelCities.map((city) => city.name));
+	assert.equal(options.options.find((option) => option.name === 'mapsLat').default, panelCities[0].lat);
+	assert.equal(options.options.find((option) => option.name === 'mapsLon').default, panelCities[0].lon);
+});
+
+test('Maps latitude, longitude and the other settings only appear after "Adicionar opção"', () => {
+	const node = new Nexo();
+	const options = node.description.properties.find((candidate) => candidate.name === 'mapsOptions');
+	assert.equal(options.type, 'collection');
+	assert.equal(options.placeholder, 'Adicionar opção');
+	assert.deepEqual(options.default, {});
+	assert.deepEqual(options.options.map((option) => option.name), ['mapsCity', 'mapsLat', 'mapsLon', 'mapsRadius', 'mapsZoom', 'mapsDepth', 'mapsLang', 'mapsEmail', 'mapsFastMode', 'mapsMaxTime']);
+});
+
+test('Maps create with only a niche searches São Paulo with the panel defaults', async () => {
 	const { output, request } = await executeNexo(MAPS_SEARCH, { id: MAPS_JOB });
 	assert.equal(request.method, 'POST');
 	assert.equal(request.baseURL, 'https://nexo-production-52a1.up.railway.app/');
 	assert.equal(request.url, 'api/v1/jobs');
 	assert.deepEqual(request.body, {
-		name: 'Contadores SP', keywords: ['escritório de contabilidade', 'contador'], lang: 'pt', lat: '-23.5505', lon: '-46.6333',
-		zoom: 15, radius: 5000, depth: 2, email: true, fast_mode: false, max_time: 300,
+		name: 'Contabilidade · São Paulo (SP)', keywords: ['escritório de contabilidade', 'contador'], lang: 'pt', lat: '-23.5505', lon: '-46.6333',
+		zoom: 15, radius: 5000, depth: 3, email: false, fast_mode: false, max_time: 300,
 	});
 	assert.deepEqual(output[0], [{ json: { id: MAPS_JOB }, pairedItem: { item: 0 } }]);
+});
+
+test('Maps create changes the place and the settings only through the options', async () => {
+	const city = await executeNexo({ ...MAPS_SEARCH, mapsNiche: 'Saúde', mapsOptions: { mapsCity: 'Belo Horizonte (MG)', mapsRadius: 8000, mapsDepth: 2, mapsFastMode: true } }, { id: MAPS_JOB });
+	assert.deepEqual(city.request.body, { name: 'Saúde · Belo Horizonte (MG)', keywords: ['clínica médica', 'clínica odontológica', 'consultório'], lang: 'pt', lat: '-19.9167', lon: '-43.9345', zoom: 15, radius: 8000, depth: 2, email: false, fast_mode: true, max_time: 300 });
+	const custom = await executeNexo({ ...MAPS_SEARCH, mapsName: 'Contadores Centro', mapsOptions: { mapsLat: '-23,5505', mapsLon: '-46.6333', mapsEmail: true, mapsLang: 'en' } }, { id: MAPS_JOB });
+	assert.equal(custom.request.body.name, 'Contadores Centro');
+	assert.equal(custom.request.body.lat, '-23.5505');
+	assert.equal(custom.request.body.email, true);
+	assert.equal(custom.request.body.lang, 'en');
+	const unnamed = await executeNexo({ ...MAPS_SEARCH, mapsOptions: { mapsLat: '-10', mapsLon: '-50' } }, { id: MAPS_JOB });
+	assert.equal(unnamed.request.body.name, 'Contabilidade · local personalizado');
+	const latOnly = await executeNexo({ ...MAPS_SEARCH, mapsOptions: { mapsCity: 'Curitiba (PR)', mapsLat: '-25' } }, { id: MAPS_JOB });
+	assert.deepEqual([latOnly.request.body.lat, latOnly.request.body.lon], ['-25', '-49.2733']);
+});
+
+test('Maps create turns the website e-mail search on when the chosen contact includes e-mail', async () => {
+	const emailFor = async (mapsContact, mapsOptions) => (await executeNexo({ ...MAPS_SEARCH, mapsContact, ...(mapsOptions ? { mapsOptions } : {}) }, { id: MAPS_JOB })).request.body.email;
+	assert.deepEqual([await emailFor('any'), await emailFor('whatsapp'), await emailFor('email'), await emailFor('both')], [false, false, true, true]);
+	assert.equal(await emailFor('whatsapp', { mapsEmail: true }), true);
 });
 
 test('Maps create uses the maps URL from the credential', async () => {
@@ -249,10 +303,10 @@ test('Maps create uses the maps URL from the credential', async () => {
 
 test('Maps create rejects invalid input before any request reaches the maps server', async () => {
 	const invalid = [
-		[{ mapsKeywords: ' , ' }, /palavra-chave/], [{ mapsKeywords: Array.from({ length: 11 }, (_, n) => `k${n}`).join(',') }, /no máximo 10/],
-		[{ mapsKeywords: 'x'.repeat(121) }, /120 caracteres/], [{ mapsLat: '95' }, /Latitude inválida/], [{ mapsLat: '' }, /Latitude inválida/],
-		[{ mapsLon: 'abc' }, /Longitude inválida/], [{ mapsLon: '181' }, /Longitude inválida/], [{ mapsRadius: 5 }, /raio/],
-		[{ mapsDepth: 0 }, /profundidade/], [{ mapsMaxTime: 5000 }, /tempo máximo/],
+		[{ mapsNiche: 'Pesca' }, /Nicho inválido/], [{ mapsNiche: 'Outro' }, /Nicho inválido/], [{ mapsContact: 'pombo' }, /Contato inválido/],
+		[{ mapsOptions: { mapsCity: 'Atlântida' } }, /Cidade inválida/], [{ mapsOptions: { mapsLat: '95' } }, /Latitude inválida/], [{ mapsOptions: { mapsLat: '' } }, /Latitude inválida/],
+		[{ mapsOptions: { mapsLon: 'abc' } }, /Longitude inválida/], [{ mapsOptions: { mapsLon: '181' } }, /Longitude inválida/], [{ mapsOptions: { mapsRadius: 5 } }, /raio/],
+		[{ mapsOptions: { mapsDepth: 0 } }, /profundidade/], [{ mapsOptions: { mapsMaxTime: 5000 } }, /tempo máximo/],
 	];
 	for (const [override, message] of invalid) {
 		let sent = 0;
@@ -293,13 +347,28 @@ test('Maps results parse the CSV into one item per company, with a normalized ph
 	assert.equal(request.json, false);
 	const rows = output[0].map((item) => item.json);
 	assert.equal(rows.length, 3);
-	assert.deepEqual(rows[0], { title: 'Tavares Contabilidade', category: 'Escritório de contabilidade', address: 'R. Exemplo, 389 - Santa Cecília', phone: '(11) 3361-8832', website: 'https://t.example', emails: '', phone_e164: '+551133618832' });
+	assert.deepEqual(rows[0], { title: 'Tavares Contabilidade', category: 'Escritório de contabilidade', address: 'R. Exemplo, 389 - Santa Cecília', phone: '(11) 3361-8832', website: 'https://t.example', emails: '', phone_e164: '+551133618832', is_mobile: false, has_email: false, sales_channel: null });
 	assert.equal(rows[1].title, 'Contador "Zé"');
 	assert.equal(rows[1].address, 'Linha 1\nLinha 2');
 	assert.equal(rows[1].phone_e164, '+5511971555292');
 	assert.equal(rows[2].phone_e164, null);
+	assert.deepEqual(rows.map((row) => [row.is_mobile, row.has_email]), [[false, false], [true, true], [false, false]]);
 	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'results', identifier: MAPS_JOB }, 'title,phone\n')).output[0], []);
 	assert.deepEqual((await executeNexo({ resource: 'maps', operation: 'results', identifier: MAPS_JOB }, '')).output[0], []);
+});
+
+test('Maps results keep only the companies that have the chosen contact and suggest the sales channel', async () => {
+	const csv = 'title,phone,emails\r\n'
+		+ 'Só fixo,(31) 3333-4444,\r\n'
+		+ 'Só celular,(31) 99999-1111,\r\n'
+		+ 'Só e-mail,,oi@a.com\r\n'
+		+ 'Celular e e-mail,+55 31 98888-2222,"a@b.com, c@d.com"\r\n';
+	const keep = async (mapsResultsContact) => (await executeNexo({ resource: 'maps', operation: 'results', identifier: MAPS_JOB, mapsResultsContact }, csv)).output[0].map((item) => [item.json.title, item.json.sales_channel]);
+	assert.equal((await keep('any')).length, 4);
+	assert.deepEqual(await keep('whatsapp'), [['Só celular', 'whatsapp'], ['Celular e e-mail', 'whatsapp']]);
+	assert.deepEqual(await keep('email'), [['Só e-mail', 'email'], ['Celular e e-mail', 'email']]);
+	assert.deepEqual(await keep('both'), [['Celular e e-mail', null]]);
+	await assert.rejects(keep('pombo'), /Contato inválido/);
 });
 
 test('Maps delete removes the search and answers with a confirmation, even with an empty body', async () => {

@@ -71,17 +71,31 @@ mantém o valor atual e **Remover canal** deixa o cliente sem canal. **Get Many*
 O recurso **Maps** fala com o servidor do Maps (`/api/v1/jobs`), que aceita a mesma chave da Nexo e
 aparece na aba **API** do painel. Funciona com chave de qualquer cargo, inclusive Comercial. O fluxo é:
 
-1. **Criar busca** com palavras-chave (separadas por vírgula, até 10), latitude e longitude. Devolve `{ "id": ... }`.
+1. **Criar busca**: escolha o **Nicho** (só os nichos fixos do painel, cada um com os termos de busca certos) e o
+   **Contato que você quer nos leads** (Qualquer, WhatsApp, E-mail ou WhatsApp e e-mail). Sem mais nada, a busca é
+   em **São Paulo (SP)** (latitude `-23.5505`, longitude `-46.6333`), raio de 5000 m. Para mudar a cidade, a
+   latitude, a longitude, o raio, o zoom, a profundidade, o idioma, o modo rápido ou o tempo máximo, clique em
+   **Adicionar opção** (a lista de cidades é a mesma do painel; latitude e longitude, se informadas, valem mais que a
+   cidade). Escolher **E-mail** ou **WhatsApp e e-mail** liga sozinho a busca de e-mails nos sites das empresas.
+   Devolve `{ "id": ... }`.
 2. **Get** pelo ID até o campo `Status` chegar a `ok` (começa em `working`; `failed` se não terminou).
 3. **Baixar resultados** devolve uma empresa por item, com as colunas do CSV (`title`, `category`, `address`,
-   `phone`, `website`, `emails`, `review_rating`, `review_count`, `link`, `latitude`, `longitude`...) e o campo extra
-   `phone_e164` (telefone normalizado como `+55...`, ou `null` se não houver número válido). Telefones fixos
-   aparecem no resultado; filtre antes de enviar mensagens.
+   `phone`, `website`, `emails`, `review_rating`, `review_count`, `link`, `latitude`, `longitude`...) e os campos extras
+   `phone_e164` (telefone normalizado como `+55...`, ou `null` se não houver número válido), `is_mobile` (celular),
+   `has_email` e `sales_channel`. O campo **Contato que você quer nos leads** também filtra: **WhatsApp** deixa só
+   quem tem **celular** (telefone fixo quase nunca tem WhatsApp), **E-mail** só quem tem e-mail e **WhatsApp e
+   e-mail** só quem tem os dois. `sales_channel` vem como `whatsapp` ou `email` quando você escolhe um só contato, e
+   `null` nos outros casos, pronto para mapear em **Clientes → Criar → Canal de vendas**.
 4. **Excluir busca** apaga a busca e os resultados do servidor e devolve `{ "id": ..., "deleted": true }`.
 
 Para levar os resultados ao funil, ligue **Baixar resultados** a um node **Clientes → Criar** mapeando
-`title` → Nome, `phone_e164` → Telefone, `address` → Endereço e o nicho desejado. Diferente do painel,
-essa rota não ignora duplicados: confira o funil antes (por exemplo com **Clientes → Buscar por ID ou nome**).
+`title` → Nome, `phone_e164` → Telefone, `address` → Endereço, `sales_channel` → Canal de vendas e o nicho desejado.
+Diferente do painel, essa rota não ignora duplicados: confira o funil antes (por exemplo com
+**Clientes → Buscar por ID ou nome**).
+
+**Atenção ao atualizar:** a busca deixou de aceitar palavras-chave livres. Fluxos antigos que preenchiam
+palavras-chave, latitude e longitude no formulário passam a usar o nicho **Contabilidade** em São Paulo até você
+escolher o nicho e, se precisar, a cidade em **Adicionar opção**.
 
 Ficam de fora o cadastro da chave do Maps e a adição em lote ao funil do painel: elas usam a sessão do navegador,
 não a chave de API. Quanto maior a profundidade da busca, mais empresas e mais demora.

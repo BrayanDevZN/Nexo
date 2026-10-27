@@ -48,13 +48,58 @@ function parseCsv(text) {
 	if (!header) return [];
 	return records.map((cells) => Object.fromEntries(header.map((name, column) => [name, cells[column] ?? ''])));
 }
-function mapsKeywords(value) {
-	const keywords = String(value || '').split(/[,\n]/).map((keyword) => keyword.trim()).filter(Boolean);
-	if (keywords.length === 0) throw new Error('Informe ao menos uma palavra-chave para a busca no Maps.');
-	if (keywords.length > 10) throw new Error('A busca aceita no máximo 10 palavras-chave.');
-	if (keywords.some((keyword) => keyword.length > 120)) throw new Error('Cada palavra-chave pode ter no máximo 120 caracteres.');
-	return keywords;
+// The niches the map search can look for and the Google Maps terms each one uses. Same list as the panel.
+const MAPS_NICHES = {
+	'Contabilidade': ['escritório de contabilidade', 'contador'],
+	'Saúde': ['clínica médica', 'clínica odontológica', 'consultório'],
+	'Beleza e estética': ['salão de beleza', 'clínica de estética', 'barbearia'],
+	'Imobiliário': ['imobiliária', 'corretor de imóveis'],
+	'Advocacia': ['escritório de advocacia', 'advogado'],
+	'Educação': ['escola', 'curso', 'escola de idiomas'],
+	'Varejo': ['loja de roupas', 'loja de calçados', 'loja de presentes'],
+	'Comércio': ['loja', 'papelaria', 'mercado'],
+	'Alimentação': ['restaurante', 'padaria', 'lanchonete'],
+	'Tecnologia': ['empresa de tecnologia', 'empresa de software', 'assistência técnica'],
+	'Construção civil': ['construtora', 'empreiteira', 'material de construção'],
+	'Indústria': ['indústria', 'fábrica'],
+	'Logística': ['transportadora', 'empresa de logística'],
+	'Serviços profissionais': ['consultoria', 'empresa de serviços'],
+	'Marketing e publicidade': ['agência de marketing', 'agência de publicidade'],
+	'Automotivo': ['oficina mecânica', 'concessionária', 'autopeças'],
+};
+const MAPS_CITIES = [
+	{ name: 'São Paulo (SP)', lat: '-23.5505', lon: '-46.6333' }, { name: 'Rio de Janeiro (RJ)', lat: '-22.9068', lon: '-43.1729' },
+	{ name: 'Belo Horizonte (MG)', lat: '-19.9167', lon: '-43.9345' }, { name: 'Brasília (DF)', lat: '-15.7939', lon: '-47.8828' },
+	{ name: 'Curitiba (PR)', lat: '-25.4284', lon: '-49.2733' }, { name: 'Porto Alegre (RS)', lat: '-30.0346', lon: '-51.2177' },
+	{ name: 'Florianópolis (SC)', lat: '-27.5954', lon: '-48.5480' }, { name: 'Salvador (BA)', lat: '-12.9714', lon: '-38.5014' },
+	{ name: 'Recife (PE)', lat: '-8.0476', lon: '-34.8770' }, { name: 'Fortaleza (CE)', lat: '-3.7319', lon: '-38.5267' },
+	{ name: 'Goiânia (GO)', lat: '-16.6869', lon: '-49.2648' }, { name: 'Vitória (ES)', lat: '-20.3155', lon: '-40.3128' },
+	{ name: 'Campo Grande (MS)', lat: '-20.4697', lon: '-54.6201' }, { name: 'Manaus (AM)', lat: '-3.1190', lon: '-60.0217' },
+	{ name: 'Belém (PA)', lat: '-1.4558', lon: '-48.4902' },
+];
+const MAPS_DEFAULT_CITY = MAPS_CITIES[0];
+const MAPS_DEFAULT_RADIUS = 5000;
+// Which contact the team wants from the leads. Same choices and rules as the panel's Maps screen.
+const CONTACT_CHOICES = [{ name: 'Qualquer contato', value: 'any' }, { name: 'WhatsApp (celular)', value: 'whatsapp' }, { name: 'E-mail', value: 'email' }, { name: 'WhatsApp e e-mail', value: 'both' }];
+function contactChoice(value) {
+	const choice = String(value || 'any');
+	if (!CONTACT_CHOICES.some((option) => option.value === choice)) throw new Error('Contato inválido: escolha qualquer, WhatsApp, e-mail ou WhatsApp e e-mail.');
+	return choice;
 }
+// A Brazilian mobile number (area code + nine digits starting with 9). Landlines rarely have WhatsApp.
+function isMobilePhone(value) {
+	let digits = String(value || '').replace(/\D/g, '');
+	if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) digits = digits.slice(2);
+	return digits.length === 11 && digits[2] === '9';
+}
+function hasEmail(value) { return /[^\s,;@]+@[^\s,;@]+\.[^\s,;@]+/.test(String(value || '')); }
+function matchesContact(lead, choice) {
+	const whatsapp = isMobilePhone(lead.phone), email = hasEmail(lead.emails);
+	return choice === 'whatsapp' ? whatsapp : choice === 'email' ? email : choice === 'both' ? whatsapp && email : true;
+}
+const needsEmailSearch = (choice) => choice === 'email' || choice === 'both';
+// One contact is a sales channel; two (or none) leave it empty.
+const salesChannelFor = (choice) => (choice === 'whatsapp' ? 'whatsapp' : choice === 'email' ? 'email' : null);
 function mapsCoordinate(value, label, limit) {
 	const text = String(value ?? '').trim().replace(',', '.');
 	const number = Number(text);
@@ -91,7 +136,7 @@ const toolOperationDescriptions = {
 	documents: { getMany: 'Listar documentos, opcionalmente filtrados por cliente.', get: 'Consultar um documento pelo ID.', upload: 'Enviar um documento para a Nexo.', download: 'Baixar um documento.', delete: 'Excluir um documento.' },
 	notifications: { getMany: 'Listar notificações da conta.', get: 'Consultar uma notificação pelo ID.', unreadCount: 'Consultar a contagem de notificações não lidas.', markRead: 'Marcar uma notificação como lida.', markChatRead: 'Marcar as mensagens de um membro como lidas.' },
 	dashboard: { get: 'Consultar o resumo do dashboard da Nexo.' }, announcements: { create: 'Publicar um aviso para os membros aprovados.' },
-	maps: { create: 'Criar uma busca de empresas no Google Maps (palavras-chave, latitude e longitude).', getMany: 'Listar as buscas do Maps.', get: 'Consultar o status de uma busca do Maps (working, ok ou failed).', results: 'Baixar as empresas encontradas por uma busca concluída, uma por item.', delete: 'Apagar uma busca do Maps e seus resultados.' },
+	maps: { create: 'Criar uma busca de empresas no Google Maps por nicho (cidade padrão São Paulo; cidade, latitude e longitude em Opções) e escolher o contato que você quer: WhatsApp, e-mail ou os dois.', getMany: 'Listar as buscas do Maps.', get: 'Consultar o status de uma busca do Maps (working, ok ou failed).', results: 'Baixar as empresas encontradas por uma busca concluída, uma por item, filtrando pelo contato escolhido.', delete: 'Apagar uma busca do Maps e seus resultados.' },
 };
 
 const fields = [];
@@ -120,17 +165,25 @@ for (const resource of ['clients', 'automations', 'documents', 'notifications'])
 add('ID da automação', 'identifier', 'string', '', 'automations', ['get', 'download', 'image'], { required: true }); add('Nome', 'automationName', 'string', '', 'automations', ['create'], { required: true }); add('Descrição', 'automationDescription', 'string', '', 'automations', ['create'], { required: true, typeOptions: { rows: 3 } }); add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'automations', ['create'], { required: true }); add('Propriedade binária da imagem', 'imageBinaryProperty', 'string', '', 'automations', ['create']);
 add('ID do cliente', 'documentClientId', 'string', '', 'documents', ['getMany', 'upload']); add('Propriedade binária do arquivo', 'fileBinaryProperty', 'string', 'data', 'documents', ['upload'], { required: true }); add('ID do documento', 'identifier', 'string', '', 'documents', ['get', 'download', 'delete'], { required: true });
 add('Tipo', 'notificationKind', 'options', 'all', 'notifications', ['getMany'], { options: [{ name: 'Todas', value: 'all' }, { name: 'Avisos', value: 'announcement' }, { name: 'Novos membros', value: 'member_joined' }, { name: 'Mensagens do chat', value: 'chat_message' }, { name: 'Solicitações de automação', value: 'automation_request' }, { name: 'Convites de automação', value: 'automation_invitation' }, { name: 'Solicitações rejeitadas', value: 'automation_rejected' }] }); add('ID da notificação', 'identifier', 'string', '', 'notifications', ['get', 'markRead'], { required: true }); add('ID do membro do chat', 'memberId', 'string', '', 'notifications', ['markChatRead'], { required: true }); add('Título', 'title', 'string', '', 'announcements', ['create'], { required: true }); add('Conteúdo', 'body', 'string', '', 'announcements', ['create'], { required: true, typeOptions: { rows: 4 } }); add('Público', 'audience', 'options', 'all', 'announcements', ['create'], { options: [{ name: 'Todos', value: 'all' }, { name: 'Comercial', value: 'commercial' }, { name: 'Desenvolvimento', value: 'dev' }], description: 'Quem recebe o aviso. Administradores e owners sempre recebem.' });
-add('Nome da busca', 'mapsName', 'string', 'Busca Nexo', 'maps', ['create']);
-add('Palavras-chave', 'mapsKeywords', 'string', '', 'maps', ['create'], { required: true, description: 'O que procurar no Google Maps, separado por vírgula ou quebra de linha (até 10). Ex.: escritório de contabilidade, contador.' });
-add('Latitude', 'mapsLat', 'string', '', 'maps', ['create'], { required: true, description: 'Centro da busca, ex.: -23.5505.' });
-add('Longitude', 'mapsLon', 'string', '', 'maps', ['create'], { required: true, description: 'Centro da busca, ex.: -46.6333.' });
-add('Raio (metros)', 'mapsRadius', 'number', 10000, 'maps', ['create'], { typeOptions: { minValue: 100, maxValue: 50000 } });
-add('Zoom', 'mapsZoom', 'number', 15, 'maps', ['create'], { typeOptions: { minValue: 1, maxValue: 21 } });
-add('Profundidade', 'mapsDepth', 'number', 3, 'maps', ['create'], { typeOptions: { minValue: 1, maxValue: 20 }, description: 'Quanto maior, mais empresas e mais demora.' });
-add('Idioma', 'mapsLang', 'string', 'pt', 'maps', ['create']);
-add('Buscar e-mails nos sites', 'mapsEmail', 'boolean', false, 'maps', ['create']);
-add('Modo rápido', 'mapsFastMode', 'boolean', false, 'maps', ['create']);
-add('Tempo máximo (segundos)', 'mapsMaxTime', 'number', 300, 'maps', ['create'], { typeOptions: { minValue: 60, maxValue: 1800 } });
+add('Nome da busca (opcional)', 'mapsName', 'string', '', 'maps', ['create'], { description: 'Se ficar vazio, usa o nicho e a cidade.' });
+add('Nicho', 'mapsNiche', 'options', 'Contabilidade', 'maps', ['create'], { required: true, options: Object.keys(MAPS_NICHES).map((niche) => ({ name: niche, value: niche, description: `Busca por: ${MAPS_NICHES[niche].join(', ')}.` })), description: 'A busca usa os termos certos de cada nicho.' });
+add('Contato que você quer nos leads', 'mapsContact', 'options', 'any', 'maps', ['create'], { options: CONTACT_CHOICES, description: 'E-mail e "WhatsApp e e-mail" ligam a busca de e-mails nos sites das empresas.' });
+add('Opções', 'mapsOptions', 'collection', {}, 'maps', ['create'], {
+	placeholder: 'Adicionar opção', description: `Sem opções, a busca é em ${MAPS_DEFAULT_CITY.name} (latitude ${MAPS_DEFAULT_CITY.lat}, longitude ${MAPS_DEFAULT_CITY.lon}), raio de ${MAPS_DEFAULT_RADIUS} m.`,
+	options: [
+		{ displayName: 'Cidade', name: 'mapsCity', type: 'options', default: MAPS_DEFAULT_CITY.name, options: MAPS_CITIES.map((city) => ({ name: city.name, value: city.name })), description: 'Centro da busca. Latitude e longitude, se informadas, valem mais que a cidade.' },
+		{ displayName: 'Latitude', name: 'mapsLat', type: 'string', default: MAPS_DEFAULT_CITY.lat, description: 'Centro da busca, ex.: -23.5505.' },
+		{ displayName: 'Longitude', name: 'mapsLon', type: 'string', default: MAPS_DEFAULT_CITY.lon, description: 'Centro da busca, ex.: -46.6333.' },
+		{ displayName: 'Raio (metros)', name: 'mapsRadius', type: 'number', default: MAPS_DEFAULT_RADIUS, typeOptions: { minValue: 100, maxValue: 50000 } },
+		{ displayName: 'Zoom', name: 'mapsZoom', type: 'number', default: 15, typeOptions: { minValue: 1, maxValue: 21 } },
+		{ displayName: 'Profundidade', name: 'mapsDepth', type: 'number', default: 3, typeOptions: { minValue: 1, maxValue: 20 }, description: 'Quanto maior, mais empresas e mais demora.' },
+		{ displayName: 'Idioma', name: 'mapsLang', type: 'string', default: 'pt' },
+		{ displayName: 'Buscar e-mails nos sites', name: 'mapsEmail', type: 'boolean', default: false, description: 'Já fica ligado quando o contato escolhido inclui e-mail.' },
+		{ displayName: 'Modo rápido', name: 'mapsFastMode', type: 'boolean', default: false },
+		{ displayName: 'Tempo máximo (segundos)', name: 'mapsMaxTime', type: 'number', default: 300, typeOptions: { minValue: 60, maxValue: 1800 } },
+	],
+});
+add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 'maps', ['results'], { options: CONTACT_CHOICES, description: 'Devolve só as empresas que têm esse contato. WhatsApp conta só celular. Cada item traz o canal de vendas sugerido (sales_channel).' });
 add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
 class Nexo {
@@ -200,8 +253,17 @@ class Nexo {
 				if (operation === 'getMany') path = '/api/v1/jobs';
 				else if (operation === 'create') {
 					method = 'POST'; path = '/api/v1/jobs';
-					const bounded = (name, label, min, max, fallback) => { const value = Number(this.getNodeParameter(name, i, fallback)); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`${label} deve estar entre ${min} e ${max}.`); return value; };
-					body = { name: String(this.getNodeParameter('mapsName', i, 'Busca Nexo') || 'Busca Nexo').trim().slice(0, 80), keywords: mapsKeywords(this.getNodeParameter('mapsKeywords', i, '')), lang: String(this.getNodeParameter('mapsLang', i, 'pt') || 'pt').trim(), lat: mapsCoordinate(this.getNodeParameter('mapsLat', i, ''), 'Latitude', 90), lon: mapsCoordinate(this.getNodeParameter('mapsLon', i, ''), 'Longitude', 180), zoom: bounded('mapsZoom', 'Zoom', 1, 21, 15), radius: bounded('mapsRadius', 'O raio', 100, 50000, 10000), depth: bounded('mapsDepth', 'A profundidade', 1, 20, 3), email: Boolean(this.getNodeParameter('mapsEmail', i, false)), fast_mode: Boolean(this.getNodeParameter('mapsFastMode', i, false)), max_time: bounded('mapsMaxTime', 'O tempo máximo', 60, 1800, 300) };
+					const niche = String(this.getNodeParameter('mapsNiche', i, 'Contabilidade'));
+					const keywords = MAPS_NICHES[niche]; if (!keywords) throw new Error('Nicho inválido: escolha um nicho da lista.');
+					const contact = contactChoice(this.getNodeParameter('mapsContact', i, 'any'));
+					const extra = this.getNodeParameter('mapsOptions', i, {}) || {};
+					const city = extra.mapsCity === undefined ? undefined : MAPS_CITIES.find((candidate) => candidate.name === extra.mapsCity);
+					if (extra.mapsCity !== undefined && !city) throw new Error('Cidade inválida: escolha uma cidade da lista ou informe latitude e longitude.');
+					const bounded = (key, label, min, max, fallback) => { const value = Number(extra[key] ?? fallback); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`${label} deve estar entre ${min} e ${max}.`); return value; };
+					const where = city || MAPS_DEFAULT_CITY;
+					const customPlace = extra.mapsLat !== undefined || extra.mapsLon !== undefined;
+					const placeName = customPlace && !city ? 'local personalizado' : where.name;
+					body = { name: (String(this.getNodeParameter('mapsName', i, '') || '').trim() || `${niche} · ${placeName}`).slice(0, 80), keywords, lang: String(extra.mapsLang ?? 'pt').trim() || 'pt', lat: mapsCoordinate(extra.mapsLat ?? where.lat, 'Latitude', 90), lon: mapsCoordinate(extra.mapsLon ?? where.lon, 'Longitude', 180), zoom: bounded('mapsZoom', 'Zoom', 1, 21, 15), radius: bounded('mapsRadius', 'O raio', 100, 50000, MAPS_DEFAULT_RADIUS), depth: bounded('mapsDepth', 'A profundidade', 1, 20, 3), email: Boolean(extra.mapsEmail) || needsEmailSearch(contact), fast_mode: Boolean(extra.mapsFastMode), max_time: bounded('mapsMaxTime', 'O tempo máximo', 60, 1800, 300) };
 				} else {
 					const jobId = String(this.getNodeParameter('identifier', i, '')).trim(); if (!jobId) throw new Error('Informe o ID da busca.');
 					path = `/api/v1/jobs/${encodedPath(jobId)}`;
@@ -209,7 +271,7 @@ class Nexo {
 				}
 			}
 			const response = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method, baseURL: `${requestBase}/`, url: path.replace(/^\//, ''), qs, body, headers, json: !binaryResult && !csvResult, returnFullResponse: binaryResult, encoding: binaryResult ? 'arraybuffer' : csvResult ? 'text' : 'json', timeout: 30000 });
-			if (csvResult) { for (const lead of parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''))) returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone) }, pairedItem: { item: i } }); continue; }
+			if (csvResult) { const contact = contactChoice(this.getNodeParameter('mapsResultsContact', i, 'any')); for (const lead of parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''))) { if (!matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email }, contact)) continue; returnData.push({ json: { ...lead, phone_e164: phoneE164(lead.phone), is_mobile: isMobilePhone(lead.phone), has_email: hasEmail(lead.emails ?? lead.email), sales_channel: salesChannelFor(contact) }, pairedItem: { item: i } }); } continue; }
 			if (resource === 'maps' && operation === 'delete') { returnData.push({ json: { id: String(this.getNodeParameter('identifier', i, '')).trim(), deleted: true }, pairedItem: { item: i } }); continue; }
 			if (resource === 'maps' && operation === 'getMany' && !response) continue; // the server answers null when there are no searches
 			if (binaryResult) { const payload = response?.body ?? response; const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload); const fileName = parseFilename(response?.headers, fallbackFilename); const binary = await this.helpers.prepareBinaryData(buffer, fileName, response?.headers?.['content-type']); returnData.push({ json: { fileName, mimeType: binary.mimeType }, binary: { data: binary }, pairedItem: { item: i } }); continue; }
