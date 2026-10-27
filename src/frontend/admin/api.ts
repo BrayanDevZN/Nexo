@@ -18,7 +18,7 @@ export type ApiKeyUsage = { date: string; count: number; api_key_id: string; api
 export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
-  address: string | null; notes: string | null; pain: string | null; approach: string | null;
+  address: string | null; instagram: string | null; website: string | null; notes: string | null; pain: string | null; approach: string | null;
   sales_channel: SalesChannel | null;
   contract_closed_at: string | null;
   contract_closed: boolean; contract_value: number | string | null;
@@ -62,7 +62,7 @@ export const CLIENT_NICHES = [
   "Construção civil", "Indústria", "Logística", "Serviços profissionais",
   "Marketing e publicidade", "Automotivo", "Outro",
 ] as const;
-export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "address" | "sales_channel" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
+export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "address" | "instagram" | "website" | "sales_channel" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;
 };

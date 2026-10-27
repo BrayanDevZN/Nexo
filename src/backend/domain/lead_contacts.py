@@ -57,3 +57,32 @@ def matches_contact(lead: dict, choice: str) -> bool:
     if choice == "both":
         return whatsapp and email
     return True
+
+
+def clean_instagram(value: str | None) -> str | None:
+    """An Instagram profile as a link; "@user" and "user" are accepted too. Anything else is rejected."""
+    text = (value or "").strip()
+    if not text:
+        return None
+    if not re.match(r"^[a-z][a-z\d+.-]*://", text, re.I) and not _host(text.split("/")[0] + "/") == "instagram.com" \
+            and "instagram.com" not in text.lower() and "instagr.am" not in text.lower():
+        handle = text.lstrip("@").strip("/")
+        if not re.fullmatch(r"[A-Za-z0-9._]{1,30}", handle):
+            raise ValueError("Invalid Instagram profile")
+        return f"https://www.instagram.com/{handle}"
+    link = text if re.match(r"^[a-z][a-z\d+.-]*://", text, re.I) else f"https://{text}"
+    if not _is_instagram(link):
+        raise ValueError("Invalid Instagram profile")
+    return link
+
+
+def clean_website(value: str | None) -> str | None:
+    """A company website as a link ("https://" is added when missing)."""
+    text = (value or "").strip()
+    if not text:
+        return None
+    link = text if re.match(r"^https?://", text, re.I) else f"https://{text}"
+    host = _host(link)
+    if not host or "." not in host or " " in text:
+        raise ValueError("Invalid website")
+    return link

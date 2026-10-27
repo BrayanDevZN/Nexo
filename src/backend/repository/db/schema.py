@@ -4,6 +4,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
 from backend.domain.client_channels import SALES_CHANNELS
+from backend.domain.lead_contacts import clean_instagram, clean_website
 from backend.domain.pipeline_stages import PIPELINE_STAGES
 from backend.repository.db.models import Base
 
@@ -84,6 +85,43 @@ def _migrate_client_checks(engine: Engine) -> None:
             connection.commit()
 
 
+def _move_lead_links_out_of_notes(engine: Engine) -> None:
+    """Leads saved from the map kept "Instagram: <link>" and "Site: <link>" lines in the notes: move them to their fields.
+
+    Nothing is ever lost: a line leaves the notes only after its link was stored in the new column, a link that cannot
+    be stored (invalid, too long, a second one of the same kind) stays in the notes, and rows that already have a link
+    are not touched. The whole move is one transaction, so it either happens fully or not at all.
+    """
+    pattern = re.compile(r"^(Instagram|Site): *(\S+) *$", re.M)
+    cleaners = {"Instagram": ("instagram", clean_instagram), "Site": ("website", clean_website)}
+    with engine.begin() as connection:
+        columns = {column["name"] for column in inspect(connection).get_columns("clients")}
+        if not {"notes", "instagram", "website"} <= columns:
+            return
+        rows = connection.execute(text(
+            "SELECT id, notes FROM clients WHERE instagram IS NULL AND website IS NULL "
+            "AND (notes LIKE '%Instagram: %' OR notes LIKE '%Site: %')")).all()
+        for client_id, notes in rows:
+            moved, kept = {}, notes
+            for match in pattern.finditer(notes or ""):
+                column, clean = cleaners[match.group(1)]
+                if column in moved:
+                    continue
+                try:
+                    link = clean(match.group(2))
+                except ValueError:
+                    continue
+                if link and len(link) <= 300:
+                    moved[column] = link
+                    kept = kept.replace(match.group(0), "", 1)
+            if not moved:
+                continue
+            kept = re.sub(r"\n{2,}", "\n", kept).strip()
+            connection.execute(
+                text("UPDATE clients SET instagram = :instagram, website = :website, notes = :notes WHERE id = :id"),
+                {"instagram": moved.get("instagram"), "website": moved.get("website"), "notes": kept or None, "id": client_id})
+
+
 def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     """Create missing tables and apply additive, data-preserving schema changes."""
     Base.metadata.create_all(engine)
@@ -127,6 +165,11 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     if "approach" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN approach TEXT"))
+    for name, definition in (("instagram", "VARCHAR(300)"), ("website", "VARCHAR(300)")):
+        if name not in client_columns:
+            with engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE clients ADD COLUMN {name} {definition}"))
+    _move_lead_links_out_of_notes(engine)
     _migrate_client_checks(engine)
     maps_job_columns = {column["name"] for column in inspect(engine).get_columns("maps_jobs")}
     with engine.begin() as connection:

@@ -16,6 +16,7 @@ class ClientRepository(Repository[Client]):
                contract_closed: bool = False, phone: str | None = None,
                email: str | None = None, address: str | None = None, notes: str | None = None,
                pain: str | None = None, approach: str | None = None,
+               instagram: str | None = None, website: str | None = None,
                contract_value=None, pipeline_stage: str = "lead",
                next_follow_up=None, sales_channel: str | None = None) -> Client:
         if not name.strip() or not niche.strip():
@@ -30,7 +31,7 @@ class ClientRepository(Repository[Client]):
                      created_by_id=created_by_id, contract_closed=contract_closed,
                      contract_closed_at=utc_now() if contract_closed else None,
                      phone=phone, email=email, address=address, notes=notes, pain=pain, approach=approach,
-                     contract_value=contract_value,
+                     instagram=instagram, website=website, contract_value=contract_value,
                      pipeline_stage=pipeline_stage, next_follow_up=next_follow_up, sales_channel=sales_channel)
         if identifier is not None:
             row.id = identifier
@@ -70,7 +71,8 @@ class ClientRepository(Repository[Client]):
 
     def update(self, client: Client, **changes) -> Client:
         allowed = {"name", "niche", "phone", "email", "contract_closed", "contract_value",
-                   "pipeline_stage", "next_follow_up", "sales_channel", "address", "notes", "pain", "approach"}
+                   "pipeline_stage", "next_follow_up", "sales_channel", "address", "notes", "pain", "approach",
+                   "instagram", "website"}
         if set(changes) - allowed:
             raise ValueError("Unsupported client fields")
         was_closed = bool(client.contract_closed or client.pipeline_stage == "won")

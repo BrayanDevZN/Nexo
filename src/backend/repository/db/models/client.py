@@ -35,6 +35,8 @@ class Client(IdentityTimestampMixin, Base):
     next_follow_up: Mapped[datetime | None] = mapped_column(DateTime)
     sales_channel: Mapped[str | None] = mapped_column(String(24))
     address: Mapped[str | None] = mapped_column(String(300))
+    instagram: Mapped[str | None] = mapped_column(String(300))
+    website: Mapped[str | None] = mapped_column(String(300))
     notes: Mapped[str | None] = mapped_column(Text)
     pain: Mapped[str | None] = mapped_column(Text)
     approach: Mapped[str | None] = mapped_column(Text)

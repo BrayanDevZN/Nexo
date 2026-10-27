@@ -94,11 +94,3 @@ export const needsEmailSearch = (choice: ContactChoice) => choice === "email" ||
 export function channelFor(choice: ContactChoice): SalesChannel | null {
   return choice === "whatsapp" ? "whatsapp" : choice === "email" ? "email" : choice === "instagram" ? "instagram" : null;
 }
-
-/** The Instagram link of a client: leads from the map keep it in the notes ("Instagram: <link>"). */
-export function clientInstagram(notes: string | null | undefined): string | null {
-  const match = /(?:https?:\/\/)?(?:[\w-]+\.)*(?:instagram\.com|instagr\.am)\/[^\s"'<>]*/i.exec(notes ?? "");
-  if (!match) return null;
-  const url = match[0].replace(/[.,;)]+$/, "");
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
-}

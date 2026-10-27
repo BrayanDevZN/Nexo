@@ -5,6 +5,7 @@ from uuid import uuid4
 from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from backend.domain.lead_contacts import clean_instagram, clean_website
 from backend.domain.phones import brazilian_phone
 from backend.domain.roles import SALES
 from backend.service.access import ResourceConflict, ResourceNotFound, authorize_role
@@ -30,13 +31,24 @@ def _is_instagram(url):
     return host == "instagram.com" or host.endswith(".instagram.com") or host == "instagr.am"
 
 
+def _lead_links(lead):
+    """The map gives one "website" per company: an Instagram profile goes to instagram, anything else to website."""
+    link = (lead.get("website") or "").strip()
+    try:
+        if not link:
+            return {"instagram": None, "website": None}
+        if _is_instagram(link):
+            return {"instagram": clean_instagram(link)[:300], "website": None}
+        return {"instagram": None, "website": clean_website(link)[:300]}
+    except ValueError:
+        return {"instagram": None, "website": None}
+
+
 def _lead_notes(lead):
     rating = lead.get("review_rating")
     lines = [
         "Origem: Google Maps",
         f"Categoria no Maps: {lead['category']}" if lead.get("category") else None,
-        (f"Instagram: {lead['website']}" if _is_instagram(lead["website"]) else f"Site: {lead['website']}")
-        if lead.get("website") else None,
         f"Nota: {rating:.1f} ({lead.get('review_count') or 0} avaliações)" if rating is not None else None,
         f"Google Maps: {lead['link']}" if lead.get("link") else None,
         f"Coordenadas: {lead['latitude']}, {lead['longitude']}"
@@ -172,6 +184,7 @@ class ClientService:
                 row = repos.clients.create(
                     created_by_id=actor.id, name=name, niche=niche, phone=phone, email=_lead_email(lead.get("emails")),
                     address=(lead.get("address") or None), notes=_lead_notes(lead), pipeline_stage="lead",
+                    **_lead_links(lead),
                     sales_channel=sales_channel)
                 row.created_by_name = creator
                 known_names.add(name.lower())

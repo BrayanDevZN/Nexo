@@ -99,7 +99,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     }
     const body: ClientInput = {
       name: value("name"), niche, phone: value("phone") || null,
-      email: value("email") || null, address: value("address") || null, sales_channel: (value("sales_channel") || null) as ClientInput["sales_channel"], notes: value("notes") || null,
+      email: value("email") || null, address: value("address") || null, instagram: value("instagram") || null, website: value("website") || null, sales_channel: (value("sales_channel") || null) as ClientInput["sales_channel"], notes: value("notes") || null,
       pain: value("pain") || null, approach: value("approach") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
       ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
@@ -169,7 +169,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
-        {!client.phone && !client.email && !client.address && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
+        {!client.phone && !client.email && !client.instagram && !client.website && !client.address && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
       <CardFooter className="flex-wrap justify-between gap-2"><Button variant="secondary" onClick={() => setViewing(client)} aria-label={"Ver dados de " + client.name}><Eye data-icon="inline-start" /> Ver</Button><div className="flex gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></div></CardFooter>
     </Card>;
@@ -185,6 +185,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
+            {(viewing.phone || viewing.email || viewing.instagram || viewing.website) && <div className="flex flex-wrap items-center gap-2 sm:col-span-2"><ContactButtons client={viewing} /></div>}
             <div className="sm:col-span-2"><Detail label="Endereço" value={viewing.address} />{viewing.address && <div className="mt-2"><MapsButton href={mapsUrl({ query: viewing.name + " " + viewing.address })} label={"Ver " + viewing.name + " no mapa"} /></div>}</div>
             <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
             <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
@@ -209,6 +210,8 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <TextField label="Nome / empresa" name="name" required maxLength={160} defaultValue={row?.name} />
             <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row?.niche || ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{row && !CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) && <NativeSelectOption value={row.niche}>{row.niche} (nicho anterior)</NativeSelectOption>}{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
+            <TextField label="Instagram (opcional)" name="instagram" placeholder="@usuario ou link do perfil" defaultValue={row?.instagram || ""} />
+            <TextField label="Site (opcional)" name="website" placeholder="empresa.com.br" defaultValue={row?.website || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
             <TextField label="Endereço (opcional)" name="address" maxLength={300} placeholder="Rua, número, bairro, cidade" defaultValue={row?.address || ""} />
             <Field><FieldLabel htmlFor="client-channel">Canal de vendas (opcional)</FieldLabel><NativeSelect id="client-channel" name="sales_channel" defaultValue={row?.sales_channel || ""}><NativeSelectOption value="">Sem canal</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>

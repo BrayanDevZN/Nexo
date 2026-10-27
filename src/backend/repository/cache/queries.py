@@ -14,6 +14,7 @@ FIELDS = {
     "automations": ("id", "name", "description", "filename", "file_size", "created_by_id", "created_at", "updated_at"),
     "clients": ("id", "name", "niche", "phone", "email", "contract_closed", "contract_closed_at", "contract_value",
                 "pipeline_stage", "next_follow_up", "sales_channel", "address", "notes", "pain", "approach",
+                "instagram", "website",
                 "created_by_id", "created_at", "updated_at"),
     "notifications": ("id", "kind", "announcement_id", "audience", "title", "body", "recipient_id", "requested_user_id", "read_at",
                       "resolved_at", "decision", "created_at", "updated_at"),

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.controller.schema.clients import ClientFields, ClientOutput, ClientPatch
+from backend.controller.schema.clients import ClientCreate, ClientFields, ClientOutput, ClientPatch
 
 
 @pytest.mark.parametrize("extra", [{"created_by_id": "other"}, {"id": "forged"}, {"role": "admin"}])
@@ -63,3 +63,16 @@ def test_sales_channel_rejects_values_outside_the_supported_list(channel):
 def test_patch_can_clear_the_sales_channel_without_touching_other_fields():
     assert ClientPatch(sales_channel=None).model_dump(exclude_unset=True) == {"sales_channel": None}
     assert ClientPatch(sales_channel="email").model_dump(exclude_unset=True) == {"sales_channel": "email"}
+
+
+def test_instagram_and_website_are_normalized_to_links():
+    created = ClientCreate(name="X", niche="Varejo", instagram="@padaria.sp", website="padaria.com.br")
+    assert created.instagram == "https://www.instagram.com/padaria.sp" and created.website == "https://padaria.com.br"
+    assert ClientCreate(name="X", niche="Varejo", instagram="instagram.com/padaria").instagram == "https://instagram.com/padaria"
+    assert ClientCreate(name="X", niche="Varejo", instagram="  ", website="").website is None
+
+
+@pytest.mark.parametrize("field,value", [("instagram", "https://facebook.com/padaria"), ("instagram", "dois nomes"), ("website", "sem ponto")])
+def test_invalid_links_are_rejected(field, value):
+    with pytest.raises(ValidationError):
+        ClientCreate(name="X", niche="Varejo", **{field: value})
