@@ -144,7 +144,8 @@ class MapsService:
             with self.repositories.transaction() as repos:
                 repos.maps_jobs.track(job_id=job_id, created_by_id=actor_id, name=data["name"], niche=data.get("niche"),
                                       auto_expand=bool(data.get("auto_expand")), radius=data["radius"],
-                                      start_radius=data["radius"], params=params)
+                                      start_radius=data["radius"], params=params,
+                                      max_leads=data.get("limit"))
         return {"id": job_id}
 
     def job(self, job_id: UUID, user_id: str | None = None) -> dict:
@@ -160,22 +161,29 @@ class MapsService:
     def results(self, job_id: UUID, user_id: str | None = None) -> dict:
         leads = self._download(job_id, user_id)
         fresh = self._without_funnel(leads)
-        rows = fresh[:MAX_ROWS]
         info = self._expansion(str(job_id))
-        if not leads:
-            # Nothing at all on the map: a search in the default place goes on with a bigger radius.
+        if not fresh:
+            # Nothing new to offer (empty map or only companies already in the funnel): a search in the default
+            # place goes on with a bigger radius.
             info["expanded_to"] = self._try_expand(str(job_id), known_count=0) or info["expanded_to"]
+        # The creator's limit is enforced here, so every client sees the same number of companies.
+        cap = min(info["limit"], MAX_ROWS) if info["limit"] else MAX_ROWS
+        rows = fresh[:cap]
         return {"rows": rows, "total": len(fresh), "truncated": len(fresh) > len(rows),
                 "in_funnel": len(leads) - len(fresh), **info}
+
+    def widen(self, job_id: UUID, user_id: str) -> dict:
+        """Widen a finished search that has nothing usable for the creator (e.g. no company with the chosen contact)."""
+        return {"expanded_to": self._try_expand(str(job_id), known_count=0)}
 
     def _expansion(self, job_id: str) -> dict:
         """What the panel needs to explain a widened search: the radius now, where it started and what replaced it."""
         with self.repositories.read_transaction() as repos:
             tracked = repos.maps_jobs.by_job_id(job_id)
             if tracked is None:
-                return {"auto_expand": False, "radius": None, "start_radius": None, "expanded_to": None}
+                return {"auto_expand": False, "radius": None, "start_radius": None, "expanded_to": None, "limit": None}
             return {"auto_expand": bool(tracked.auto_expand), "radius": tracked.radius,
-                    "start_radius": tracked.start_radius, "expanded_to": tracked.expanded_to}
+                    "start_radius": tracked.start_radius, "expanded_to": tracked.expanded_to, "limit": tracked.max_leads}
 
     def _try_expand(self, job_id: str, known_count: int | None = None) -> str | None:
         try:
@@ -197,8 +205,9 @@ class MapsService:
                     return None
                 if tracked.expanded_to:
                     return tracked.expanded_to
-                radius, start, params, name, niche, owner = (tracked.radius or 0, tracked.start_radius, tracked.params,
-                                                             tracked.name, tracked.niche, tracked.created_by_id)
+                radius, start, params, name, niche, owner, max_leads = (
+                    tracked.radius or 0, tracked.start_radius, tracked.params, tracked.name, tracked.niche,
+                    tracked.created_by_id, tracked.max_leads)
             if not params or not radius or radius >= MAX_RADIUS:
                 return None
             if self.job(UUID(job_id), owner)["status"] != "ok":
@@ -214,7 +223,8 @@ class MapsService:
             new_id = str(created["id"])
             with self.repositories.transaction() as repos:
                 repos.maps_jobs.track(job_id=new_id, created_by_id=owner, name=body["name"], niche=niche, auto_expand=True,
-                                      radius=bigger, start_radius=start, params=json.dumps({**data, "body": body}))
+                                      radius=bigger, start_radius=start, params=json.dumps({**data, "body": body}),
+                                      max_leads=max_leads)
                 repos.maps_jobs.mark_expanded(job_id, new_id)
             return new_id
 

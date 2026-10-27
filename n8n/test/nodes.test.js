@@ -411,7 +411,7 @@ test('Maps results answer even when the search has no body at all', async () => 
 
 test('Maps results say when companies were found but none has the chosen contact, without widening', async () => {
 	const csv = 'title,phone,emails\r\nSó fixo,(31) 3333-4444,\r\n';
-	const { output, requests } = await executeNexoWith({ ...RESULTS, mapsResultsContact: 'whatsapp' }, () => csv);
+	const { output, requests } = await executeNexoWith({ ...RESULTS, mapsResultsContact: 'whatsapp', mapsExpand: false }, () => csv);
 	assert.equal(requests.length, 1);
 	assert.deepEqual(output[0][0].json, { found: 0, job_id: MAPS_JOB, total_in_search: 1, contact: 'whatsapp', expanded: false, reason: 'no_contact', message: 'A busca achou 1 empresa(s), mas nenhuma tem o contato escolhido.' });
 });
@@ -513,4 +513,19 @@ test('sales channel options match the API values, with a way to leave it empty',
 	}
 	const filter = new Nexo().description.properties.find((field) => field.name === 'filterSalesChannel');
 	assert.deepEqual(filter.options.map((option) => option.value), ['', ...api]);
+});
+
+test('Maps results widen the default place when companies were found but none has the chosen contact', async () => {
+	const csv = 'title,phone,emails\r\nSó fixo,(31) 3333-4444,\r\n';
+	const { output, requests } = await executeNexoWith({ ...RESULTS, mapsResultsContact: 'whatsapp' }, (options) => options.method === 'POST' ? { id: 'new-job' } : options.url.endsWith('/download') ? csv : SEARCH_JOB());
+	assert.equal(requests[2].body.radius, 10000);
+	assert.equal(output[0][0].json.expanded, true);
+	assert.equal(output[0][0].json.total_in_search, 1);
+});
+
+test('Maps results return at most the chosen number of companies', async () => {
+	const csv = 'title,phone,emails\r\n' + Array.from({ length: 30 }, (_, n) => `Empresa ${n},(31) 99999-${String(1000 + n)},`).join('\r\n') + '\r\n';
+	const run = async (limit) => (await executeNexo({ ...RESULTS, mapsResultsLimit: limit }, csv)).output[0];
+	assert.equal((await run(20)).length, 20);
+	assert.equal((await run(0)).length, 30);
 });

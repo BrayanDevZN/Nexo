@@ -19,7 +19,7 @@ class FakeMapsServer:
     """Every search finishes at once. `found_from` is the radius from which the map has companies."""
 
     def __init__(self, found_from=None):
-        self.found_from, self.jobs = found_from, {}
+        self.found_from, self.jobs, self.found = found_from, {}, FOUND
 
     def handler(self, request):
         if request.method == "POST":
@@ -30,7 +30,7 @@ class FakeMapsServer:
         path = request.url.path
         if path.endswith("/download"):
             job = self.jobs[path.split("/")[-2]]
-            return httpx.Response(200, content=FOUND if self.found_from and job["radius"] >= self.found_from else HEADER)
+            return httpx.Response(200, content=self.found if self.found_from and job["radius"] >= self.found_from else HEADER)
         if path == "/api/v1/jobs":
             return httpx.Response(200, json=[{"ID": key, "Name": job["name"], "Status": "ok", "Date": "2026-10-27"} for key, job in self.jobs.items()])
         job_id = path.split("/")[-1]
@@ -120,3 +120,23 @@ def test_a_search_that_found_companies_is_never_widened(make):
     job_id = service.maps.create({**BODY, "auto_expand": True}, actor.id)["id"]
     assert service.maps.results(job_id, actor.id)["expanded_to"] is None
     assert service.maps.finish_pending() == 1 and server.radii() == [5000]
+
+
+def test_the_limit_chosen_for_a_search_is_enforced_by_the_server(make):
+    service, actor, server = make(found_from=1)
+    server.found = HEADER + b"".join(f"Empresa {n},Contador,Rua {n},+55 31 98888-{n:04d}\n".encode() for n in range(30))
+    job_id = service.maps.create({**BODY, "auto_expand": True, "limit": 20}, actor.id)["id"]
+    shown = service.maps.results(job_id, actor.id)
+    assert len(shown["rows"]) == 20 and shown["total"] == 30 and shown["truncated"] is True and shown["limit"] == 20
+    other = service.maps.create({**BODY, "auto_expand": True}, actor.id)["id"]
+    assert service.maps.results(other, actor.id)["limit"] is None
+
+
+def test_widen_starts_a_bigger_search_once_even_when_the_map_had_companies(make):
+    service, actor, server = make(found_from=1)
+    job_id = service.maps.create({**BODY, "auto_expand": True, "limit": 20}, actor.id)["id"]
+    assert service.maps.results(job_id, actor.id)["expanded_to"] is None
+    new_id = service.maps.widen(job_id, actor.id)["expanded_to"]
+    assert new_id and server.radii() == [5000, 10000]
+    assert service.maps.widen(job_id, actor.id)["expanded_to"] == new_id and server.radii() == [5000, 10000]
+    assert service.maps.results(new_id, actor.id)["limit"] == 20

@@ -20,6 +20,8 @@ class MapsJobInput(BaseModel):
     max_time: int = Field(default=300, ge=60, le=1800)
     # When nothing is found, repeat the search with a bigger radius (only for searches in the default place).
     auto_expand: bool = False
+    # How many companies to show from the results (None = all).
+    limit: int | None = Field(default=None, ge=1, le=1000)
 
     @field_validator("keywords")
     @classmethod

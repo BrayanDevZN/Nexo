@@ -207,6 +207,7 @@ add('Opções', 'mapsOptions', 'collection', {}, 'maps', ['create'], {
 });
 add('Ampliar o raio se não achar nada', 'mapsExpand', 'boolean', true, 'maps', ['results'], { description: 'Só vale para buscas no local padrão (uma das cidades da lista). Se a busca não achou nenhuma empresa, cria uma busca nova com o dobro do raio (até 50 km) e devolve o ID dela em new_job_id. Aguarde ela terminar e baixe os resultados da nova busca. Buscas com latitude e longitude informadas ficam só naquele perímetro.' });
 add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 'maps', ['results'], { options: CONTACT_CHOICES, description: 'Devolve só as empresas que têm esse contato, e cada item traz só esse contato (Todos os contatos traz tudo). WhatsApp conta só celular; Instagram e Site saem do site cadastrado no Maps (link do Instagram conta como Instagram; Facebook e links de redes sociais não contam como site). Cada item traz o canal de vendas sugerido (sales_channel).' });
+add('Limite de empresas', 'mapsResultsLimit', 'number', 0, 'maps', ['results'], { typeOptions: { minValue: 0 }, description: 'Devolve no máximo essa quantidade de empresas (já com o contato escolhido). 0 devolve todas.' });
 add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
 class Nexo {
@@ -297,7 +298,9 @@ class Nexo {
 			if (csvResult) {
 				const contact = contactChoice(this.getNodeParameter('mapsResultsContact', i, 'any'));
 				const leads = parseCsv(Buffer.isBuffer(response) ? response.toString('utf8') : typeof response === 'string' ? response : String(response?.body ?? ''));
-				const kept = leads.filter((lead) => matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email, website: lead.website }, contact));
+				const limit = Math.floor(Number(this.getNodeParameter('mapsResultsLimit', i, 0))) || 0;
+				const matching = leads.filter((lead) => matchesContact({ phone: lead.phone, emails: lead.emails ?? lead.email, website: lead.website }, contact));
+				const kept = limit > 0 ? matching.slice(0, limit) : matching;
 				const parts = contactParts(contact);
 				for (const lead of kept) {
 					// Only the contact that was chosen is shown, so an e-mail search does not come back full of sites and phones.
@@ -314,7 +317,8 @@ class Nexo {
 				// Nothing to return: say so (an empty output would stop the workflow) and, when allowed, widen the search.
 				const jobId = String(this.getNodeParameter('identifier', i, '')).trim();
 				const summary = { found: 0, job_id: jobId, total_in_search: leads.length, contact };
-				if (leads.length > 0) { returnData.push({ json: { ...summary, expanded: false, reason: 'no_contact', message: `A busca achou ${leads.length} empresa(s), mas nenhuma tem o contato escolhido.` }, pairedItem: { item: i } }); continue; }
+				const found = leads.length > 0 ? `A busca achou ${leads.length} empresa(s), mas nenhuma tem o contato escolhido.` : 'Nenhuma empresa encontrada.';
+				if (leads.length > 0 && !this.getNodeParameter('mapsExpand', i, true)) { returnData.push({ json: { ...summary, expanded: false, reason: 'no_contact', message: found }, pairedItem: { item: i } }); continue; }
 				const job = await this.helpers.httpRequestWithAuthentication.call(this, 'nexoApi', { method: 'GET', baseURL: `${requestBase}/`, url: `api/v1/jobs/${encodedPath(jobId)}`, json: true, timeout: 30000 });
 				const data = job?.Data ?? job?.data ?? {};
 				const radius = Number(data.radius);
@@ -324,7 +328,7 @@ class Nexo {
 				else if (!Number.isFinite(radius) || radius >= MAPS_MAX_RADIUS) reason = 'max_radius';
 				if (reason) {
 					const why = { disabled: 'A ampliação do raio está desligada.', custom_place: 'A busca foi só no perímetro informado, sem ampliar.', max_radius: `Nem ampliando o raio até ${kmLabel(MAPS_MAX_RADIUS)}.` }[reason];
-					returnData.push({ json: { ...summary, expanded: false, reason, radius: Number.isFinite(radius) ? radius : null, message: `Nenhuma empresa encontrada. ${why}` }, pairedItem: { item: i } });
+					returnData.push({ json: { ...summary, expanded: false, reason, radius: Number.isFinite(radius) ? radius : null, message: `${found} ${why}` }, pairedItem: { item: i } });
 					continue;
 				}
 				const bigger = Math.min(radius * 2, MAPS_MAX_RADIUS);

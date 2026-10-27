@@ -92,11 +92,12 @@ aparece na aba **API** do painel. Funciona com chave de qualquer cargo, inclusiv
    **Quando não há nada para devolver** (a busca não achou empresas, ou nenhuma tem o contato escolhido), o node
    não devolve uma lista vazia, que pararia o fluxo: devolve **um item** com `found: 0`, `message` e `reason`
    (`no_contact`, `custom_place`, `max_radius` ou `disabled`). Use um **IF** em `found` para tratar esse caso.
-   Se a busca foi no **local padrão** (uma das cidades da lista) e não achou nenhuma empresa, a opção
+   Se a busca foi no **local padrão** (uma das cidades da lista) e não achou nenhuma empresa (ou nenhuma com o contato escolhido), a opção
    **Ampliar o raio se não achar nada** (ligada por padrão) cria uma busca nova com o **dobro do raio** (5, 10, 20,
    40 e até 50 km) e o item traz `expanded: true`, `new_radius` e `new_job_id`. Espere essa busca terminar (**Get**) e
    baixe os resultados do `new_job_id`; repita enquanto `expanded` for `true`. Buscas com latitude e longitude
    informadas em **Adicionar opção** ficam só naquele perímetro: o item volta com `reason: "custom_place"`.
+   **Limite de empresas** devolve no máximo essa quantidade (0 devolve todas).
    **Get Many** sem nenhuma busca também devolve um item (`found: 0`).
 4. **Excluir busca** apaga a busca e os resultados do servidor e devolve `{ "id": ..., "deleted": true }`.
 

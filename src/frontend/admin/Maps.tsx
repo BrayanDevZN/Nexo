@@ -35,7 +35,7 @@ const savedBatch = (): Batch | null => { try { const raw = localStorage.getItem(
 type Results = {
   rows: Lead[]; total: number; truncated: boolean; in_funnel: number;
   // Filled for searches started in the panel: the radius now, where it started and the wider search that replaced it.
-  auto_expand?: boolean; radius?: number | null; start_radius?: number | null; expanded_to?: string | null;
+  limit?: number | null; auto_expand?: boolean; radius?: number | null; start_radius?: number | null; expanded_to?: string | null;
 };
 const DEFAULT_RADIUS = "5000";
 const km = (meters: number) => `${(meters / 1000).toLocaleString("pt-BR")} km`;
@@ -180,12 +180,19 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       .then(async data => {
         if (!active) return;
         setResults(data);
-        if (data.expanded_to && data.radius) {
+        if (data.limit) setResultLimit(data.limit);
+        let expandedTo = data.expanded_to;
+        const wanted = isContactChoice(meta?.contact) ? meta.contact : "any";
+        if (!expandedTo && data.auto_expand && (data.radius ?? 0) < 50000 && data.rows.length > 0 && !data.rows.some(row => matchesContact(row, wanted))) {
+          // There are companies, but none with the contact that was asked for: widen the search like an empty one.
+          expandedTo = (await api.mutate<{ expanded_to: string | null }>(`/maps/jobs/${selectedId}/expand`, "POST", {})).expanded_to;
+        }
+        if (expandedTo && data.radius) {
           // Nothing was found: the server already started the same search with a bigger radius, so follow it.
-          saveJobMeta(data.expanded_to, readJobMeta()[selectedId] ?? {});
+          saveJobMeta(expandedTo, readJobMeta()[selectedId] ?? {});
           setSuccess(`Nenhuma empresa em ${km(data.radius)}. Ampliando a busca para ${km(Math.min(data.radius * 2, 50000))}…`);
           await load();
-          if (active) setSelectedId(data.expanded_to);
+          if (active) setSelectedId(expandedTo);
         }
       })
       .catch(e => { if (active) setError(message(e)); })
@@ -230,7 +237,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
       const created = await api.mutate<{ id: string }>("/maps/jobs", "POST", {
         name: form.name.trim() || `${form.niche} · ${form.city || "local personalizado"}`.slice(0, 80),
         keywords, niche: form.niche, lat, lon, radius, depth: form.depth, lang: form.lang, max_time: form.duration,
-        email: form.email || needsEmailSearch(form.contact), fast_mode: form.fast, auto_expand: expand,
+        email: form.email || needsEmailSearch(form.contact), fast_mode: form.fast, auto_expand: expand, limit: form.limit,
       });
       saveJobMeta(created.id, { niche: form.niche, limit: form.limit, contact: form.contact });
       setLeadNiche(form.niche);
@@ -493,7 +500,7 @@ export function Maps({ api, canManageKey, initialJobId = "" }: { api: ReturnType
     {status?.configured && selected && <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2">{selected.name || "Busca"} <Badge variant={statusOf(selected.status).variant}>{statusOf(selected.status).label}</Badge></CardTitle>
-        <CardDescription>{selected.status === "ok" ? (results ? `${results.total} empresa(s) nova(s) encontradas${results.in_funnel ? `; ${results.in_funnel} já estavam no funil e foram ocultadas` : ""}${results.truncated ? `; mostrando as primeiras ${results.rows.length}` : ""}.` : "Carregando resultados…")
+        <CardDescription>{selected.status === "ok" ? (results ? `${results.truncated || results.rows.length < results.total ? `${results.rows.length} de ${results.total}` : results.total} empresa(s) nova(s)${results.in_funnel ? `; ${results.in_funnel} já estavam no funil e foram ocultadas` : ""}${results.limit && results.truncated ? `; limite de ${results.limit} clientes aplicado` : ""}.` : "Carregando resultados…")
           : ACTIVE.has(selected.status) ? "A busca está rodando. Esta tela atualiza sozinha." : "A busca não terminou com sucesso. Tente novamente com outra região ou menos profundidade."}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

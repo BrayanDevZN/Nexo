@@ -85,6 +85,12 @@ def results(job_id: UUID, request: Request, actor=Depends(current_user)):
     return _run(request.app.state.services.maps.results, job_id, actor.id)
 
 
+@router.post("/jobs/{job_id}/expand")
+def expand(job_id: UUID, request: Request, actor=Depends(current_user)):
+    _check(actor)
+    return _run(request.app.state.services.maps.widen, job_id, actor.id)
+
+
 @router.post("/funnel", status_code=201)
 def add_to_funnel(data: MapsFunnelInput, request: Request, actor=Depends(current_user)):
     _check(actor)

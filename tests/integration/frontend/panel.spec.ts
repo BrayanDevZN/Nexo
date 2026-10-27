@@ -789,3 +789,31 @@ test("maps says when nothing was found, with the reason", async ({ page }) => {
   await page.getByRole("button", { name: /^Já ampliada/ }).click();
   await expect(page.getByText("Nem ampliando o raio até 50 km")).toBeVisible();
 });
+
+test("maps shows only the limit chosen for the search and widens it when no company has the chosen contact", async ({ page }) => {
+  const limited = "55555555-5555-4555-8555-555555555555", noEmail = "66666666-6666-4666-8666-666666666666", wider = "77777777-7777-4777-8777-777777777777";
+  const lead = (n: number, phone: string | null) => ({ title: `Escritório ${n}`, category: "Contador", address: "Rua A", phone, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
+  const jobs = [
+    { id: noEmail, name: "Só com e-mail", status: "ok", created_at: "2026-10-27T10:00:00" },
+    { id: limited, name: "Com limite", status: "ok", created_at: "2026-10-27T09:00:00" },
+  ];
+  const results = {
+    [limited]: { rows: Array.from({ length: 20 }, (_, n) => lead(n, "(31) 99999-0000")), total: 35, truncated: true, in_funnel: 0, limit: 20, auto_expand: false, radius: 2000, start_radius: 2000, expanded_to: null },
+    [noEmail]: { rows: [lead(1, "(31) 99999-1111")], total: 1, truncated: false, in_funnel: 0, limit: null, auto_expand: true, radius: 5000, start_radius: 5000, expanded_to: null },
+    [wider]: { rows: [lead(2, "(31) 99999-2222")], total: 1, truncated: false, in_funnel: 0, limit: null, auto_expand: true, radius: 10000, start_radius: 5000, expanded_to: null },
+  };
+  const widened: string[] = [];
+  await page.addInitScript(id => localStorage.setItem("nexo-maps-job-meta", JSON.stringify({ [id]: { contact: "email" } })), noEmail);
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  await page.route("**/api/maps/jobs/*/expand", route => {
+    widened.push(route.request().url());
+    jobs.push({ id: wider, name: "Só com e-mail · 10 km", status: "ok", created_at: "2026-10-27T10:05:00" });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expanded_to: wider }) });
+  });
+  await page.getByRole("button", { name: /^Com limite/ }).click();
+  await expect(page.getByText("20 de 35 empresa(s) nova(s)")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Baixar CSV (20)" })).toBeVisible();
+  await page.getByRole("button", { name: /^Só com e-mail/ }).click();
+  await expect.poll(() => widened.length).toBe(1);
+  expect(widened[0]).toContain(`/jobs/${noEmail}/expand`);
+});

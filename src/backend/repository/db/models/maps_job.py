@@ -23,3 +23,5 @@ class MapsJob(IdentityTimestampMixin, Base):
     # The request sent to the maps server (JSON), so the same search can be repeated with a bigger radius.
     params: Mapped[str | None] = mapped_column(Text)
     expanded_to: Mapped[str | None] = mapped_column(String(36))
+    # How many companies the creator wants to see (None = all); kept when the search is widened.
+    max_leads: Mapped[int | None] = mapped_column(Integer)
