@@ -6,6 +6,9 @@ ARG PLAYWRIGHT_VERSION=1.61.1
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_CACHE_DIR=/opt/browsers \
     PLAYWRIGHT_BROWSERS_PATH=/opt/browsers
+# unzip: the Chrome installer cannot extract its archive without it.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates unzip \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /video-server
 COPY video-server/package.json ./
 RUN npm install --omit=dev --no-audit --no-fund
