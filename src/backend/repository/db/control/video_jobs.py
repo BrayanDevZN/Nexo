@@ -12,6 +12,10 @@ class VideoJobRepository(Repository[VideoJob]):
     def create(self, **values) -> VideoJob:
         return self.add(VideoJob(**values))
 
+    def list_for_user(self, user_id: str, limit: int) -> list[VideoJob]:
+        return list(self.session.scalars(select(VideoJob).where(VideoJob.created_by_id == user_id)
+                                         .order_by(VideoJob.created_at.desc(), VideoJob.id).limit(limit)))
+
     def active_count(self, user_id: str) -> int:
         return self.session.scalar(select(func.count()).select_from(VideoJob).where(
             VideoJob.created_by_id == user_id, VideoJob.status.in_(ACTIVE))) or 0

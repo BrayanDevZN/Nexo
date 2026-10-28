@@ -29,6 +29,12 @@ def _run(call, *args, **kwargs):
         raise HTTPException(status_code=422, detail=str(exc)) from None
 
 
+@router.get("")
+def listing(request: Request, actor=Depends(commercial_user)):
+    """The latest videos of whoever is calling, newest first."""
+    return _run(request.app.state.services.videos.list, actor)
+
+
 @router.post("", status_code=202)
 def create(data: VideoCreateInput, request: Request, actor=Depends(commercial_user)):
     """Render a video from an HTML composition. Answers at once; poll GET /videos/{id}."""

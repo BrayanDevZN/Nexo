@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Rendering is CPU heavy: a member can have this many videos in progress at once.
 MAX_ACTIVE_PER_USER = 2
 MAX_HTML_CHARS = 300_000
+LIST_LIMIT = 30
 # First answer plus corrections after the render check finds problems.
 GENERATION_ATTEMPTS = 3
 
@@ -70,6 +71,12 @@ class VideoService:
             raise VideoGeneratorNotConfigured()
         return self._submit(actor, source="prompt", html=None, prompt=prompt, fps=fps, quality=quality,
                             aspect=aspect, seconds=seconds)
+
+    def list(self, actor, limit: int = LIST_LIMIT) -> list[dict]:
+        """The member's latest videos, newest first, without the HTML (it can be large)."""
+        with self.repositories.read_transaction() as repos:
+            user = authorize_role(repos, actor, SALES, read=True)
+            return [self._snapshot(job, with_html=False) for job in repos.video_jobs.list_for_user(user.id, limit)]
 
     def get(self, actor, job_id: str) -> dict:
         with self.repositories.read_transaction() as repos:

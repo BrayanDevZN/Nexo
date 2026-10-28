@@ -206,6 +206,22 @@ def wait_done_with(client, video_id, headers, timeout=10):
     raise AssertionError("video did not finish")
 
 
+def test_the_listing_has_only_my_videos_newest_first_without_the_html(client):
+    headers = sign_in(client)
+    first = wait_done(client, client.post("/videos", headers=headers, json={"html": HTML}).json()["id"])["id"]
+    second = wait_done(client, client.post("/videos", headers=headers, json={"html": HTML}).json()["id"])["id"]
+    add_member(client, "admin")
+    sign_in(client, "admin@example.com", PASSWORD)
+    assert client.get("/videos").json() == []
+    sign_in(client)
+    listing = client.get("/videos").json()
+    assert [item["id"] for item in listing] == [second, first]
+    assert all("html" not in item and item["status"] == "done" for item in listing)
+    add_member(client, "dev")
+    sign_in(client, "dev@example.com", PASSWORD)
+    assert client.get("/videos").status_code == 403
+
+
 def test_a_video_belongs_to_its_creator(client):
     headers = sign_in(client)
     video_id = wait_done(client, client.post("/videos", headers=headers, json={"html": HTML}).json()["id"])["id"]

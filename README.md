@@ -76,7 +76,10 @@ Clientes mostram `created_by_name`; a listagem aceita filtros combinados `name` 
 
 ### Vídeos (HyperFrames)
 
-`POST /videos`, `POST /videos/generate`, `GET /videos/{id}` e `GET /videos/{id}/file` geram vídeos MP4 com o
+No painel, a área Comercial tem a página **Vídeos**: o membro descreve o vídeo (a IA escreve o HTML) ou cola um HTML,
+acompanha o andamento, assiste, baixa o MP4 e pode reaproveitar o HTML ou a descrição de um vídeo anterior.
+
+`POST /videos`, `POST /videos/generate`, `GET /videos`, `GET /videos/{id}` e `GET /videos/{id}/file` geram vídeos MP4 com o
 [HyperFrames](https://github.com/heygen-com/hyperframes) (HTML renderizado em vídeo). Usam a mesma autenticação das
 demais rotas (sessão ou chave de API `nexo_live_...`) e só aceitam owner, admin e commercial; chaves de commercial
 alcançam `/videos`. Os pedidos respondem `202` na hora com um `id`; consulte `GET /videos/{id}` até `status` ser
@@ -85,6 +88,7 @@ alcançam `/videos`. Os pedidos respondem `202` na hora com um `id`; consulte `G
 - `POST /videos` recebe `{"html": "...", "fps": 30, "quality": "standard"}` com uma composição HyperFrames pronta.
 - `POST /videos/generate` recebe `{"prompt": "...", "aspect": "landscape|vertical|square", "seconds": 15}`; a IA
   (Groq) escreve o HTML, ele é validado (`/lint`) e corrigido pela própria IA em até 3 tentativas, e então renderizado.
+- `GET /videos` lista os últimos vídeos de quem chama (sem o HTML).
 - Cada membro pode ter 2 vídeos em andamento (`429` acima disso). Um vídeo só é visível para quem o criou.
 
 O render roda dentro do próprio backend: ele sobe [`video-server/`](video-server/README.md) (Node + Chrome + FFmpeg,

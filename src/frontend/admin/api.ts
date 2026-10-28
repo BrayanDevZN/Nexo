@@ -120,16 +120,21 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
           413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
-          422: path === "/maps/key" ? "A chave deve começar com nexo_live_ e ter o formato gerado na página API."
+          422: path.startsWith("/videos") ? "Confira os campos do vídeo e tente novamente."
+            : path === "/maps/key" ? "A chave deve começar com nexo_live_ e ter o formato gerado na página API."
             : path.startsWith("/maps") ? "Confira os campos da busca e tente novamente."
             : path.startsWith("/push")
             ? "Não foi possível registrar as notificações neste dispositivo. Atualize a página e tente novamente."
             : path.startsWith("/clients")
             ? "Confira os campos do cliente e tente novamente."
             : "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
-          429: "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
+          429: path.startsWith("/videos") ? "Você já tem 2 vídeos em andamento. Aguarde um terminar para pedir outro."
+            : "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
           502: path.startsWith("/maps") ? "O servidor do Maps recusou a chave da Nexo. Confira MAPS_API_KEY no backend." : "Serviço temporariamente indisponível. Tente novamente em instantes.",
-          503: path.startsWith("/maps") ? "O servidor do Maps está indisponível ou sem chave configurada (MAPS_API_KEY)."
+          503: path.startsWith("/videos") ? (detail.includes("generator")
+              ? "A IA de vídeos não está configurada no servidor (falta GROQ_API_KEY). Você ainda pode renderizar um HTML."
+              : "O servidor de vídeo não está disponível. Tente novamente em instantes.")
+            : path.startsWith("/maps") ? "O servidor do Maps está indisponível ou sem chave configurada (MAPS_API_KEY)."
             : path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
             : path === "/auth/register" ? "Não foi possível enviar o código por e-mail. O serviço de envio está indisponível."
             : path.startsWith("/push") ? "As notificações push não estão configuradas no servidor."

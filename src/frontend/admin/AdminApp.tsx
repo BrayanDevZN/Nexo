@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Bell, Database, BellOff, MapPin, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ArrowRightLeft, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Activity, Bell, Clapperboard, Database, BellOff, MapPin, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ArrowRightLeft, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,13 +31,14 @@ import { Profile } from "./Profile";
 import { ApiKeys } from "./ApiKeys";
 import { Databases } from "./Databases";
 import { Maps } from "./Maps";
+import { Videos } from "./Videos";
 import { AREAS, AreaGateway, type Area } from "./AreaGateway";
 import { useAdminReveal } from "@/hooks/useAdminReveal";
 import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
 const api = createApi(apiBase(import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "")));
-type Page = "home" | "dev-home" | "general-home" | "my-keys" | "business" | "funnel" | "paid-funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "automations";
+type Page = "home" | "dev-home" | "general-home" | "my-keys" | "business" | "funnel" | "paid-funnel" | "chat" | "documents" | "clients" | "approvals" | "announcements" | "members" | "directory" | "profile" | "api-keys" | "databases" | "maps" | "videos" | "automations";
 export default function AdminApp() {
   const generation = useRef(0);
   const [user, setUser] = useState<User | null>(null);
@@ -60,7 +61,7 @@ export default function AdminApp() {
   // Which pages belong to each area; anything else is sent back to the area's start page.
   const AREA_PAGES: Record<Area, Page[]> = {
     general: ["general-home", "documents", "chat", "approvals", "announcements", "directory", "members", "profile"],
-    commercial: ["home", "business", "funnel", "paid-funnel", "clients", "maps", "my-keys", "announcements"],
+    commercial: ["home", "business", "funnel", "paid-funnel", "clients", "maps", "videos", "my-keys", "announcements"],
     dev: ["dev-home", "automations", "api-keys", "databases", "announcements", "directory"],
   };
   const defaultPage = (target: Area | null): Page => target === "dev" ? "dev-home" : target === "commercial" ? "clients" : "general-home";
@@ -195,6 +196,7 @@ export default function AdminApp() {
         {area === "commercial" && <Button variant={page === "paid-funnel" ? "secondary" : "ghost"} onClick={() => navigate("paid-funnel")} aria-current={page === "paid-funnel" ? "page" : undefined}><Megaphone data-icon="inline-start" /> Funil tráfego pago</Button>}
         {area === "commercial" && <Button variant={page === "clients" ? "secondary" : "ghost"} onClick={() => navigate("clients")} aria-current={page === "clients" ? "page" : undefined}><Building2 data-icon="inline-start" /> Clientes</Button>}
         {area === "commercial" && <Button variant={page === "maps" ? "secondary" : "ghost"} onClick={() => navigate("maps")} aria-current={page === "maps" ? "page" : undefined}><MapPin data-icon="inline-start" /> Maps</Button>}
+        {area === "commercial" && <Button variant={page === "videos" ? "secondary" : "ghost"} onClick={() => navigate("videos")} aria-current={page === "videos" ? "page" : undefined}><Clapperboard data-icon="inline-start" /> Vídeos</Button>}
         {area === "commercial" && <Button variant={page === "my-keys" ? "secondary" : "ghost"} onClick={() => navigate("my-keys")} aria-current={page === "my-keys" ? "page" : undefined}><KeyRound data-icon="inline-start" /> Chaves</Button>}
         {area === "dev" && <Button variant={page === "automations" ? "secondary" : "ghost"} onClick={() => navigate("automations")} aria-current={page === "automations" ? "page" : undefined}><Workflow data-icon="inline-start" /> Automações</Button>}
         {area === "general" && <Button variant={page === "documents" ? "secondary" : "ghost"} onClick={() => navigate("documents")} aria-current={page === "documents" ? "page" : undefined}><FileText data-icon="inline-start" /> Documentos</Button>}
@@ -249,6 +251,7 @@ export default function AdminApp() {
           page === "announcements" ? <Announcements api={api} user={user} onNotificationsRead={refreshUnreadCounts} /> :
           page === "documents" ? <Documents api={api} actor={user} /> :
           page === "maps" && canSell ? <Maps api={api} canManageKey initialJobId={mapsJobId} /> :
+          page === "videos" && canSell ? <Videos api={api} /> :
           page === "directory" ? <Directory api={api} /> :
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :
