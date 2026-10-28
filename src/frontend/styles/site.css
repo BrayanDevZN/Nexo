@@ -264,3 +264,41 @@ html[data-perf="lite"] .nx-header { backdrop-filter: none; }
 .legal ul { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; margin-block: 0.6rem; }
 .legal a { color: var(--primary); text-underline-offset: 4px; text-decoration: underline; }
 .legal .legal-updated { color: var(--muted-foreground); font-size: 0.95rem; }
+
+/* Stronger depth: deeper violet shadows on cards, panels and buttons site-wide. */
+.operation-visual {
+  box-shadow: 0 32px 75px color-mix(in srgb, var(--shadow-tone) 38%, transparent), 0 10px 24px color-mix(in srgb, var(--shadow-tone) 20%, transparent);
+}
+.solution-card, .stream-console, .case-panel, .contact-panel, .value-card, .value-validation, [data-slot="carousel-item"] > [data-slot="card"] {
+  box-shadow: 0 22px 50px color-mix(in srgb, var(--shadow-tone) 34%, transparent), 0 6px 16px color-mix(in srgb, var(--shadow-tone) 20%, transparent);
+}
+.icon-tile { box-shadow: 0 6px 16px color-mix(in srgb, var(--shadow-tone) 24%, transparent); }
+.intelligence-node { box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow-tone) 30%, transparent); }
+.streaming-section [data-slot="card"], .art-card-ui, .nx-lift {
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--shadow-tone) 28%, transparent), 0 4px 12px color-mix(in srgb, var(--shadow-tone) 16%, transparent);
+}
+.lp-visual { box-shadow: 0 20px 50px color-mix(in srgb, var(--shadow-tone) 28%, transparent) !important; }
+.cookie-notice { box-shadow: 0 16px 48px rgb(0 0 0 / 0.5); }
+:is(button, [data-slot="button"]):not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--shadow-tone) 30%, transparent), 0 1px 3px color-mix(in srgb, var(--shadow-tone) 22%, transparent);
+}
+@media (hover: hover) {
+  :is(button, [data-slot="button"]):not(:disabled):not([aria-disabled="true"]):hover {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent), 0 8px 26px color-mix(in srgb, var(--shadow-tone) 42%, transparent), 0 0 28px color-mix(in srgb, var(--highlight) 24%, transparent);
+  }
+}
+:is(button, [data-slot="button"]):not(:disabled):not([aria-disabled="true"]):is(:active, [data-pressed="true"]) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent), 0 4px 18px color-mix(in srgb, var(--shadow-tone) 48%, transparent);
+}
+:is(button, [data-slot="button"]):not(:disabled):not([aria-disabled="true"]):focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 55%, transparent), 0 6px 20px color-mix(in srgb, var(--shadow-tone) 36%, transparent);
+}
+
+/* More visible rain, still cheap: the per-drop blurred shadow is dropped (it was the costly part),
+   drops are slightly wider and brighter, and slow devices ("lite") keep only the base set. */
+.ambient-drop {
+  width: 3px;
+  opacity: min(1, calc(var(--drop-opacity) * 2 + 0.12));
+  box-shadow: none;
+}
+html[data-perf="lite"] .ambient-drop-extra { display: none; }
