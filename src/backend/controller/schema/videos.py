@@ -19,6 +19,8 @@ class VideoGenerateInput(_VideoOptions):
     prompt: str = Field(min_length=10, max_length=2000)
     aspect: Literal["landscape", "vertical", "square"] = "landscape"
     seconds: int = Field(default=15, ge=3, le=60)
+    # Spoken voice-over in the language of the prompt; ignored when the voice is not installed on the server.
+    narration: bool = True
 
     @field_validator("prompt")
     @classmethod

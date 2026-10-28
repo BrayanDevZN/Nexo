@@ -1,3 +1,4 @@
+import base64
 import logging
 import re
 import threading
@@ -78,9 +79,12 @@ class VideoConnection:
         return [f"{item.get('code', 'error')}: {item.get('message', '')}".strip()
                 for item in result.get("findings", []) if item.get("severity") == "error"][:10]
 
-    def render(self, html: str, *, fps: int, quality: str) -> dict:
-        """Render and wait; returns {file, fileSize, videoDurationSeconds}."""
-        response = self._send("POST", "/render", json={"html": html, "fps": fps, "quality": quality})
+    def render(self, html: str, *, fps: int, quality: str, assets: dict[str, bytes] | None = None) -> dict:
+        """Render and wait; returns {file, fileSize, videoDurationSeconds}. assets are files the HTML uses."""
+        body = {"html": html, "fps": fps, "quality": quality}
+        if assets:
+            body["assets"] = {name: base64.b64encode(data).decode() for name, data in assets.items()}
+        response = self._send("POST", "/render", json=body)
         data = response.json() if response.content else {}
         if response.status_code != 200 or not data.get("success"):
             raise VideoRenderFailed(str(data.get("error") or "Render failed")[:500])

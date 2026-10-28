@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.repository.db.models.base import Base, IdentityTimestampMixin
@@ -19,5 +19,7 @@ class VideoJob(IdentityTimestampMixin, Base):
     fps: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     quality: Mapped[str] = mapped_column(String(8), nullable=False, default="standard")
     error: Mapped[str | None] = mapped_column(String(500))
+    # Whether the video has a generated voice-over
+    audio: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     file_size: Mapped[int | None] = mapped_column(Integer)
     duration_seconds: Mapped[float | None] = mapped_column(Float)

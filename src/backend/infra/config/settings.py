@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     video_embedded: bool = True
     video_server_dir: Path = PROJECT_ROOT / "video-server"
     video_max_concurrent_renders: int = Field(default=1, ge=1, le=4)
+    # Narration (Kokoro, on this machine): the folder with kokoro-v1.0.int8.onnx and voices-v1.0.bin. Empty = no narration.
+    tts_model_dir: Path | None = None
+    tts_voice: str = "pf_dora"
+    tts_lang: str = "pt-br"
     video_timeout_seconds: float = Field(default=900, gt=0, le=3600)
     groq_api_key: SecretStr | None = None
     groq_model: str = "llama-3.3-70b-versatile"
@@ -88,7 +92,7 @@ class Settings(BaseSettings):
 
     @field_validator("email", "resend_from", "password", "resend_key", "secret_email_n8n",
                      "google_client_id", "google_client_secret", "qdrant_url", "qdrant_api_key",
-                     "maps_url", "maps_api_key", "video_url", "video_secret", "groq_api_key", mode="before")
+                     "maps_url", "maps_api_key", "video_url", "video_secret", "groq_api_key", "tts_model_dir", mode="before")
     @classmethod
     def empty_optional(cls, value):
         return None if value == "" else value

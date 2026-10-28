@@ -178,6 +178,10 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
                                  ("max_leads", "INTEGER"), ("contact", "VARCHAR(16)")):
             if name not in maps_job_columns:
                 connection.execute(text(f"ALTER TABLE maps_jobs ADD COLUMN {name} {definition}"))
+    video_job_columns = {column["name"] for column in inspect(engine).get_columns("video_jobs")}
+    if "audio" not in video_job_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE video_jobs ADD COLUMN audio BOOLEAN NOT NULL DEFAULT 0"))
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),

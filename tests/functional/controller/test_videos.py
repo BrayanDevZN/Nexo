@@ -1,3 +1,4 @@
+import json
 import time
 
 import httpx
@@ -22,11 +23,13 @@ class Servers:
         self.lint_errors: list[list[dict]] = []
         self.groq_answers = [f"```html\n{HTML}\n```"]
         self.render_error = None
+        self.render_bodies = []
 
     def video(self, request):
         self.video_calls.append((request.method, request.url.path))
         assert request.headers["authorization"] == "Bearer video-secret-0123456789"
         if request.url.path == "/render":
+            self.render_bodies.append(json.loads(request.read()))
             if self.render_error:
                 return httpx.Response(500, json={"success": False, "error": self.render_error})
             return httpx.Response(200, json={"success": True, "file": FILE, "fileSize": len(MP4),
@@ -45,6 +48,25 @@ class Servers:
         assert request.headers["authorization"] == "Bearer gsk_test"
         answer = self.groq_answers.pop(0) if len(self.groq_answers) > 1 else self.groq_answers[0]
         return httpx.Response(200, json={"choices": [{"message": {"content": answer}}]})
+
+
+NARRATED = ('<!doctype html><html><body><div data-composition-id="main" data-start="0" data-duration="8" '
+            'data-width="1920" data-height="1080">'
+            '<div class="clip" data-start="0" data-duration="4" data-track-index="0" data-narration="Sua pizzaria lotada."></div>'
+            '<div class="clip" data-start="4" data-duration="4" data-track-index="1" data-narration="Chame no WhatsApp agora."></div>'
+            '</div></body></html>')
+
+
+class FakeVoice:
+    """Stands in for Kokoro: every line lasts `seconds`."""
+    available = True
+
+    def __init__(self, seconds=2.0):
+        self.seconds, self.spoken = seconds, []
+
+    def synthesize(self, text):
+        self.spoken.append(text)
+        return b"RIFFfake-wav", self.seconds
 
 
 @pytest.fixture
@@ -263,3 +285,57 @@ def test_jobs_left_running_by_a_restart_are_marked_failed(client):
     with services.repositories.read_transaction() as repos:
         row = repos.video_jobs.get(job_id)
         assert row.status == "failed" and "restart" in row.error
+
+
+def test_generated_videos_are_narrated_with_the_voice_and_the_audio_goes_to_the_render(client, servers):
+    voice = client.app.state.services.videos.tts = FakeVoice()
+    servers.groq_answers = [NARRATED]
+    headers = sign_in(client)
+    created = client.post("/videos/generate", headers=headers, json={"prompt": "Promoção de pizzaria no fim de semana"})
+    done = wait_done(client, created.json()["id"])
+    assert done["status"] == "done" and done["audio"] is True
+    assert voice.spoken == ["Sua pizzaria lotada.", "Chame no WhatsApp agora."]
+    body = servers.render_bodies[0]
+    assert sorted(body["assets"]) == ["narration-1.wav", "narration-2.wav"]
+    assert body["html"].count("<audio") == 2 and 'src="assets/narration-1.wav"' in body["html"]
+    assert 'data-start="4"' in body["html"].split("<audio")[2]
+    # The AI was told how to write the narration, and the saved HTML is the AI's own (no injected audio).
+    assert b"data-narration" in servers.groq_calls[0] and "<audio" not in done["html"]
+
+
+def test_a_narration_longer_than_its_scene_is_sent_back_to_the_ai(client, servers):
+    client.app.state.services.videos.tts = FakeVoice(seconds=5.0)
+    servers.groq_answers = [NARRATED]
+    headers = sign_in(client)
+    created = client.post("/videos/generate", headers=headers, json={"prompt": "Promoção de pizzaria no fim de semana"})
+    done = wait_done(client, created.json()["id"])
+    assert done["status"] == "failed" and len(servers.groq_calls) == 3
+    assert b"lasts 5.0s but the scene lasts only 4s" in servers.groq_calls[1] and servers.render_bodies == []
+
+
+def test_without_the_voice_installed_or_with_narration_off_the_video_is_silent(client, servers):
+    headers = sign_in(client)
+    services = client.app.state.services.videos
+    servers.groq_answers = [NARRATED]
+    silent = wait_done(client, client.post("/videos/generate", headers=headers, json={
+        "prompt": "Promoção de pizzaria no fim de semana"}).json()["id"])
+    assert silent["status"] == "done" and silent["audio"] is False and b"data-narration" not in servers.groq_calls[0]
+    services.tts = FakeVoice()
+    off = wait_done(client, client.post("/videos/generate", headers=headers, json={
+        "prompt": "Promoção de pizzaria no fim de semana", "narration": False}).json()["id"])
+    assert off["audio"] is False and services.tts.spoken == []
+    assert all("assets" not in body for body in servers.render_bodies)
+
+
+def test_html_with_narration_attributes_is_spoken_too(client, servers):
+    client.app.state.services.videos.tts = FakeVoice()
+    headers = sign_in(client)
+    done = wait_done(client, client.post("/videos", headers=headers, json={"html": NARRATED}).json()["id"])
+    assert done["status"] == "done" and done["audio"] is True
+    assert sorted(servers.render_bodies[0]["assets"]) == ["narration-1.wav", "narration-2.wav"]
+    too_long = wait_done(client, client.post("/videos", headers=headers, json={"html": NARRATED.replace(
+        "Sua pizzaria lotada.", "Texto")}).json()["id"])
+    assert too_long["status"] == "done"
+    client.app.state.services.videos.tts = FakeVoice(seconds=9)
+    long_one = wait_done(client, client.post("/videos", headers=headers, json={"html": NARRATED}).json()["id"])
+    assert long_one["status"] == "failed" and "shorten that narration" in long_one["error"]

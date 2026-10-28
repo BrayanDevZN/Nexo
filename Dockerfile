@@ -52,6 +52,12 @@ RUN case "$TARGETARCH" in \
     && tar -xJf /tmp/ffmpeg.tar.xz -C /usr/local/bin --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe' \
     && rm /tmp/ffmpeg.tar.xz
 
+# Voice for the narration of generated videos (Kokoro, int8 model): no account and no key, it runs in this container.
+ARG KOKORO_RELEASE=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
+RUN mkdir -p /opt/tts \
+    && curl -fsSL -o /opt/tts/kokoro-v1.0.int8.onnx "$KOKORO_RELEASE/kokoro-v1.0.int8.onnx" \
+    && curl -fsSL -o /opt/tts/voices-v1.0.bin "$KOKORO_RELEASE/voices-v1.0.bin"
+
 COPY --from=video /usr/local/bin/node /usr/local/bin/node
 COPY --from=video /opt/browsers /opt/browsers
 COPY --from=video /video-server /app/video-server
@@ -68,7 +74,8 @@ ENV PYTHONUNBUFFERED=1 \
     FRONTEND_URL=https://www.nexoaicompany.com \
     CORS_ORIGINS='["https://nexoaicompany.com","https://www.nexoaicompany.com"]' \
     DATABASE_URL=sqlite:////data/nexo.db \
-    UPLOAD_DIR=/data/uploads
+    UPLOAD_DIR=/data/uploads \
+    TTS_MODEL_DIR=/opt/tts
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

@@ -88,6 +88,11 @@ alcançam `/videos`. Os pedidos respondem `202` na hora com um `id`; consulte `G
 - `POST /videos` recebe `{"html": "...", "fps": 30, "quality": "standard"}` com uma composição HyperFrames pronta.
 - `POST /videos/generate` recebe `{"prompt": "...", "aspect": "landscape|vertical|square", "seconds": 15}`; a IA
   (Groq) escreve o HTML, ele é validado (`/lint`) e corrigido pela própria IA em até 3 tentativas, e então renderizado.
+- **Narração (áudio):** `POST /videos/generate` aceita `"narration": true` (padrão). A IA escreve o texto falado de cada
+  cena em `data-narration` e uma voz em português (Kokoro, no próprio container, sem chave nem conta) é gerada e
+  mixada no MP4. A fala precisa caber na cena (cerca de 2,3 palavras por segundo); se não couber, a IA é avisada e
+  corrige. `POST /videos` também narra um HTML que traga `data-narration` nas cenas. Sem o modelo de voz
+  (`TTS_MODEL_DIR`) o vídeo sai sem som (`audio: false` no vídeo). A imagem Docker já traz o modelo (92 MB).
 - `GET /videos` lista os últimos vídeos de quem chama (sem o HTML).
 - Cada membro pode ter 2 vídeos em andamento (`429` acima disso). Um vídeo só é visível para quem o criou.
 

@@ -16,6 +16,7 @@ from backend.infra.connections.photos import PhotoStorage
 from backend.infra.connections.qdrant import QdrantConnection
 from backend.infra.connections.realtime import RealtimeConnection
 from backend.infra.connections.redis import RedisConnection
+from backend.infra.connections.tts import KokoroTTS
 from backend.infra.connections.videos import VideoConnection, VideoStorage
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
@@ -81,7 +82,7 @@ class RuntimeServices:
             groq_connection = GroqConnection(settings)
             self._cleanup.callback(groq_connection.close)
             self.videos = VideoService(video_connection, groq_connection, self.repositories,
-                                       VideoStorage(settings.upload_dir / "videos"))
+                                       VideoStorage(settings.upload_dir / "videos"), KokoroTTS(settings))
             self._cleanup.callback(self.videos.close)
             self.database_admin = DatabaseAdminService(self.repositories, settings, self.redis.client, self.qdrant)
             self._cleanup.callback(self.api_keys.close)

@@ -1,11 +1,12 @@
 // Nexo video server: the HyperFrames producer (HTML -> MP4) behind a shared secret. Only the Nexo backend knows
 // the secret; the producer has no auth of its own. Routes:
-//   POST   /render        {html, fps?, quality?}  -> blocks until done, answers {success, file, ...}
+//   POST   /render        {html, fps?, quality?, assets?} -> blocks until done, answers {success, file, ...}
+//                         assets: {"narration-1.wav": "<base64>"} are written next to index.html as assets/<name>
 //   GET    /files/:name   the rendered MP4
 //   DELETE /files/:name   the backend removes the file once it has stored it
 //   POST   /lint          {html}                  -> composition problems, without rendering
 //   GET    /health        unauthenticated liveness probe
-import { createReadStream, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { createReadStream, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { timingSafeEqual } from "node:crypto";
 import { basename, join } from "node:path";
 import { Readable } from "node:stream";
@@ -25,6 +26,9 @@ const FILE_NAME = /^[A-Za-z0-9_-]+\.mp4$/;
 const KEEP_FILES_MS = 30 * 60 * 1000;
 // The only render options the backend may set; everything else (projectDir, previewUrl, outputPath...) is dropped.
 const RENDER_FIELDS = ["html", "fps", "quality", "maxRenderMs"];
+const ASSET_NAME = /^[A-Za-z0-9_-]+\.(wav|mp3|m4a|ogg)$/;
+const MAX_ASSETS = 40;
+const MAX_ASSET_BYTES = 25 * 1024 * 1024;
 
 function authorized(header) {
   const [scheme, value = ""] = (header ?? "").split(" ");
@@ -56,13 +60,35 @@ app.post("/render", async (c) => {
     return c.json({ success: false, error: "html is required" }, 400);
   }
   const forwarded = Object.fromEntries(RENDER_FIELDS.filter((key) => key in body).map((key) => [key, body[key]]));
-  const response = await producer.fetch(
-    new Request("http://producer/render", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...forwarded, format: "mp4" }),
-    }),
-  );
+  // Media must be local files (renders never fetch), so with assets the composition becomes a small project folder.
+  let projectDir;
+  if (body.assets !== undefined) {
+    const assets = body.assets;
+    const names = assets && typeof assets === "object" && !Array.isArray(assets) ? Object.keys(assets) : null;
+    if (!names || names.length > MAX_ASSETS || !names.every((name) => ASSET_NAME.test(name) && typeof assets[name] === "string")) {
+      return c.json({ success: false, error: "Invalid assets" }, 400);
+    }
+    const files = names.map((name) => [name, Buffer.from(assets[name], "base64")]);
+    if (files.reduce((total, [, data]) => total + data.length, 0) > MAX_ASSET_BYTES) {
+      return c.json({ success: false, error: "Assets are too large" }, 413);
+    }
+    projectDir = mkdtempSync(join(rendersDir, "nexo-project-"));
+    mkdirSync(join(projectDir, "assets"));
+    writeFileSync(join(projectDir, "index.html"), body.html, "utf-8");
+    for (const [name, data] of files) writeFileSync(join(projectDir, "assets", name), data);
+  }
+  let response;
+  try {
+    response = await producer.fetch(
+      new Request("http://producer/render", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...forwarded, ...(projectDir ? { projectDir } : {}), format: "mp4" }),
+      }),
+    );
+  } finally {
+    if (projectDir) rmSync(projectDir, { recursive: true, force: true });
+  }
   const result = await response.json();
   if (!result.success) {
     return c.json({ success: false, error: result.error, errorCode: result.errorCode }, response.status);

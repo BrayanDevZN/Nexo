@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Clapperboard, Code2, Download, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { Clapperboard, Code2, Download, RefreshCw, Sparkles, Volume2, Wand2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,7 +20,7 @@ type Aspect = "landscape" | "vertical" | "square";
 type Quality = "draft" | "standard" | "high";
 type VideoJob = {
   id: string; status: string; source: "html" | "prompt"; prompt: string | null; error: string | null;
-  fps: number; quality: Quality; duration_seconds: number | null; file_size: number | null;
+  fps: number; quality: Quality; audio: boolean; duration_seconds: number | null; file_size: number | null;
   created_at: string; updated_at: string; video_url: string | null;
 };
 type VideoDetail = VideoJob & { html: string | null };
@@ -77,6 +78,7 @@ export function Videos({ api }: { api: ReturnType<typeof createApi> }) {
   const [aspect, setAspect] = useState<Aspect>("landscape");
   const [seconds, setSeconds] = useState("15");
   const [quality, setQuality] = useState<Quality>("standard");
+  const [narration, setNarration] = useState(true);
   const [html, setHtml] = useState("");
   const [fps, setFps] = useState("30");
   const [busy, setBusy] = useState(false);
@@ -119,7 +121,7 @@ export function Videos({ api }: { api: ReturnType<typeof createApi> }) {
     setBusy(true); setError(""); setSuccess("");
     try {
       const body = path === "/videos/generate"
-        ? { prompt: prompt.trim(), aspect, seconds: Number(seconds), quality }
+        ? { prompt: prompt.trim(), aspect, seconds: Number(seconds), quality, narration }
         : { html, fps: Number(fps), quality };
       const created = await api.mutate<VideoJob>(path, "POST", body);
       setSelectedId(created.id); await load();
@@ -193,6 +195,11 @@ export function Videos({ api }: { api: ReturnType<typeof createApi> }) {
                       </NativeSelect>
                     </Field>
                   </div>
+                  <Field orientation="horizontal">
+                    <Switch id="video-narration" checked={narration} onCheckedChange={setNarration} />
+                    <FieldLabel htmlFor="video-narration">Narração em português (voz gerada automaticamente)</FieldLabel>
+                  </Field>
+                  <FieldDescription>A IA escreve o texto falado de cada cena e o vídeo sai com áudio. Desligue para um vídeo sem som.</FieldDescription>
                 </FieldGroup>
                 <div><Button type="submit" disabled={busy || !promptValid || !secondsValid}>{submitLabel("Gerar vídeo", <Wand2 data-icon="inline-start" />)}</Button></div>
               </form>
@@ -204,7 +211,7 @@ export function Videos({ api }: { api: ReturnType<typeof createApi> }) {
                     <FieldLabel htmlFor="video-html">Composição em HTML</FieldLabel>
                     <Textarea id="video-html" rows={14} maxLength={300000} spellCheck={false} className="font-mono text-xs" value={html} onChange={event => setHtml(event.target.value)}
                       placeholder="Cole aqui uma composição HyperFrames (HTML com data-composition-id, clipes e uma timeline GSAP)." />
-                    <FieldDescription>O vídeo é renderizado exatamente como o HTML descreve. <Button type="button" variant="link" className="h-auto p-0" onClick={() => setHtml(HTML_EXAMPLE)}>Usar um exemplo</Button></FieldDescription>
+                    <FieldDescription>O vídeo é renderizado exatamente como o HTML descreve. Para ter narração, coloque <code>data-narration="texto falado"</code> em cada cena (elemento com <code>class="clip"</code>). <Button type="button" variant="link" className="h-auto p-0" onClick={() => setHtml(HTML_EXAMPLE)}>Usar um exemplo</Button></FieldDescription>
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field>
@@ -255,7 +262,8 @@ export function Videos({ api }: { api: ReturnType<typeof createApi> }) {
     {selected && <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2"><span className="min-w-0 truncate">{titleOf(selected)}</span>
-          <Badge variant={statusOf(selected.status).variant}>{statusOf(selected.status).label}</Badge></CardTitle>
+          <Badge variant={statusOf(selected.status).variant}>{statusOf(selected.status).label}</Badge>
+          {selected.audio && <Badge variant="outline"><Volume2 data-icon="inline-start" />Com narração</Badge>}</CardTitle>
         <CardDescription>{[dateLabel(selected.created_at), selected.duration_seconds ? `${selected.duration_seconds.toLocaleString("pt-BR")} s` : "", sizeLabel(selected.file_size)].filter(Boolean).join(" · ")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
