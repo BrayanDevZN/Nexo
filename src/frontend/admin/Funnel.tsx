@@ -12,7 +12,7 @@ import { MapsButton } from "./MapsLink";
 import { Feedback, Loading, message } from "./shared";
 
 const stageDescriptions: Record<PipelineStage, string> = {
-  lead: "Novos contatos", contacted: "Primeiro contato", diagnosis: "Entendendo o cenário",
+  lead: "Novos contatos", contacted: "Primeiro contato", replied: "Responderam à abordagem", diagnosis: "Entendendo o cenário",
   proposal: "Propostas enviadas", negotiation: "Em negociação", won: "Contratos ganhos",
   lost: "Oportunidades perdidas",
 };
@@ -20,6 +20,7 @@ const stageDescriptions: Record<PipelineStage, string> = {
 const stageTones: Record<PipelineStage, string> = {
   lead: "border-funnel-lead/70 bg-funnel-lead/15",
   contacted: "border-funnel-contacted/70 bg-funnel-contacted/15",
+  replied: "border-funnel-replied/70 bg-funnel-replied/15",
   diagnosis: "border-funnel-diagnosis/70 bg-funnel-diagnosis/15",
   proposal: "border-funnel-proposal/70 bg-funnel-proposal/15",
   negotiation: "border-funnel-negotiation/70 bg-funnel-negotiation/15",

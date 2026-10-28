@@ -32,10 +32,10 @@ export const SALES_CHANNELS: { value: SalesChannel; label: string }[] = [
   { value: "phone", label: "Ligação" }, { value: "in_person", label: "Presencial" }, { value: "other", label: "Outro" },
 ];
 export const salesChannelLabel = (value: SalesChannel | null | undefined) => SALES_CHANNELS.find(channel => channel.value === value)?.label ?? null;
-export type PipelineStage = "lead" | "contacted" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
+export type PipelineStage = "lead" | "contacted" | "replied" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "lead", label: "Lead" }, { value: "contacted", label: "Contato feito" },
-  { value: "diagnosis", label: "Diagnóstico" }, { value: "proposal", label: "Proposta" },
+  { value: "replied", label: "Respondeu" }, { value: "diagnosis", label: "Diagnóstico" }, { value: "proposal", label: "Proposta" },
   { value: "negotiation", label: "Negociação" }, { value: "won", label: "Fechado" },
   { value: "lost", label: "Perdido" },
 ];
