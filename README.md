@@ -74,6 +74,27 @@ Membros aprovados podem enviar e baixar documentos em `/documents`. A API grava 
 
 Clientes mostram `created_by_name`; a listagem aceita filtros combinados `name` (trecho sem distinguir maiúsculas/minúsculas), `niche` (exato) e `created_by_id`, além de contrato e paginação. O diretório `/members` inclui apenas ID, nome, cargo e `has_photo`; imagens são obtidas autenticadas em `/members/{id}/photo`. Contas pendentes não acessam o diretório, clientes ou documentos. Owners podem consultar fotos de contas pendentes ao gerenciá-las. Ao excluir uma conta, seus clientes e documentos são transferidos ao Owner principal.
 
+### Vídeos (HyperFrames)
+
+`POST /videos`, `POST /videos/generate`, `GET /videos/{id}` e `GET /videos/{id}/file` geram vídeos MP4 com o
+[HyperFrames](https://github.com/heygen-com/hyperframes) (HTML renderizado em vídeo). Usam a mesma autenticação das
+demais rotas (sessão ou chave de API `nexo_live_...`) e só aceitam owner, admin e commercial; chaves de commercial
+alcançam `/videos`. Os pedidos respondem `202` na hora com um `id`; consulte `GET /videos/{id}` até `status` ser
+`done` (ou `failed`, com `error`) e baixe o arquivo em `video_url`.
+
+- `POST /videos` recebe `{"html": "...", "fps": 30, "quality": "standard"}` com uma composição HyperFrames pronta.
+- `POST /videos/generate` recebe `{"prompt": "...", "aspect": "landscape|vertical|square", "seconds": 15}`; a IA
+  (Groq) escreve o HTML, ele é validado (`/lint`) e corrigido pela própria IA em até 3 tentativas, e então renderizado.
+- Cada membro pode ter 2 vídeos em andamento (`429` acima disso). Um vídeo só é visível para quem o criou.
+
+O render roda dentro do próprio backend: ele sobe [`video-server/`](video-server/README.md) (Node + Chrome + FFmpeg,
+já na imagem Docker) como processo filho em `127.0.0.1`, no primeiro pedido de vídeo, com um segredo aleatório e
+prioridade menor que a da API, e o reinicia se cair. Não há outro serviço para publicar nem `VIDEO_URL`/`VIDEO_SECRET`
+para configurar (eles existem só para usar um servidor de render externo). Sem Node/`video-server/` instalados as rotas
+respondem `503`. Só `/videos/generate` precisa de `GROQ_API_KEY` (opcional: `GROQ_MODEL`); sem ela essa rota responde
+`503` e `/videos` continua funcionando. Os MP4 ficam em `UPLOAD_DIR/videos`. O render consome CPU e memória do
+container da API: por padrão roda um por vez (`VIDEO_MAX_CONCURRENT_RENDERS`).
+
 ### Node Nexo para n8n
 
 O node privado da Nexo para n8n permite consultar e administrar recursos da API usando uma chave de API por credencial. Ele inclui operações para clientes, automações, documentos, avisos, chat, dashboard e avisos administrativos.

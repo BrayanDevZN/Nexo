@@ -10,11 +10,13 @@ from backend.infra.connections.database import DatabaseConnection
 from backend.infra.connections.documents import DocumentStorage
 from backend.infra.connections.email import ResendConnection
 from backend.infra.connections.google import GoogleConnection
+from backend.infra.connections.groq import GroqConnection
 from backend.infra.connections.maps import MapsConnection
 from backend.infra.connections.photos import PhotoStorage
 from backend.infra.connections.qdrant import QdrantConnection
 from backend.infra.connections.realtime import RealtimeConnection
 from backend.infra.connections.redis import RedisConnection
+from backend.infra.connections.videos import VideoConnection, VideoStorage
 from backend.repository.cache.aside import CacheAside
 from backend.repository.cache.manager import CachedRepositoryManager
 from backend.repository.db.control.manager import RepositoryManager
@@ -50,6 +52,7 @@ from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
 from backend.service.registration import RegistrationService
 from backend.service.security import SessionSecurity
+from backend.service.videos import VideoService
 from backend.service.webhook_events import WebhookEventService
 
 
@@ -73,6 +76,13 @@ class RuntimeServices:
             self.cached_repositories = CachedRepositoryManager(self.repositories, self.cache)
             self.api_keys = ApiKeyService(self.repositories)
             self.maps = MapsService(maps_connection, self.repositories, settings.jwt_secret_key.get_secret_value())
+            video_connection = VideoConnection(settings)
+            self._cleanup.callback(video_connection.close)
+            groq_connection = GroqConnection(settings)
+            self._cleanup.callback(groq_connection.close)
+            self.videos = VideoService(video_connection, groq_connection, self.repositories,
+                                       VideoStorage(settings.upload_dir / "videos"))
+            self._cleanup.callback(self.videos.close)
             self.database_admin = DatabaseAdminService(self.repositories, settings, self.redis.client, self.qdrant)
             self._cleanup.callback(self.api_keys.close)
             self.dashboard = DashboardService(self.repositories, self.cache)
@@ -164,6 +174,7 @@ class RuntimeServices:
     def initialize(self, settings: Settings) -> None:
         create_tables(self.database.engine, str(settings.email) if settings.email else None)
         self.auth.bootstrap_admin(settings)
+        self.videos.recover()
         self.approvals.synchronize_pending()
 
     def readiness(self) -> dict[str, bool]:

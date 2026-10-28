@@ -47,11 +47,12 @@ def test_every_approved_role_can_hold_api_keys_but_unknown_roles_cannot():
 @pytest.mark.parametrize(("role", "path", "allowed"), [
     ("commercial", "/clients", True), ("commercial", "/clients/abc", True),
     ("commercial", "/auth/api-keys/validate", True),
-    ("commercial", "/clientsx", False), ("commercial", "/automations", False), ("commercial", "/documents", False),
+    ("commercial", "/videos", True), ("commercial", "/videos/generate", True), ("commercial", "/videos/abc/file", True),
+    ("commercial", "/videosx", False), ("commercial", "/clientsx", False), ("commercial", "/automations", False), ("commercial", "/documents", False),
     ("commercial", "/dashboard", False), ("commercial", "/notifications", False), ("commercial", "/announcements", False),
     ("dev", "/automations", True), ("admin", "/documents", True), ("owner", "/announcements", True),
 ])
-def test_commercial_keys_only_reach_clients_and_the_maps_key_check(role, path, allowed):
+def test_commercial_keys_only_reach_clients_videos_and_the_maps_key_check(role, path, allowed):
     assert key_allows(SimpleNamespace(role=role), path) is allowed
 
 

@@ -14,6 +14,7 @@ from backend.repository.db.control.maps_jobs import MapsJobRepository
 from backend.repository.db.control.notifications import NotificationRepository
 from backend.repository.db.control.paid_leads import PaidLeadRepository
 from backend.repository.db.control.users import UserRepository
+from backend.repository.db.control.video_jobs import VideoJobRepository
 
 
 class Repositories:
@@ -29,6 +30,7 @@ class Repositories:
         self.maps_credentials = MapsCredentialRepository(session)
         self.maps_jobs = MapsJobRepository(session)
         self.paid_leads = PaidLeadRepository(session)
+        self.video_jobs = VideoJobRepository(session)
 
 
 class RepositoryManager:

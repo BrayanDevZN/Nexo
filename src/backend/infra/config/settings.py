@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     maps_url: str | None = "https://nexo-production-52a1.up.railway.app"
     maps_api_key: SecretStr | None = None
     maps_timeout_seconds: float = Field(default=20, gt=0, le=60)
+    # Video rendering (HyperFrames) and the Groq key that writes the compositions from a prompt. Everything is
+    # optional: a route that cannot work answers 503; nothing fails at startup. By default the backend runs the
+    # render server itself, as a child process of video-server/ (Node + Chrome + FFmpeg are in the Docker image).
+    # VIDEO_URL + VIDEO_SECRET point to an external render server instead.
+    video_url: str | None = None
+    video_secret: SecretStr | None = None
+    video_embedded: bool = True
+    video_server_dir: Path = PROJECT_ROOT / "video-server"
+    video_max_concurrent_renders: int = Field(default=1, ge=1, le=4)
+    video_timeout_seconds: float = Field(default=900, gt=0, le=3600)
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+    groq_url: str = "https://api.groq.com/openai/v1"
+    groq_timeout_seconds: float = Field(default=90, gt=0, le=300)
     admin_name: str = "Brayan"
     email: EmailStr | None = None
     password: SecretStr | None = None
@@ -74,7 +88,7 @@ class Settings(BaseSettings):
 
     @field_validator("email", "resend_from", "password", "resend_key", "secret_email_n8n",
                      "google_client_id", "google_client_secret", "qdrant_url", "qdrant_api_key",
-                     "maps_url", "maps_api_key", mode="before")
+                     "maps_url", "maps_api_key", "video_url", "video_secret", "groq_api_key", mode="before")
     @classmethod
     def empty_optional(cls, value):
         return None if value == "" else value
@@ -156,11 +170,17 @@ class Settings(BaseSettings):
         cls._http_address(value)
         return value.rstrip("/") if value.endswith("/") else value
 
-    @field_validator("qdrant_url", "maps_url")
+    @field_validator("qdrant_url", "maps_url", "video_url")
     @classmethod
     def qdrant_address(cls, value: str | None):
         if value is None:
             return None
+        cls._http_address(value)
+        return value.rstrip("/")
+
+    @field_validator("groq_url")
+    @classmethod
+    def groq_address(cls, value: str):
         cls._http_address(value)
         return value.rstrip("/")
 
@@ -190,6 +210,8 @@ class Settings(BaseSettings):
                 valid = False
             if not valid:
                 raise ValueError("PASSWORD must contain at least 12 characters and at most 72 UTF-8 bytes")
+        if bool(self.video_url) != bool(self.video_secret):
+            raise ValueError("Configure both VIDEO_URL and VIDEO_SECRET")
         if self.auth_cookie_name.startswith(("__Host-", "__Secure-")) and not self.cookie_secure:
             raise ValueError("Prefixed auth cookies require COOKIE_SECURE=true")
         if self.cookie_samesite == "none" and not self.cookie_secure:
