@@ -1,6 +1,6 @@
 # Stage 1: the HyperFrames render server's dependencies and a headless Chrome. The backend runs video-server/ as a
 # child process (no separate service), so everything it needs is copied into the backend image below.
-FROM node:22.23.4-bookworm-slim AS video
+FROM mirror.gcr.io/library/node:22.23.4-bookworm-slim AS video
 ARG TARGETARCH=amd64
 ARG PLAYWRIGHT_VERSION=1.61.1
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
