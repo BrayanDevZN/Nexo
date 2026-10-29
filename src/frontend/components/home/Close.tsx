@@ -27,11 +27,20 @@ function Streamed({ text, start = 0 }: { text: string; start?: number }) {
   );
 }
 
-const TITLE = ["Vamos encontrar", "o nexo."];
-const LEAD =
+const HOME_TITLE = ["Vamos encontrar", "o nexo."];
+const HOME_LEAD =
   "Sua empresa cresceu, mas a rotina não acompanha? Conte para a gente o que mais toma o tempo da sua equipe. Em uma conversa, mostramos por onde começar.";
 
-export function Close() {
+type CloseProps = {
+  title?: string[];
+  lead?: string;
+  /** Props of the WhatsApp links (the page's own tracking, for instance). */
+  link?: React.AnchorHTMLAttributes<HTMLAnchorElement>;
+  nav?: readonly { href: string; label: string }[];
+};
+
+export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link, nav = navigation }: CloseProps) {
+  const whatsapp = { href: contactUrl, ...link, target: "_blank", rel: "noopener noreferrer" };
   const { reduced, setReduced } = useMotionPreferences();
   const [cta, ctaSeen] = useScrollTrigger<HTMLElement>(0.45, 0.9);
   const [footer, footerSeen] = useScrollTrigger<HTMLElement>(0.9, 1.05);
@@ -56,7 +65,7 @@ export function Close() {
             <span className="nx-caret" aria-hidden="true" style={{ "--i": titleWords + leadWords } as React.CSSProperties} />
           </p>
           <Button size="lg" asChild className="nx-cta-button nx-stream-pop" style={{ "--i": titleWords + leadWords + 2 } as React.CSSProperties}>
-            <a href={contactUrl} target="_blank" rel="noopener noreferrer">
+            <a {...whatsapp}>
               Falar com a Nexo no WhatsApp <ArrowUpRight data-icon="inline-end" />
             </a>
           </Button>
@@ -68,14 +77,16 @@ export function Close() {
             <Brand />
           </a>
           <nav aria-label="Navegação do rodapé">
-            {navigation.map((item) => (
+            {nav.map((item) => (
               <a key={item.href} href={item.href}>
                 {item.label}
               </a>
             ))}
-            <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-              Contato
-            </a>
+            {link ? null : (
+              <a href={contactUrl} target="_blank" rel="noopener noreferrer">
+                Contato
+              </a>
+            )}
           </nav>
         </div>
         <div className="nx-footer-legal">

@@ -4,9 +4,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { faqs } from "@/lib/content";
+import { faqs as homeFaqs } from "@/lib/content";
 
-export function Faq() {
+export function Faq({ faqs = homeFaqs, note = "Cada operação tem seu contexto. A conversa começa por ele." }: { faqs?: readonly { question: string; answer: string }[]; note?: string }) {
   return (
     <section
       id="duvidas"
@@ -18,7 +18,7 @@ export function Faq() {
           Vamos tirar as dúvidas.
         </h2>
         <p className="nx-faq-a nx-soft nx-reveal">
-          Cada operação tem seu contexto. A conversa começa por ele.
+          {note}
         </p>
       </div>
       <Accordion type="single" collapsible className="nx-accordion nx-reveal">

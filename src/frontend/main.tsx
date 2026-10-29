@@ -34,7 +34,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
       {adminRoute ? null : <Backdrop />}
-      {adminRoute || privacyRoute || landingRoute ? <AnimatedBackground /> : null}
+      {adminRoute || privacyRoute ? <AnimatedBackground /> : null}
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
       {adminRoute ? null : <CookieNotice />}
     </MotionProvider>

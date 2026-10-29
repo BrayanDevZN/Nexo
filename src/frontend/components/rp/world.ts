@@ -34,7 +34,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { journey, stations } from "@/lib/journey";
+import { journey, stations as homeStations, type Station } from "@/lib/journey";
 
 // Nexo's purples, from deep ink to pale lavender.
 const INK = new Color("#2a1450");
@@ -573,21 +573,225 @@ function software(): Piece {
   };
 }
 
-/** How it works: four steps going up, and a light that climbs them one at a time to the flag on the last. */
-function stages(): Piece {
+/** A sheet of paper with a few lines of text. */
+function sheet(width = 1.2, height = 1.6, color: Color = INK) {
+  const holder = slab(width, height, 0.03, color, 0.85);
+  const lines: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    const y = height * (0.3 - i * 0.18);
+    lines.push(-width * 0.35, y, 0.025, width * (i === 3 ? 0.1 : 0.35), y, 0.025);
+  }
+  holder.add(new LineSegments(new BufferGeometry().setAttribute("position", new Float32BufferAttribute(lines, 3)), lineMaterial(VIOLET, 0.7, 0)));
+  return holder;
+}
+
+/** The accounting opening: loose documents swirl around, then line up in a neat stack inside a folder, and scatter again. */
+function docs(): Piece {
+  const group = new Group();
+  group.add(halo(13, 0.65));
+  const folder = slab(2.5, 2.9, 0.06, VIOLET, 0.9);
+  folder.position.z = -0.35;
+  const tab = slab(0.9, 0.28, 0.06, VIOLET, 0.9);
+  tab.position.set(-0.8, 1.55, -0.35);
+  const dial = ticks(3.7, 120, 0.28, lineMaterial(DEEP, 0.45));
+  group.add(folder, tab, dial);
+  const count = 14;
+  const sheets = Array.from({ length: count }, (_, i) => {
+    const holder = sheet(1.2, 1.6, i % 4 === 0 ? VIOLET : INK);
+    group.add(holder);
+    return holder;
+  });
+  return {
+    group,
+    update: (t) => {
+      const time = t % 9;
+      // 0 = swirling, 1 = stacked: settles from 3s to 5s, holds, then is thrown apart at 8s.
+      const order = ease(clamp01((time - 3) / 2)) * (1 - ease(clamp01((time - 8) / 0.8)));
+      group.rotation.y = Math.sin(t * 0.3) * 0.35;
+      group.rotation.x = 0.12 + Math.sin(t * 0.2) * 0.06;
+      dial.rotation.z = t * 0.1;
+      sheets.forEach((paper, i) => {
+        const angle = i * 0.9 + t * 0.35;
+        const radius = 2.3 + (i % 3) * 0.7;
+        const cx = Math.cos(angle) * radius;
+        const cy = Math.sin(t * 0.5 + i * 1.7) * 1.4;
+        const cz = Math.sin(angle) * radius * 0.6;
+        paper.position.set(cx + (0 - cx) * order, cy + ((i - count / 2) * 0.02 - cy) * order, cz + ((i - count / 2) * 0.13 - cz) * order);
+        paper.rotation.set((t * 0.5 + i) * (1 - order), (t * 0.7 + i * 2) * (1 - order), Math.sin(i) * 0.5 * (1 - order));
+      });
+    },
+  };
+}
+
+/** The accounting books: a ledger page checked line by line by a magnifier, one line flagged for a person to look at. */
+function ledger(): Piece {
+  const group = new Group();
+  group.add(halo(11, 0.6));
+  const page = slab(3.3, 4.2, 0.12);
+  const dial = ticks(3.7, 100, 0.24, lineMaterial(DEEP, 0.4));
+  dial.rotation.x = 0.4;
+  group.add(page, dial);
+  const rowY = (i: number) => 1.45 - i * 0.55;
+  const lines: number[] = [];
+  for (let i = 0; i < 6; i++) lines.push(-1.35, rowY(i), 0.08, 0.5, rowY(i), 0.08, 0.85, rowY(i), 0.08, 1.15, rowY(i), 0.08);
+  group.add(new LineSegments(new BufferGeometry().setAttribute("position", new Float32BufferAttribute(lines, 3)), lineMaterial(INK, 0.75, 0)));
+  const mark = (flag: boolean) => {
+    const geometry = new BufferGeometry().setAttribute(
+      "position",
+      new Float32BufferAttribute(flag ? [0, 0.2, 0, 0, -0.04, 0, 0, -0.14, 0, 0, -0.17, 0] : [-0.16, 0, 0, -0.04, -0.13, 0, -0.04, -0.13, 0, 0.18, 0.15, 0], 3),
+    );
+    return flag ? new LineSegments(geometry, lineMaterial(BRIGHT, 1, 0)) : new LineSegments(geometry, lineMaterial(VIOLET, 1, 0));
+  };
+  const marks = Array.from({ length: 6 }, (_, i) => {
+    const holder = new Group();
+    holder.add(mark(i === 3));
+    if (i === 3) holder.add(dot(0.05, BRIGHT));
+    holder.children[holder.children.length - 1].position.y = i === 3 ? -0.17 : 0;
+    holder.position.set(1.4, rowY(i), 0.1);
+    group.add(holder);
+    return holder;
+  });
+  const glassRing = circle(0.55, lineMaterial(VIOLET, 1, 0));
+  const handle = new Line(new BufferGeometry().setFromPoints([new Vector3(0.39, -0.39, 0), new Vector3(0.9, -0.9, 0)]), lineMaterial(VIOLET, 1, 0));
+  const lens = new Group();
+  lens.add(glassRing, handle, glass(new SphereGeometry(0.5, 20, 20), 0.5));
+  lens.children[2].scale.z = 0.05;
+  group.add(lens);
+  return {
+    group,
+    update: (t) => {
+      const time = t % 9;
+      const fade = 1 - ease(clamp01((time - 8) / 0.8));
+      group.rotation.y = Math.sin(t * 0.35) * 0.5;
+      group.rotation.x = -0.1 + Math.sin(t * 0.25) * 0.08;
+      dial.rotation.z = t * 0.12;
+      const row = clamp01(time / 6.5) * 5;
+      lens.position.set(-0.2 + Math.sin(time * 2) * 0.12, 1.45 - row * 0.55, 0.3);
+      lens.scale.setScalar(Math.max(0.001, fade));
+      marks.forEach((holder, i) => {
+        const k = Math.max(0.001, pop(time, i * 1.3 + 0.7, 0.4) * fade);
+        holder.scale.setScalar(i === 3 ? k * (1 + Math.sin(t * 4) * 0.1) : k);
+      });
+    },
+  };
+}
+
+/** Organised documents: loose sheets fall from above into three folders, one after another. */
+function archive(): Piece {
+  const group = new Group();
+  group.add(halo(12, 0.6));
+  const folders = [-2.3, 0, 2.3].map((x, i) => {
+    const holder = new Group();
+    holder.add(slab(1.8, 1.3, 0.3, i === 1 ? VIOLET : INK, 0.9));
+    const tab = slab(0.7, 0.2, 0.3, i === 1 ? VIOLET : INK, 0.9);
+    tab.position.set(-0.55, 0.75, 0);
+    const label = new Line(new BufferGeometry().setFromPoints([new Vector3(-0.5, -0.1, 0.17), new Vector3(0.4, -0.1, 0.17)]), lineMaterial(VIOLET, 0.8, 0));
+    holder.add(tab, label);
+    holder.position.set(x, -1.6, 0);
+    group.add(holder);
+    return holder;
+  });
+  const count = 9;
+  const sheets = Array.from({ length: count }, (_, i) => {
+    const holder = sheet(0.85, 1.1, i % 3 === 1 ? VIOLET : INK);
+    group.add(holder);
+    return { holder, i, startX: ((i * 37) % 7) * 0.9 - 2.7, target: folders[i % 3].position.x };
+  });
+  return {
+    group,
+    update: (t) => {
+      group.rotation.y = Math.sin(t * 0.3) * 0.4;
+      group.rotation.x = 0.15;
+      folders.forEach((folder, i) => (folder.position.y = -1.6 + Math.max(0, Math.sin(t * 2 + i * 2)) * 0.03));
+      sheets.forEach(({ holder, i, startX, target }) => {
+        const u = (t * 0.16 + i / count) % 1;
+        const k = ease(u);
+        // Drifts down from a loose pile above, turns to face front as it goes in, shrinks into the folder.
+        holder.position.set(startX + (target - startX) * k + Math.sin(u * 6 + i) * 0.25 * (1 - k), 2.6 + (-1.0 - 2.6) * k, 0.2);
+        holder.rotation.set(0, 0, (1 - k) * Math.sin(i * 2.1) * 1.2);
+        holder.scale.setScalar(Math.max(0.001, 1 - ease(clamp01((u - 0.82) / 0.18)) * 0.9));
+      });
+    },
+  };
+}
+
+/** The accountant decides: a balance with the prepared documents on one pan and the approval on the other. */
+function balance(): Piece {
+  const group = new Group();
+  group.add(halo(12, 0.6));
+  const base = new CylinderGeometry(1.1, 1.3, 0.25, 32);
+  const baseMesh = new Group();
+  baseMesh.add(glass(base), wire(base, lineMaterial(INK, 0.9), 20));
+  baseMesh.position.y = -2.3;
+  const stemGeometry = new CylinderGeometry(0.1, 0.14, 3.7, 16);
+  const stem = new Group();
+  stem.add(glass(stemGeometry), wire(stemGeometry, lineMaterial(VIOLET, 0.9), 20));
+  stem.position.y = -0.45;
+  const beam = new Group();
+  beam.position.y = 1.45;
+  beam.add(slab(4.6, 0.16, 0.16, VIOLET));
+  const pivot = dot(0.2, BRIGHT);
+  pivot.position.y = 1.45;
+  group.add(baseMesh, stem, pivot, beam);
+  const pan = (x: number, load: "docs" | "approval") => {
+    const hanger = new Group();
+    hanger.position.set(x, 0, 0);
+    const chains = new LineSegments(
+      new BufferGeometry().setFromPoints([new Vector3(0, 0, 0), new Vector3(-0.9, -1.7, 0), new Vector3(0, 0, 0), new Vector3(0.9, -1.7, 0), new Vector3(0, 0, 0), new Vector3(0, -1.7, 0.6)]),
+      lineMaterial(INK, 0.6, 0),
+    );
+    const disc = new CylinderGeometry(1.05, 0.9, 0.14, 32);
+    const plate = new Group();
+    plate.add(glass(disc), wire(disc, lineMaterial(INK, 0.9), 20));
+    plate.position.y = -1.75;
+    hanger.add(chains, plate);
+    if (load === "docs") {
+      [0, 1, 2].forEach((i) => {
+        const paper = sheet(0.7, 0.9, i === 1 ? VIOLET : INK);
+        paper.rotation.set(-Math.PI / 2 + 0.2, 0, i * 0.5);
+        paper.position.set((i - 1) * 0.12, -1.55 + i * 0.07, (i - 1) * 0.1);
+        hanger.add(paper);
+      });
+    } else {
+      const orb = glass(new SphereGeometry(0.5, 24, 24));
+      orb.position.y = -1.1;
+      const check = new LineSegments(new BufferGeometry().setAttribute("position", new Float32BufferAttribute([-0.22, 0, 0.52, -0.06, -0.17, 0.52, -0.06, -0.17, 0.52, 0.26, 0.2, 0.52], 3)), lineMaterial(VIOLET, 1, 0));
+      check.position.y = -1.1;
+      hanger.add(orb, check);
+    }
+    beam.add(hanger);
+    return hanger;
+  };
+  const left = pan(-2.3, "docs");
+  const right = pan(2.3, "approval");
+  return {
+    group,
+    update: (t) => {
+      group.rotation.y = Math.sin(t * 0.3) * 0.45;
+      group.rotation.x = 0.08;
+      const tilt = Math.sin(t * 0.7) * 0.1;
+      beam.rotation.z = tilt;
+      // The pans hang straight whatever the angle of the beam.
+      [left, right].forEach((hanger) => (hanger.rotation.z = -tilt));
+    },
+  };
+}
+
+/** How it works: steps going up, and a light that climbs them one at a time to the flag on the last. */
+function stages(count = 4): Piece {
   const group = new Group();
   group.add(halo(13, 0.55));
   const tops: Vector3[] = [];
-  [0, 1, 2, 3].forEach((i) => {
-    const height = 0.9 * (i + 1);
-    const step = slab(1.5, height, 1.5, i === 3 ? VIOLET : INK, 0.9);
-    step.position.set((i - 1.5) * 1.65, -1.9 + height / 2, 0);
+  Array.from({ length: count }, (_, i) => i).forEach((i) => {
+    const height = (3.6 * (i + 1)) / count;
+    const step = slab(1.5, height, 1.5, i === count - 1 ? VIOLET : INK, 0.9);
+    step.position.set((i - (count - 1) / 2) * 1.65, -1.9 + height / 2, 0);
     group.add(step);
     tops.push(new Vector3(step.position.x, -1.9 + height + 0.25, 0));
   });
-  const pole = new Line(new BufferGeometry().setFromPoints([tops[3].clone().add(new Vector3(0, -0.25, 0)), tops[3].clone().add(new Vector3(0, 1.4, 0))]), lineMaterial(VIOLET, 0.9, 0));
+  const pole = new Line(new BufferGeometry().setFromPoints([tops[count - 1].clone().add(new Vector3(0, -0.25, 0)), tops[count - 1].clone().add(new Vector3(0, 1.4, 0))]), lineMaterial(VIOLET, 0.9, 0));
   const pennant = new LineLoop(
-    new BufferGeometry().setFromPoints([tops[3].clone().add(new Vector3(0, 1.4, 0)), tops[3].clone().add(new Vector3(0.8, 1.1, 0)), tops[3].clone().add(new Vector3(0, 0.8, 0))]),
+    new BufferGeometry().setFromPoints([tops[count - 1].clone().add(new Vector3(0, 1.4, 0)), tops[count - 1].clone().add(new Vector3(0.8, 1.1, 0)), tops[count - 1].clone().add(new Vector3(0, 0.8, 0))]),
     lineMaterial(BRIGHT, 0.95, 0),
   );
   const climber = dot(0.2, BRIGHT);
@@ -596,23 +800,25 @@ function stages(): Piece {
   return {
     group,
     update: (t) => {
-      const time = t % 6;
+      const hops = count - 1;
+      const total = hops + 3;
+      const time = t % total;
       group.rotation.y = -0.5 + Math.sin(t * 0.3) * 0.3;
       group.rotation.x = 0.12;
-      // Three hops, one second each, then a rest on the top while the flag waves.
-      const hop = Math.min(2, Math.floor(time));
-      const f = time < 3 ? time - hop : 1;
+      // One hop a second, then a rest on the top while the flag waves.
+      const hop = Math.min(hops - 1, Math.floor(time));
+      const f = time < hops ? time - hop : 1;
       const from = tops[hop];
       const to = tops[hop + 1];
       climber.position.lerpVectors(from, to, ease(f));
-      climber.position.y += Math.sin(Math.min(f, 1) * Math.PI) * (time < 3 ? 0.9 : 0);
-      const gone = ease(clamp01((time - 5.3) / 0.6));
+      climber.position.y += Math.sin(Math.min(f, 1) * Math.PI) * (time < hops ? 0.9 : 0);
+      const gone = ease(clamp01((time - (total - 0.7)) / 0.6));
       climber.scale.setScalar(Math.max(0.001, 1 - gone));
       trail.position.copy(climber.position);
       trail.scale.setScalar(Math.max(0.001, (1 + Math.sin(t * 5) * 0.12) * (1 - gone)));
       pennant.rotation.y = Math.sin(t * 3) * 0.35;
-      pennant.position.x = tops[3].x * (1 - Math.cos(pennant.rotation.y));
-      pennant.position.z = Math.sin(pennant.rotation.y) * -tops[3].x;
+      pennant.position.x = tops[count - 1].x * (1 - Math.cos(pennant.rotation.y));
+      pennant.position.z = Math.sin(pennant.rotation.y) * -tops[count - 1].x;
     },
   };
 }
@@ -655,7 +861,12 @@ const builders = {
   flow: fitted(flow, 0.7),
   systems: fitted(systems, 0.6),
   software: fitted(software, 0.72),
-  stages: fitted(stages, 0.52),
+  stages: fitted(() => stages(4), 0.52),
+  stages3: fitted(() => stages(3), 0.52),
+  docs: fitted(docs, 0.85),
+  ledger: fitted(ledger, 0.72),
+  archive: fitted(archive, 0.78),
+  balance: fitted(balance, 0.72),
   orb,
 };
 
@@ -702,7 +913,7 @@ function outline(group: Group, count: number, random: () => number) {
  * travelling through it as the visitor scrolls. The canvas is transparent so the page's purple
  * light shows through, and distant things fade into it.
  */
-export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }) {
+export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }, stations: readonly Pick<Station, "scene" | "side">[] = homeStations) {
   const renderer = new WebGLRenderer({ canvas, antialias: !options.lite, alpha: true, powerPreference: "high-performance" });
   renderer.setClearColor(0xffffff, 0);
   const scene = new Scene();

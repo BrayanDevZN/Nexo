@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { contactUrl } from "@/lib/content";
-import { journey, stations } from "@/lib/journey";
+import { journey, stations as homeStations, type Station } from "@/lib/journey";
 import { smoothScrollTo } from "@/lib/siteEffects";
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
@@ -11,7 +11,18 @@ const pad = (value: number) => String(value).padStart(2, "0");
  * The scroll corridor. The page is as tall as the stations; a sticky stage shows the text of the one
  * the camera is at while the 3D scene (Scene.tsx) travels to it. Station text stays in the DOM.
  */
-export function Journey({ play }: { play: boolean }) {
+export function Journey({
+  play,
+  stations = homeStations,
+  actions,
+  label = "Nexo",
+}: {
+  play: boolean;
+  stations?: readonly Station[];
+  /** What goes under a station's text. The home page's own links are used when this is left out. */
+  actions?: (index: number) => React.ReactNode;
+  label?: string;
+}) {
   const root = useRef<HTMLElement>(null);
   const items = useRef<(HTMLElement | null)[]>([]);
   const counter = useRef<HTMLSpanElement>(null);
@@ -159,10 +170,32 @@ export function Journey({ play }: { play: boolean }) {
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, []);
+  }, [stations]);
+
+  const home = (index: number) => {
+    const last = index === stations.length - 1;
+    return index === 0 ? (
+                <div className="rp-actions">
+                  <a className="rp-link rp-whats" href={contactUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle aria-hidden="true" /> Falar no WhatsApp
+                  </a>
+                  <a className="rp-link" href="#solucoes">
+                    Ver como podemos ajudar <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </div>
+              ) : index >= 1 && index <= 4 ? (
+                <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">
+                  Saiba mais <ArrowUpRight aria-hidden="true" />
+                </a>
+              ) : last ? (
+                <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">
+                  Vamos conversar <ArrowUpRight aria-hidden="true" />
+                </a>
+              ) : null;
+  };
 
   return (
-    <section ref={root} className="rp-journey" data-play={play} style={{ height: `${stations.length * 100}svh` }} aria-label="Nexo">
+    <section ref={root} className="rp-journey" data-play={play} style={{ height: `${stations.length * 100}svh` }} aria-label={label}>
       {stations.map((station, index) => (
         <span key={`anchor-${station.id}`} id={`estacao-${index}`} className="rp-anchor" style={{ top: `${index * 100}svh` }}>
           {station.anchor ? <span id={station.anchor} /> : null}
@@ -172,7 +205,6 @@ export function Journey({ play }: { play: boolean }) {
       <div className="rp-stage">
         {stations.map((station, index) => {
           const Heading = index === 0 ? "h1" : "h2";
-          const last = index === stations.length - 1;
           return (
             <article
               key={station.id}
@@ -183,7 +215,7 @@ export function Journey({ play }: { play: boolean }) {
               aria-labelledby={`titulo-${station.id}`}
             >
               <p className="rp-kicker">{station.kicker}</p>
-              <Heading id={`titulo-${station.id}`} className={index === 0 ? "rp-title rp-title-xl" : "rp-title"}>
+              <Heading id={`titulo-${station.id}`} className={index === 0 ? `rp-title rp-title-xl${station.title.length > 36 ? " rp-title-long" : ""}` : "rp-title"}>
                 <span className="sr-only">{station.title}</span>
                 <span aria-hidden="true">
                   {station.title.split(" ").map((word, w) => (
@@ -209,24 +241,7 @@ export function Journey({ play }: { play: boolean }) {
               ) : null}
               {station.note ? <p className="rp-note">{station.note}</p> : null}
               {station.tags ? <p className="rp-tags">{station.tags}</p> : null}
-              {index === 0 ? (
-                <div className="rp-actions">
-                  <a className="rp-link rp-whats" href={contactUrl} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle aria-hidden="true" /> Falar no WhatsApp
-                  </a>
-                  <a className="rp-link" href="#solucoes">
-                    Ver como podemos ajudar <ArrowUpRight aria-hidden="true" />
-                  </a>
-                </div>
-              ) : index >= 1 && index <= 4 ? (
-                <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">
-                  Saiba mais <ArrowUpRight aria-hidden="true" />
-                </a>
-              ) : last ? (
-                <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">
-                  Vamos conversar <ArrowUpRight aria-hidden="true" />
-                </a>
-              ) : null}
+              {actions ? actions(index) : home(index)}
             </article>
           );
         })}

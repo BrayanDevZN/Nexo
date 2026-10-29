@@ -1,6 +1,7 @@
 import { FileWarning, MessageCircleQuestion, Repeat } from "lucide-react";
 import { campaignOrigin, whatsappLink } from "@/lib/whatsapp";
 import { whatsappNumber } from "@/lib/content";
+import type { Station } from "@/lib/journey";
 
 export const landingPage = "contabilidade";
 export const landingTitle = "Automação para escritórios de contabilidade | Nexo";
@@ -165,5 +166,59 @@ export const faqs = [
     question: "Quanto custa?",
     answer:
       "Depende do que será automatizado. Na conversa inicial entendemos o escopo e apresentamos uma proposta com valores claros.",
+  },
+];
+
+/** The scroll journey of the accounting page: one station, and one 3D object, per topic. */
+export const stations: Station[] = [
+  {
+    id: "inicio",
+    kicker: "Nexo | Agentes de IA para contabilidade",
+    title: "Pare de correr atrás de documento todo mês.",
+    text: "A Nexo cria agentes de IA para escritórios de contabilidade: agentes que atendem os seus clientes, agentes que ajudam na rotina contábil e automações que organizam os documentos. A sua equipe foca no que exige análise.",
+    tags: outcomes.join(" | "),
+    note: "Conversa inicial de 20 minutos, sem custo.",
+    side: "center",
+    scene: "docs",
+  },
+  {
+    id: "rotina",
+    kicker: "O dia a dia",
+    title: "A rotina não precisa ser tão manual.",
+    text: "Se algum destes pontos é do dia a dia do seu escritório, dá para tirar do caminho da equipe.",
+    points: problems.map((problem) => `${problem.title}: ${problem.text}`),
+    side: "left",
+    scene: "flow",
+  },
+  ...solutions.map(
+    (solution, index): Station => ({
+      id: `agente-${index + 1}`,
+      anchor: index === 0 ? "agentes" : undefined,
+      kicker: `0${index + 1} | Agentes de IA`,
+      title: solution.title,
+      text: solution.text,
+      points: [...solution.points],
+      side: index % 2 === 0 ? "right" : "left",
+      scene: (["agent", "ledger", "archive", "systems"] as const)[index],
+    }),
+  ),
+  {
+    id: "como-funciona-estacao",
+    anchor: "como-funciona",
+    kicker: "Como funciona",
+    title: "Do primeiro contato à rotina funcionando.",
+    text: "Um caminho curto, em três passos, e você acompanha cada um.",
+    points: steps.map((step, index) => `0${index + 1} ${step.title}: ${step.text}`),
+    side: "right",
+    scene: "stages3",
+  },
+  {
+    id: "quem-constroi",
+    kicker: "A Nexo",
+    title: "Quem constrói os agentes.",
+    text: "A Nexo é uma agência de inteligência artificial. Criamos agentes e automações para empresas, e para escritórios de contabilidade desenhamos cada um a partir da rotina real da equipe.",
+    points: principles.map((principle) => `${principle.title}: ${principle.text}`),
+    side: "left",
+    scene: "balance",
   },
 ];

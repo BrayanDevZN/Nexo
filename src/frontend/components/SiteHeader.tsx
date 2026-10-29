@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { contactUrl } from "@/lib/content";
 
-const entries = [
+const homeEntries = [
   { href: "#inicio", label: "Início" },
   { href: "#estacao-1", label: "Agentes de IA" },
   { href: "#estacao-2", label: "Automação inteligente" },
@@ -16,8 +17,16 @@ const entries = [
 ];
 
 /** Name on the left, a round Menu button on the right that opens the list of everything. */
-export function SiteHeader() {
+export function SiteHeader({
+  entries = homeEntries,
+  cta,
+}: {
+  entries?: readonly { href: string; label: string }[];
+  /** A WhatsApp button that stays in the header next to Menu; the menu then has no second one. */
+  cta?: React.AnchorHTMLAttributes<HTMLAnchorElement> & { label: string };
+}) {
   const [open, setOpen] = useState(false);
+  const { label: _label, ...anchor } = cta ?? { label: "" };
   useEffect(() => {
     if (!open) return;
     document.documentElement.classList.add("rp-locked");
@@ -33,6 +42,11 @@ export function SiteHeader() {
       <a className="rp-brand" href="#inicio" aria-label="Nexo: início">
         <Brand />
       </a>
+      {cta ? (
+        <a {...anchor} className="rp-header-cta" target="_blank" rel="noopener noreferrer">
+          <MessageCircle aria-hidden="true" /> {cta?.label}
+        </a>
+      ) : null}
       <button type="button" className="rp-menu-btn" aria-expanded={open} aria-controls="rp-menu" onClick={() => setOpen((value) => !value)}>
         <svg viewBox="0 0 100 100" aria-hidden="true">
           <circle cx="50" cy="50" r="48" />
@@ -52,9 +66,11 @@ export function SiteHeader() {
               </li>
             ))}
           </ol>
-          <a className="rp-menu-cta" href={contactUrl} target="_blank" rel="noopener noreferrer">
-            Vamos conversar
-          </a>
+          {cta ? null : (
+            <a className="rp-menu-cta" href={contactUrl} target="_blank" rel="noopener noreferrer">
+              Vamos conversar
+            </a>
+          )}
         </div>
       ) : null}
     </header>
