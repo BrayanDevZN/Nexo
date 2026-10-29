@@ -8,6 +8,7 @@ import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
 import "./styles/globals.css";
 import "./styles/site.css";
+import "./styles/polish.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 const AccountingLanding = lazy(() => import("./AccountingLanding"));
