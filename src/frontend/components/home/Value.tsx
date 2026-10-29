@@ -112,7 +112,7 @@ export function Value() {
       </div>
       <div className="nx-value-cta nx-reveal">
         <p className="nx-lead">Qual processo mais consome tempo da sua equipe?</p>
-        <Button size="lg" asChild>
+        <Button size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5">
           <a href={contactUrl} target="_blank" rel="noopener noreferrer">
             Quero conversar sobre o meu negócio{" "}
             <ArrowUpRight data-icon="inline-end" />

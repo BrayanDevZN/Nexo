@@ -8,14 +8,12 @@ const TINTS = ["109, 40, 217", "139, 92, 246", "76, 29, 149", "167, 139, 250"];
 /**
  * How the dust behaves depends on the section being read:
  * - drift: slow dust (the 3D journey)
- * - flow: streaks of data running across (the live demonstration)
  * - order: scattered dots snapping into a neat grid (less rework, fewer mistakes)
  * - rise: bubbles floating up (the questions)
  * - network: dots joined by lines (the contact: a connection)
  */
-type Mode = "drift" | "flow" | "order" | "rise" | "network";
+type Mode = "drift" | "order" | "rise" | "network";
 const SECTIONS: [string, Mode][] = [
-  ["demonstracao", "flow"],
   ["valor", "order"],
   ["duvidas", "rise"],
   ["contato", "network"],
@@ -110,16 +108,7 @@ export function Particles() {
       }
       for (const dot of dots) {
         const color = TINTS[dot.tint];
-        if (mode === "flow") {
-          // A streak: the dot with a tail behind it, like a packet of data in motion.
-          context.strokeStyle = `rgba(${color}, ${dot.alpha})`;
-          context.lineWidth = dot.size * 0.8;
-          context.lineCap = "round";
-          context.beginPath();
-          context.moveTo(dot.x - 10 - dot.depth * 16, dot.y);
-          context.lineTo(dot.x, dot.y);
-          context.stroke();
-        } else if (mode === "order") {
+        if (mode === "order") {
           context.fillStyle = `rgba(${color}, ${dot.alpha})`;
           const side = dot.size * 1.6;
           context.fillRect(dot.x - side / 2, dot.y - side / 2, side, side);
@@ -160,7 +149,6 @@ export function Particles() {
       layout();
       // A little shake so the change of shape reads as the dust rearranging itself.
       stir = Math.min(stir + 0.9, 2.4);
-      if (mode === "flow") dots.forEach((dot) => (dot.hy = height * (0.15 + dot.lane * 0.7)));
       if (mode === "rise" || mode === "network" || mode === "drift") dots.forEach((dot) => ((dot.hx = Math.random() * width), (dot.hy = Math.random() * height)));
     };
 
@@ -197,13 +185,6 @@ export function Particles() {
           ty += Math.cos(t * 0.25 + dot.phase * 1.3) * 14;
         } else if (mode === "order") {
           pull = 0.012 / (1 + stir);
-        } else if (mode === "flow") {
-          // Runs left to right along its lane and starts again at the edge; only the lane pulls it vertically.
-          dot.x += (1.2 + dot.depth * 1.6) * dt;
-          if (dot.x > width + 30) dot.x = -30;
-          tx = dot.x;
-          ty = dot.hy + Math.sin(t * 0.8 + dot.phase) * 18;
-          pull = 0.02;
         } else if (mode === "rise") {
           dot.y -= (0.25 + dot.depth * 0.45) * dt;
           if (dot.y < -20) {

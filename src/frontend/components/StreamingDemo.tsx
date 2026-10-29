@@ -407,7 +407,7 @@ export function StreamingDemo() {
             </div>
           </li>
         </ol>
-        <Button variant="outline" size="lg" asChild>
+        <Button variant="outline" size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5 text-left">
           <a href={contactUrl} target="_blank" rel="noopener noreferrer">
             Desenhar o fluxo da minha empresa{" "}
             <ArrowUpRight data-icon="inline-end" />

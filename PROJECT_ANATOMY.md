@@ -159,7 +159,7 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/AccountingLanding.tsx | 183 | 1.7K | source |
+| src/frontend/AccountingLanding.tsx | 188 | 1.9K | source |
 | src/frontend/admin/AdminApp.tsx | 265 | 6.2K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
@@ -210,17 +210,17 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
 | src/frontend/components/home/Close.tsx | 111 | 1.1K | source |
 | src/frontend/components/home/Faq.tsx | 35 | 281 | source |
-| src/frontend/components/home/Value.tsx | 125 | 1.1K | source |
+| src/frontend/components/home/Value.tsx | 125 | 1.2K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
 | src/frontend/components/rp/Intro.tsx | 75 | 607 | source |
 | src/frontend/components/rp/Journey.tsx | 275 | 3.2K | source |
-| src/frontend/components/rp/Particles.tsx | 248 | 2.4K | source |
+| src/frontend/components/rp/Particles.tsx | 229 | 2.2K | source |
 | src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
 | src/frontend/components/rp/world.ts | 1143 | 11.7K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
-| src/frontend/components/StreamingDemo.tsx | 476 | 3.9K | source |
+| src/frontend/components/StreamingDemo.tsx | 476 | 4.0K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
 | src/frontend/components/ui/attachment.tsx | 6 | 181 | source |
@@ -314,7 +314,7 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/landing.spec.ts | 172 | 2.3K | test |
+| tests/integration/frontend/landing.spec.ts | 185 | 2.5K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -426,11 +426,11 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 267 files, ~309.4K tokens
+- source: 267 files, ~309.3K tokens
 - config: 13 files, ~3.6K tokens
-- test: 107 files, ~121.7K tokens
+- test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~30.6K tokens
+- style: 4 files, ~30.5K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

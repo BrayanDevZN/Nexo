@@ -64,7 +64,7 @@ export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link,
             <Streamed text={LEAD} start={titleWords} />
             <span className="nx-caret" aria-hidden="true" style={{ "--i": titleWords + leadWords } as React.CSSProperties} />
           </p>
-          <Button size="lg" asChild className="nx-cta-button nx-stream-pop" style={{ "--i": titleWords + leadWords + 2 } as React.CSSProperties}>
+          <Button size="lg" asChild className="nx-cta-button nx-stream-pop h-auto max-w-full whitespace-normal py-2.5" style={{ "--i": titleWords + leadWords + 2 } as React.CSSProperties}>
             <a {...whatsapp}>
               Falar com a Nexo no WhatsApp <ArrowUpRight data-icon="inline-end" />
             </a>
