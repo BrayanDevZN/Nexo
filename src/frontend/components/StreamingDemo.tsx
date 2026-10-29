@@ -375,9 +375,8 @@ export function StreamingDemo() {
           <span>ao relacionamento.</span>
         </h2>
         <p className="section-description">
-          Explore como a IA pode analisar informações, criar conteúdo e conectar
-          tarefas em diferentes áreas. Cada exemplo mostra uma aplicação, do
-          contexto inicial à entrega para a equipe.
+          Veja na prática como a IA pode ajudar em diferentes áreas da empresa,
+          do primeiro contato até o resultado entregue para a sua equipe.
         </p>
         <ol className="stream-explainer">
           <li>

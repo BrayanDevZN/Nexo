@@ -77,7 +77,9 @@ function startSmoothScroll() {
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
     event.preventDefault();
     if (!moving) pos = window.scrollY;
-    pos = Math.max(0, Math.min(pos + event.deltaY * unit * WHEEL_SPEED, max()));
+    // The last stretch of the page (contact and footer) is short and felt slow: scroll it faster.
+    const boost = window.scrollY > max() - window.innerHeight * 2.2 ? 2.4 : 1;
+    pos = Math.max(0, Math.min(pos + event.deltaY * unit * WHEEL_SPEED * boost, max()));
     run();
   };
   // Keyboard, scrollbar drag and anchors scroll natively; keep the target in step with them.

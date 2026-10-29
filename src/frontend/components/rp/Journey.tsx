@@ -211,7 +211,7 @@ export function Journey({ play }: { play: boolean }) {
               {station.tags ? <p className="rp-tags">{station.tags}</p> : null}
               {index === 0 ? (
                 <a className="rp-link" href="#solucoes">
-                  Explorar soluções <ArrowUpRight aria-hidden="true" />
+                  Ver como podemos ajudar <ArrowUpRight aria-hidden="true" />
                 </a>
               ) : index >= 1 && index <= 4 ? (
                 <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">

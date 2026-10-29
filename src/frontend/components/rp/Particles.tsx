@@ -34,7 +34,7 @@ export function Particles() {
       node.height = Math.round(height * ratio);
       node.style.width = `${width}px`;
       node.style.height = `${height}px`;
-      const count = Math.round((width < 800 ? 70 : 130) * (lite ? 0.5 : 1));
+      const count = Math.round((width < 800 ? 48 : 85) * (lite ? 0.5 : 1));
       dots = Array.from({ length: count }, () => {
         const hx = Math.random() * width;
         const hy = Math.random() * height;
@@ -45,8 +45,8 @@ export function Particles() {
           y: hy,
           vx: 0,
           vy: 0,
-          size: 0.9 + Math.random() * 1.7,
-          alpha: 0.3 + Math.random() * 0.5,
+          size: 2.2 + Math.random() * 3.6,
+          alpha: 0.4 + Math.random() * 0.45,
           depth: 0.4 + Math.random() * 1.2,
           phase: Math.random() * Math.PI * 2,
           tint: Math.floor(Math.random() * TINTS.length),

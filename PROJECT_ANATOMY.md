@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-29 | 420 files | ~481.8K tokens if all read
+Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -210,7 +210,7 @@ Generated: 2026-10-29 | 420 files | ~481.8K tokens if all read
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
 | src/frontend/components/home/Close.tsx | 100 | 1.0K | source |
 | src/frontend/components/home/Faq.tsx | 35 | 250 | source |
-| src/frontend/components/home/Value.tsx | 129 | 1.2K | source |
+| src/frontend/components/home/Value.tsx | 125 | 1.1K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
@@ -220,7 +220,7 @@ Generated: 2026-10-29 | 420 files | ~481.8K tokens if all read
 | src/frontend/components/rp/Scene.tsx | 33 | 265 | source |
 | src/frontend/components/rp/world.ts | 703 | 7.1K | source |
 | src/frontend/components/SiteHeader.tsx | 61 | 583 | source |
-| src/frontend/components/StreamingDemo.tsx | 477 | 4.0K | source |
+| src/frontend/components/StreamingDemo.tsx | 476 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
 | src/frontend/components/ui/attachment.tsx | 6 | 181 | source |
@@ -250,16 +250,16 @@ Generated: 2026-10-29 | 420 files | ~481.8K tokens if all read
 | src/frontend/components/ui/toggle.tsx | 45 | 448 | source |
 | src/frontend/hooks/useAdminReveal.ts | 61 | 678 | source |
 | src/frontend/hooks/useButtonFeedback.ts | 41 | 358 | source |
-| src/frontend/hooks/useInView.ts | 25 | 218 | source |
 | src/frontend/hooks/useScrollReveal.ts | 51 | 509 | source |
+| src/frontend/hooks/useScrollTrigger.ts | 61 | 512 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 59 | 504 | source |
 | src/frontend/lib/accountingLanding.ts | 170 | 1.8K | source |
 | src/frontend/lib/consent.ts | 23 | 160 | source |
-| src/frontend/lib/content.ts | 175 | 2.0K | source |
-| src/frontend/lib/journey.ts | 81 | 793 | source |
+| src/frontend/lib/content.ts | 175 | 1.7K | source |
+| src/frontend/lib/journey.ts | 81 | 775 | source |
 | src/frontend/lib/paidLeads.ts | 38 | 475 | source |
 | src/frontend/lib/seo.ts | 22 | 187 | source |
-| src/frontend/lib/siteEffects.ts | 259 | 2.3K | source |
+| src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |

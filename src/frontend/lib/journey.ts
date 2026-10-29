@@ -1,9 +1,9 @@
 import { solutions, steps } from "@/lib/content";
 
 const principles = [
-  "Impacto antes da ferramenta: o projeto começa com um problema concreto e critérios claros para avaliar a solução.",
-  "Integração com a realidade: dados, sistemas e pessoas fazem parte da arquitetura.",
-  "Autonomia com controle: regras, rastreabilidade e revisão humana definidas para cada processo.",
+  "Começamos pelo seu problema e só depois escolhemos a tecnologia.",
+  "Nos adaptamos ao que você já usa, sem trocar tudo do zero.",
+  "Você acompanha tudo e decide o que é feito sozinho e o que precisa de aprovação.",
 ];
 
 /** Where the 3D journey is, shared between the scroll code (Journey.tsx) and the scene (world.ts). */
@@ -36,10 +36,10 @@ export type Station = {
 export const stations: Station[] = [
   {
     id: "inicio",
-    kicker: "Nexo | IA aplicada",
+    kicker: "Nexo | Inteligência artificial para empresas",
     title: "Mais capacidade. Esse é o nexo.",
-    text: "Menos gargalos: conectamos seus sistemas com IA e automação para a sua equipe atender mais clientes e fazer mais entregas.",
-    tags: "Agentes de IA | Automação | Sistemas | Software",
+    text: "Sua equipe gasta tempo demais em tarefas repetitivas. Nós usamos IA para resolver isso, para você atender mais clientes e entregar mais sem sobrecarregar ninguém.",
+    tags: "Atendimento | Rotinas automáticas | Sistemas conectados",
     side: "center",
     scene: "rings",
   },
@@ -60,9 +60,9 @@ export const stations: Station[] = [
     anchor: "processo",
     kicker: "Como funciona",
     title: "Primeiro o problema. Depois, a tecnologia.",
-    text: "Do diagnóstico à solução em produção: um caminho claro entre entender a sua operação e colocar uma solução para trabalhar.",
+    text: "Um caminho simples, em quatro passos, do primeiro papo até a solução funcionando na sua empresa.",
     points: steps.map((step, index) => `${String(index + 1).padStart(2, "0")} ${step.title}: ${step.text}`),
-    note: "Entregas: " + steps.map((step) => step.delivery).join("; ") + ".",
+    note: "No fim de cada passo você recebe algo concreto: " + steps.map((step) => step.delivery.toLowerCase()).join(", ") + ".",
     side: "left",
     scene: "stages",
   },
@@ -71,9 +71,9 @@ export const stations: Station[] = [
     anchor: "sobre",
     kicker: "A Nexo",
     title: "A conexão com o próximo passo.",
-    text: "Somos uma agência de inteligência artificial que começa pelo negócio: entendemos como sua empresa funciona, identificamos o que trava a operação e construímos soluções para ampliar sua capacidade.",
+    text: "Somos a Nexo. Primeiro entendemos como a sua empresa funciona, depois resolvemos o que está travando o seu crescimento.",
     points: principles,
-    note: "Medimos o resultado pelo volume concluído, tempo de resposta e fila de pendências de cada processo.",
+    note: "Você vê o resultado em números simples: quanto foi feito, quanto tempo levou e o que ficou pendente.",
     side: "right",
     scene: "orb",
   },

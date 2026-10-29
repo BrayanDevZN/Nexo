@@ -4,7 +4,7 @@ import { Brand } from "@/components/Brand";
 import { CookiePreferencesButton } from "@/components/CookieNotice";
 import { Button } from "@/components/ui/button";
 import { useMotionPreferences } from "@/components/MotionProvider";
-import { useInView } from "@/hooks/useInView";
+import { useScrollTrigger } from "@/hooks/useScrollTrigger";
 import { contactUrl, navigation } from "@/lib/content";
 
 /** Words that appear one after another, like a reply being streamed. `start` is the index of the first word. */
@@ -29,12 +29,12 @@ function Streamed({ text, start = 0 }: { text: string; start?: number }) {
 
 const TITLE = ["Vamos encontrar", "o nexo."];
 const LEAD =
-  "Sua demanda cresceu, mas a operação não acompanha? Vamos identificar os gargalos e avaliar como ampliar sua capacidade com IA e automação.";
+  "Sua empresa cresceu, mas a rotina não acompanha? Conte para a gente o que mais toma o tempo da sua equipe. Em uma conversa, mostramos por onde começar.";
 
 export function Close() {
   const { reduced, setReduced } = useMotionPreferences();
-  const [cta, ctaSeen] = useInView<HTMLElement>("0px 0px -15% 0px", true);
-  const [footer, footerSeen] = useInView<HTMLElement>("0px 0px -5% 0px", true);
+  const [cta, ctaSeen] = useScrollTrigger<HTMLElement>(0.45, 0.9);
+  const [footer, footerSeen] = useScrollTrigger<HTMLElement>(0.9, 1.05);
   const titleWords = TITLE.join(" ").split(" ").length;
   const leadWords = LEAD.split(" ").length;
   return (
@@ -57,7 +57,7 @@ export function Close() {
           </p>
           <Button size="lg" asChild className="nx-cta-button nx-stream-pop" style={{ "--i": titleWords + leadWords + 2 } as React.CSSProperties}>
             <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-              Vamos encontrar o nexo <ArrowUpRight data-icon="inline-end" />
+              Falar com a Nexo no WhatsApp <ArrowUpRight data-icon="inline-end" />
             </a>
           </Button>
         </div>
