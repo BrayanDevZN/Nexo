@@ -343,7 +343,3 @@ html { font-size: 112.5%; }
   .rp-header-cta span { display: none; }
   .rp-header-cta svg { width: 1.3rem; height: 1.3rem; }
 }
-/* Phones: a soft frosted patch behind each piece of text, so the 3D scene never cuts through the letters. */
-@media (max-width: 800px) {
-  .rp-kicker, .rp-title, .rp-text, .rp-points li, .rp-note, .rp-tags { width: fit-content; max-width: 100%; border-radius: 0.6rem; background: color-mix(in srgb, #f6f0ff 62%, transparent); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); box-shadow: 0 0 0 0.35rem color-mix(in srgb, #f6f0ff 62%, transparent); }
-}
