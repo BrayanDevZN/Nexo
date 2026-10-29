@@ -332,3 +332,18 @@ html { font-size: 112.5%; }
   .rp-header-cta svg { width: 0.95rem; height: 0.95rem; }
 }
 @media (max-width: 700px) { .nx-close .nx-cta-title { font-size: clamp(1.8rem, 8.6vw, 2.6rem); } }
+
+/* Menu: a way back that is not the round button. */
+.rp-menu-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.8rem 1.6rem; border: 1px solid var(--rp-ink); border-radius: 999px; background: transparent; color: var(--rp-ink); font-family: var(--rp-display); font-size: 1.1rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+.rp-menu-back:hover { background: var(--rp-ink); color: #fff; }
+.rp-menu-back svg { width: 1.1rem; height: 1.1rem; }
+/* Phones: the WhatsApp button in the header is just the icon, so it never covers the name. */
+@media (max-width: 520px) {
+  .rp-header-cta { width: 2.9rem; height: 2.9rem; padding: 0; justify-content: center; margin-right: 0.6rem; }
+  .rp-header-cta span { display: none; }
+  .rp-header-cta svg { width: 1.3rem; height: 1.3rem; }
+}
+/* Phones: a soft frosted patch behind each piece of text, so the 3D scene never cuts through the letters. */
+@media (max-width: 800px) {
+  .rp-kicker, .rp-title, .rp-text, .rp-points li, .rp-note, .rp-tags { width: fit-content; max-width: 100%; border-radius: 0.6rem; background: color-mix(in srgb, #f6f0ff 62%, transparent); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); box-shadow: 0 0 0 0.35rem color-mix(in srgb, #f6f0ff 62%, transparent); }
+}

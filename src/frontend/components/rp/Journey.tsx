@@ -35,12 +35,18 @@ export function Journey({
     if (!node) return;
     let frame = 0;
     let onScreen = true;
+    // The corridor is sized in svh, which on a phone is shorter than innerHeight while the address bar is
+    // showing. Everything below measures in that same unit, or the last station would arrive half gone.
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:100svh;visibility:hidden;pointer-events:none";
+    document.body.appendChild(probe);
+    const unit = () => probe.offsetHeight || window.innerHeight;
     const backdrop = document.querySelector<HTMLElement>(".rp-bg");
     const draw = () => {
       const rect = node.getBoundingClientRect();
-      const s = clamp(-rect.top / window.innerHeight, 0, stations.length - 1);
+      const s = clamp(-rect.top / unit(), 0, stations.length - 1);
       journey.station = s;
-      journey.exit = clamp((1 - rect.bottom / window.innerHeight) * 1.5, 0, 1);
+      journey.exit = clamp((1 - rect.bottom / unit()) * 1.5, 0, 1);
       backdrop?.style.setProperty("--p", (s / (stations.length - 1)).toFixed(4));
       journey.active = onScreen && !document.hidden;
       items.current.forEach((item, index) => {
@@ -75,7 +81,7 @@ export function Journey({
     const last = stations.length - 1;
     let lockedAt = 0;
     let lastInput = 0;
-    const current = () => -node.getBoundingClientRect().top / window.innerHeight;
+    const current = () => -node.getBoundingClientRect().top / unit();
     const step = (direction: 1 | -1) => {
       const s = current();
       const rect = node.getBoundingClientRect();
@@ -83,7 +89,7 @@ export function Journey({
       if (direction > 0 && s >= last - 0.02) return false; // after the last station the page continues
       if (direction < 0 && s <= 0.02) return false;
       const target = direction > 0 ? Math.min(last, Math.floor(s + 0.02) + 1) : Math.max(0, Math.ceil(s - 0.02) - 1);
-      smoothScrollTo(window.scrollY + rect.top + target * window.innerHeight);
+      smoothScrollTo(window.scrollY + rect.top + target * unit());
       return true;
     };
     const onWheel = (event: WheelEvent) => {
@@ -93,7 +99,7 @@ export function Journey({
       const locked = now - lockedAt < 900 || now - lastInput < 90;
       lastInput = now;
       const rect = node.getBoundingClientRect();
-      const s = -rect.top / window.innerHeight;
+      const s = -rect.top / unit();
       const inside = rect.top <= 2 && s <= last + 0.05 && !(direction > 0 && s >= last - 0.02) && !(direction < 0 && s <= 0.02);
       if (!inside) return;
       event.preventDefault();
@@ -120,7 +126,7 @@ export function Journey({
     let swipe: 1 | -1 | 0 = 0;
     const insideFor = (direction: 1 | -1) => {
       const rect = node.getBoundingClientRect();
-      const s = -rect.top / window.innerHeight;
+      const s = -rect.top / unit();
       return rect.top <= 2 && s <= last + 0.05 && !(direction > 0 && s >= last - 0.02) && !(direction < 0 && s <= 0.02);
     };
     const onTouchStart = (event: TouchEvent) => {
@@ -150,7 +156,7 @@ export function Journey({
       const s = current();
       const rect = node.getBoundingClientRect();
       const target = direction > 0 ? Math.min(last, Math.floor(s + 0.02) + 1) : Math.max(0, Math.ceil(s - 0.02) - 1);
-      window.scrollTo({ top: window.scrollY + rect.top + target * window.innerHeight, behavior: "smooth" });
+      window.scrollTo({ top: window.scrollY + rect.top + target * unit(), behavior: "smooth" });
       lockedAt = now;
     };
     document.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -161,6 +167,7 @@ export function Journey({
     document.addEventListener("keydown", onKey);
     frame = requestAnimationFrame(draw);
     return () => {
+      probe.remove();
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("pointermove", pointer);

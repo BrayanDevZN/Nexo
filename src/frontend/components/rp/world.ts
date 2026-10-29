@@ -1078,7 +1078,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     // Lean into the move: the camera rolls a little while it travels and straightens when it arrives.
     if (!options.reduced) camera.rotation.z += MathUtils.clamp((journey.station - shown) * 0.05, -0.12, 0.12);
 
-    // After the last station the shape breaks into particles while the page scrolls on.
+    // After the last station the shape lets go while the page scrolls on.
     leaving = options.reduced ? journey.exit : MathUtils.damp(leaving, journey.exit, 8, dt);
     if (leaving < 0.002) leaving = 0;
     const tail = pieces.length - 1;
@@ -1101,26 +1101,8 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       piece.group.scale.setScalar(fitOf(index) * (index === tail ? form * (1 - smooth(MathUtils.clamp(leaving / 0.4, 0, 1))) : form));
       piece.update(time, dt);
     });
-    const breaking = !options.reduced && leaving > 0 && !moving;
-    swarm.visible = moving || breaking;
-    if (breaking) {
-      const a = pieces[tail].group;
-      matrixA.compose(a.position, a.quaternion, fitted.setScalar(fitOf(tail)));
-      // Cubes appear as the shape lets go, drift outward and fade before the corridor is gone.
-      const grow = smooth(MathUtils.clamp(leaving / 0.18, 0, 1));
-      const fade = 1 - smooth(MathUtils.clamp((leaving - 0.45) / 0.55, 0, 1));
-      for (let i = 0; i < CUBES; i++) {
-        from.copy(outlines[tail][i]).applyMatrix4(matrixA);
-        // Mostly sideways and up/down: cubes thrown at the camera would fill the screen.
-        dummy.position.copy(from).addScaledVector(scatter[i], leaving * leaving * 3.5);
-        dummy.position.z -= scatter[i].z * leaving * leaving * 2.5;
-        dummy.rotation.set(spin[i].x * leaving * 2, spin[i].y * leaving * 2, spin[i].z * leaving * 2);
-        dummy.scale.setScalar(size[i] * 1.7 * fitOf(tail) * grow * fade);
-        dummy.updateMatrix();
-        swarm.setMatrixAt(i, dummy.matrix);
-      }
-      swarm.instanceMatrix.needsUpdate = true;
-    }
+    // After the last station the shape just shrinks away as the page scrolls on: no particles are thrown out.
+    swarm.visible = moving;
     if (moving) {
       const a = pieces[base].group;
       const b = pieces[base + 1].group;

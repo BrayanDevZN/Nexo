@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { contactUrl } from "@/lib/content";
 
@@ -43,8 +43,8 @@ export function SiteHeader({
         <Brand />
       </a>
       {cta ? (
-        <a {...anchor} className="rp-header-cta" target="_blank" rel="noopener noreferrer">
-          <MessageCircle aria-hidden="true" /> {cta?.label}
+        <a {...anchor} className="rp-header-cta" aria-label={cta.label} target="_blank" rel="noopener noreferrer">
+          <MessageCircle aria-hidden="true" /> <span>{cta.label}</span>
         </a>
       ) : null}
       <button type="button" className="rp-menu-btn" aria-expanded={open} aria-controls="rp-menu" onClick={() => setOpen((value) => !value)}>
@@ -71,6 +71,9 @@ export function SiteHeader({
               Vamos conversar
             </a>
           )}
+          <button type="button" className="rp-menu-back" onClick={() => setOpen(false)}>
+            <ArrowLeft aria-hidden="true" /> Voltar
+          </button>
         </div>
       ) : null}
     </header>
