@@ -6,6 +6,7 @@ import { Faq } from "@/components/home/Faq";
 import { Close } from "@/components/home/Close";
 import { Intro } from "@/components/rp/Intro";
 import { Journey } from "@/components/rp/Journey";
+import { Particles } from "@/components/rp/Particles";
 import { Scene } from "@/components/rp/Scene";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
@@ -25,6 +26,7 @@ export default function App() {
       </a>
       {intro ? <Intro onStart={() => setStarted(true)} onEnter={() => setIntro(false)} /> : null}
       <Scene />
+      <Particles />
       <SiteHeader />
       <main id="conteudo" ref={revealRef} className="rp-page">
         <Journey play={started} />

@@ -232,3 +232,46 @@ html[data-perf="lite"] .rp-glow { animation: none; }
   .rp-content .nx-lead, .rp-content .nx-body, .rp-content .nx-faq-a, .nx-inverse .nx-lead { font-weight: 400; }
   .rp-menu li a span { font-weight: 400; }
 }
+
+/* ---- dust over the whole page ---- */
+.rp-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* ---- the last section streams in: words one after another, then the button, then the footer ---- */
+.nx-stream-word { display: inline-block; opacity: 0; transform: translateY(0.45em); filter: blur(6px); transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease; }
+.nx-cta[data-stream="on"] .nx-stream-word { opacity: 1; transform: none; filter: none; transition: opacity 0.6s ease calc(var(--i) * 70ms), transform 0.7s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 70ms), filter 0.7s ease calc(var(--i) * 70ms); }
+.nx-caret { display: inline-block; width: 0.55em; height: 1.05em; margin-left: 0.15em; vertical-align: text-bottom; background: var(--primary); opacity: 0; }
+.nx-cta[data-stream="on"] .nx-caret { animation: nx-caret 0.9s steps(2, jump-none) infinite, nx-caret-off 0.3s ease forwards; animation-delay: 0.3s, calc(var(--i) * 70ms + 1.2s); opacity: 1; }
+@keyframes nx-caret { 50% { opacity: 0; } }
+@keyframes nx-caret-off { to { visibility: hidden; } }
+.nx-stream-pop { opacity: 0; transform: translateY(0.8rem) scale(0.96); transition: opacity 0.3s ease, transform 0.3s ease; }
+.nx-cta[data-stream="on"] .nx-stream-pop { opacity: 1; transform: none; transition: opacity 0.8s ease calc(var(--i) * 70ms), transform 0.8s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 70ms); }
+.nx-footer-top > *, .nx-footer-top nav > *, .nx-footer-legal > * { opacity: 0; transform: translateY(0.6rem); transition: opacity 0.2s ease, transform 0.2s ease; }
+.nx-footer[data-stream="on"] :is(.nx-footer-top > *, .nx-footer-top nav > *, .nx-footer-legal > *) { opacity: 1; transform: none; transition: opacity 0.7s ease calc(var(--k, 0) * 110ms + 200ms), transform 0.7s cubic-bezier(.2,.7,.2,1) calc(var(--k, 0) * 110ms + 200ms); }
+.nx-footer-top > :nth-child(1), .nx-footer-legal > :nth-child(1), .nx-footer-top nav > :nth-child(1) { --k: 1; }
+.nx-footer-top nav > :nth-child(2), .nx-footer-legal > :nth-child(2) { --k: 2; }
+.nx-footer-top nav > :nth-child(3), .nx-footer-legal > :nth-child(3) { --k: 3; }
+.nx-footer-top nav > :nth-child(4), .nx-footer-legal > :nth-child(4) { --k: 4; }
+.nx-footer-top nav > :nth-child(n+5), .nx-footer-legal > :nth-child(5) { --k: 5; }
+.nx-footer-legal > :nth-child(6) { --k: 6; }
+.nx-footer-legal > :nth-child(7) { --k: 7; }
+html[data-reduce-motion="true"] :is(.nx-stream-word, .nx-stream-pop, .nx-footer-top > *, .nx-footer-top nav > *, .nx-footer-legal > *) { opacity: 1 !important; transform: none !important; filter: none !important; transition: none !important; }
+html[data-reduce-motion="true"] .nx-caret { display: none; }
+
+/* ---- phones: bigger, sharper type, no glow around it ---- */
+@media (max-width: 800px) {
+  .rp-title, .rp-text, .rp-points li, .rp-kicker, .rp-tags, .rp-note { text-shadow: none; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  .rp-title, .rp-station:not(.is-center) .rp-title { font-size: clamp(1.9rem, 9vw, 2.6rem); color: #140a2e; }
+  .rp-title-xl, .rp-station.is-center .rp-title-xl { font-size: clamp(2.2rem, 11.5vw, 3.2rem); }
+  .rp-text { font-size: 1.05rem; line-height: 1.45; color: #140a2e; font-weight: 400; }
+  .rp-points li { font-size: 0.93rem; line-height: 1.4; color: #140a2e; }
+  .rp-kicker { font-size: 0.86rem; color: #4c1d95; }
+  .rp-tags { font-size: 0.78rem; color: #4c1d95; }
+  .rp-link { font-size: 1.1rem; }
+}
+@media (max-width: 800px) and (max-height: 700px) {
+  .rp-title, .rp-station:not(.is-center) .rp-title { font-size: 1.75rem; }
+  .rp-text { font-size: 0.95rem; }
+}
+@media (max-width: 800px) { .nx-cta-title { font-size: clamp(2rem, 10vw, 3rem); line-height: 1.02; overflow-wrap: anywhere; } }
+.nx-inverse .brand { color: var(--rp-ink); }
+.nx-cta-title > [aria-hidden="true"] { display: block; }

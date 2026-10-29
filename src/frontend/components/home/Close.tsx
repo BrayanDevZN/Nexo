@@ -1,37 +1,68 @@
+import { Fragment } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { CookiePreferencesButton } from "@/components/CookieNotice";
 import { Button } from "@/components/ui/button";
 import { useMotionPreferences } from "@/components/MotionProvider";
+import { useInView } from "@/hooks/useInView";
 import { contactUrl, navigation } from "@/lib/content";
+
+/** Words that appear one after another, like a reply being streamed. `start` is the index of the first word. */
+function Streamed({ text, start = 0 }: { text: string; start?: number }) {
+  const words = text.split(" ");
+  return (
+    <>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden="true">
+        {words.map((word, index) => (
+          <Fragment key={index}>
+            <span className="nx-stream-word" style={{ "--i": start + index } as React.CSSProperties}>
+              {word}
+            </span>
+            {index < words.length - 1 ? " " : null}
+          </Fragment>
+        ))}
+      </span>
+    </>
+  );
+}
+
+const TITLE = ["Vamos encontrar", "o nexo."];
+const LEAD =
+  "Sua demanda cresceu, mas a operação não acompanha? Vamos identificar os gargalos e avaliar como ampliar sua capacidade com IA e automação.";
 
 export function Close() {
   const { reduced, setReduced } = useMotionPreferences();
+  const [cta, ctaSeen] = useInView<HTMLElement>();
+  const [footer, footerSeen] = useInView<HTMLElement>("0px 0px -5% 0px");
+  const titleWords = TITLE.join(" ").split(" ").length;
+  const leadWords = LEAD.split(" ").length;
   return (
     <div className="nx-inverse nx-close">
       <section
         id="contato"
+        ref={cta}
+        data-stream={ctaSeen ? "on" : "off"}
         className="nx-wrap nx-cta"
         aria-labelledby="contact-title"
       >
-        <h2 id="contact-title" className="nx-display nx-cta-title nx-reveal">
-          Vamos encontrar
-          <br />o nexo.
+        <h2 id="contact-title" className="nx-display nx-cta-title">
+          <Streamed text={TITLE[0]} />
+          <Streamed text={TITLE[1]} start={TITLE[0].split(" ").length} />
         </h2>
         <div className="nx-cta-foot">
-          <p className="nx-lead">
-            Sua demanda cresceu, mas a operação não acompanha? Vamos
-            identificar os gargalos e avaliar como ampliar sua capacidade com IA
-            e automação.
+          <p className="nx-lead nx-stream-lead" style={{ "--i": titleWords } as React.CSSProperties}>
+            <Streamed text={LEAD} start={titleWords} />
+            <span className="nx-caret" aria-hidden="true" style={{ "--i": titleWords + leadWords } as React.CSSProperties} />
           </p>
-          <Button size="lg" asChild className="nx-cta-button">
+          <Button size="lg" asChild className="nx-cta-button nx-stream-pop" style={{ "--i": titleWords + leadWords + 2 } as React.CSSProperties}>
             <a href={contactUrl} target="_blank" rel="noopener noreferrer">
               Vamos encontrar o nexo <ArrowUpRight data-icon="inline-end" />
             </a>
           </Button>
         </div>
       </section>
-      <footer className="nx-wrap nx-footer">
+      <footer ref={footer} data-stream={footerSeen ? "on" : "off"} className="nx-wrap nx-footer">
         <div className="nx-footer-top">
           <a href="#inicio" aria-label="Nexo: voltar ao início">
             <Brand />
