@@ -8,6 +8,7 @@ import { Intro } from "@/components/rp/Intro";
 import { Journey } from "@/components/rp/Journey";
 import { Particles } from "@/components/rp/Particles";
 import { Scene } from "@/components/rp/Scene";
+import { contactUrl } from "@/lib/content";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -27,7 +28,7 @@ export default function App() {
       {intro ? <Intro onStart={() => setStarted(true)} onEnter={() => setIntro(false)} /> : null}
       <Scene />
       <Particles />
-      <SiteHeader />
+      <SiteHeader cta={{ href: contactUrl, label: "WhatsApp" }} />
       <main id="conteudo" ref={revealRef} className="rp-page">
         <Journey play={started} />
         <div className="rp-content">

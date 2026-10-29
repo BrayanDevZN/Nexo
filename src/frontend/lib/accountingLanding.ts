@@ -178,8 +178,8 @@ export const stations: Station[] = [
     text: "A Nexo cria agentes de IA para escritórios de contabilidade: agentes que atendem os seus clientes, agentes que ajudam na rotina contábil e automações que organizam os documentos. A sua equipe foca no que exige análise.",
     tags: outcomes.join(" | "),
     note: "Conversa inicial de 20 minutos, sem custo.",
-    side: "center",
-    scene: "docs",
+    side: "left",
+    scene: "coins",
   },
   {
     id: "rotina",

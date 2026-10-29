@@ -71,7 +71,7 @@ export default function AccountingLanding() {
           label="Nexo para contabilidade"
           actions={(index) =>
             index === 0 ? (
-              <div className="rp-actions lp-hero">
+              <div className="rp-actions">
                 <a className="rp-link rp-whats" {...whatsapp("hero")}>
                   <MessageCircle aria-hidden="true" /> Falar no WhatsApp
                 </a>

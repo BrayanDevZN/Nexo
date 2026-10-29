@@ -55,7 +55,7 @@ test("the questions open and close", async ({ page }) => {
 test("on a phone the button is on the first screen and nothing scrolls sideways", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/contabilidade");
-  const hero = page.locator(".lp-hero a[href^='https://wa.me/']");
+  const hero = page.locator(".rp-actions a[href^='https://wa.me/']");
   await expect(hero).toBeInViewport();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBe(0);

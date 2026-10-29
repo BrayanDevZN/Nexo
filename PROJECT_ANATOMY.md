@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
+Generated: 2026-10-29 | 420 files | ~488.0K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -159,7 +159,7 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/AccountingLanding.tsx | 338 | 3.2K | source |
+| src/frontend/AccountingLanding.tsx | 183 | 1.7K | source |
 | src/frontend/admin/AdminApp.tsx | 265 | 6.2K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
@@ -202,24 +202,24 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | src/frontend/admin/Videos.tsx | 289 | 4.6K | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
-| src/frontend/App.tsx | 43 | 391 | source |
+| src/frontend/App.tsx | 44 | 414 | source |
 | src/frontend/components/AccountingVisual.tsx | 65 | 506 | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
-| src/frontend/components/home/Close.tsx | 100 | 1.0K | source |
-| src/frontend/components/home/Faq.tsx | 35 | 250 | source |
+| src/frontend/components/home/Close.tsx | 111 | 1.1K | source |
+| src/frontend/components/home/Faq.tsx | 35 | 281 | source |
 | src/frontend/components/home/Value.tsx | 125 | 1.1K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
 | src/frontend/components/rp/Intro.tsx | 75 | 607 | source |
-| src/frontend/components/rp/Journey.tsx | 248 | 2.9K | source |
+| src/frontend/components/rp/Journey.tsx | 268 | 3.1K | source |
 | src/frontend/components/rp/Particles.tsx | 248 | 2.4K | source |
-| src/frontend/components/rp/Scene.tsx | 33 | 265 | source |
-| src/frontend/components/rp/world.ts | 703 | 7.1K | source |
-| src/frontend/components/SiteHeader.tsx | 63 | 600 | source |
+| src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
+| src/frontend/components/rp/world.ts | 1161 | 11.9K | source |
+| src/frontend/components/SiteHeader.tsx | 79 | 756 | source |
 | src/frontend/components/StreamingDemo.tsx | 476 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
@@ -253,17 +253,17 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | src/frontend/hooks/useScrollReveal.ts | 44 | 488 | source |
 | src/frontend/hooks/useScrollTrigger.ts | 61 | 512 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 59 | 504 | source |
-| src/frontend/lib/accountingLanding.ts | 170 | 1.8K | source |
+| src/frontend/lib/accountingLanding.ts | 225 | 2.4K | source |
 | src/frontend/lib/consent.ts | 23 | 160 | source |
 | src/frontend/lib/content.ts | 175 | 1.7K | source |
-| src/frontend/lib/journey.ts | 81 | 775 | source |
+| src/frontend/lib/journey.ts | 81 | 791 | source |
 | src/frontend/lib/paidLeads.ts | 38 | 475 | source |
 | src/frontend/lib/seo.ts | 22 | 187 | source |
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 43 | 503 | source |
+| src/frontend/main.tsx | 43 | 499 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 110 | 1.4K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -314,7 +314,7 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/landing.spec.ts | 173 | 2.4K | test |
+| tests/integration/frontend/landing.spec.ts | 172 | 2.3K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -404,7 +404,7 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/robin.css | 317 | 7.1K | style |
+| src/frontend/styles/robin.css | 335 | 7.5K | style |
 | src/frontend/styles/site.css | 344 | 6.0K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
@@ -426,18 +426,18 @@ Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 267 files, ~305.0K tokens
+- source: 267 files, ~309.5K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.7K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~29.8K tokens
+- style: 4 files, ~30.2K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
-2. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
-3. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
-4. src/frontend/components/rp/world.ts — 703 lines (~7.1K tokens)
+2. src/frontend/components/rp/world.ts — 1161 lines (~11.9K tokens)
+3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
+4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)
 6. mcp_server.py — 589 lines (~4.9K tokens)
 7. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)

@@ -623,6 +623,56 @@ function docs(): Piece {
   };
 }
 
+/** The accounting opening: stacks of coins that grow one coin at a time, with a line of growth and a light climbing it. Sits beside the text. */
+function coins(): Piece {
+  const group = new Group();
+  group.add(halo(12, 0.65));
+  const stacks = [
+    { x: -2.2, count: 3, color: INK },
+    { x: 0, count: 5, color: VIOLET },
+    { x: 2.2, count: 7, color: INK },
+  ].map(({ x, count, color }, column) => {
+    const holder = new Group();
+    holder.position.set(x, -2, 0);
+    const discs = Array.from({ length: count }, (_, i) => {
+      const geometry = new CylinderGeometry(0.85, 0.85, 0.18, 36);
+      const disc = new Group();
+      disc.add(glass(geometry), wire(geometry, lineMaterial(color, 0.9), 20));
+      disc.position.y = i * 0.24;
+      holder.add(disc);
+      return disc;
+    });
+    group.add(holder);
+    return { discs, column };
+  });
+  const curve = (u: number) => new Vector3(-2.6 + u * 5.2, -0.2 + u * 3.3 + Math.sin(u * 5) * 0.25, 0);
+  const path: number[] = [];
+  for (let i = 0; i <= 80; i++) {
+    const p = curve(i / 80);
+    path.push(p.x, p.y, p.z);
+  }
+  group.add(new Line(new BufferGeometry().setAttribute("position", new Float32BufferAttribute(path, 3)), lineMaterial(VIOLET, 0.8, 1)));
+  const tip = dot(0.17, BRIGHT);
+  group.add(tip);
+  const dial = ticks(4.1, 110, 0.26, lineMaterial(DEEP, 0.35));
+  dial.rotation.x = 0.5;
+  group.add(dial);
+  return {
+    group,
+    update: (t) => {
+      const time = t % 9;
+      const fade = 1 - ease(clamp01((time - 8) / 0.8));
+      group.rotation.y = Math.sin(t * 0.3) * 0.4;
+      group.rotation.x = 0.1;
+      dial.rotation.z = t * 0.1;
+      stacks.forEach(({ discs, column }) =>
+        discs.forEach((disc, i) => disc.scale.setScalar(Math.max(0.001, pop(time, 0.3 + column * 0.5 + i * 0.35, 0.4) * fade))),
+      );
+      tip.position.copy(curve((t * 0.12) % 1));
+    },
+  };
+}
+
 /** The accounting books: a ledger page checked line by line by a magnifier, one line flagged for a person to look at. */
 function ledger(): Piece {
   const group = new Group();
@@ -864,6 +914,7 @@ const builders = {
   stages: fitted(() => stages(4), 0.52),
   stages3: fitted(() => stages(3), 0.52),
   docs: fitted(docs, 0.85),
+  coins: fitted(coins, 0.8),
   ledger: fitted(ledger, 0.72),
   archive: fitted(archive, 0.78),
   balance: fitted(balance, 0.72),
