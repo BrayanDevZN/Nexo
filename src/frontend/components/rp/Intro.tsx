@@ -67,7 +67,7 @@ export function Intro({ onStart, onEnter }: { onStart: () => void; onEnter: () =
         <p className="rp-intro-line rp-intro-sub">
           <Letters text="IA APLICADA AO SEU NEGÓCIO" delay={1.2} />
         </p>
-        <p className="rp-intro-note">Experiência pensada para desktop</p>
+        <p className="rp-intro-note">Role ou deslize para explorar</p>
       </div>
     </section>
   );

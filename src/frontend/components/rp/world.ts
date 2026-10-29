@@ -513,10 +513,17 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   scene.fog = new Fog(MIST, 9, 26);
   const camera = new PerspectiveCamera(50, 1, 0.1, 80);
 
+  // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
+  const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
+  // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
+  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : 4.5);
+  const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
+  const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift, -index * SPACING);
+
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();
-    const sideX = station.side === "left" ? 3.6 : station.side === "right" ? -3.6 : 0;
-    piece.group.position.set(sideX, 0, -index * SPACING);
+    piece.group.position.set(0, 0, -index * SPACING);
     scene.add(piece.group);
     return piece;
   });
@@ -546,7 +553,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const dummy = new Object3D();
   const matrixA = new Matrix4();
   const matrixB = new Matrix4();
-  const one = new Vector3(1, 1, 1);
+  const fitted = new Vector3(1, 1, 1);
   const from = new Vector3();
   const to = new Vector3();
   const smooth = (x: number) => x * x * (3 - 2 * x);
@@ -561,6 +568,24 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     // Narrow screens: objects sit behind the text, so open the lens a little.
     camera.fov = width < 800 ? 62 : 50;
     camera.updateProjectionMatrix();
+    // Portrait: shrink each piece until its widest part fits the screen, pull the camera back a little
+    // and lift the piece into the upper half, since the station text sits at the bottom.
+    layout.portrait = width < 800 && height > width * 0.9;
+    if (layout.portrait) {
+      const halfHeight = 12 * Math.tan((camera.fov * Math.PI) / 360);
+      const halfWidth = halfHeight * camera.aspect;
+      layout.distance = 12;
+      // The widest piece reaches about 4.5 units from its centre. Keep it inside the width and inside
+      // the band between the header and the text (the top ~40% of the screen).
+      layout.fit = MathUtils.clamp(Math.min((halfWidth * 0.9) / 4.5, (halfHeight * 0.4) / 4.5), 0.35, 1);
+      layout.lift = halfHeight * 0.4;
+    } else {
+      layout.distance = 9;
+      layout.fit = 1;
+      layout.lift = 0;
+    }
+    scene.fog = new Fog(MIST, layout.portrait ? 15 : 9, layout.portrait ? 32 : 26);
+    pieces.forEach(place);
     pointScale.value = (height * ratio) / (2 * Math.tan((camera.fov * Math.PI) / 360));
   };
   resize();
@@ -587,7 +612,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     camera.position.set(
       Math.sin(shown * 0.9) * 0.6 + drift,
       Math.cos(shown * 0.7) * 0.25 - (options.reduced ? 0 : journey.pointer.y * 0.3),
-      -shown * SPACING + 9,
+      -shown * SPACING + layout.distance,
     );
     look.set(Math.sin(shown * 0.9) * 0.2, 0, -shown * SPACING - 4);
     camera.lookAt(look);
@@ -608,15 +633,15 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       const next = index === base + 1;
       piece.group.visible = here || next;
       if (!piece.group.visible) return;
-      piece.group.scale.setScalar(here ? 1 - smooth(MathUtils.clamp(t / 0.45, 0, 1)) : smooth(MathUtils.clamp((t - 0.55) / 0.45, 0, 1)));
+      piece.group.scale.setScalar(fitOf(index) * (here ? 1 - smooth(MathUtils.clamp(t / 0.45, 0, 1)) : smooth(MathUtils.clamp((t - 0.55) / 0.45, 0, 1))));
       piece.update(time, dt);
     });
     swarm.visible = moving;
     if (moving) {
       const a = pieces[base].group;
       const b = pieces[base + 1].group;
-      matrixA.compose(a.position, a.quaternion, one);
-      matrixB.compose(b.position, b.quaternion, one);
+      matrixA.compose(a.position, a.quaternion, fitted.setScalar(fitOf(base)));
+      matrixB.compose(b.position, b.quaternion, fitted.setScalar(fitOf(base + 1)));
       const travel = smooth(MathUtils.clamp((t - 0.12) / 0.76, 0, 1));
       const burst = Math.sin(Math.PI * t);
       for (let i = 0; i < CUBES; i++) {
@@ -624,7 +649,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
         to.copy(outlines[base + 1][i]).applyMatrix4(matrixB);
         dummy.position.lerpVectors(from, to, travel).addScaledVector(scatter[i], burst * burst);
         dummy.rotation.set(spin[i].x * t, spin[i].y * t, spin[i].z * t);
-        dummy.scale.setScalar(size[i] * Math.pow(burst, 0.5));
+        dummy.scale.setScalar(size[i] * fitOf(base) * Math.pow(burst, 0.5));
         dummy.updateMatrix();
         swarm.setMatrixAt(i, dummy.matrix);
       }

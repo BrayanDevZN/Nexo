@@ -12,6 +12,7 @@ import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/lato/300.css";
 import "@fontsource/lato/300-italic.css";
 import "@fontsource/lato/400.css";
+import "@fontsource/lato/700.css";
 import "./styles/globals.css";
 import "./styles/site.css";
 import "./styles/robin.css";

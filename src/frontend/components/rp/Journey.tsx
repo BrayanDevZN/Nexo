@@ -102,6 +102,48 @@ export function Journey({ play }: { play: boolean }) {
         lockedAt = now;
       }
     };
+    // Touch: one swipe moves one station too, so a phone always rests on a whole station.
+    let touchY = 0;
+    let touchX = 0;
+    let swipe: 1 | -1 | 0 = 0;
+    const insideFor = (direction: 1 | -1) => {
+      const rect = node.getBoundingClientRect();
+      const s = -rect.top / window.innerHeight;
+      return rect.top <= 2 && s <= last + 0.05 && !(direction > 0 && s >= last - 0.02) && !(direction < 0 && s <= 0.02);
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      touchY = event.touches[0].clientY;
+      touchX = event.touches[0].clientX;
+      swipe = 0;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if ((event.target as Element | null)?.closest?.('[role="dialog"]')) return;
+      const dy = touchY - event.touches[0].clientY;
+      const dx = touchX - event.touches[0].clientX;
+      if (!swipe) {
+        if (Math.abs(dy) < 8 || Math.abs(dx) > Math.abs(dy)) return;
+        const direction = dy > 0 ? 1 : -1;
+        if (!insideFor(direction)) return;
+        swipe = direction;
+      }
+      if (event.cancelable) event.preventDefault();
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!swipe) return;
+      const dy = touchY - event.changedTouches[0].clientY;
+      const direction = swipe;
+      swipe = 0;
+      const now = performance.now();
+      if (Math.abs(dy) < 40 || now - lockedAt < 600) return;
+      const s = current();
+      const rect = node.getBoundingClientRect();
+      const target = direction > 0 ? Math.min(last, Math.floor(s + 0.02) + 1) : Math.max(0, Math.ceil(s - 0.02) - 1);
+      window.scrollTo({ top: window.scrollY + rect.top + target * window.innerHeight, behavior: "smooth" });
+      lockedAt = now;
+    };
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
     // `document` runs before the smooth-scroll listener on `window`, so a step is never also eased as a wheel scroll.
     document.addEventListener("wheel", onWheel, { passive: false });
     document.addEventListener("keydown", onKey);
@@ -112,6 +154,9 @@ export function Journey({ play }: { play: boolean }) {
       window.removeEventListener("pointermove", pointer);
       document.removeEventListener("wheel", onWheel);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
     };
   }, []);
 
