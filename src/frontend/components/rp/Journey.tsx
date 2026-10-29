@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { contactUrl } from "@/lib/content";
 import { journey, stations } from "@/lib/journey";
 import { smoothScrollTo } from "@/lib/siteEffects";
@@ -210,9 +210,14 @@ export function Journey({ play }: { play: boolean }) {
               {station.note ? <p className="rp-note">{station.note}</p> : null}
               {station.tags ? <p className="rp-tags">{station.tags}</p> : null}
               {index === 0 ? (
-                <a className="rp-link" href="#solucoes">
-                  Ver como podemos ajudar <ArrowUpRight aria-hidden="true" />
-                </a>
+                <div className="rp-actions">
+                  <a className="rp-link rp-whats" href={contactUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle aria-hidden="true" /> Falar no WhatsApp
+                  </a>
+                  <a className="rp-link" href="#solucoes">
+                    Ver como podemos ajudar <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </div>
               ) : index >= 1 && index <= 4 ? (
                 <a className="rp-link" href={contactUrl} target="_blank" rel="noopener noreferrer">
                   Saiba mais <ArrowUpRight aria-hidden="true" />
