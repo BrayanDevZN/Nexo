@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
+Generated: 2026-10-29 | 420 files | ~483.0K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -216,10 +216,10 @@ Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
 | src/frontend/components/rp/Intro.tsx | 75 | 607 | source |
 | src/frontend/components/rp/Journey.tsx | 248 | 2.9K | source |
-| src/frontend/components/rp/Particles.tsx | 125 | 1.2K | source |
+| src/frontend/components/rp/Particles.tsx | 248 | 2.4K | source |
 | src/frontend/components/rp/Scene.tsx | 33 | 265 | source |
 | src/frontend/components/rp/world.ts | 703 | 7.1K | source |
-| src/frontend/components/SiteHeader.tsx | 61 | 583 | source |
+| src/frontend/components/SiteHeader.tsx | 63 | 600 | source |
 | src/frontend/components/StreamingDemo.tsx | 476 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
@@ -250,7 +250,7 @@ Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
 | src/frontend/components/ui/toggle.tsx | 45 | 448 | source |
 | src/frontend/hooks/useAdminReveal.ts | 61 | 678 | source |
 | src/frontend/hooks/useButtonFeedback.ts | 41 | 358 | source |
-| src/frontend/hooks/useScrollReveal.ts | 51 | 509 | source |
+| src/frontend/hooks/useScrollReveal.ts | 44 | 488 | source |
 | src/frontend/hooks/useScrollTrigger.ts | 61 | 512 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 59 | 504 | source |
 | src/frontend/lib/accountingLanding.ts | 170 | 1.8K | source |
@@ -404,7 +404,7 @@ Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/robin.css | 317 | 7.0K | style |
+| src/frontend/styles/robin.css | 317 | 7.1K | style |
 | src/frontend/styles/site.css | 344 | 6.0K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
@@ -426,7 +426,7 @@ Generated: 2026-10-29 | 420 files | ~481.7K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 267 files, ~303.7K tokens
+- source: 267 files, ~305.0K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.7K tokens
 - docs: 11 files, ~17.1K tokens

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Brand } from "@/components/Brand";
 import { contactUrl } from "@/lib/content";
-import { stations } from "@/lib/journey";
 
 const entries = [
   { href: "#inicio", label: "Início" },
-  ...stations.slice(1, 5).map((station, index) => ({ href: `#estacao-${index + 1}`, label: station.title })),
+  { href: "#estacao-1", label: "Agentes de IA" },
+  { href: "#estacao-2", label: "Automação inteligente" },
+  { href: "#estacao-3", label: "IA nos seus sistemas" },
+  { href: "#estacao-4", label: "Software sob medida" },
   { href: "#processo", label: "Como funciona" },
   { href: "#sobre", label: "A Nexo" },
   { href: "#demonstracao", label: "Na prática" },
