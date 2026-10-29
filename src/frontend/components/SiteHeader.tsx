@@ -1,77 +1,60 @@
-import { useState } from "react";
-import { ArrowUpRight, Menu } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Brand } from "@/components/Brand";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { contactUrl, navigation } from "@/lib/content";
+import { contactUrl } from "@/lib/content";
+import { stations } from "@/lib/journey";
 
+const entries = [
+  { href: "#inicio", label: "Início" },
+  ...stations.slice(1, 5).map((station, index) => ({ href: `#estacao-${index + 1}`, label: station.title })),
+  { href: "#processo", label: "Como funciona" },
+  { href: "#sobre", label: "A Nexo" },
+  { href: "#demonstracao", label: "Na prática" },
+  { href: "#duvidas", label: "Dúvidas" },
+  { href: "#contato", label: "Contato" },
+];
+
+/** Name on the left, a round Menu button on the right that opens the list of everything. */
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.classList.add("rp-locked");
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", close);
+    return () => {
+      document.documentElement.classList.remove("rp-locked");
+      window.removeEventListener("keydown", close);
+    };
+  }, [open]);
   return (
-    <header className="nx-header">
-      <div className="nx-wrap nx-header-inner">
-        <a href="#inicio" aria-label="Nexo: início">
-          <Brand />
-        </a>
-        <nav className="nx-nav" aria-label="Navegação principal">
-          {navigation.map((item) => (
-            <a key={item.href} href={item.href}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <div className="nx-header-cta">
-          <Button variant="outline" size="lg" asChild>
-            <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-              Vamos conversar <ArrowUpRight data-icon="inline-end" />
-            </a>
-          </Button>
+    <header className="rp-header">
+      <a className="rp-brand" href="#inicio" aria-label="Nexo: início">
+        <Brand />
+      </a>
+      <button type="button" className="rp-menu-btn" aria-expanded={open} aria-controls="rp-menu" onClick={() => setOpen((value) => !value)}>
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" />
+          <circle cx="50" cy="50" r="39" />
+        </svg>
+        <span>{open ? "Fechar" : "Menu"}</span>
+      </button>
+      {open ? (
+        <div id="rp-menu" className="rp-menu" role="dialog" aria-modal="true" aria-label="Menu">
+          <ol>
+            {entries.map((entry, index) => (
+              <li key={entry.href} style={{ animationDelay: `${index * 0.05}s` }}>
+                <a href={entry.href} onClick={() => setOpen(false)}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  {entry.label}
+                </a>
+              </li>
+            ))}
+          </ol>
+          <a className="rp-menu-cta" href={contactUrl} target="_blank" rel="noopener noreferrer">
+            Vamos conversar
+          </a>
         </div>
-        <div className="nx-header-menu">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon-lg" aria-label="Abrir menu">
-                <Menu />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Explore a Nexo</SheetTitle>
-                <SheetDescription>IA aplicada ao seu negócio.</SheetDescription>
-              </SheetHeader>
-              <nav
-                className="flex flex-col gap-2 px-4"
-                aria-label="Navegação mobile"
-              >
-                {navigation.map((item) => (
-                  <Button key={item.href} variant="ghost" size="lg" asChild>
-                    <a href={item.href} onClick={() => setOpen(false)}>
-                      {item.label}
-                    </a>
-                  </Button>
-                ))}
-                <Button size="lg" asChild>
-                  <a
-                    href={contactUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setOpen(false)}
-                  >
-                    Vamos conversar <ArrowUpRight data-icon="inline-end" />
-                  </a>
-                </Button>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
+      ) : null}
     </header>
   );
 }

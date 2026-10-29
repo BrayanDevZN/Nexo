@@ -2,12 +2,19 @@ import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
+import { Backdrop } from "./components/rp/Backdrop";
 import { CookieNotice } from "./components/CookieNotice";
 import { MotionProvider } from "./components/MotionProvider";
 import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
+import { startPageEntrance, startSiteEffects } from "./lib/siteEffects";
+import "@fontsource/barlow-semi-condensed/600.css";
+import "@fontsource/lato/300.css";
+import "@fontsource/lato/300-italic.css";
+import "@fontsource/lato/400.css";
 import "./styles/globals.css";
 import "./styles/site.css";
+import "./styles/robin.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 const AccountingLanding = lazy(() => import("./AccountingLanding"));
@@ -17,12 +24,16 @@ const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
 const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
 
 if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); }
-else setCanonical(window.location.pathname);
+else {
+  setCanonical(window.location.pathname);
+  startSiteEffects(startPageEntrance());
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
-      <AnimatedBackground />
+      {adminRoute ? null : <Backdrop />}
+      {adminRoute || privacyRoute || landingRoute ? <AnimatedBackground /> : null}
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
       {adminRoute ? null : <CookieNotice />}
     </MotionProvider>
