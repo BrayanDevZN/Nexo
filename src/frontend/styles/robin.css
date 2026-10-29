@@ -99,7 +99,6 @@ html.rp-locked { overflow: hidden; }
   .rp-station, .rp-station.is-right, .rp-station.is-left { align-items: flex-start; text-align: left; justify-content: flex-end; padding-bottom: 3.6rem; }
   .rp-station.is-center { align-items: flex-start; text-align: left; }
   .rp-station > * { max-width: 100%; }
-  .rp-text { background: color-mix(in srgb, #fff 78%, transparent); }
   .rp-menu-btn { width: 4.25rem; height: 4.25rem; font-size: 0.9rem; }
   .rp-progress-track { height: 3rem; }
 }
@@ -193,7 +192,7 @@ html[data-perf="lite"] .rp-glow { animation: none; }
   .rp-title, .rp-station:not(.is-center) .rp-title { font-size: clamp(1.7rem, 8vw, 2.3rem); line-height: 1.04; letter-spacing: 0.025em; }
   .rp-title-xl, .rp-station.is-center .rp-title-xl { font-size: clamp(2rem, 10.5vw, 2.9rem); }
   .rp-kicker { font-size: 0.9rem; }
-  .rp-text { font-size: 0.92rem; line-height: 1.4; padding: 0.35rem 0.5rem; margin-inline: -0.5rem; border-radius: 0.5rem; }
+  .rp-text { font-size: 0.92rem; line-height: 1.4; }
   .rp-points { gap: 0.35rem; }
   .rp-points li { font-size: 0.8rem; line-height: 1.35; }
   .rp-points li:nth-child(n+3) { display: none; }
@@ -223,7 +222,8 @@ html[data-perf="lite"] .rp-glow { animation: none; }
 /* ---- phones: heavier, darker type so it reads over the scene ---- */
 @media (max-width: 800px) {
   .rp-text, .rp-points li, .rp-note, .rp-kicker { font-weight: 400; }
-  .rp-text { color: var(--rp-ink); font-size: 0.95rem; background: color-mix(in srgb, #fff 88%, transparent); backdrop-filter: blur(6px); }
+  .rp-text { color: var(--rp-ink); font-size: 0.95rem; }
+  .rp-text, .rp-points li, .rp-kicker, .rp-tags { text-shadow: 0 0 10px #fff, 0 0 6px #fff, 0 0 3px #fff, 0 0 2px #fff; }
   .rp-points li { color: var(--rp-ink); font-size: 0.84rem; }
   .rp-kicker { color: color-mix(in srgb, var(--primary) 85%, #000); font-style: normal; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.78rem; }
   .rp-tags { font-weight: 600; color: color-mix(in srgb, var(--primary) 85%, #000); }
