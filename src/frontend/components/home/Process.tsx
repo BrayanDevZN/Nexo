@@ -1,5 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { steps } from "@/lib/content";
 
 const lead = [
@@ -35,21 +33,11 @@ export function Process() {
               className="nx-stage nx-reveal"
               style={{ "--stage": index } as React.CSSProperties}
             >
-              <Card className="nx-stage-card h-full">
-                <CardHeader>
-                  <Badge variant="secondary" className="nx-step-badge">
-                    {String(index + 1).padStart(2, "0")}
-                  </Badge>
-                  <h3>{lead[index]}</h3>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <p className="nx-body">{step.text}</p>
-                  <p className="nx-body nx-soft">
-                    <strong>Entrega.</strong> {step.delivery}.{" "}
-                    {step.details.join("; ")}.
-                  </p>
-                </CardContent>
-              </Card>
+              <h3>{lead[index]}</h3>
+              <p className="nx-body">{step.text}</p>
+              <p className="nx-body nx-soft">
+                <strong>Entrega.</strong> {step.delivery}. {step.details.join("; ")}.
+              </p>
             </li>
           ))}
         </ol>

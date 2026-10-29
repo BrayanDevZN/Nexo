@@ -1,7 +1,4 @@
 import { ArrowUpRight } from "lucide-react";
-import { Fragment } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Art, type ArtName } from "@/components/home/Art";
 import { contactUrl, solutions } from "@/lib/content";
 
@@ -29,16 +26,8 @@ export function Features() {
         </p>
       </div>
       {solutions.map((solution, index) => (
-        <Fragment key={solution.title}>
-        {index > 0 && <Separator className="nx-rule" />}
-        <article className="nx-row">
-          <ul className="nx-row-tags nx-reveal" aria-label="Temas">
-            {solution.tags.map((tag) => (
-              <li key={tag}>
-                <Badge variant="secondary">{tag}</Badge>
-              </li>
-            ))}
-          </ul>
+        <article className="nx-row" key={solution.title}>
+          <p className="nx-row-tags nx-reveal">{solution.tags.join(" · ")}</p>
           <div className="nx-row-body nx-reveal">
             <h3 className="nx-h3">{solution.title}</h3>
             <p className="nx-body">{solution.description}</p>
@@ -61,7 +50,6 @@ export function Features() {
           </div>
           <Art name={artFor[index]} className="nx-reveal" />
         </article>
-        </Fragment>
       ))}
     </section>
   );

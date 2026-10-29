@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUpRight, Menu } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,8 @@ import { contactUrl, navigation } from "@/lib/content";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 8);
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, []);
   return (
-    <header className="nx-header" data-scrolled={scrolled}>
+    <header className="nx-header">
       <div className="nx-wrap nx-header-inner">
         <a href="#inicio" aria-label="Nexo: início">
           <Brand />
