@@ -595,6 +595,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   let last = performance.now();
   let time = 0;
   let shown = journey.station;
+  let leaving = 0;
   const look = new Vector3();
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
@@ -619,12 +620,17 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     // Lean into the move: the camera rolls a little while it travels and straightens when it arrives.
     if (!options.reduced) camera.rotation.z += MathUtils.clamp((journey.station - shown) * 0.05, -0.12, 0.12);
 
+    // After the last station the shape breaks into particles while the page scrolls on.
+    leaving = options.reduced ? journey.exit : MathUtils.damp(leaving, journey.exit, 8, dt);
+    if (leaving < 0.002) leaving = 0;
+    const tail = pieces.length - 1;
+
     const base = Math.min(Math.floor(shown), pieces.length - 2);
     const t = options.reduced ? 0 : MathUtils.clamp(shown - base, 0, 1);
     const moving = t > 0.015 && t < 0.985;
     pieces.forEach((piece, index) => {
       if (options.reduced) {
-        piece.group.visible = Math.abs(index - shown) < 2.6;
+        piece.group.visible = Math.abs(index - shown) < 2.6 && !(index === tail && leaving > 0.5);
         if (piece.group.visible) piece.update(time, dt);
         return;
       }
@@ -633,10 +639,30 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       const next = index === base + 1;
       piece.group.visible = here || next;
       if (!piece.group.visible) return;
-      piece.group.scale.setScalar(fitOf(index) * (here ? 1 - smooth(MathUtils.clamp(t / 0.45, 0, 1)) : smooth(MathUtils.clamp((t - 0.55) / 0.45, 0, 1))));
+      const form = here ? 1 - smooth(MathUtils.clamp(t / 0.45, 0, 1)) : smooth(MathUtils.clamp((t - 0.55) / 0.45, 0, 1));
+      piece.group.scale.setScalar(fitOf(index) * (index === tail ? form * (1 - smooth(MathUtils.clamp(leaving / 0.4, 0, 1))) : form));
       piece.update(time, dt);
     });
-    swarm.visible = moving;
+    const breaking = !options.reduced && leaving > 0 && !moving;
+    swarm.visible = moving || breaking;
+    if (breaking) {
+      const a = pieces[tail].group;
+      matrixA.compose(a.position, a.quaternion, fitted.setScalar(fitOf(tail)));
+      // Cubes appear as the shape lets go, drift outward and fade before the corridor is gone.
+      const grow = smooth(MathUtils.clamp(leaving / 0.18, 0, 1));
+      const fade = 1 - smooth(MathUtils.clamp((leaving - 0.45) / 0.55, 0, 1));
+      for (let i = 0; i < CUBES; i++) {
+        from.copy(outlines[tail][i]).applyMatrix4(matrixA);
+        // Mostly sideways and up/down: cubes thrown at the camera would fill the screen.
+        dummy.position.copy(from).addScaledVector(scatter[i], leaving * leaving * 3.5);
+        dummy.position.z -= scatter[i].z * leaving * leaving * 2.5;
+        dummy.rotation.set(spin[i].x * leaving * 2, spin[i].y * leaving * 2, spin[i].z * leaving * 2);
+        dummy.scale.setScalar(size[i] * 1.7 * fitOf(tail) * grow * fade);
+        dummy.updateMatrix();
+        swarm.setMatrixAt(i, dummy.matrix);
+      }
+      swarm.instanceMatrix.needsUpdate = true;
+    }
     if (moving) {
       const a = pieces[base].group;
       const b = pieces[base + 1].group;

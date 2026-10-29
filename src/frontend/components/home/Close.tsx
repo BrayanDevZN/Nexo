@@ -33,8 +33,8 @@ const LEAD =
 
 export function Close() {
   const { reduced, setReduced } = useMotionPreferences();
-  const [cta, ctaSeen] = useInView<HTMLElement>();
-  const [footer, footerSeen] = useInView<HTMLElement>("0px 0px -5% 0px");
+  const [cta, ctaSeen] = useInView<HTMLElement>("0px 0px -15% 0px", true);
+  const [footer, footerSeen] = useInView<HTMLElement>("0px 0px -5% 0px", true);
   const titleWords = TITLE.join(" ").split(" ").length;
   const leadWords = LEAD.split(" ").length;
   return (

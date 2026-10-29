@@ -29,6 +29,7 @@ export function Journey({ play }: { play: boolean }) {
       const rect = node.getBoundingClientRect();
       const s = clamp(-rect.top / window.innerHeight, 0, stations.length - 1);
       journey.station = s;
+      journey.exit = clamp((1 - rect.bottom / window.innerHeight) * 1.5, 0, 1);
       backdrop?.style.setProperty("--p", (s / (stations.length - 1)).toFixed(4));
       journey.active = onScreen && !document.hidden;
       items.current.forEach((item, index) => {

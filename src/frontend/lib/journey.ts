@@ -10,6 +10,8 @@ const principles = [
 export const journey = {
   /** Station position as a float: 2.5 is halfway between station 2 and 3. */
   station: 0,
+  /** 0 while the last station is pinned, rising to 1 as the corridor scrolls away: the last shape breaks into particles. */
+  exit: 0,
   /** Wheel/scroll speed in stations per second, signed. */
   velocity: 0,
   /** Pointer position from -1 to 1. */
