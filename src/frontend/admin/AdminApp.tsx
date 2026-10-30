@@ -34,6 +34,7 @@ import { Maps } from "./Maps";
 import { Videos } from "./Videos";
 import { AREAS, AreaGateway, type Area } from "./AreaGateway";
 import { useAdminReveal } from "@/hooks/useAdminReveal";
+import { playAreaTransition } from "./areaTransition";
 import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
@@ -165,13 +166,19 @@ export default function AdminApp() {
     api.resetSession(); setUser(person); setError(""); setPage("general-home");
     setAreaChoice(null); try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
   }
+  // Entering or leaving an area: a veil of particles gathers into the N and clears, and the page changes under it.
   function pickArea(next: Area) {
-    setAreaChoice(next); setPage(defaultPage(next)); setMobileOpen(false);
-    try { sessionStorage.setItem("nexo:area", next); } catch { /* sem armazenamento */ }
+    playAreaTransition(() => {
+      setAreaChoice(next); setPage(defaultPage(next)); setMobileOpen(false);
+      try { sessionStorage.setItem("nexo:area", next); } catch { /* sem armazenamento */ }
+    });
   }
   function switchArea() {
-    setAreaChoice(null); setMobileOpen(false);
-    try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
+    setMobileOpen(false);
+    playAreaTransition(() => {
+      setAreaChoice(null);
+      try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
+    });
   }
   async function logout() {
     setLoggingOut(true); setError("");
@@ -186,7 +193,7 @@ export default function AdminApp() {
   function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
-        {area && <div className="flex items-center justify-between gap-2 px-1 pb-1"><Badge variant="secondary">{AREAS[area].label}</Badge>
+        {area && <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1"><Badge variant="secondary" className="max-w-full">{AREAS[area].label}</Badge>
           {allowedAreas.length > 1 && <Button variant="ghost" size="sm" onClick={switchArea} aria-label="Trocar de área"><ArrowRightLeft data-icon="inline-start" /> Trocar</Button>}</div>}
         {area === "general" && <Button variant={page === "general-home" ? "secondary" : "ghost"} onClick={() => navigate("general-home")} aria-current={page === "general-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "dev" && <Button variant={page === "dev-home" ? "secondary" : "ghost"} onClick={() => navigate("dev-home")} aria-current={page === "dev-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
