@@ -338,31 +338,94 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   return geometry;
 }
 
-/** The opening: the Nexo "N" as a glass letter with a bevelled edge, turning slowly inside a dial, with lights orbiting it. */
+/** A polygon with every corner rounded off. */
+function roundedPolygon(points: [number, number][], radius: number) {
+  const shape = new Shape();
+  const count = points.length;
+  points.forEach((point, i) => {
+    const prev = points[(i + count - 1) % count];
+    const next = points[(i + 1) % count];
+    const toward = (other: [number, number]) => {
+      const dx = other[0] - point[0];
+      const dy = other[1] - point[1];
+      const length = Math.hypot(dx, dy);
+      const reach = Math.min(radius, length / 2);
+      return [point[0] + (dx / length) * reach, point[1] + (dy / length) * reach] as const;
+    };
+    const start = toward(prev);
+    const end = toward(next);
+    if (i === 0) shape.moveTo(start[0], start[1]);
+    else shape.lineTo(start[0], start[1]);
+    shape.quadraticCurveTo(point[0], point[1], end[0], end[1]);
+  });
+  shape.closePath();
+  return shape;
+}
+
+/** `count` points spread evenly over the surface of a mesh, so a solid shape can be drawn as dots. */
+function surfacePoints(geometry: BufferGeometry, count: number, random: () => number) {
+  const position = geometry.getAttribute("position");
+  const index = geometry.getIndex();
+  const triangles = (index ? index.count : position.count) / 3;
+  const corner = (t: number, k: number) => new Vector3().fromBufferAttribute(position, index ? index.getX(t * 3 + k) : t * 3 + k);
+  const areas: number[] = [];
+  let total = 0;
+  for (let t = 0; t < triangles; t++) {
+    const a = corner(t, 0);
+    const area = new Vector3().subVectors(corner(t, 1), a).cross(new Vector3().subVectors(corner(t, 2), a)).length() / 2;
+    total += area;
+    areas.push(total);
+  }
+  return Array.from({ length: count }, () => {
+    const pick = random() * total;
+    let lo = 0;
+    let hi = triangles - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (areas[mid] < pick) lo = mid + 1;
+      else hi = mid;
+    }
+    let u = random();
+    let v = random();
+    if (u + v > 1) [u, v] = [1 - u, 1 - v];
+    const a = corner(lo, 0);
+    return a.add(corner(lo, 1).sub(corner(lo, 0)).multiplyScalar(u)).add(corner(lo, 2).sub(corner(lo, 0)).multiplyScalar(v));
+  });
+}
+
+/** The opening: the Nexo "N" with rounded edges, drawn as a cloud of dots over a faint glass body, turning slowly inside a dial. */
 function monogram(): Piece {
   const group = new Group();
   group.add(halo(12, 0.7));
-  const w = 2.8;
+  const w = 3.3;
   const h = 3.6;
-  const t = 0.78;
-  const shape = new Shape();
-  [
-    [0, 0],
-    [t, 0],
-    [t, h * 0.55],
-    [w - t, 0],
-    [w, 0],
-    [w, h],
-    [w - t, h],
-    [w - t, h * 0.45],
-    [t, h],
-    [0, h],
-  ].forEach(([x, y], i) => (i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)));
-  shape.closePath();
-  const geometry = new ExtrudeGeometry(shape, { depth: 0.7, bevelEnabled: true, bevelSize: 0.09, bevelThickness: 0.09, bevelSegments: 2 });
-  geometry.translate(-w / 2, -h / 2, -0.35);
+  const t = 0.82;
+  const shape = roundedPolygon(
+    [
+      [0, 0],
+      [t, 0],
+      [t, h * 0.72],
+      [w - t, 0],
+      [w, 0],
+      [w, h],
+      [w - t, h],
+      [w - t, h * 0.28],
+      [t, h],
+      [0, h],
+    ],
+    0.3,
+  );
+  const geometry = new ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelSize: 0.14, bevelThickness: 0.16, bevelSegments: 6, curveSegments: 10 });
+  geometry.translate(-w / 2, -h / 2, -0.2);
+  const random = seeded(11);
+  const dots = surfacePoints(geometry, 3200, random);
   const letter = new Group();
-  letter.add(glass(geometry), wire(geometry, lineMaterial(VIOLET, 0.95), 20));
+  const body = glass(geometry, 0.22);
+  letter.add(
+    body,
+    new Points(new BufferGeometry().setFromPoints(dots.filter((_, i) => i % 5 !== 0)), pointMaterial(INK, 0.055, 0.95, 0.03)),
+    new Points(new BufferGeometry().setFromPoints(dots.filter((_, i) => i % 5 === 0)), pointMaterial(BRIGHT, 0.075, 1, 0.05)),
+  );
   const dial = ticks(3.4, 110, 0.26, lineMaterial(DEEP, 0.45));
   const ring = circle(2.9, lineMaterial(INK, 0.5, 1));
   ring.rotation.x = 1.25;
@@ -375,7 +438,7 @@ function monogram(): Piece {
   return {
     group,
     update: (t2) => {
-      letter.rotation.y = Math.sin(t2 * 0.5) * 0.7;
+      letter.rotation.y = Math.sin(t2 * 0.5) * 0.4;
       letter.rotation.x = Math.sin(t2 * 0.35) * 0.12;
       letter.position.y = Math.sin(t2 * 1.1) * 0.12;
       dial.rotation.z = t2 * 0.1;
