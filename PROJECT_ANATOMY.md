@@ -220,7 +220,7 @@ Generated: 2026-10-30 | 420 files | ~490.2K tokens if all read
 | src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
 | src/frontend/components/rp/world.ts | 1337 | 13.5K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
-| src/frontend/components/StreamingDemo.tsx | 476 | 4.0K | source |
+| src/frontend/components/StreamingDemo.tsx | 474 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
 | src/frontend/components/ui/attachment.tsx | 6 | 181 | source |

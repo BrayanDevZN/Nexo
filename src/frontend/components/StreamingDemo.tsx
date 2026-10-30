@@ -407,7 +407,7 @@ export function StreamingDemo() {
             </div>
           </li>
         </ol>
-        <Button variant="outline" size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5 text-left">
+        <Button size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5 text-left">
           <a href={contactUrl} target="_blank" rel="noopener noreferrer">
             Desenhar o fluxo da minha empresa{" "}
             <ArrowUpRight data-icon="inline-end" />
@@ -451,7 +451,6 @@ export function StreamingDemo() {
             </p>
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
                 size="icon-lg"
                 aria-label="Exemplo anterior"
                 onClick={() => api?.scrollPrev()}
@@ -459,7 +458,6 @@ export function StreamingDemo() {
                 <ArrowLeft />
               </Button>
               <Button
-                variant="outline"
                 size="icon-lg"
                 aria-label="Próximo exemplo"
                 onClick={() => api?.scrollNext()}
