@@ -37,9 +37,11 @@ type CloseProps = {
   /** Props of the WhatsApp links (the page's own tracking, for instance). */
   link?: React.AnchorHTMLAttributes<HTMLAnchorElement>;
   nav?: readonly { href: string; label: string }[];
+  /** A longer title: it is set smaller so it fits the width. */
+  longTitle?: boolean;
 };
 
-export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link, nav = navigation }: CloseProps) {
+export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link, nav = navigation, longTitle }: CloseProps) {
   const whatsapp = { href: contactUrl, ...link, target: "_blank", rel: "noopener noreferrer" };
   const { reduced, setReduced } = useMotionPreferences();
   const [cta, ctaSeen] = useScrollTrigger<HTMLElement>(0.45, 0.9);
@@ -52,7 +54,7 @@ export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link,
         id="contato"
         ref={cta}
         data-stream={ctaSeen ? "on" : "off"}
-        className="nx-wrap nx-cta"
+        className={`nx-wrap nx-cta${longTitle ? " nx-cta-long" : ""}`}
         aria-labelledby="contact-title"
       >
         <h2 id="contact-title" className="nx-display nx-cta-title">

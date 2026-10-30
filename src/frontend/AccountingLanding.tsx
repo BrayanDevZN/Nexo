@@ -172,6 +172,7 @@ export default function AccountingLanding() {
         </div>
       </main>
       <Close
+        longTitle
         title={["Vamos olhar a rotina", "do seu escritório?"]}
         lead="Conte como o escritório trabalha hoje e veja o que dá para automatizar. Conversa inicial de 20 minutos, sem custo."
         link={whatsapp("footer")}

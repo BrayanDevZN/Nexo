@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 421 files | ~490.3K tokens if all read
+Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -159,7 +159,7 @@ Generated: 2026-10-30 | 421 files | ~490.3K tokens if all read
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/AccountingLanding.tsx | 188 | 1.9K | source |
+| src/frontend/AccountingLanding.tsx | 189 | 1.9K | source |
 | src/frontend/admin/AdminApp.tsx | 265 | 6.2K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
@@ -208,7 +208,7 @@ Generated: 2026-10-30 | 421 files | ~490.3K tokens if all read
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
-| src/frontend/components/home/Close.tsx | 111 | 1.1K | source |
+| src/frontend/components/home/Close.tsx | 113 | 1.2K | source |
 | src/frontend/components/home/Faq.tsx | 35 | 281 | source |
 | src/frontend/components/home/Value.tsx | 125 | 1.2K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
@@ -405,7 +405,7 @@ Generated: 2026-10-30 | 421 files | ~490.3K tokens if all read
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/robin.css | 387 | 8.3K | style |
+| src/frontend/styles/robin.css | 392 | 8.4K | style |
 | src/frontend/styles/site.css | 344 | 6.0K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
@@ -431,7 +431,7 @@ Generated: 2026-10-30 | 421 files | ~490.3K tokens if all read
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~31.0K tokens
+- style: 4 files, ~31.1K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

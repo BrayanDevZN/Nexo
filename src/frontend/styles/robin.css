@@ -384,3 +384,8 @@ body { min-width: 0; }
   html .rp-station .rp-link { font-size: 0.85rem; }
   html .rp-station .rp-whats { padding: 0.55rem 1rem; }
 }
+
+/* FAQ: the question and the answer sit well inside their box, not against its left edge. */
+.nx-accordion [data-slot="accordion-trigger"] { padding-inline: clamp(1.1rem, 2.6vw, 2rem); }
+.nx-accordion [data-slot="accordion-content"] > div { padding-inline: clamp(1.1rem, 2.6vw, 2rem); }
+@media (min-width: 801px) { .nx-cta-long .nx-cta-title { font-size: clamp(2.2rem, 6.4vw, 7rem); } }
