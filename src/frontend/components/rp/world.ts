@@ -362,38 +362,7 @@ function roundedPolygon(points: [number, number][], radius: number) {
   return shape;
 }
 
-/** `count` points spread evenly over the surface of a mesh, so a solid shape can be drawn as dots. */
-function surfacePoints(geometry: BufferGeometry, count: number, random: () => number) {
-  const position = geometry.getAttribute("position");
-  const index = geometry.getIndex();
-  const triangles = (index ? index.count : position.count) / 3;
-  const corner = (t: number, k: number) => new Vector3().fromBufferAttribute(position, index ? index.getX(t * 3 + k) : t * 3 + k);
-  const areas: number[] = [];
-  let total = 0;
-  for (let t = 0; t < triangles; t++) {
-    const a = corner(t, 0);
-    const area = new Vector3().subVectors(corner(t, 1), a).cross(new Vector3().subVectors(corner(t, 2), a)).length() / 2;
-    total += area;
-    areas.push(total);
-  }
-  return Array.from({ length: count }, () => {
-    const pick = random() * total;
-    let lo = 0;
-    let hi = triangles - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (areas[mid] < pick) lo = mid + 1;
-      else hi = mid;
-    }
-    let u = random();
-    let v = random();
-    if (u + v > 1) [u, v] = [1 - u, 1 - v];
-    const a = corner(lo, 0);
-    return a.add(corner(lo, 1).sub(corner(lo, 0)).multiplyScalar(u)).add(corner(lo, 2).sub(corner(lo, 0)).multiplyScalar(v));
-  });
-}
-
-/** The opening: the Nexo "N" with rounded edges, drawn as a cloud of dots over a faint glass body, turning slowly inside a dial. */
+/** The opening: the Nexo "N" with rounded edges, a smooth glass body, inside the three interlocked rings of the logo. */
 function monogram(): Piece {
   const group = new Group();
   group.add(halo(12, 0.7));
@@ -415,17 +384,23 @@ function monogram(): Piece {
     ],
     0.3,
   );
-  const geometry = new ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelSize: 0.14, bevelThickness: 0.16, bevelSegments: 6, curveSegments: 10 });
+  const geometry = new ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.24, bevelSegments: 8, curveSegments: 10 });
   geometry.translate(-w / 2, -h / 2, -0.2);
-  const random = seeded(11);
-  const dots = surfacePoints(geometry, 3200, random);
   const letter = new Group();
-  const body = glass(geometry, 0.22);
-  letter.add(
-    body,
-    new Points(new BufferGeometry().setFromPoints(dots.filter((_, i) => i % 5 !== 0)), pointMaterial(INK, 0.055, 0.95, 0.03)),
-    new Points(new BufferGeometry().setFromPoints(dots.filter((_, i) => i % 5 === 0)), pointMaterial(BRIGHT, 0.075, 1, 0.05)),
-  );
+  letter.add(glass(geometry, 1));
+  // Three interlocked sets of rings behind it, like the opening logo.
+  const sets: Group[] = [];
+  const logo = new Group();
+  logo.scale.setScalar(0.78);
+  logo.position.z = -0.6;
+  [-2.1, 0, 2.1].forEach((x, index) => {
+    const set = new Group();
+    set.position.x = x;
+    [2.1, 1.75, 1.4].forEach((radius, k) => set.add(circle(radius, lineMaterial(index === 1 ? VIOLET : INK, index === 1 ? 0.9 : 0.55 + k * 0.05))));
+    logo.add(set);
+    sets.push(set);
+  });
+  group.add(logo);
   const dial = ticks(3.4, 110, 0.26, lineMaterial(DEEP, 0.45));
   const ring = circle(2.9, lineMaterial(INK, 0.5, 1));
   ring.rotation.x = 1.25;
@@ -443,6 +418,7 @@ function monogram(): Piece {
       letter.position.y = Math.sin(t2 * 1.1) * 0.12;
       dial.rotation.z = t2 * 0.1;
       ring.rotation.z = t2 * 0.3;
+      sets.forEach((set, i) => (set.rotation.y = Math.sin(t2 * 0.5 + i) * 0.28));
       sparks.forEach((spark, i) => {
         const angle = t2 * (0.7 + i * 0.15) + i * 1.6;
         spark.position.set(Math.cos(angle) * 2.9, Math.sin(angle) * 2.9 * Math.cos(1.25), Math.sin(angle) * 2.9 * Math.sin(1.25));
@@ -1192,7 +1168,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait && (stations[index].scene === "robot" || stations[index].scene === "monogram") ? 0.9 : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : 0) : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();
