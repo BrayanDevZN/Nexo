@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ROLE_LABELS, type createApi, type GoogleProfile, type Role, type User } from "./api";
 import { PhotoPicker } from "./PhotoPicker";
 import { LoginN, type LoginNHandle } from "./LoginN";
-import { markGoogleLogin } from "./areaTransition";
+import { markGoogleLogin, playAreaTransition } from "./areaTransition";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "./shared";
 
 type Props = { api: ReturnType<typeof createApi>; complete: boolean; inviteToken?: string; onLogin: (user: User) => void };
@@ -22,8 +22,16 @@ function GoogleLogo() {
 }
 export function Auth({ api, complete, inviteToken, onLogin: enter }: Props) {
   const letter = useRef<LoginNHandle>(null);
-  // The N breaks into particles first, then the panel opens.
-  const onLogin = async (user: User) => { await letter.current?.dissolve(); enter(user); };
+  // The N starts breaking into particles, then the round veil with the welcome covers the screen and the panel opens.
+  const onLogin = async (user: User) => {
+    const first = user.name.split(" ")[0];
+    const motion = document.documentElement.dataset.reduceMotion !== "true";
+    if (letter.current && motion) {
+      void letter.current.dissolve();
+      await new Promise(resolve => window.setTimeout(resolve, 650));
+    }
+    await new Promise<void>(resolve => playAreaTransition(`Boas-vindas, ${first}`, () => { enter(user); resolve(); }, { overlap: true }));
+  };
   const [mode, setMode] = useState<Mode>(inviteToken ? "register" : "login");
   const [createdUser, setCreatedUser] = useState<User>();
   const [selectedPhoto, setSelectedPhoto] = useState<File>();
