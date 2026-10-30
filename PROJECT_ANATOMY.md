@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
+Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -166,7 +166,7 @@ Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
-| src/frontend/admin/AreaGateway.tsx | 80 | 1.1K | source |
+| src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
 | src/frontend/admin/Auth.tsx | 158 | 3.1K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
@@ -214,7 +214,7 @@ Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
-| src/frontend/components/rp/Intro.tsx | 75 | 607 | source |
+| src/frontend/components/rp/Intro.tsx | 75 | 610 | source |
 | src/frontend/components/rp/Journey.tsx | 293 | 3.4K | source |
 | src/frontend/components/rp/nexoShape.ts | 5 | 610 | source |
 | src/frontend/components/rp/Particles.tsx | 219 | 2.1K | source |
@@ -264,7 +264,7 @@ Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 43 | 499 | source |
+| src/frontend/main.tsx | 46 | 535 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 110 | 1.4K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -403,6 +403,7 @@ Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
+| src/frontend/styles/admin.css | 170 | 3.9K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
 | src/frontend/styles/robin.css | 392 | 8.4K | style |
@@ -427,11 +428,11 @@ Generated: 2026-10-30 | 421 files | ~490.4K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 268 files, ~310.9K tokens
+- source: 268 files, ~311.0K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~31.1K tokens
+- style: 5 files, ~35.0K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

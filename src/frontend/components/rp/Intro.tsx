@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
-const rings = [
+export const rings = [
   [-60, 0],
   [0, 0],
   [60, 0],
 ];
 
-function Letters({ text, delay }: { text: string; delay: number }) {
+export function Letters({ text, delay }: { text: string; delay: number }) {
   return (
     <>
       <span className="sr-only">{text}</span>
