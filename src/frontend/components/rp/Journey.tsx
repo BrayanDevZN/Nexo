@@ -96,7 +96,7 @@ export function Journey({
       if (event.ctrlKey || Math.abs(event.deltaY) < 4 || (event.target as Element | null)?.closest?.('[role="dialog"]')) return;
       const now = performance.now();
       const direction = event.deltaY > 0 ? 1 : -1;
-      const locked = now - lockedAt < 900 || now - lastInput < 90;
+      const locked = now - lockedAt < 600 || now - lastInput < 90;
       lastInput = now;
       const rect = node.getBoundingClientRect();
       const s = -rect.top / unit();
@@ -114,7 +114,7 @@ export function Journey({
       const up = ["ArrowUp", "PageUp"].includes(event.key) || (event.key === " " && event.shiftKey);
       if (!down && !up) return;
       const now = performance.now();
-      if (now - lockedAt < 900) return event.preventDefault();
+      if (now - lockedAt < 600) return event.preventDefault();
       if (step(down ? 1 : -1)) {
         event.preventDefault();
         lockedAt = now;
@@ -152,7 +152,7 @@ export function Journey({
       const direction = swipe;
       swipe = 0;
       const now = performance.now();
-      if (Math.abs(dy) < 40 || now - lockedAt < 600) return;
+      if (Math.abs(dy) < 40 || now - lockedAt < 450) return;
       const s = current();
       const rect = node.getBoundingClientRect();
       const target = direction > 0 ? Math.min(last, Math.floor(s + 0.02) + 1) : Math.max(0, Math.ceil(s - 0.02) - 1);

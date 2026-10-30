@@ -19,8 +19,8 @@ const finePointer = () =>
 
 // ---- smooth scroll -------------------------------------------------------------------------------
 
-const WHEEL_SPEED = 80 / 120; // px of scroll per px of wheel delta (le-lab: 80 per 120-unit notch)
-const WHEEL_EASE = 20; // the page covers 1/20 of the remaining distance each 60 Hz frame
+const WHEEL_SPEED = 160 / 120; // px of scroll per px of wheel delta (le-lab used 80 per 120-unit notch; doubled to feel quicker)
+const WHEEL_EASE = 8; // the page covers 1/8 of the remaining distance each 60 Hz frame
 
 let scrollTo: (y: number) => void = (y) => window.scrollTo(0, y);
 

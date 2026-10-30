@@ -73,7 +73,7 @@ export function Particles() {
           y: hy,
           vx: 0,
           vy: 0,
-          size: 2.2 + Math.random() * 3.6,
+          size: (2.2 + Math.random() * 3.6) * (width < 800 ? 0.5 : 1),
           alpha: 0.4 + Math.random() * 0.45,
           depth: 0.4 + Math.random() * 1.2,
           phase: Math.random() * Math.PI * 2,
