@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ROLE_LABELS, type createApi, type GoogleProfile, type Role, type User } from "./api";
 import { PhotoPicker } from "./PhotoPicker";
 import { LoginN, type LoginNHandle } from "./LoginN";
+import { markGoogleLogin } from "./areaTransition";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "./shared";
 
 type Props = { api: ReturnType<typeof createApi>; complete: boolean; inviteToken?: string; onLogin: (user: User) => void };
@@ -138,7 +139,7 @@ export function Auth({ api, complete, inviteToken, onLogin: enter }: Props) {
         </form>
         {!complete && (mode === "login" || mode === "register") && <>
           <Separator />
-          <Button variant="outline" size="lg" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")}><GoogleLogo />Continuar com Google</a></Button>
+          <Button variant="outline" size="lg" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")} onClick={markGoogleLogin}><GoogleLogo />Continuar com Google</a></Button>
           {mode === "login" && <Button variant="link" onClick={() => switchMode("recovery")}>Esqueci minha senha</Button>}
         </>}
         {!complete && mode === "confirm" && <Button variant="link" disabled={busy} onClick={() => switchMode("recovery")}>Solicitar outro código</Button>}
@@ -148,7 +149,7 @@ export function Auth({ api, complete, inviteToken, onLogin: enter }: Props) {
           try { await api.publicPost("/auth/register", registration); setSuccess("Código solicitado. Aguarde o intervalo de reenvio e confira seu e-mail."); }
           catch (e) { setError(message(e)); } finally { setBusy(false); }
         }}>Reenviar código de cadastro</Button>}
-        {complete && error && <Button variant="outline" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")}>Reiniciar com Google</a></Button>}
+        {complete && error && <Button variant="outline" asChild><a href={api.googleLogin + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "")} onClick={markGoogleLogin}>Reiniciar com Google</a></Button>}
       </CardContent>
       <CardFooter className="flex flex-wrap justify-center gap-2">
         {!complete && !inviteToken && <Button variant="link" disabled={busy} onClick={() => switchMode(mode === "login" ? "register" : "login")}>

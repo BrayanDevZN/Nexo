@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 424 files | ~498.5K tokens if all read
+Generated: 2026-10-30 | 424 files | ~499.6K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -160,15 +160,15 @@ Generated: 2026-10-30 | 424 files | ~498.5K tokens if all read
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
 | src/frontend/AccountingLanding.tsx | 189 | 1.9K | source |
-| src/frontend/admin/AdminApp.tsx | 272 | 6.2K | source |
+| src/frontend/admin/AdminApp.tsx | 283 | 6.3K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
 | src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
-| src/frontend/admin/areaTransition.ts | 145 | 1.5K | source |
-| src/frontend/admin/Auth.tsx | 163 | 3.2K | source |
+| src/frontend/admin/areaTransition.ts | 240 | 2.5K | source |
+| src/frontend/admin/Auth.tsx | 164 | 3.2K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
 | src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
@@ -430,7 +430,7 @@ Generated: 2026-10-30 | 424 files | ~498.5K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 270 files, ~314.4K tokens
+- source: 270 files, ~315.5K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens

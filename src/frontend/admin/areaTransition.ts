@@ -1,3 +1,5 @@
+import { NEXO_LEFT, NEXO_RIGHT } from "@/components/rp/nexoShape";
+
 const COLORS = ["#6d28d9", "#8b5cf6", "#a78bfa", "#c4b5fd"];
 const OPEN = 560; // ms for the veil to grow from the centre and cover the screen
 const HOLD = 560; // ms the area's name stays on screen, while the page changes underneath
@@ -141,4 +143,97 @@ export function playAreaTransition(label: string, swap: () => void) {
   requestAnimationFrame(draw);
   // If frames stop (a hidden tab), the page must still change.
   window.setTimeout(() => { if (!swapped) { swapped = true; swap(); } }, OPEN + 500);
+}
+
+// ---- the N breaking into dust: shown after a sign-in that leaves the page (Google) ----
+
+const GOOGLE_FLAG = "nexo:google-login";
+
+/** Remember that a Google sign-in was started, so the N can break apart when the visitor comes back signed in. */
+export function markGoogleLogin() {
+  try { sessionStorage.setItem(GOOGLE_FLAG, String(Date.now())); } catch { /* sem armazenamento */ }
+}
+
+/** True once, and only within a few minutes of the flag being set. */
+export function takeGoogleLogin(): boolean {
+  try {
+    const at = Number(sessionStorage.getItem(GOOGLE_FLAG));
+    sessionStorage.removeItem(GOOGLE_FLAG);
+    return Boolean(at) && Date.now() - at < 5 * 60 * 1000;
+  } catch { return false; }
+}
+
+function inside(polygon: [number, number][], x: number, y: number) {
+  let hit = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+/** The sign-in N, made of dust, over a light veil: it holds for a moment, then drifts apart and the veil clears. */
+export function playLoginDissolve() {
+  const root = document.documentElement;
+  if (root.dataset.reduceMotion === "true" || document.querySelector(".admin-transition")) return;
+  const lite = root.dataset.perf === "lite";
+  const canvas = document.createElement("canvas");
+  canvas.className = "admin-transition";
+  canvas.setAttribute("aria-hidden", "true");
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  document.body.appendChild(canvas);
+  const back = root.classList.contains("dark") ? "12, 7, 22" : "243, 236, 255";
+  const unit = (Math.min(width, height) * 0.5) / 3.8;
+  const count = lite ? 380 : width < 700 ? 600 : 1000;
+  const shapes = [NEXO_LEFT, NEXO_RIGHT];
+  const dust: { x: number; y: number; ox: number; oy: number; size: number; color: string; delay: number; spin: number }[] = [];
+  while (dust.length < count) {
+    const x = -1.6 + Math.random() * 3.2;
+    const y = -1.95 + Math.random() * 3.9;
+    if (!inside(shapes[dust.length % 2], x, y)) continue;
+    const angle = Math.atan2(y, x) + (Math.random() - 0.5) * 2.2;
+    dust.push({
+      x: width / 2 + x * unit,
+      y: height / 2 - y * unit,
+      ox: Math.cos(angle) * (160 + Math.random() * 560),
+      oy: Math.sin(angle) * (160 + Math.random() * 560) - 160,
+      size: 2 + Math.random() * 4.5,
+      color: COLORS[dust.length % COLORS.length],
+      delay: Math.random() * 0.3,
+      spin: (Math.random() - 0.5) * 7,
+    });
+  }
+  const HOLD_N = 380;
+  const BREAK = 1150;
+  const start = performance.now();
+  const draw = (now: number) => {
+    const elapsed = now - start;
+    if (elapsed >= HOLD_N + BREAK) return canvas.remove();
+    requestAnimationFrame(draw);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, width, height);
+    const k = Math.max(0, (elapsed - HOLD_N) / BREAK);
+    context.fillStyle = `rgba(${back}, ${0.97 * (1 - ease(k * 1.15))})`;
+    context.fillRect(0, 0, width, height);
+    for (const d of dust) {
+      const m = out((k - d.delay * 0.4) / (1 - d.delay * 0.4));
+      context.globalAlpha = Math.max(0, 1 - m);
+      context.fillStyle = d.color;
+      context.save();
+      context.translate(d.x + d.ox * m, d.y + d.oy * m);
+      context.rotate(d.spin * k);
+      const size = d.size * (1 - 0.6 * m);
+      context.fillRect(-size / 2, -size / 2, size, size);
+      context.restore();
+    }
+    context.globalAlpha = 1;
+  };
+  requestAnimationFrame(draw);
 }
