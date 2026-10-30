@@ -358,3 +358,15 @@ body { min-width: 0; }
   .rp-actions { gap: 0.9rem 1.5rem; }
   .rp-whats { padding: 0.6rem 1.2rem; }
 }
+
+/* Phones: more room between the text and the edge of the screen, and a shorter opening so the 3D piece has room above it. */
+@media (max-width: 800px) {
+  .rp-station, .rp-station.is-right, .rp-station.is-left, .rp-station.is-center { padding-left: max(1.7rem, env(safe-area-inset-left)); padding-right: max(1.7rem, env(safe-area-inset-right)); }
+  .nx-wrap { width: calc(100% - 3.4rem); }
+  .shell { width: calc(100% - 3.4rem); }
+  .rp-header { padding-left: 1.4rem; padding-right: 1.4rem; }
+}
+@media (max-width: 800px) and (max-height: 900px) {
+  .rp-stage > .rp-station:first-child .rp-text { font-size: 0.95rem; line-height: 1.38; }
+  .rp-stage > .rp-station:first-child .rp-note { display: none; }
+}

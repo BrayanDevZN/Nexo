@@ -338,6 +338,30 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   return geometry;
 }
 
+/** A low round stage with a glowing rim, for a piece to turn on. `y` is where its top surface sits. */
+function platform(radius: number, y: number) {
+  const holder = new Group();
+  holder.position.y = y;
+  const baseShape = new CylinderGeometry(radius * 1.12, radius * 1.2, 0.22, 56);
+  const base = new Group();
+  base.add(glass(baseShape, 0.55), wire(baseShape, lineMaterial(INK, 0.8), 20));
+  base.position.y = -0.2;
+  const topShape = new CylinderGeometry(radius * 0.9, radius * 0.95, 0.1, 56);
+  const top = new Group();
+  top.add(glass(topShape, 0.55), wire(topShape, lineMaterial(VIOLET, 0.95), 20));
+  top.position.y = -0.04;
+  const rim = circle(radius * 1.32, lineMaterial(VIOLET, 0.9, 1));
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = -0.2;
+  const outer = ticks(radius * 1.45, 90, 0.2, lineMaterial(DEEP, 0.4));
+  outer.rotation.x = Math.PI / 2;
+  outer.position.y = -0.2;
+  const glow = halo(radius * 4.2, 0.5);
+  glow.position.set(0, -0.1, 0);
+  holder.add(glow, base, top, rim, outer);
+  return { holder, rim, outer };
+}
+
 /** A polygon with every corner rounded off. */
 function roundedPolygon(points: [number, number][], radius: number) {
   const shape = new Shape();
@@ -362,7 +386,7 @@ function roundedPolygon(points: [number, number][], radius: number) {
   return shape;
 }
 
-/** The opening: the Nexo "N" with rounded edges, a smooth glass body, inside the three interlocked rings of the logo. */
+/** The opening: the Nexo "N", a smooth rounded glass letter, turning on a small round stage with lights circling it. */
 function monogram(): Piece {
   const group = new Group();
   group.add(halo(12, 0.7));
@@ -385,43 +409,27 @@ function monogram(): Piece {
     0.3,
   );
   const geometry = new ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.24, bevelSegments: 8, curveSegments: 10 });
-  geometry.translate(-w / 2, -h / 2, -0.2);
+  geometry.translate(-w / 2, -h / 2, -0.225);
   const letter = new Group();
   letter.add(glass(geometry, 1));
-  // Three interlocked sets of rings behind it, like the opening logo.
-  const sets: Group[] = [];
-  const logo = new Group();
-  logo.scale.setScalar(0.78);
-  logo.position.z = -0.6;
-  [-2.1, 0, 2.1].forEach((x, index) => {
-    const set = new Group();
-    set.position.x = x;
-    [2.1, 1.75, 1.4].forEach((radius, k) => set.add(circle(radius, lineMaterial(index === 1 ? VIOLET : INK, index === 1 ? 0.9 : 0.55 + k * 0.05))));
-    logo.add(set);
-    sets.push(set);
-  });
-  group.add(logo);
-  const dial = ticks(3.4, 110, 0.26, lineMaterial(DEEP, 0.45));
-  const ring = circle(2.9, lineMaterial(INK, 0.5, 1));
-  ring.rotation.x = 1.25;
-  const sparks = [0, 1, 2, 3].map((i) => {
-    const d = dot(0.08, i % 2 ? BRIGHT : VIOLET);
+  const stage = platform(1.6, -2.2);
+  const sparks = [0, 1, 2].map((i) => {
+    const d = dot(0.08, i === 1 ? BRIGHT : VIOLET);
     group.add(d);
     return d;
   });
-  group.add(letter, dial, ring);
+  group.add(letter, stage.holder);
   return {
     group,
-    update: (t2) => {
-      letter.rotation.y = Math.sin(t2 * 0.5) * 0.4;
-      letter.rotation.x = Math.sin(t2 * 0.35) * 0.12;
-      letter.position.y = Math.sin(t2 * 1.1) * 0.12;
-      dial.rotation.z = t2 * 0.1;
-      ring.rotation.z = t2 * 0.3;
-      sets.forEach((set, i) => (set.rotation.y = Math.sin(t2 * 0.5 + i) * 0.28));
+    update: (time) => {
+      // A full slow turn on the stage.
+      letter.rotation.y = time * 0.7;
+      letter.position.y = Math.sin(time * 1.2) * 0.07;
+      stage.rim.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
+      stage.outer.rotation.z = time * 0.15;
       sparks.forEach((spark, i) => {
-        const angle = t2 * (0.7 + i * 0.15) + i * 1.6;
-        spark.position.set(Math.cos(angle) * 2.9, Math.sin(angle) * 2.9 * Math.cos(1.25), Math.sin(angle) * 2.9 * Math.sin(1.25));
+        const angle = time * (0.8 + i * 0.12) + i * 2.1;
+        spark.position.set(Math.cos(angle) * 2.3, -2.35 + Math.sin(angle * 2) * 0.1, Math.sin(angle) * 2.3);
       });
     },
   };
@@ -774,90 +782,69 @@ function sheet(width = 1.2, height = 1.6, color: Color = INK) {
   return holder;
 }
 
-/** The accounting opening: loose documents swirl around, then line up in a neat stack inside a folder, and scatter again. */
-function docs(): Piece {
+/** The accounting opening: a glass calculator turning on a round stage, keys pressing one after another, a little chart growing on its screen and coins circling it. */
+function calculator(): Piece {
   const group = new Group();
-  group.add(halo(13, 0.65));
-  const folder = slab(2.5, 2.9, 0.06, VIOLET, 0.9);
-  folder.position.z = -0.35;
-  const tab = slab(0.9, 0.28, 0.06, VIOLET, 0.9);
-  tab.position.set(-0.8, 1.55, -0.35);
-  const dial = ticks(3.7, 120, 0.28, lineMaterial(DEEP, 0.45));
-  group.add(folder, tab, dial);
-  const count = 14;
-  const sheets = Array.from({ length: count }, (_, i) => {
-    const holder = sheet(1.2, 1.6, i % 4 === 0 ? VIOLET : INK);
-    group.add(holder);
-    return holder;
+  group.add(halo(12, 0.7));
+  const machine = new Group();
+  const bodyShape = roundedRect(2.7, 3.7, 0.4, 0.55);
+  machine.add(glass(bodyShape, 1), wire(bodyShape, lineMaterial(INK, 0.85), 20));
+  const screenShape = roundedRect(2.2, 0.85, 0.18, 0.1);
+  const screen = new Group();
+  screen.add(glass(screenShape, 1), wire(screenShape, lineMaterial(VIOLET, 0.95), 20));
+  screen.position.set(0, 1.2, 0.3);
+  machine.add(screen);
+  const bars = [0.35, 0.5, 0.42, 0.62, 0.55].map((height, i) => {
+    const bar = slab(0.16, height, 0.05, i === 3 ? VIOLET : INK, 0.9);
+    bar.position.set(-0.7 + i * 0.35, 1.2 - 0.3 + height / 2, 0.38);
+    machine.add(bar);
+    return { bar, height, y0: 1.2 - 0.3 };
   });
-  return {
-    group,
-    update: (t) => {
-      const time = t % 9;
-      // 0 = swirling, 1 = stacked: settles from 3s to 5s, holds, then is thrown apart at 8s.
-      const order = ease(clamp01((time - 3) / 2)) * (1 - ease(clamp01((time - 8) / 0.8)));
-      group.rotation.y = Math.sin(t * 0.3) * 0.35;
-      group.rotation.x = 0.12 + Math.sin(t * 0.2) * 0.06;
-      dial.rotation.z = t * 0.1;
-      sheets.forEach((paper, i) => {
-        const angle = i * 0.9 + t * 0.35;
-        const radius = 2.3 + (i % 3) * 0.7;
-        const cx = Math.cos(angle) * radius;
-        const cy = Math.sin(t * 0.5 + i * 1.7) * 1.4;
-        const cz = Math.sin(angle) * radius * 0.6;
-        paper.position.set(cx + (0 - cx) * order, cy + ((i - count / 2) * 0.02 - cy) * order, cz + ((i - count / 2) * 0.13 - cz) * order);
-        paper.rotation.set((t * 0.5 + i) * (1 - order), (t * 0.7 + i * 2) * (1 - order), Math.sin(i) * 0.5 * (1 - order));
-      });
-    },
-  };
-}
-
-/** The accounting opening: stacks of coins that grow one coin at a time, with a line of growth and a light climbing it. Sits beside the text. */
-function coins(): Piece {
-  const group = new Group();
-  group.add(halo(12, 0.65));
-  const stacks = [
-    { x: -2.2, count: 3, color: INK },
-    { x: 0, count: 5, color: VIOLET },
-    { x: 2.2, count: 7, color: INK },
-  ].map(({ x, count, color }, column) => {
-    const holder = new Group();
-    holder.position.set(x, -2, 0);
-    const discs = Array.from({ length: count }, (_, i) => {
-      const geometry = new CylinderGeometry(0.85, 0.85, 0.18, 36);
-      const disc = new Group();
-      disc.add(glass(geometry), wire(geometry, lineMaterial(color, 0.9), 20));
-      disc.position.y = i * 0.24;
-      holder.add(disc);
-      return disc;
-    });
-    group.add(holder);
-    return { discs, column };
-  });
-  const curve = (u: number) => new Vector3(-2.6 + u * 5.2, -0.2 + u * 3.3 + Math.sin(u * 5) * 0.25, 0);
-  const path: number[] = [];
-  for (let i = 0; i <= 80; i++) {
-    const p = curve(i / 80);
-    path.push(p.x, p.y, p.z);
+  const keys: { key: Group; z: number }[] = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      if (col === 3 && row === 3) continue;
+      const tall = col === 3 && row === 2;
+      const key = slab(0.44, tall ? 0.95 : 0.4, 0.12, col === 3 ? VIOLET : INK, 0.9);
+      key.position.set(-0.84 + col * 0.56, 0.32 - row * 0.55 - (tall ? 0.275 : 0), 0.3);
+      machine.add(key);
+      keys.push({ key, z: 0.3 });
+    }
   }
-  group.add(new Line(new BufferGeometry().setAttribute("position", new Float32BufferAttribute(path, 3)), lineMaterial(VIOLET, 0.8, 1)));
-  const tip = dot(0.17, BRIGHT);
-  group.add(tip);
-  const dial = ticks(4.1, 110, 0.26, lineMaterial(DEEP, 0.35));
-  dial.rotation.x = 0.5;
-  group.add(dial);
+  // Coins circling it.
+  const coinsRing = [0, 1, 2].map((i) => {
+    const geometry = new CylinderGeometry(0.34, 0.34, 0.08, 28);
+    const coin = new Group();
+    coin.add(glass(geometry, 1), wire(geometry, lineMaterial(VIOLET, 0.95), 20));
+    group.add(coin);
+    return { coin, i };
+  });
+  const stage = platform(1.6, -2.2);
+  machine.position.y = -0.2;
+  group.add(machine, stage.holder);
   return {
     group,
-    update: (t) => {
-      const time = t % 9;
-      const fade = 1 - ease(clamp01((time - 8) / 0.8));
-      group.rotation.y = Math.sin(t * 0.3) * 0.4;
-      group.rotation.x = 0.1;
-      dial.rotation.z = t * 0.1;
-      stacks.forEach(({ discs, column }) =>
-        discs.forEach((disc, i) => disc.scale.setScalar(Math.max(0.001, pop(time, 0.3 + column * 0.5 + i * 0.35, 0.4) * fade))),
-      );
-      tip.position.copy(curve((t * 0.12) % 1));
+    update: (time) => {
+      machine.rotation.y = Math.sin(time * 0.5) * 0.7;
+      machine.rotation.x = -0.05 + Math.sin(time * 0.35) * 0.05;
+      machine.position.y = -0.2 + Math.sin(time * 1.2) * 0.06;
+      const pressed = Math.floor(time * 2.2) % keys.length;
+      keys.forEach(({ key, z }, i) => {
+        const down = i === pressed ? Math.max(0, 1 - ((time * 2.2) % 1) * 2) : 0;
+        key.position.z = z - down * 0.07;
+      });
+      bars.forEach(({ bar, height, y0 }, i) => {
+        const grow = 0.75 + 0.25 * Math.sin(time * 1.6 + i * 0.9);
+        bar.scale.y = grow;
+        bar.position.y = y0 + (height * grow) / 2;
+      });
+      stage.rim.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
+      stage.outer.rotation.z = time * 0.15;
+      coinsRing.forEach(({ coin, i }) => {
+        const angle = time * 0.8 + (i * Math.PI * 2) / 3;
+        coin.position.set(Math.cos(angle) * 2.9, -0.4 + Math.sin(angle * 2) * 0.35, Math.sin(angle) * 2.9);
+        coin.rotation.set(time * 2 + i, 0, Math.PI / 2 + Math.sin(time) * 0.3);
+      });
     },
   };
 }
@@ -1104,8 +1091,7 @@ const builders = {
   software: fitted(software, 0.72),
   stages: fitted(() => stages(4), 0.52),
   stages3: fitted(() => stages(3), 0.52),
-  docs: fitted(docs, 0.85),
-  coins: fitted(coins, 0.8),
+  calculator: fitted(calculator, 0.85),
   ledger: fitted(ledger, 0.72),
   archive: fitted(archive, 0.78),
   balance: fitted(balance, 0.72),
@@ -1165,10 +1151,10 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
   const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
   // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
-  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : 4.5);
+  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "calculator" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : 0) : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "calculator" ? 1.5 : 0) : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();

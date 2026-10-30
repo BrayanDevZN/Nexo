@@ -179,7 +179,7 @@ export const stations: Station[] = [
     tags: outcomes.join(" | "),
     note: "Conversa inicial de 20 minutos, sem custo.",
     side: "left",
-    scene: "coins",
+    scene: "calculator",
   },
   {
     id: "rotina",
