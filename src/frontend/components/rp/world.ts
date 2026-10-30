@@ -412,8 +412,8 @@ function monogram(): Piece {
   };
 }
 
-/** The opening: a small floating robot that looks around, blinks and waves, with a glowing ring under it. Sits beside the text. */
-function robot(): Piece {
+/** A small floating robot that looks around, blinks and waves, with a glowing ring under it. With `orbiters`, message bubbles or documents circle it. */
+function robot(orbiters?: "messages" | "documents"): Piece {
   const group = new Group();
   group.add(halo(11, 0.7));
   const figure = new Group();
@@ -488,6 +488,25 @@ function robot(): Piece {
   figure.add(head, body, left, right);
   group.add(ringA, ringB);
 
+  // Messages or documents travelling around it.
+  const count = 5;
+  const around = orbiters
+    ? Array.from({ length: count }, (_, i) => {
+        const holder = new Group();
+        if (orbiters === "messages") {
+          const geometry = roundedRect(1.35, 0.66, 0.26, 0.14);
+          holder.add(glass(geometry, 1), wire(geometry, lineMaterial(i % 2 ? VIOLET : INK, 0.9), 20));
+          holder.add(
+            new LineSegments(new BufferGeometry().setFromPoints([new Vector3(-0.45, 0.1, 0.1), new Vector3(0.35, 0.1, 0.1), new Vector3(-0.45, -0.1, 0.1), new Vector3(0.1, -0.1, 0.1)]), lineMaterial(VIOLET, 0.8, 0)),
+          );
+        } else {
+          holder.add(sheet(0.95, 1.25, i % 2 ? VIOLET : INK));
+        }
+        group.add(holder);
+        return { holder, i };
+      })
+    : [];
+
   return {
     group,
     update: (t) => {
@@ -503,78 +522,15 @@ function robot(): Piece {
       right.rotation.z = -2.5 + Math.sin(t * 5) * 0.35;
       ringA.scale.setScalar(1 + Math.sin(t * 1.2) * 0.06);
       ringB.scale.setScalar(1 + ((t * 0.5) % 1) * 0.15);
+      around.forEach(({ holder, i }) => {
+        const angle = t * 0.5 + (i * Math.PI * 2) / count;
+        holder.position.set(Math.cos(angle) * 2.85, 0.2 + Math.sin(angle * 2 + i) * 0.45, Math.sin(angle) * 2.2);
+        holder.rotation.set(Math.sin(t + i) * 0.15, Math.cos(angle) * -0.5, Math.sin(t * 0.8 + i) * 0.12);
+        holder.scale.setScalar(0.85 + Math.sin(angle) * 0.15);
+      });
       sparks.forEach((spark, i) => {
         const angle = t * (0.9 + i * 0.25) + i * 2.1;
         spark.position.set(Math.cos(angle) * 1.7, -2.25 + Math.sin(angle * 1.5) * 0.25, Math.sin(angle) * 1.7);
-      });
-    },
-  };
-}
-
-/** Agents: a conversation. Message bubbles pop in one after another around a glowing core, then a reply is typed. */
-function agent(): Piece {
-  const group = new Group();
-  group.add(halo(11, 0.65));
-  const lattice = wire(new IcosahedronGeometry(1.05, 0), lineMaterial(VIOLET, 0.9));
-  const core = glass(new IcosahedronGeometry(0.8, 2));
-  const dial = new Group();
-  dial.add(ticks(3.9, 96, 0.26, lineMaterial(DEEP, 0.4)));
-  dial.rotation.x = 1.15;
-  group.add(lattice, core, dial);
-  // The tail of a bubble is a small wedge on its lower corner.
-  const bubbles = [
-    { at: [-2.1, 1.55, 0.2], size: [2.5, 0.95], color: INK, side: -1, start: 0.2 },
-    { at: [2.0, 0.35, 0.4], size: [2.9, 1.15], color: VIOLET, side: 1, start: 1.5 },
-    { at: [-1.9, -1.1, 0.1], size: [2.2, 0.85], color: INK, side: -1, start: 2.9 },
-  ].map(({ at, size, color, side, start }) => {
-    const holder = new Group();
-    const geometry = roundedRect(size[0], size[1], 0.32, 0.22);
-    holder.add(glass(geometry), wire(geometry, lineMaterial(color, 0.9), 20));
-    // Lines of text inside the bubble.
-    const text = new LineSegments(
-      new BufferGeometry().setAttribute(
-        "position",
-        new Float32BufferAttribute(
-          [-size[0] * 0.36, size[1] * 0.12, 0.13, size[0] * 0.3, size[1] * 0.12, 0.13, -size[0] * 0.36, -size[1] * 0.14, 0.13, size[0] * 0.1, -size[1] * 0.14, 0.13],
-          3,
-        ),
-      ),
-      lineMaterial(color, 0.7, 0),
-    );
-    holder.add(text);
-    holder.position.set(at[0], at[1], at[2]);
-    holder.userData = { side, start, home: new Vector3(at[0], at[1], at[2]) };
-    group.add(holder);
-    return holder;
-  });
-  // The three dots of "typing...".
-  const typing = [0, 1, 2].map((i) => {
-    const d = dot(0.13, i === 1 ? BRIGHT : VIOLET);
-    d.position.set(1.2 + i * 0.5, -1.55, 0.3);
-    group.add(d);
-    return d;
-  });
-  return {
-    group,
-    update: (t) => {
-      const time = t % 7;
-      const fade = 1 - ease(clamp01((time - 6.2) / 0.7));
-      group.rotation.y = Math.sin(t * 0.3) * 0.4;
-      group.rotation.x = Math.sin(t * 0.22) * 0.12;
-      lattice.rotation.set(-t * 0.25, -t * 0.4, 0);
-      core.rotation.y = t * 0.3;
-      core.scale.setScalar(1 + Math.sin(t * 1.6) * 0.07);
-      dial.rotation.z = t * 0.15;
-      bubbles.forEach((bubble) => {
-        const { start, home } = bubble.userData as { start: number; home: Vector3 };
-        const k = Math.max(0.001, pop(time, start) * fade);
-        bubble.scale.setScalar(k);
-        bubble.position.set(home.x, home.y + Math.sin(t * 0.9 + start) * 0.12, home.z);
-      });
-      typing.forEach((d, i) => {
-        const on = time > 4.2 && time < 6.6 ? 1 : 0;
-        d.scale.setScalar(Math.max(0.001, on * (0.8 + Math.max(0, Math.sin(t * 6 - i * 0.9)) * 0.6)));
-        d.position.y = -1.55 + Math.max(0, Math.sin(t * 6 - i * 0.9)) * 0.22;
       });
     },
   };
@@ -802,59 +758,6 @@ function nexoBooks(): Piece {
   };
 }
 
-/** The accounting books: a ledger page checked line by line by a magnifier, one line flagged for a person to look at. */
-function ledger(): Piece {
-  const group = new Group();
-  group.add(halo(11, 0.6));
-  const page = slab(3.3, 4.2, 0.12);
-  const dial = ticks(3.7, 100, 0.24, lineMaterial(DEEP, 0.4));
-  dial.rotation.x = 0.4;
-  group.add(page, dial);
-  const rowY = (i: number) => 1.45 - i * 0.55;
-  const lines: number[] = [];
-  for (let i = 0; i < 6; i++) lines.push(-1.35, rowY(i), 0.08, 0.5, rowY(i), 0.08, 0.85, rowY(i), 0.08, 1.15, rowY(i), 0.08);
-  group.add(new LineSegments(new BufferGeometry().setAttribute("position", new Float32BufferAttribute(lines, 3)), lineMaterial(INK, 0.75, 0)));
-  const mark = (flag: boolean) => {
-    const geometry = new BufferGeometry().setAttribute(
-      "position",
-      new Float32BufferAttribute(flag ? [0, 0.2, 0, 0, -0.04, 0, 0, -0.14, 0, 0, -0.17, 0] : [-0.16, 0, 0, -0.04, -0.13, 0, -0.04, -0.13, 0, 0.18, 0.15, 0], 3),
-    );
-    return flag ? new LineSegments(geometry, lineMaterial(BRIGHT, 1, 0)) : new LineSegments(geometry, lineMaterial(VIOLET, 1, 0));
-  };
-  const marks = Array.from({ length: 6 }, (_, i) => {
-    const holder = new Group();
-    holder.add(mark(i === 3));
-    if (i === 3) holder.add(dot(0.05, BRIGHT));
-    holder.children[holder.children.length - 1].position.y = i === 3 ? -0.17 : 0;
-    holder.position.set(1.4, rowY(i), 0.1);
-    group.add(holder);
-    return holder;
-  });
-  const glassRing = circle(0.55, lineMaterial(VIOLET, 1, 0));
-  const handle = new Line(new BufferGeometry().setFromPoints([new Vector3(0.39, -0.39, 0), new Vector3(0.9, -0.9, 0)]), lineMaterial(VIOLET, 1, 0));
-  const lens = new Group();
-  lens.add(glassRing, handle, glass(new SphereGeometry(0.5, 20, 20), 0.5));
-  lens.children[2].scale.z = 0.05;
-  group.add(lens);
-  return {
-    group,
-    update: (t) => {
-      const time = t % 9;
-      const fade = 1 - ease(clamp01((time - 8) / 0.8));
-      group.rotation.y = Math.sin(t * 0.35) * 0.5;
-      group.rotation.x = -0.1 + Math.sin(t * 0.25) * 0.08;
-      dial.rotation.z = t * 0.12;
-      const row = clamp01(time / 6.5) * 5;
-      lens.position.set(-0.2 + Math.sin(time * 2) * 0.12, 1.45 - row * 0.55, 0.3);
-      lens.scale.setScalar(Math.max(0.001, fade));
-      marks.forEach((holder, i) => {
-        const k = Math.max(0.001, pop(time, i * 1.3 + 0.7, 0.4) * fade);
-        holder.scale.setScalar(i === 3 ? k * (1 + Math.sin(t * 4) * 0.1) : k);
-      });
-    },
-  };
-}
-
 /** Organised documents: loose sheets fall from above into three folders, one after another. */
 function archive(): Piece {
   const group = new Group();
@@ -1036,16 +939,16 @@ function fitted(build: () => Piece, size: number): () => Piece {
 
 const builders = {
   rings,
-  robot: fitted(robot, 0.95),
+  robot: fitted(() => robot(), 0.95),
+  robotChat: fitted(() => robot("messages"), 0.74),
+  robotDocs: fitted(() => robot("documents"), 0.74),
   monogram: fitted(monogram, 0.85),
-  agent: fitted(agent, 0.85),
   flow: fitted(flow, 0.7),
   systems: fitted(systems, 0.6),
   software: fitted(software, 0.72),
   stages: fitted(() => stages(4), 0.52),
   stages3: fitted(() => stages(3), 0.52),
   nexoBooks: fitted(nexoBooks, 0.85),
-  ledger: fitted(ledger, 0.72),
   archive: fitted(archive, 0.78),
   balance: fitted(balance, 0.72),
   orb,
@@ -1104,10 +1007,10 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
   const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
   // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
-  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "nexoBooks" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
+  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : (stations[index].scene === "robotChat" || stations[index].scene === "robotDocs") ? 4.7 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "nexoBooks" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "nexoBooks" ? 1.2 : 0) : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? ((stations[index].scene === "robot" || stations[index].scene === "robotChat" || stations[index].scene === "robotDocs") ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "nexoBooks" ? 1.2 : 0) : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();

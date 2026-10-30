@@ -199,7 +199,7 @@ export const stations: Station[] = [
       text: solution.text,
       points: [...solution.points],
       side: index % 2 === 0 ? "right" : "left",
-      scene: (["agent", "ledger", "archive", "systems"] as const)[index],
+      scene: (["robotChat", "robotDocs", "archive", "systems"] as const)[index],
     }),
   ),
   {
