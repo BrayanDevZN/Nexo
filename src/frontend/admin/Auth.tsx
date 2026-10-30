@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator";
 import { ROLE_LABELS, type createApi, type GoogleProfile, type Role, type User } from "./api";
 import { PhotoPicker } from "./PhotoPicker";
+import { LoginN, type LoginNHandle } from "./LoginN";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "./shared";
 
 type Props = { api: ReturnType<typeof createApi>; complete: boolean; inviteToken?: string; onLogin: (user: User) => void };
@@ -18,7 +19,10 @@ function GoogleLogo() {
     <path fill="#EA4335" d="M12 5.96c1.47 0 2.79.5 3.83 1.51l2.87-2.87A9.62 9.62 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.72 9.4 5.96 12 5.96Z" />
   </svg>;
 }
-export function Auth({ api, complete, inviteToken, onLogin }: Props) {
+export function Auth({ api, complete, inviteToken, onLogin: enter }: Props) {
+  const letter = useRef<LoginNHandle>(null);
+  // The N breaks into particles first, then the panel opens.
+  const onLogin = async (user: User) => { await letter.current?.dissolve(); enter(user); };
   const [mode, setMode] = useState<Mode>(inviteToken ? "register" : "login");
   const [createdUser, setCreatedUser] = useState<User>();
   const [selectedPhoto, setSelectedPhoto] = useState<File>();
@@ -58,9 +62,9 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
         const user = await api.mutate<User>("/auth/google/complete", "POST", {
           name: values.name, phone: values.phone, invite_token: inviteToken,
         }, google.csrf_token);
-        if (inviteToken) onLogin(user); else setCreatedUser(user);
+        if (inviteToken) await onLogin(user); else setCreatedUser(user);
       } else if (mode === "login") {
-        onLogin(await api.publicPost<User>("/auth/login", { email, password: values.password }));
+        await onLogin(await api.publicPost<User>("/auth/login", { email, password: values.password }));
       } else if (mode === "register") {
         if (!passwordValid(values.password)) throw new Error("Use pelo menos 12 caracteres e até 72 bytes na senha.");
         if (values.password !== values.confirm_password) throw new Error("As senhas não coincidem.");
@@ -68,7 +72,7 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
           const user = await api.publicPost<User>("/auth/invitations/" + encodeURIComponent(inviteToken) + "/register", {
             name: values.name, phone: values.phone, email, password: values.password,
           });
-          onLogin(user);
+          await onLogin(user);
           return;
         }
         await api.publicPost("/auth/register", { name: values.name, phone: values.phone, email, password: values.password });
@@ -105,6 +109,7 @@ export function Auth({ api, complete, inviteToken, onLogin }: Props) {
   return <main className="admin-auth">
     <section className="admin-intro">
       <a href="/" aria-label="Nexo, voltar ao site"><Brand /></a>
+      <LoginN ref={letter} />
       <div><span className="admin-eyebrow">ESPAÇO NEXO</span><h1>Seu próximo<br />passo, conectado.</h1>
         <p>Organize os contatos, acompanhe os contratos e mantenha a equipe na mesma página.</p></div>
       <p className="flex items-center gap-2"><ShieldCheck className="size-5" /> Acesso liberado pelo administrador.</p>

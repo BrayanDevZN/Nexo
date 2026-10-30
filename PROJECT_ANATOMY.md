@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
+Generated: 2026-10-30 | 423 files | ~496.7K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -167,7 +167,7 @@ Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
 | src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
-| src/frontend/admin/Auth.tsx | 158 | 3.1K | source |
+| src/frontend/admin/Auth.tsx | 163 | 3.2K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
 | src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
@@ -186,6 +186,7 @@ Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 | src/frontend/admin/GeneralHome.tsx | 68 | 1.4K | source |
 | src/frontend/admin/Home.tsx | 43 | 1.8K | source |
 | src/frontend/admin/leadContact.ts | 97 | 1.1K | source |
+| src/frontend/admin/LoginN.tsx | 35 | 354 | source |
 | src/frontend/admin/Maps.tsx | 619 | 10.7K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
 | src/frontend/admin/MemberPhoto.tsx | 21 | 341 | source |
@@ -219,7 +220,7 @@ Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 | src/frontend/components/rp/nexoShape.ts | 5 | 610 | source |
 | src/frontend/components/rp/Particles.tsx | 219 | 2.1K | source |
 | src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
-| src/frontend/components/rp/world.ts | 1216 | 12.6K | source |
+| src/frontend/components/rp/world.ts | 1351 | 14.0K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
 | src/frontend/components/StreamingDemo.tsx | 474 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
@@ -403,7 +404,7 @@ Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
-| src/frontend/styles/admin.css | 170 | 3.9K | style |
+| src/frontend/styles/admin.css | 188 | 4.3K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
 | src/frontend/styles/robin.css | 392 | 8.4K | style |
@@ -428,16 +429,16 @@ Generated: 2026-10-30 | 422 files | ~494.4K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 268 files, ~311.0K tokens
+- source: 269 files, ~312.9K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~35.0K tokens
+- style: 5 files, ~35.5K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
-2. src/frontend/components/rp/world.ts — 1216 lines (~12.6K tokens)
+2. src/frontend/components/rp/world.ts — 1351 lines (~14.0K tokens)
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)

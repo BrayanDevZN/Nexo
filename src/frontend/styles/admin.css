@@ -10,13 +10,13 @@ html.admin-theme {
   --ad-card: color-mix(in srgb, #ffffff 68%, transparent);
   --ad-card-solid: #fbf8ff;
   --ad-line: color-mix(in srgb, var(--primary) 16%, transparent);
-  --ad-shadow: 0 14px 44px color-mix(in srgb, var(--primary) 9%, transparent);
+  --ad-shadow: 0 22px 64px color-mix(in srgb, var(--primary) 26%, transparent), 0 4px 14px color-mix(in srgb, var(--primary) 14%, transparent);
 }
 html.admin-theme.dark {
   --ad-card: color-mix(in srgb, #1a1030 74%, transparent);
   --ad-card-solid: #150d27;
   --ad-line: color-mix(in srgb, var(--primary) 22%, transparent);
-  --ad-shadow: 0 14px 44px rgb(0 0 0 / 0.35);
+  --ad-shadow: 0 22px 64px rgb(0 0 0 / 0.6), 0 4px 14px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 html.admin-theme body { font-family: var(--rp-body); background: var(--background); }
 html.admin-theme.dark body { background: #0a0612; }
@@ -32,7 +32,7 @@ html.admin-theme :is(.admin-section-head h1, .admin-intro h1, [data-slot="card-t
   font-family: var(--rp-display); text-transform: uppercase; letter-spacing: 0.035em; font-weight: 600;
 }
 html.admin-theme .admin-section-head h1 { font-size: clamp(2.2rem, 3.6vw, 3.2rem); line-height: 1.02; }
-html.admin-theme .admin-intro h1 { font-size: clamp(2.8rem, 6vw, 5.4rem); line-height: 1; letter-spacing: 0.03em; }
+html.admin-theme .admin-intro h1 { font-size: clamp(2.4rem, 4.4vw, 4.4rem); line-height: 1; letter-spacing: 0.03em; }
 html.admin-theme [data-slot="card-title"] { font-size: 1.35rem; line-height: 1.15; }
 html.admin-theme :is(.admin-section-head p, .admin-intro p, [data-slot="card-description"]) { font-weight: 300; font-size: 1rem; line-height: 1.5; }
 html.admin-theme :is(.admin-section-head p, .admin-intro p) { color: color-mix(in srgb, var(--ad-ink) 80%, transparent); }
@@ -47,9 +47,9 @@ html.admin-theme [data-slot="button"] {
   transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s, filter 0.25s;
 }
 html.admin-theme [data-slot="button"][data-variant="default"], html.admin-theme [data-slot="button"]:not([data-variant]) {
-  background: var(--primary); color: var(--primary-foreground); box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 28%, transparent);
+  background: var(--primary); color: var(--primary-foreground); box-shadow: 0 10px 30px color-mix(in srgb, var(--primary) 45%, transparent);
 }
-html.admin-theme [data-slot="button"][data-variant="default"]:hover { filter: brightness(1.1); box-shadow: 0 8px 28px color-mix(in srgb, var(--primary) 40%, transparent); }
+html.admin-theme [data-slot="button"][data-variant="default"]:hover { filter: brightness(1.1); box-shadow: 0 14px 40px color-mix(in srgb, var(--primary) 58%, transparent); }
 html.admin-theme [data-slot="button"][data-variant="outline"] {
   background: color-mix(in srgb, var(--ad-card-solid) 70%, transparent); border: 1px solid color-mix(in srgb, var(--ad-ink) 28%, transparent); color: var(--ad-ink); box-shadow: none;
 }
@@ -69,7 +69,7 @@ html.admin-theme .admin-sidebar { background: color-mix(in srgb, var(--ad-card-s
 html.admin-theme .admin-topbar { background: transparent; border-bottom: 1px solid var(--ad-line); }
 html.admin-theme .admin-panel-nav button[data-variant="ghost"] { color: color-mix(in srgb, var(--ad-ink) 82%, transparent); }
 html.admin-theme .admin-panel-nav button[data-variant="secondary"], html.admin-theme .admin-panel-nav button[aria-current="page"] {
-  background: var(--primary); color: var(--primary-foreground); box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 30%, transparent);
+  background: var(--primary); color: var(--primary-foreground); box-shadow: 0 12px 32px color-mix(in srgb, var(--primary) 46%, transparent);
 }
 html.admin-theme .admin-panel-nav button[aria-current="page"] [data-slot="badge"] { background: #fff; color: var(--primary); }
 
@@ -92,7 +92,7 @@ html.admin-theme [data-slot="progress"] { border-radius: 999px; }
 
 /* ---- overlays: dialogs, sheets, menus ---- */
 html.admin-theme :is([data-slot="dialog-content"], .cn-dialog-content, [data-slot="sheet-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="alert-dialog-content"]) {
-  background: var(--ad-card-solid); border: 1px solid var(--ad-line); border-radius: 1.6rem; box-shadow: 0 30px 90px color-mix(in srgb, var(--primary) 22%, transparent);
+  background: var(--ad-card-solid); border: 1px solid var(--ad-line); border-radius: 1.6rem; box-shadow: 0 34px 100px color-mix(in srgb, var(--primary) 40%, transparent), 0 6px 20px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 html.admin-theme [data-slot="sheet-content"] { border-radius: 0 1.6rem 1.6rem 0; }
 html.admin-theme :is([data-slot="dialog-overlay"], [data-slot="sheet-overlay"], .cn-dialog-overlay) { background: color-mix(in srgb, #1b0b33 38%, transparent); }
@@ -167,3 +167,21 @@ html.admin-theme :is(h1, h2, h3):not([data-slot]) { font-family: var(--rp-displa
 html[data-reduce-motion="true"] .rp-area, html[data-reduce-motion="true"] .rp-gateway-text { animation: none; opacity: 1; transform: none; }
 html[data-reduce-motion="true"] .rp-gateway .rp-letter { animation: none; opacity: 1; transform: none; }
 html[data-reduce-motion="true"] .rp-gateway .rp-ring { animation: none; stroke-dashoffset: 0; }
+
+/* ---- stronger shade around fields, outline buttons and the sidebar ---- */
+html.admin-theme :is([data-slot="input"], [data-slot="native-select"], select, [data-slot="select-trigger"], [data-slot="textarea"], textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) { box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 14%, transparent); }
+html.admin-theme [data-slot="button"][data-variant="outline"] { box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 16%, transparent); }
+html.admin-theme [data-slot="button"][data-variant="outline"]:hover { box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 36%, transparent); }
+html.admin-theme .admin-sidebar { box-shadow: 8px 0 40px color-mix(in srgb, var(--primary) 14%, transparent); }
+html.admin-theme .admin-topbar { box-shadow: 0 8px 30px color-mix(in srgb, var(--primary) 10%, transparent); }
+
+/* ---- the N on the sign-in screen: beside the text on a wide screen, above the form on a phone ---- */
+.admin-login-n { display: block; width: min(100%, 20rem); aspect-ratio: 1; height: auto; max-height: 30vh; margin-block: -0.75rem; }
+@media (max-width: 760px) {
+  .admin-auth { gap: 0.75rem; }
+  .admin-intro { align-items: center; text-align: center; gap: 0.5rem; }
+  .admin-intro > div:has(h1) { display: flex; flex-direction: column; align-items: center; }
+  .admin-login-n { width: min(70vw, 15rem); max-height: 28vh; }
+  .admin-intro h1 { font-size: clamp(1.7rem, 8vw, 2.4rem); margin: 0.25rem 0 0; }
+}
+@media (max-height: 640px) and (max-width: 760px) { .admin-login-n { max-height: 20vh; } .admin-intro h1 { display: none; } }
