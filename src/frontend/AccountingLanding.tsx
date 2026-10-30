@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { AccountingVisual } from "@/components/AccountingVisual";
 import { Faq } from "@/components/home/Faq";
 import { Close } from "@/components/home/Close";
-import { Intro } from "@/components/rp/Intro";
 import { Journey } from "@/components/rp/Journey";
 import { Particles } from "@/components/rp/Particles";
 import { Scene } from "@/components/rp/Scene";
@@ -42,9 +41,6 @@ export default function AccountingLanding() {
   const revealRef = useScrollReveal();
   useButtonFeedback();
   useSectionNavigation();
-  // Same opening as the home page, except when a link points at a section.
-  const [intro, setIntro] = useState(() => !window.location.hash);
-  const [started, setStarted] = useState(() => !!window.location.hash);
   const href = useMemo(() => landingWhatsappUrl(window.location.search), []);
   useEffect(() => {
     document.title = landingTitle;
@@ -65,13 +61,12 @@ export default function AccountingLanding() {
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
-      {intro ? <Intro onStart={() => setStarted(true)} onEnter={() => setIntro(false)} /> : null}
       <Scene stations={stations} />
       <Particles />
       <SiteHeader entries={entries} cta={{ ...whatsapp("header"), label: "WhatsApp" }} />
       <main id="conteudo" ref={revealRef} className="rp-page">
         <Journey
-          play={started}
+          play
           stations={stations}
           label="Nexo para contabilidade"
           actions={(index) =>
