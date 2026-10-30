@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 424 files | ~498.2K tokens if all read
+Generated: 2026-10-30 | 424 files | ~498.5K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -167,7 +167,7 @@ Generated: 2026-10-30 | 424 files | ~498.2K tokens if all read
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
 | src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
-| src/frontend/admin/areaTransition.ts | 129 | 1.3K | source |
+| src/frontend/admin/areaTransition.ts | 145 | 1.5K | source |
 | src/frontend/admin/Auth.tsx | 163 | 3.2K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
@@ -405,7 +405,7 @@ Generated: 2026-10-30 | 424 files | ~498.2K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
-| src/frontend/styles/admin.css | 200 | 4.6K | style |
+| src/frontend/styles/admin.css | 203 | 4.6K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
 | src/frontend/styles/robin.css | 392 | 8.4K | style |
@@ -430,7 +430,7 @@ Generated: 2026-10-30 | 424 files | ~498.2K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 270 files, ~314.2K tokens
+- source: 270 files, ~314.4K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens

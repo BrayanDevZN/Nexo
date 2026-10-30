@@ -168,14 +168,14 @@ export default function AdminApp() {
   }
   // Entering or leaving an area: a veil of particles gathers into the N and clears, and the page changes under it.
   function pickArea(next: Area) {
-    playAreaTransition(() => {
+    playAreaTransition(AREAS[next].label, () => {
       setAreaChoice(next); setPage(defaultPage(next)); setMobileOpen(false);
       try { sessionStorage.setItem("nexo:area", next); } catch { /* sem armazenamento */ }
     });
   }
   function switchArea() {
     setMobileOpen(false);
-    playAreaTransition(() => {
+    playAreaTransition("Áreas", () => {
       setAreaChoice(null);
       try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
     });
@@ -193,8 +193,8 @@ export default function AdminApp() {
   function toggleSidebar() { setSidebarCollapsed(value => { const next = !value; localStorage.setItem("nexo:sidebar-collapsed", String(next)); return next; }); }
   const navigation = (
       <nav className="admin-panel-nav" aria-label="Navegação do painel">
-        {area && <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1"><Badge variant="secondary" className="max-w-full">{AREAS[area].label}</Badge>
-          {allowedAreas.length > 1 && <Button variant="ghost" size="sm" onClick={switchArea} aria-label="Trocar de área"><ArrowRightLeft data-icon="inline-start" /> Trocar</Button>}</div>}
+        {area && <div className="flex items-center gap-2 px-1 pb-1"><Badge variant="secondary" className="max-w-full">{AREAS[area].label}</Badge></div>}
+        {area && allowedAreas.length > 1 && <Button variant="ghost" onClick={switchArea} aria-label="Trocar de área"><ArrowRightLeft data-icon="inline-start" /> Trocar de área</Button>}
         {area === "general" && <Button variant={page === "general-home" ? "secondary" : "ghost"} onClick={() => navigate("general-home")} aria-current={page === "general-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "dev" && <Button variant={page === "dev-home" ? "secondary" : "ghost"} onClick={() => navigate("dev-home")} aria-current={page === "dev-home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
         {area === "commercial" && <Button variant={page === "home" ? "secondary" : "ghost"} onClick={() => navigate("home")} aria-current={page === "home" ? "page" : undefined}><Activity data-icon="inline-start" /> Início</Button>}
