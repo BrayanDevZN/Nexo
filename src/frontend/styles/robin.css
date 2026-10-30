@@ -347,3 +347,6 @@ html { font-size: 112.5%; }
 /* The demo section: its columns may shrink below the width of their widest content, so nothing sticks out on a phone. */
 .streaming-section > * { min-width: 0; }
 @media (max-width: 767px) { .streaming-section { grid-template-columns: minmax(0, 1fr); } }
+
+/* Very narrow windows (a phone preview in dev tools) shrink the layout instead of scrolling sideways. */
+body { min-width: 0; }
