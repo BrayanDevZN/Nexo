@@ -16,6 +16,7 @@ import "@fontsource/lato/700.css";
 import "./styles/globals.css";
 import "./styles/site.css";
 import "./styles/robin.css";
+import "./styles/admin.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 const AccountingLanding = lazy(() => import("./AccountingLanding"));
@@ -24,7 +25,7 @@ const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
 const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
 const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
 
-if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); }
+if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); document.documentElement.classList.add("admin-theme"); }
 else {
   setCanonical(window.location.pathname);
   startSiteEffects(startPageEntrance());
@@ -33,8 +34,8 @@ else {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
-      {adminRoute ? null : <Backdrop />}
-      {adminRoute || privacyRoute ? <AnimatedBackground /> : null}
+      <Backdrop />
+      {privacyRoute ? <AnimatedBackground /> : null}
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
       {adminRoute ? null : <CookieNotice />}
     </MotionProvider>
