@@ -30,7 +30,7 @@ export type Station = {
   points?: string[];
   note?: string;
   side: "left" | "right" | "center";
-  scene: "rings" | "robot" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "docs" | "coins" | "ledger" | "archive" | "balance";
+  scene: "rings" | "robot" | "monogram" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "docs" | "coins" | "ledger" | "archive" | "balance";
 };
 
 export const stations: Station[] = [
@@ -41,7 +41,7 @@ export const stations: Station[] = [
     text: "Sua equipe gasta tempo demais em tarefas repetitivas. Nós usamos IA para resolver isso, para você atender mais clientes e entregar mais sem sobrecarregar ninguém.",
     tags: "Atendimento | Rotinas automáticas | Sistemas conectados",
     side: "left",
-    scene: "robot",
+    scene: "monogram",
   },
   ...solutions.map((solution, index): Station => ({
     id: `solucao-${index + 1}`,
@@ -53,7 +53,7 @@ export const stations: Station[] = [
     points: solution.includes,
     note: solution.example,
     side: index % 2 === 0 ? "left" : "right",
-    scene: (["agent", "flow", "systems", "software"] as const)[index],
+    scene: (["robot", "flow", "systems", "software"] as const)[index],
   })),
   {
     id: "processo-estacao",

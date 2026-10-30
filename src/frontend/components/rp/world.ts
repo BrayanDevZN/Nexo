@@ -338,6 +338,56 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   return geometry;
 }
 
+/** The opening: the Nexo "N" as a glass letter with a bevelled edge, turning slowly inside a dial, with lights orbiting it. */
+function monogram(): Piece {
+  const group = new Group();
+  group.add(halo(12, 0.7));
+  const w = 2.8;
+  const h = 3.6;
+  const t = 0.78;
+  const shape = new Shape();
+  [
+    [0, 0],
+    [t, 0],
+    [t, h * 0.55],
+    [w - t, 0],
+    [w, 0],
+    [w, h],
+    [w - t, h],
+    [w - t, h * 0.45],
+    [t, h],
+    [0, h],
+  ].forEach(([x, y], i) => (i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)));
+  shape.closePath();
+  const geometry = new ExtrudeGeometry(shape, { depth: 0.7, bevelEnabled: true, bevelSize: 0.09, bevelThickness: 0.09, bevelSegments: 2 });
+  geometry.translate(-w / 2, -h / 2, -0.35);
+  const letter = new Group();
+  letter.add(glass(geometry), wire(geometry, lineMaterial(VIOLET, 0.95), 20));
+  const dial = ticks(3.4, 110, 0.26, lineMaterial(DEEP, 0.45));
+  const ring = circle(2.9, lineMaterial(INK, 0.5, 1));
+  ring.rotation.x = 1.25;
+  const sparks = [0, 1, 2, 3].map((i) => {
+    const d = dot(0.08, i % 2 ? BRIGHT : VIOLET);
+    group.add(d);
+    return d;
+  });
+  group.add(letter, dial, ring);
+  return {
+    group,
+    update: (t2) => {
+      letter.rotation.y = Math.sin(t2 * 0.5) * 0.7;
+      letter.rotation.x = Math.sin(t2 * 0.35) * 0.12;
+      letter.position.y = Math.sin(t2 * 1.1) * 0.12;
+      dial.rotation.z = t2 * 0.1;
+      ring.rotation.z = t2 * 0.3;
+      sparks.forEach((spark, i) => {
+        const angle = t2 * (0.7 + i * 0.15) + i * 1.6;
+        spark.position.set(Math.cos(angle) * 2.9, Math.sin(angle) * 2.9 * Math.cos(1.25), Math.sin(angle) * 2.9 * Math.sin(1.25));
+      });
+    },
+  };
+}
+
 /** The opening: a small floating robot that looks around, blinks and waves, with a glowing ring under it. Sits beside the text. */
 function robot(): Piece {
   const group = new Group();
@@ -1008,6 +1058,7 @@ function fitted(build: () => Piece, size: number): () => Piece {
 const builders = {
   rings,
   robot: fitted(robot, 0.95),
+  monogram: fitted(monogram, 0.85),
   agent: fitted(agent, 0.85),
   flow: fitted(flow, 0.7),
   systems: fitted(systems, 0.6),
@@ -1078,7 +1129,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait && stations[index].scene === "robot" ? 0.9 : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait && (stations[index].scene === "robot" || stations[index].scene === "monogram") ? 0.9 : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();
