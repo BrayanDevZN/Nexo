@@ -979,12 +979,13 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const camera = new PerspectiveCamera(50, 1, 0.1, 80);
 
   // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
-  const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
+  const layout = { fit: 1, lift: 0, distance: 9, portrait: false, fitBy: [] as number[], liftBy: [] as number[] };
   // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
-  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : (stations[index].scene === "robotChat" || stations[index].scene === "robotDocs") ? 4.7 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "nexoBooks" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
-  const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
+  const reachOf: Record<string, number> = { flow: 4.8, robot: 2.9, robotChat: 2.9, robotDocs: 2.9, monogram: 2.6, nexoBooks: 3.5 };
+  const reach = (index: number) => reachOf[stations[index].scene] ?? 4.1;
+  const fitOf = (index: number) => (layout.portrait ? layout.fitBy[index] ?? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? ((stations[index].scene === "robot" || stations[index].scene === "robotChat" || stations[index].scene === "robotDocs") ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "nexoBooks" ? 1.2 : 0) : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.portrait ? layout.liftBy[index] ?? layout.lift : 0, -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();
@@ -1023,6 +1024,37 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const to = new Vector3();
   const smooth = (x: number) => x * x * (3 - 2 * x);
 
+  /**
+   * On a phone each piece sits in the free band between the header and the first line of its station's text,
+   * as big as that band allows (never bigger than the screen is wide), whatever the size of the screen or the text.
+   */
+  const fitToText = () => {
+    if (!layout.portrait) return false;
+    const articles = document.querySelectorAll<HTMLElement>(".rp-stage > .rp-station");
+    const menu = document.querySelector<HTMLElement>(".rp-header .rp-menu-btn");
+    if (!articles.length || !menu) return false;
+    const canvasHeight = canvas.clientHeight || window.innerHeight;
+    const halfHeight = layout.distance * Math.tan((camera.fov * Math.PI) / 360);
+    const halfWidth = halfHeight * camera.aspect;
+    const perPixel = (2 * halfHeight) / canvasHeight;
+    const top = menu.getBoundingClientRect().bottom + 6;
+    let changed = false;
+    articles.forEach((article, index) => {
+      const first = article.firstElementChild as HTMLElement | null;
+      if (!first || index >= pieces.length) return;
+      // The article's own scroll offset cancels out, so this is where its text starts inside the screen.
+      const textTop = first.getBoundingClientRect().top - article.getBoundingClientRect().top - 8;
+      const band = Math.max(40, textTop - top);
+      const centre = (top + Math.max(top + 40, textTop)) / 2;
+      const lift = (canvasHeight / 2 - centre) * perPixel;
+      const fit = MathUtils.clamp(Math.min((band * perPixel * 0.5) / reach(index), (halfWidth * 0.9) / reach(index)), 0.12, 1);
+      if (Math.abs((layout.fitBy[index] ?? 0) - fit) > 0.002 || Math.abs((layout.liftBy[index] ?? 0) - lift) > 0.01) changed = true;
+      layout.fitBy[index] = fit;
+      layout.liftBy[index] = lift;
+    });
+    return changed;
+  };
+
   const resize = () => {
     const width = canvas.clientWidth || window.innerWidth;
     const height = canvas.clientHeight || window.innerHeight;
@@ -1042,8 +1074,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       layout.distance = 12;
       // The widest piece reaches about 4.5 units from its centre. Keep it inside the width and inside
       // the band between the header and the text (the top ~40% of the screen).
-      // The canvas is as tall as the screen with the browser bars hidden, but while they show the page only
-      // has `window.innerHeight`: place everything against what can actually be seen.
+      // Fallback until the text has been measured (see fitToText).
       const seen = Math.min(1, window.innerHeight / height);
       layout.fit = MathUtils.clamp(Math.min((halfWidth * 0.9) / 4.5, (halfHeight * 0.36 * seen) / 4.5), 0.3, 1);
       layout.lift = halfHeight * (1 - 0.6 * seen);
@@ -1053,6 +1084,9 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       layout.lift = 0;
     }
     scene.fog = new Fog(MIST, layout.portrait ? 15 : 9, layout.portrait ? 32 : 26);
+    layout.fitBy = [];
+    layout.liftBy = [];
+    fitToText();
     pieces.forEach(place);
     pointScale.value = (height * ratio) / (2 * Math.tan((camera.fov * Math.PI) / 360));
   };
@@ -1060,6 +1094,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   window.addEventListener("resize", resize);
 
   let frame = 0;
+  let frames = 0;
   let last = performance.now();
   let time = 0;
   let shown = journey.station;
@@ -1069,6 +1104,8 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     frame = requestAnimationFrame(loop);
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    // The text can change size (fonts arriving, a rotated phone): re-measure now and then.
+    if (layout.portrait && ++frames % 20 === 0 && fitToText()) pieces.forEach(place);
     // Past the corridor the canvas is hidden, otherwise its last frame would show through the page.
     const visibility = journey.active ? "visible" : "hidden";
     if (canvas.style.visibility !== visibility) canvas.style.visibility = visibility;

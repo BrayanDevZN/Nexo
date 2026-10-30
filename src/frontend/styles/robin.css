@@ -370,3 +370,17 @@ body { min-width: 0; }
   .rp-stage > .rp-station:first-child .rp-text { font-size: 0.95rem; line-height: 1.38; }
   .rp-stage > .rp-station:first-child .rp-note { display: none; }
 }
+
+/* Phones: the text sits at the bottom of the screen, so everything above it is free for the 3D piece. */
+@media (max-width: 800px) {
+  .rp-station, .rp-station.is-right, .rp-station.is-left, .rp-station.is-center { justify-content: flex-end; }
+}
+/* Very narrow screens: tighter type, so the text leaves room above it for the 3D piece. */
+@media (max-width: 340px) {
+  html .rp-station .rp-title, html .rp-station .rp-title-xl { font-size: 1.65rem; line-height: 1.05; }
+  html .rp-station .rp-text { font-size: 0.85rem; line-height: 1.35; }
+  html .rp-station .rp-kicker { font-size: 0.75rem; }
+  html .rp-station .rp-tags, html .rp-station .rp-points { display: none; }
+  html .rp-station .rp-link { font-size: 0.85rem; }
+  html .rp-station .rp-whats { padding: 0.55rem 1rem; }
+}
