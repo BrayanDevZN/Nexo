@@ -36,6 +36,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { journey, stations as homeStations, type Station } from "@/lib/journey";
+import { NEXO_LEFT, NEXO_RIGHT } from "./nexoShape";
 
 // Nexo's purples, from deep ink to pale lavender.
 const INK = new Color("#2a1450");
@@ -338,53 +339,26 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   return geometry;
 }
 
-/** A polygon with every corner rounded off. */
-function roundedPolygon(points: [number, number][], radius: number) {
-  const shape = new Shape();
-  const count = points.length;
-  points.forEach((point, i) => {
-    const prev = points[(i + count - 1) % count];
-    const next = points[(i + 1) % count];
-    const toward = (other: [number, number]) => {
-      const dx = other[0] - point[0];
-      const dy = other[1] - point[1];
-      const length = Math.hypot(dx, dy);
-      const reach = Math.min(radius, length / 2);
-      return [point[0] + (dx / length) * reach, point[1] + (dy / length) * reach] as const;
-    };
-    const start = toward(prev);
-    const end = toward(next);
-    if (i === 0) shape.moveTo(start[0], start[1]);
-    else shape.lineTo(start[0], start[1]);
-    shape.quadraticCurveTo(point[0], point[1], end[0], end[1]);
-  });
-  shape.closePath();
-  return shape;
-}
-
-/** The Nexo "N" as a smooth rounded solid, centred on the origin. */
+/**
+ * The N of the site logo as two solid, rounded pieces with the thin channel between them, centred on the origin:
+ * the left piece in pale lavender and the right one in deeper violet, like the gradient of the logo.
+ */
 function nexoLetter() {
-  const w = 3.3;
-  const h = 3.6;
-  const t = 0.82;
-  const shape = roundedPolygon(
-    [
-      [0, 0],
-      [t, 0],
-      [t, h * 0.72],
-      [w - t, 0],
-      [w, 0],
-      [w, h],
-      [w - t, h],
-      [w - t, h * 0.28],
-      [t, h],
-      [0, h],
-    ],
-    0.3,
-  );
-  const geometry = new ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.24, bevelSegments: 8, curveSegments: 10 });
-  geometry.translate(-w / 2, -h / 2, -0.225);
-  return geometry;
+  const holder = new Group();
+  [
+    { outline: NEXO_LEFT, inner: LAVENDER, rim: VIOLET },
+    { outline: NEXO_RIGHT, inner: BRIGHT, rim: DEEP },
+  ].forEach(({ outline, inner, rim }) => {
+    const shape = new Shape(outline.map(([x, y]) => new Vector2(x, y)));
+    const geometry = new ExtrudeGeometry(shape, { depth: 0.5, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.14, bevelSegments: 6, curveSegments: 4 });
+    geometry.translate(0, 0, -0.25);
+    const piece = glass(geometry, 1);
+    const uniforms = (piece.material as ShaderMaterial).uniforms;
+    uniforms.uInner.value = inner;
+    uniforms.uRim.value = rim;
+    holder.add(piece);
+  });
+  return holder;
 }
 
 /** The opening: the Nexo "N", a smooth rounded glass letter, floating and turning slowly with a few lights circling it. */
@@ -392,7 +366,7 @@ function monogram(): Piece {
   const group = new Group();
   group.add(halo(12, 0.7));
   const letter = new Group();
-  letter.add(glass(nexoLetter(), 1));
+  letter.add(nexoLetter());
   const sparks = [0, 1, 2, 3].map((i) => {
     const d = dot(0.08, i % 2 ? BRIGHT : VIOLET);
     group.add(d);
@@ -720,7 +694,7 @@ function nexoBooks(): Piece {
   const group = new Group();
   group.add(halo(13, 0.7));
   const letter = new Group();
-  letter.add(glass(nexoLetter(), 1));
+  letter.add(nexoLetter());
   letter.scale.setScalar(0.8);
   const orbit = new Group();
   orbit.rotation.x = 1.1;

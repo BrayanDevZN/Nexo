@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-30 | 420 files | ~488.7K tokens if all read
+Generated: 2026-10-30 | 421 files | ~489.2K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -216,9 +216,10 @@ Generated: 2026-10-30 | 420 files | ~488.7K tokens if all read
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
 | src/frontend/components/rp/Intro.tsx | 75 | 607 | source |
 | src/frontend/components/rp/Journey.tsx | 275 | 3.2K | source |
+| src/frontend/components/rp/nexoShape.ts | 5 | 610 | source |
 | src/frontend/components/rp/Particles.tsx | 229 | 2.2K | source |
 | src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
-| src/frontend/components/rp/world.ts | 1179 | 12.0K | source |
+| src/frontend/components/rp/world.ts | 1153 | 11.8K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
 | src/frontend/components/StreamingDemo.tsx | 474 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
@@ -426,7 +427,7 @@ Generated: 2026-10-30 | 420 files | ~488.7K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 267 files, ~309.6K tokens
+- source: 268 files, ~310.1K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
@@ -435,7 +436,7 @@ Generated: 2026-10-30 | 420 files | ~488.7K tokens if all read
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
-2. src/frontend/components/rp/world.ts — 1179 lines (~12.0K tokens)
+2. src/frontend/components/rp/world.ts — 1153 lines (~11.8K tokens)
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)
