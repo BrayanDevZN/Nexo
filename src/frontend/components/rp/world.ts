@@ -1213,3 +1213,138 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     renderer.dispose();
   };
 }
+
+/** `count` points spread evenly over the surface of a mesh, in its own space. */
+function surfacePoints(geometry: BufferGeometry, count: number, random: () => number) {
+  const position = geometry.getAttribute("position");
+  const index = geometry.getIndex();
+  const triangles = (index ? index.count : position.count) / 3;
+  const corner = (t: number, k: number) => new Vector3().fromBufferAttribute(position, index ? index.getX(t * 3 + k) : t * 3 + k);
+  const sums: number[] = [];
+  let total = 0;
+  for (let t = 0; t < triangles; t++) {
+    const a = corner(t, 0);
+    total += new Vector3().subVectors(corner(t, 1), a).cross(new Vector3().subVectors(corner(t, 2), a)).length() / 2;
+    sums.push(total);
+  }
+  return Array.from({ length: count }, () => {
+    const pick = random() * total;
+    let lo = 0;
+    let hi = triangles - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (sums[mid] < pick) lo = mid + 1;
+      else hi = mid;
+    }
+    let u = random();
+    let v = random();
+    if (u + v > 1) [u, v] = [1 - u, 1 - v];
+    const a = corner(lo, 0);
+    return a.clone().add(corner(lo, 1).sub(a).multiplyScalar(u)).add(corner(lo, 2).sub(a).multiplyScalar(v));
+  });
+}
+
+/**
+ * The scene on the sign-in screen: the Nexo N turning slowly. `dissolve()` breaks it into small cubes that drift
+ * up and away, and resolves when they are gone (right away with reduced motion).
+ */
+export function createLoginN(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }) {
+  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite && (window.devicePixelRatio || 1) < 2, alpha: true });
+  renderer.setClearColor(0xffffff, 0);
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(38, 1, 0.1, 40);
+  camera.position.set(0, 0, 11);
+  const letter = nexoLetter();
+  const glow = halo(9, 0.7);
+  scene.add(glow, letter);
+
+  const random = seeded(23);
+  const CUBES_N = options.lite ? 450 : 900;
+  const points: Vector3[] = [];
+  letter.children.forEach((piece) => points.push(...surfacePoints((piece as Mesh).geometry, CUBES_N / 2, random)));
+  const cubes = new InstancedMesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ color: 0xffffff }), points.length);
+  const palette = [INK, VIOLET, BRIGHT, LAVENDER, VIOLET, DEEP];
+  points.forEach((_, i) => cubes.setColorAt(i, palette[i % palette.length]));
+  cubes.frustumCulled = false;
+  cubes.visible = false;
+  scene.add(cubes);
+  const drift = points.map((p) => new Vector3(p.x * 0.5 + (random() - 0.5) * 2.4, 0.6 + random() * 2.8, (random() - 0.5) * 3 + p.z));
+  const spin = points.map(() => new Vector3(random() * 5, random() * 5, random() * 5));
+  const size = points.map(() => 0.05 + random() * 0.09);
+  const dummy = new Object3D();
+  const world = new Vector3();
+
+  const resize = () => {
+    const width = canvas.clientWidth || 300;
+    const height = canvas.clientHeight || 300;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.lite ? 1 : 1.5));
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    // Keep the whole letter in view on a narrow or short box.
+    camera.fov = camera.aspect < 0.9 ? 52 : 38;
+    camera.updateProjectionMatrix();
+  };
+  resize();
+  const observer = new ResizeObserver(resize);
+  observer.observe(canvas);
+
+  let frame = 0;
+  let last = performance.now();
+  let time = 0;
+  let breakAt = -1;
+  let finish: (() => void) | undefined;
+  const BREAK = 1.25;
+  const loop = (now: number) => {
+    frame = requestAnimationFrame(loop);
+    if (document.hidden) { last = now; return; }
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    time += dt;
+    clock.value = time;
+    if (breakAt < 0) {
+      letter.rotation.y = options.reduced ? 0.35 : time * 0.7;
+      letter.position.y = options.reduced ? 0 : Math.sin(time * 1.2) * 0.1;
+    } else {
+      const k = Math.min(1, (time - breakAt) / BREAK);
+      const ease = k * k;
+      letter.visible = k < 0.12;
+      letter.children.forEach((piece) => ((piece as Mesh).material as ShaderMaterial).uniforms.uOpacity && (((piece as Mesh).material as ShaderMaterial).uniforms.uOpacity.value = 1 - k / 0.12));
+      cubes.visible = true;
+      letter.updateMatrixWorld(true);
+      points.forEach((point, i) => {
+        world.copy(point).applyMatrix4(letter.children[i < points.length / 2 ? 0 : 1].matrixWorld);
+        dummy.position.copy(world).addScaledVector(drift[i], ease);
+        dummy.rotation.set(spin[i].x * k, spin[i].y * k, spin[i].z * k);
+        dummy.scale.setScalar(size[i] * Math.max(0, Math.min(1, k * 14)) * (1 - Math.pow(k, 2.2)));
+        dummy.updateMatrix();
+        cubes.setMatrixAt(i, dummy.matrix);
+      });
+      cubes.instanceMatrix.needsUpdate = true;
+      glow.material.opacity = 0.7 * (1 - k);
+      if (k >= 1 && finish) { finish(); finish = undefined; }
+    }
+    renderer.render(scene, camera);
+  };
+  frame = requestAnimationFrame(loop);
+
+  return {
+    dissolve: () => new Promise<void>((resolve) => {
+      if (options.reduced || breakAt >= 0) return resolve();
+      breakAt = time;
+      finish = resolve;
+      // Never leave the visitor waiting if frames stop coming.
+      window.setTimeout(resolve, BREAK * 1000 + 400);
+    }),
+    dispose: () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      scene.traverse((object) => {
+        const mesh = object as Mesh;
+        mesh.geometry?.dispose?.();
+        const material = mesh.material as { dispose?: () => void } | undefined;
+        material?.dispose?.();
+      });
+      renderer.dispose();
+    },
+  };
+}
