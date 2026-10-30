@@ -197,3 +197,6 @@ html.admin-theme .admin-panel-nav > div:first-child [data-slot="badge"] { max-wi
 html.admin-theme .admin-panel-nav > div:first-child button { flex: 0 0 auto; }
 html.admin-theme .admin-sidebar-bottom [data-slot="badge"] { max-width: 100%; }
 html.admin-theme .admin-sidebar-header { flex-wrap: wrap; }
+
+/* The night-mode button on the sign-in and area screens sits above the page, so it can be pressed. */
+html.admin-theme [data-slot="button"][aria-label$="modo noturno"].fixed { z-index: 80; }
