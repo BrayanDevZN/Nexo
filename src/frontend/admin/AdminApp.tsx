@@ -34,7 +34,7 @@ import { Maps } from "./Maps";
 import { Videos } from "./Videos";
 import { AREAS, AreaGateway, type Area } from "./AreaGateway";
 import { useAdminReveal } from "@/hooks/useAdminReveal";
-import { playAreaTransition } from "./areaTransition";
+import { playAreaTransition, playLoginDissolve, takeGoogleLogin } from "./areaTransition";
 import { Feedback, Loading, message } from "./shared";
 import { disablePush, enablePush, hasActivePush, pushNeedsInstall, registerGrantedPush } from "./push";
 
@@ -101,6 +101,13 @@ export default function AdminApp() {
     } catch (e) { if (!(e instanceof ApiError && e.status === 401)) setError(message(e)); }
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
+  // Back from a Google sign-in: the sign-in N breaks into dust over the panel, as after a password sign-in.
+  const greeted = useRef(false);
+  useEffect(() => {
+    if (!user || user.status !== "approved" || greeted.current) return;
+    greeted.current = true;
+    if (takeGoogleLogin()) playLoginDissolve();
+  }, [user]);
   useEffect(() => {
     if (user && inviteToken) window.history.replaceState(null, "", "/admin");
   }, [user, inviteToken]);
@@ -180,8 +187,12 @@ export default function AdminApp() {
       try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
     });
   }
-  async function logout() {
-    setLoggingOut(true); setError("");
+  function logout() {
+    setLoggingOut(true);
+    playAreaTransition("Até logo", () => void signOut());
+  }
+  async function signOut() {
+    setError("");
     try { await api.mutate("/auth/logout", "POST"); api.resetSession(); generation.current++; setUser(null); setHasRequests(false); setUnreadCounts({ total: 0, notices: 0, chat_messages: 0 }); setIncoming(null); setChatMember(undefined); setPage("clients"); setAreaChoice(null); setMobileOpen(false); setPushEnabled(false); }
     catch (e) { setError(message(e)); } finally { setLoggingOut(false); }
   }
