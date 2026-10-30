@@ -30,7 +30,7 @@ export type Station = {
   points?: string[];
   note?: string;
   side: "left" | "right" | "center";
-  scene: "rings" | "robot" | "monogram" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "calculator" | "ledger" | "archive" | "balance";
+  scene: "rings" | "robot" | "monogram" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "nexoBooks" | "ledger" | "archive" | "balance";
 };
 
 export const stations: Station[] = [

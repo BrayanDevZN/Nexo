@@ -338,30 +338,6 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   return geometry;
 }
 
-/** A low round stage with a glowing rim, for a piece to turn on. `y` is where its top surface sits. */
-function platform(radius: number, y: number) {
-  const holder = new Group();
-  holder.position.y = y;
-  const baseShape = new CylinderGeometry(radius * 1.12, radius * 1.2, 0.22, 56);
-  const base = new Group();
-  base.add(glass(baseShape, 0.55), wire(baseShape, lineMaterial(INK, 0.8), 20));
-  base.position.y = -0.2;
-  const topShape = new CylinderGeometry(radius * 0.9, radius * 0.95, 0.1, 56);
-  const top = new Group();
-  top.add(glass(topShape, 0.55), wire(topShape, lineMaterial(VIOLET, 0.95), 20));
-  top.position.y = -0.04;
-  const rim = circle(radius * 1.32, lineMaterial(VIOLET, 0.9, 1));
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = -0.2;
-  const outer = ticks(radius * 1.45, 90, 0.2, lineMaterial(DEEP, 0.4));
-  outer.rotation.x = Math.PI / 2;
-  outer.position.y = -0.2;
-  const glow = halo(radius * 4.2, 0.5);
-  glow.position.set(0, -0.1, 0);
-  holder.add(glow, base, top, rim, outer);
-  return { holder, rim, outer };
-}
-
 /** A polygon with every corner rounded off. */
 function roundedPolygon(points: [number, number][], radius: number) {
   const shape = new Shape();
@@ -386,10 +362,8 @@ function roundedPolygon(points: [number, number][], radius: number) {
   return shape;
 }
 
-/** The opening: the Nexo "N", a smooth rounded glass letter, turning on a small round stage with lights circling it. */
-function monogram(): Piece {
-  const group = new Group();
-  group.add(halo(12, 0.7));
+/** The Nexo "N" as a smooth rounded solid, centred on the origin. */
+function nexoLetter() {
   const w = 3.3;
   const h = 3.6;
   const t = 0.82;
@@ -410,26 +384,29 @@ function monogram(): Piece {
   );
   const geometry = new ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.24, bevelSegments: 8, curveSegments: 10 });
   geometry.translate(-w / 2, -h / 2, -0.225);
+  return geometry;
+}
+
+/** The opening: the Nexo "N", a smooth rounded glass letter, floating and turning slowly with a few lights circling it. */
+function monogram(): Piece {
+  const group = new Group();
+  group.add(halo(12, 0.7));
   const letter = new Group();
-  letter.add(glass(geometry, 1));
-  const stage = platform(1.6, -2.2);
-  const sparks = [0, 1, 2].map((i) => {
-    const d = dot(0.08, i === 1 ? BRIGHT : VIOLET);
+  letter.add(glass(nexoLetter(), 1));
+  const sparks = [0, 1, 2, 3].map((i) => {
+    const d = dot(0.08, i % 2 ? BRIGHT : VIOLET);
     group.add(d);
     return d;
   });
-  group.add(letter, stage.holder);
+  group.add(letter);
   return {
     group,
     update: (time) => {
-      // A full slow turn on the stage.
       letter.rotation.y = time * 0.7;
-      letter.position.y = Math.sin(time * 1.2) * 0.07;
-      stage.rim.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
-      stage.outer.rotation.z = time * 0.15;
+      letter.position.y = Math.sin(time * 1.2) * 0.1;
       sparks.forEach((spark, i) => {
-        const angle = time * (0.8 + i * 0.12) + i * 2.1;
-        spark.position.set(Math.cos(angle) * 2.3, -2.35 + Math.sin(angle * 2) * 0.1, Math.sin(angle) * 2.3);
+        const angle = time * (0.8 + i * 0.12) + i * 1.6;
+        spark.position.set(Math.cos(angle) * 2.9, Math.sin(angle * 1.3) * 0.9, Math.sin(angle) * 2.9);
       });
     },
   };
@@ -782,68 +759,44 @@ function sheet(width = 1.2, height = 1.6, color: Color = INK) {
   return holder;
 }
 
-/** The accounting opening: a glass calculator turning on a round stage, keys pressing one after another, a little chart growing on its screen and coins circling it. */
-function calculator(): Piece {
+/** The accounting opening: the Nexo "N" at the centre with coins and documents circling it, tied together by a thin ring. */
+function nexoBooks(): Piece {
   const group = new Group();
-  group.add(halo(12, 0.7));
-  const machine = new Group();
-  const bodyShape = roundedRect(2.7, 3.7, 0.4, 0.55);
-  machine.add(glass(bodyShape, 1), wire(bodyShape, lineMaterial(INK, 0.85), 20));
-  const screenShape = roundedRect(2.2, 0.85, 0.18, 0.1);
-  const screen = new Group();
-  screen.add(glass(screenShape, 1), wire(screenShape, lineMaterial(VIOLET, 0.95), 20));
-  screen.position.set(0, 1.2, 0.3);
-  machine.add(screen);
-  const bars = [0.35, 0.5, 0.42, 0.62, 0.55].map((height, i) => {
-    const bar = slab(0.16, height, 0.05, i === 3 ? VIOLET : INK, 0.9);
-    bar.position.set(-0.7 + i * 0.35, 1.2 - 0.3 + height / 2, 0.38);
-    machine.add(bar);
-    return { bar, height, y0: 1.2 - 0.3 };
-  });
-  const keys: { key: Group; z: number }[] = [];
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 4; col++) {
-      if (col === 3 && row === 3) continue;
-      const tall = col === 3 && row === 2;
-      const key = slab(0.44, tall ? 0.95 : 0.4, 0.12, col === 3 ? VIOLET : INK, 0.9);
-      key.position.set(-0.84 + col * 0.56, 0.32 - row * 0.55 - (tall ? 0.275 : 0), 0.3);
-      machine.add(key);
-      keys.push({ key, z: 0.3 });
+  group.add(halo(13, 0.7));
+  const letter = new Group();
+  letter.add(glass(nexoLetter(), 1));
+  letter.scale.setScalar(0.8);
+  const orbit = new Group();
+  orbit.rotation.x = 1.1;
+  orbit.add(circle(3.2, lineMaterial(VIOLET, 0.7, 1)));
+  const dial = ticks(3.9, 100, 0.24, lineMaterial(DEEP, 0.35));
+  dial.rotation.x = 1.1;
+  const items = [0, 1, 2, 3, 4, 5].map((i) => {
+    const holder = new Group();
+    if (i % 2 === 0) {
+      const geometry = new CylinderGeometry(0.34, 0.34, 0.09, 28);
+      holder.add(glass(geometry, 1), wire(geometry, lineMaterial(VIOLET, 0.95), 20));
+    } else {
+      holder.add(sheet(0.8, 1.05, i === 1 ? VIOLET : INK));
     }
-  }
-  // Coins circling it.
-  const coinsRing = [0, 1, 2].map((i) => {
-    const geometry = new CylinderGeometry(0.34, 0.34, 0.08, 28);
-    const coin = new Group();
-    coin.add(glass(geometry, 1), wire(geometry, lineMaterial(VIOLET, 0.95), 20));
-    group.add(coin);
-    return { coin, i };
+    group.add(holder);
+    return { holder, i };
   });
-  const stage = platform(1.6, -2.2);
-  machine.position.y = -0.2;
-  group.add(machine, stage.holder);
+  group.add(letter, orbit, dial);
   return {
     group,
     update: (time) => {
-      machine.rotation.y = Math.sin(time * 0.5) * 0.7;
-      machine.rotation.x = -0.05 + Math.sin(time * 0.35) * 0.05;
-      machine.position.y = -0.2 + Math.sin(time * 1.2) * 0.06;
-      const pressed = Math.floor(time * 2.2) % keys.length;
-      keys.forEach(({ key, z }, i) => {
-        const down = i === pressed ? Math.max(0, 1 - ((time * 2.2) % 1) * 2) : 0;
-        key.position.z = z - down * 0.07;
-      });
-      bars.forEach(({ bar, height, y0 }, i) => {
-        const grow = 0.75 + 0.25 * Math.sin(time * 1.6 + i * 0.9);
-        bar.scale.y = grow;
-        bar.position.y = y0 + (height * grow) / 2;
-      });
-      stage.rim.scale.setScalar(1 + Math.sin(time * 2) * 0.03);
-      stage.outer.rotation.z = time * 0.15;
-      coinsRing.forEach(({ coin, i }) => {
-        const angle = time * 0.8 + (i * Math.PI * 2) / 3;
-        coin.position.set(Math.cos(angle) * 2.9, -0.4 + Math.sin(angle * 2) * 0.35, Math.sin(angle) * 2.9);
-        coin.rotation.set(time * 2 + i, 0, Math.PI / 2 + Math.sin(time) * 0.3);
+      letter.rotation.y = time * 0.7;
+      letter.position.y = Math.sin(time * 1.2) * 0.08;
+      dial.rotation.z = time * 0.1;
+      items.forEach(({ holder, i }) => {
+        const angle = time * 0.55 + (i * Math.PI * 2) / items.length;
+        // Points on the tilted orbit ring, so the coins and sheets travel along it.
+        const x = Math.cos(angle) * 3.2;
+        const flat = Math.sin(angle) * 3.2;
+        holder.position.set(x, flat * Math.cos(1.1), flat * Math.sin(1.1));
+        holder.rotation.set(time * 1.5 + i, angle + Math.PI / 2, i % 2 === 0 ? Math.PI / 2 : 0);
+        if (i % 2 === 1) holder.rotation.set(0, angle + Math.PI / 2, Math.sin(time + i) * 0.3);
       });
     },
   };
@@ -1091,7 +1044,7 @@ const builders = {
   software: fitted(software, 0.72),
   stages: fitted(() => stages(4), 0.52),
   stages3: fitted(() => stages(3), 0.52),
-  calculator: fitted(calculator, 0.85),
+  nexoBooks: fitted(nexoBooks, 0.85),
   ledger: fitted(ledger, 0.72),
   archive: fitted(archive, 0.78),
   balance: fitted(balance, 0.72),
@@ -1151,10 +1104,10 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
   const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
   // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
-  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "calculator" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
+  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : stations[index].scene === "nexoBooks" ? 5.3 : stations[index].scene === "monogram" ? 4.9 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "calculator" ? 1.5 : 0) : 0), -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait ? (stations[index].scene === "robot" ? 0.9 : stations[index].scene === "monogram" ? 0.35 : stations[index].scene === "nexoBooks" ? 1.2 : 0) : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();
