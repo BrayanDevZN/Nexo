@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { Backdrop } from "./components/rp/Backdrop";
+import { Particles } from "./components/rp/Particles";
 import { CookieNotice } from "./components/CookieNotice";
 import { MotionProvider } from "./components/MotionProvider";
 import { applyAdminTheme, readAdminTheme } from "./admin/theme";
@@ -35,6 +36,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
       <Backdrop />
+      {adminRoute ? <Particles /> : null}
       {privacyRoute ? <AnimatedBackground /> : null}
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
       {adminRoute ? null : <CookieNotice />}

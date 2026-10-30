@@ -129,3 +129,41 @@ html.admin-theme :is(button, a):has(> [data-slot="card"]):hover [data-slot="card
 
 /* Headings that are not card titles (greetings, section titles) in the same capitals. */
 html.admin-theme :is(h1, h2, h3):not([data-slot]) { font-family: var(--rp-display); text-transform: uppercase; letter-spacing: 0.035em; font-weight: 600; }
+
+/* ---- after the sign-in: the opening screen, with one round button per area ---- */
+.rp-gateway { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; padding: clamp(1rem, 2.4vw, 2rem) clamp(1.25rem, 4vw, 3.5rem) 3rem; font-family: var(--rp-body); }
+.rp-gateway-top { padding-right: 3rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.rp-gateway-box { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(0.6rem, 1.6vh, 1.2rem); text-align: center; padding-block: 1rem; }
+.rp-gateway-logo { width: min(9.5rem, 38vw); height: auto; overflow: visible; }
+.rp-gateway-text { display: flex; flex-direction: column; gap: 0.5rem; max-width: 34rem; opacity: 0; animation: rp-gw-in 0.9s ease 1.3s forwards; }
+@keyframes rp-gw-in { to { opacity: 1; } }
+.rp-gateway-title { font-family: var(--rp-display); font-weight: 600; font-size: clamp(1.9rem, 4vw, 3.2rem); letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.05; }
+.rp-gateway-text p { font-weight: 300; font-size: 1.05rem; line-height: 1.5; color: color-mix(in srgb, var(--ad-ink) 82%, transparent); }
+.rp-gateway-areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1.25rem, 3vw, 3rem); width: min(100%, 64rem); margin-top: 0.5rem; }
+.rp-area { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0; transform: translateY(1rem); animation: rp-area-in 0.9s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rp-area-in { to { opacity: 1; transform: none; } }
+.rp-area-disc { position: relative; display: grid; place-items: center; align-content: center; gap: 0.25rem; width: clamp(7.5rem, 11vw, 9.5rem); aspect-ratio: 1; border-radius: 50%; color: var(--ad-ink); cursor: pointer; background: color-mix(in srgb, var(--ad-card-solid) 55%, transparent); }
+.rp-area-disc > svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rp-area-disc circle { fill: none; stroke: var(--ad-ink); stroke-width: 1; transform-origin: center; transition: transform 0.5s cubic-bezier(.2,.7,.2,1), stroke 0.3s; }
+.rp-area-disc:hover circle:first-child, .rp-area-disc:focus-visible circle:first-child { transform: scale(1.08); stroke: var(--primary); }
+.rp-area-disc:hover circle:last-child { transform: scale(0.94); }
+.rp-area-disc:focus-visible { outline: none; }
+.rp-area-disc > svg:not(:first-child) { position: relative; width: 2.4rem; height: 2.4rem; color: var(--primary); }
+.rp-area-disc > span { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--rp-display); font-weight: 600; font-size: 1.1rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.rp-area-disc > span svg { width: 1rem; height: 1rem; transition: transform 0.3s; }
+.rp-area-disc:hover > span svg { transform: translateX(0.3rem); }
+.rp-area-name { font-family: var(--rp-display); font-weight: 600; font-size: clamp(1.5rem, 2.2vw, 2rem); letter-spacing: 0.07em; text-transform: uppercase; margin-top: 0.5rem; }
+.rp-area-desc { font-weight: 400; color: color-mix(in srgb, var(--ad-ink) 86%, transparent); }
+.rp-area-items { font-weight: 300; font-size: 0.92rem; line-height: 1.45; max-width: 18rem; color: color-mix(in srgb, var(--ad-ink) 72%, transparent); }
+.rp-area-locked { cursor: not-allowed; }
+.rp-area-locked .rp-area-disc { cursor: not-allowed; opacity: 0.55; }
+.rp-area-locked .rp-area-disc circle { stroke-dasharray: 4 6; }
+.rp-area-locked .rp-area-disc > svg:not(:first-child) { color: color-mix(in srgb, var(--ad-ink) 60%, transparent); }
+.rp-area-locked .rp-area-name { opacity: 0.6; }
+@media (max-width: 800px) {
+  .rp-gateway-areas { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .rp-area-disc { width: 8.5rem; }
+}
+html[data-reduce-motion="true"] .rp-area, html[data-reduce-motion="true"] .rp-gateway-text { animation: none; opacity: 1; transform: none; }
+html[data-reduce-motion="true"] .rp-gateway .rp-letter { animation: none; opacity: 1; transform: none; }
+html[data-reduce-motion="true"] .rp-gateway .rp-ring { animation: none; stroke-dashoffset: 0; }
