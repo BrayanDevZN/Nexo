@@ -375,9 +375,8 @@ export function StreamingDemo() {
           <span>ao relacionamento.</span>
         </h2>
         <p className="section-description">
-          Explore como a IA pode analisar informações, criar conteúdo e conectar
-          tarefas em diferentes áreas. Cada exemplo mostra uma aplicação, do
-          contexto inicial à entrega para a equipe.
+          Veja na prática como a IA pode ajudar em diferentes áreas da empresa,
+          do primeiro contato até o resultado entregue para a sua equipe.
         </p>
         <ol className="stream-explainer">
           <li>
@@ -408,7 +407,7 @@ export function StreamingDemo() {
             </div>
           </li>
         </ol>
-        <Button variant="outline" size="lg" asChild>
+        <Button size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5 text-left">
           <a href={contactUrl} target="_blank" rel="noopener noreferrer">
             Desenhar o fluxo da minha empresa{" "}
             <ArrowUpRight data-icon="inline-end" />
@@ -452,7 +451,6 @@ export function StreamingDemo() {
             </p>
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
                 size="icon-lg"
                 aria-label="Exemplo anterior"
                 onClick={() => api?.scrollPrev()}
@@ -460,7 +458,6 @@ export function StreamingDemo() {
                 <ArrowLeft />
               </Button>
               <Button
-                variant="outline"
                 size="icon-lg"
                 aria-label="Próximo exemplo"
                 onClick={() => api?.scrollNext()}

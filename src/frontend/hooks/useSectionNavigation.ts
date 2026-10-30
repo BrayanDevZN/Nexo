@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { smoothScrollTo } from "@/lib/siteEffects";
 
 /** Keep section navigation on the same clean URL, including mobile menu links. */
 export function useSectionNavigation() {
@@ -6,12 +7,8 @@ export function useSectionNavigation() {
     const scrollTo = (id: string) => {
       const section = document.getElementById(id);
       if (!section) return false;
-      section.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-        block: "start",
-      });
+      const margin = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
+      smoothScrollTo(section.getBoundingClientRect().top + window.scrollY - margin);
       return true;
     };
     const initial = window.location.hash;

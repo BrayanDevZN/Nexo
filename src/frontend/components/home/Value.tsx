@@ -4,59 +4,55 @@ import { contactUrl } from "@/lib/content";
 
 const benefits = [
   {
-    title: "Tempo para o que importa",
-    description: "Menos horas gastas em tarefas repetitivas.",
+    title: "Tempo de volta",
+    description: "Menos horas em tarefa repetitiva, mais horas no que dá dinheiro.",
     mechanism:
-      "A IA pode organizar informações, preparar respostas e conectar etapas que hoje dependem de copiar dados manualmente.",
+      "A tecnologia organiza informações, prepara respostas e passa dados de um lugar para outro no lugar da sua equipe.",
     impact:
-      "Sua equipe ganha espaço para atender clientes, resolver exceções e trabalhar nas prioridades do negócio.",
-    measurement: "Tempo por tarefa e horas de trabalho manual por mês.",
+      "Seu time sai do automático e foca em atender bem, resolver problemas e fechar negócio.",
+    measurement: "Horas de trabalho manual por mês.",
   },
   {
-    title: "Menos desperdício operacional",
-    description: "Reduza retrabalho e esforço por entrega.",
+    title: "Menos erro, menos retrabalho",
+    description: "Cada tarefa feita certa na primeira vez.",
     mechanism:
-      "Validações e integrações ajudam a evitar registros duplicados, informações incompletas e correções que atravessam várias equipes.",
+      "Os dados são conferidos no caminho, então menos coisa chega errada, duplicada ou incompleta.",
     impact:
-      "O custo de executar um processo pode diminuir quando o tempo e as falhas caem. Consideramos também os custos da solução.",
-    measurement:
-      "Custo por operação, correções e despesas com modelos e infraestrutura.",
+      "Menos correção, menos cliente insatisfeito e menos custo por entrega. E mostramos também quanto a própria solução custa.",
+    measurement: "Quantidade de correções e custo por tarefa.",
   },
   {
-    title: "Mais capacidade operacional",
-    description:
-      "Atenda mais clientes e realize mais entregas com os recursos da sua empresa.",
+    title: "Mais clientes sem mais bagunça",
+    description: "Atenda mais gente com a equipe que você já tem.",
     mechanism:
-      "Agentes e automações podem preparar tarefas, distribuir solicitações e manter os sistemas atualizados ao longo do fluxo.",
+      "As tarefas de rotina andam sozinhas e a sua equipe só entra quando precisa de uma pessoa de verdade.",
     impact:
-      "Sua empresa pode absorver mais demanda sem aumentar a carga manual na mesma proporção. A equipe se concentra nas exceções e nas etapas que exigem julgamento.",
-    measurement:
-      "Volume concluído, tempo de resposta e tamanho da fila de pendências.",
+      "Quando a demanda cresce, a empresa acompanha sem que o trabalho manual cresça junto.",
+    measurement: "Pedidos atendidos, tempo de resposta e fila de pendências.",
   },
   {
-    title: "Decisões com mais contexto",
-    description: "Informações acessíveis e processos rastreáveis.",
+    title: "Informação na mão na hora certa",
+    description: "Chega de procurar em mil lugares.",
     mechanism:
-      "Busca em fontes autorizadas, resumos e registros das ações ajudam a equipe a encontrar o que precisa e conferir as informações.",
+      "A equipe encontra o que precisa em segundos e vê o que foi feito em cada caso.",
     impact:
-      "Mais consistência na rotina, menos dependência de informações dispersas e maior clareza sobre o que precisa de revisão.",
-    measurement:
-      "Taxa de erros, qualidade das respostas e casos encaminhados para revisão.",
+      "Decisões mais rápidas, respostas mais seguras e menos dependência de uma pessoa que sabe tudo.",
+    measurement: "Erros, qualidade das respostas e casos que pedem revisão.",
   },
 ];
 
 const validation = [
   {
-    title: "Medir a rotina atual.",
-    text: "Tempo, volume, erros e custo de execução.",
+    title: "Olhamos como é hoje.",
+    text: "Tempo gasto, volume e erros da rotina atual.",
   },
   {
-    title: "Validar em um processo.",
-    text: "Testar a solução com critérios de qualidade e revisão.",
+    title: "Testamos em uma tarefa.",
+    text: "Começamos pequeno, com regras claras de qualidade.",
   },
   {
-    title: "Comparar e decidir.",
-    text: "Avaliar o ganho e o custo total antes de ampliar.",
+    title: "Comparamos e decidimos juntos.",
+    text: "Se o ganho compensa o custo, ampliamos. Se não, você sabe antes de gastar mais.",
   },
 ];
 
@@ -69,13 +65,13 @@ export function Value() {
     >
       <div className="nx-process-head">
         <h2 id="value-title" className="nx-h2 nx-reveal">
-          Mais eficiência.
+          Menos correria.
           <br />
-          Mais espaço.
+          Mais resultado.
         </h2>
         <p className="nx-lead nx-reveal">
-          O valor está no que melhora na sua operação: tempo recuperado, menos
-          retrabalho, mais capacidade e informação útil para decidir.
+          O que você ganha na prática: tempo de volta, menos erro, mais clientes
+          atendidos e informação sempre à mão.
         </p>
       </div>
       {benefits.map((benefit) => (
@@ -86,24 +82,24 @@ export function Value() {
           </div>
           <div className="nx-benefit-text">
             <p className="nx-body">
-              <strong>Como a IA contribui.</strong> {benefit.mechanism}
+              <strong>Como ajuda.</strong> {benefit.mechanism}
             </p>
             <p className="nx-body">
-              <strong>O que isso pode mudar.</strong> {benefit.impact}
+              <strong>O que muda para você.</strong> {benefit.impact}
             </p>
             <p className="nx-body nx-soft">
-              <strong>Como medimos.</strong> {benefit.measurement}
+              <strong>Como você confere.</strong> {benefit.measurement}
             </p>
           </div>
         </article>
       ))}
       <div className="nx-validation nx-reveal">
         <div>
-          <h3 className="nx-h3">O ganho precisa ser medido.</h3>
+          <h3 className="nx-h3">Você só amplia depois de ver funcionar.</h3>
           <p className="nx-body nx-soft">
-            Começamos pelo processo atual, definimos indicadores e validamos um
-            primeiro escopo. O retorno depende do volume, dos dados e das
-            integrações da empresa.
+            Começamos por uma tarefa e medimos o resultado. O ganho depende do
+            tamanho da sua operação, por isso mostramos os números antes de
+            você decidir o próximo passo.
           </p>
         </div>
         <ol>
@@ -116,9 +112,9 @@ export function Value() {
       </div>
       <div className="nx-value-cta nx-reveal">
         <p className="nx-lead">Qual processo mais consome tempo da sua equipe?</p>
-        <Button size="lg" asChild>
+        <Button size="lg" asChild className="h-auto max-w-full whitespace-normal py-2.5">
           <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-            Avaliar o potencial do meu negócio{" "}
+            Quero conversar sobre o meu negócio{" "}
             <ArrowUpRight data-icon="inline-end" />
           </a>
         </Button>

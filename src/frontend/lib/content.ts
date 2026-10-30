@@ -21,154 +21,154 @@ export const solutions = [
   {
     icon: Bot,
     number: "01",
-    title: "Agentes de IA",
+    title: "Atendente que não dorme",
     description:
-      "Agentes que entendem contexto, consultam informações e executam tarefas conectados às ferramentas da sua empresa.",
-    tags: ["Atendimento", "Conhecimento interno", "Uso de ferramentas"],
+      "Um assistente que responde seus clientes na hora, com o que a sua empresa realmente sabe, e chama uma pessoa quando precisa.",
+    tags: ["Atendimento", "Vendas", "Dúvidas do dia a dia"],
     includes: [
-      "Consulta a documentos e bases internas com referências para conferência.",
-      "Uso de ferramentas para buscar informações, registrar solicitações e encaminhar tarefas.",
-      "Limites de autonomia, passagem para um responsável e histórico das ações.",
+      "Responde perguntas com base nos seus próprios documentos e preços.",
+      "Registra o pedido e passa para o responsável certo, sem ninguém copiar e colar.",
+      "Você define até onde ele decide sozinho e vê tudo o que ele fez.",
     ],
     example:
-      "Um agente recebe uma solicitação, consulta o histórico do cliente e prepara o atendimento com o contexto necessário.",
+      "O cliente pergunta às 22h. Ele responde, anota o pedido e deixa pronto para a equipe confirmar de manhã.",
   },
   {
     icon: Workflow,
     number: "02",
-    title: "Automação inteligente",
+    title: "Fim do trabalho repetitivo",
     description:
-      "Fluxos que conectam etapas, organizam documentos e reduzem o trabalho repetitivo entre diferentes equipes.",
-    tags: ["Documentos", "Operações", "Workflows"],
+      "Tarefas que sua equipe faz todo dia, do mesmo jeito, passam a acontecer sozinhas.",
+    tags: ["Documentos", "Planilhas", "Rotinas"],
     includes: [
-      "Recebimento, extração e classificação de informações de arquivos e mensagens.",
-      "Regras de validação, encaminhamento de exceções e aprovações entre etapas.",
-      "Integração de rotinas que hoje exigem copiar dados e alternar entre sistemas.",
+      "Lê e organiza arquivos e mensagens que chegam por e-mail ou WhatsApp.",
+      "Confere os dados e avisa só quando algo parece errado.",
+      "Acaba com o vai e vem entre planilhas e sistemas.",
     ],
     example:
-      "Documentos recebidos por e-mail viram registros organizados, com divergências separadas para a equipe revisar.",
+      "Os documentos chegam por e-mail e já aparecem organizados. Sua equipe só olha o que precisa de atenção.",
   },
   {
     icon: Cable,
     number: "03",
-    title: "IA nos seus sistemas",
+    title: "Seus sistemas trabalhando juntos",
     description:
-      "Inteligência artificial integrada ao que você já usa. Seus dados, ERPs e CRMs trabalhando juntos.",
-    tags: ["APIs", "ERP e CRM", "Busca inteligente"],
+      "Conectamos o que você já usa, como CRM, ERP e planilhas, para a informação certa chegar sem ninguém digitar de novo.",
+    tags: ["CRM", "ERP", "Menos digitação"],
     includes: [
-      "Conexão com sistemas existentes, conforme disponibilidade de APIs e acesso aos dados.",
-      "Busca, classificação, resumos e análise de informações dentro dos fluxos atuais.",
-      "Permissões, tratamento de falhas e rastreabilidade das integrações.",
+      "Você continua com as ferramentas que já conhece.",
+      "Encontrar uma informação passa a levar segundos, não horas.",
+      "Se algo falhar, a equipe é avisada e nada se perde.",
     ],
     example:
-      "Uma atualização no CRM inicia um fluxo que reúne dados, prepara um resumo e encaminha a próxima ação ao responsável.",
+      "Um cliente novo entra no CRM e o resumo dele já chega para o vendedor, com o próximo passo sugerido.",
   },
   {
     icon: Blocks,
     number: "04",
-    title: "Software sob medida",
+    title: "Um sistema feito para o seu jeito de trabalhar",
     description:
-      "Do desenho da arquitetura à aplicação em produção, construímos a solução que o seu processo precisa.",
-    tags: ["Backend", "Dados", "Infraestrutura"],
+      "Quando nenhuma ferramenta pronta resolve, criamos a solução sob medida para a sua operação.",
+    tags: ["Feito para você", "Acompanhamento", "Evolui com a empresa"],
     includes: [
-      "Arquitetura, APIs e estrutura de dados desenhadas para as regras do negócio.",
-      "Interfaces e fluxos próprios quando ferramentas prontas não resolvem o problema.",
-      "Testes, implantação, documentação e acompanhamento conforme o escopo contratado.",
+      "Desenhado a partir do que a sua empresa faz de verdade.",
+      "Telas simples para a equipe usar sem treinamento longo.",
+      "Entregamos funcionando e ficamos ao seu lado nos primeiros passos.",
     ],
     example:
-      "Um sistema interno centraliza solicitações, conecta a IA e permite que a equipe acompanhe cada etapa da operação.",
+      "Todos os pedidos num só lugar, com a IA ajudando e a equipe vendo cada etapa andar.",
   },
 ];
 export const steps = [
   {
     icon: ScanSearch,
-    title: "Entender o negócio",
-    text: "Mapeamos processos, ferramentas e tarefas para identificar onde o tempo e o dinheiro estão sendo consumidos.",
-    delivery: "Diagnóstico e oportunidades",
+    title: "Conversa e diagnóstico",
+    text: "Entendemos como sua empresa trabalha e descobrimos onde o tempo e o dinheiro estão escapando.",
+    delivery: "Um mapa claro do que vale resolver primeiro",
     details: [
-      "Levantamento de etapas, volumes e responsáveis",
-      "Identificação de retrabalho e tempo de execução",
-      "Priorização por impacto e viabilidade",
+      "Onde sua equipe gasta mais tempo",
+      "O que se repete e o que dá retrabalho",
+      "Por onde começar para sentir resultado rápido",
     ],
   },
   {
     icon: Network,
-    title: "Arquitetar a solução",
-    text: "Priorizamos o problema, avaliamos a viabilidade e desenhamos o fluxo, as integrações e os critérios de sucesso.",
-    delivery: "Escopo e plano de implementação",
+    title: "Proposta clara",
+    text: "Você recebe o plano, o prazo e o investimento antes de começar. Sem surpresa.",
+    delivery: "Plano, prazo e valor combinados",
     details: [
-      "Fluxo proposto e integrações necessárias",
-      "Regras, acessos e pontos de aprovação",
-      "Estimativa de investimento e critérios de aceite",
+      "O que será feito e como vai funcionar",
+      "Quanto custa e em quanto tempo fica pronto",
+      "Como vamos saber que deu certo",
     ],
   },
   {
     icon: Rocket,
-    title: "Construir e integrar",
-    text: "Desenvolvemos, testamos com cenários reais e conectamos a solução aos sistemas e à rotina da sua equipe.",
-    delivery: "Solução pronta para operar",
+    title: "Construção e testes",
+    text: "Criamos, testamos com situações reais da sua empresa e colocamos para funcionar junto com a sua equipe.",
+    delivery: "Solução funcionando no dia a dia",
     details: [
-      "Desenvolvimento e validação com amostras reais",
-      "Testes de falhas, exceções e permissões",
-      "Implantação e orientação para uso da equipe",
+      "Testes com casos reais antes de entregar",
+      "Conexão com as ferramentas que você usa",
+      "Sua equipe aprende a usar na prática",
     ],
   },
   {
     icon: Activity,
-    title: "Acompanhar e evoluir",
-    text: "Com acompanhamento contratado, monitoramos falhas, ajustamos os fluxos e evoluímos a solução com dados reais.",
-    delivery: "Monitoramento e melhoria contínua",
+    title: "Acompanhamento",
+    text: "Depois de entregue, seguimos de olho, corrigimos o que for preciso e melhoramos com o uso.",
+    delivery: "Melhoria contínua, se você quiser",
     details: [
-      "Monitoramento da execução e dos custos",
-      "Ajustes a partir de erros e feedbacks",
-      "Novas melhorias priorizadas com a operação",
+      "Acompanhamos o funcionamento",
+      "Ajustamos quando algo muda na sua rotina",
+      "Novas ideias entram quando fizerem sentido",
     ],
   },
 ];
 export const faqs = [
   {
-    question: "Como a Nexo aumenta a capacidade operacional?",
+    question: "Como isso ajuda minha empresa a fazer mais?",
     answer:
-      "Identificamos os gargalos que limitam o volume de trabalho da empresa e automatizamos etapas como triagem, organização de documentos, atualização de sistemas e preparação de respostas. Isso libera tempo da equipe para atender mais demanda. Medimos o ganho pelo volume concluído, tempo de resposta e fila de pendências de cada processo.",
+      "Encontramos o que atrasa o seu dia a dia e passamos essas tarefas para a tecnologia. Sua equipe ganha tempo para atender mais clientes e fechar mais trabalho, sem precisar contratar na mesma proporção.",
   },
   {
-    question: "Por onde vale a pena começar?",
+    question: "Por onde começar?",
     answer:
-      "Por um processo com volume recorrente, dor clara e dados disponíveis. No diagnóstico, avaliamos o esforço de integração e o potencial de melhoria para propor um primeiro escopo que possa ser validado antes de ampliar.",
+      "Por uma tarefa que se repete todo dia e incomoda. Na primeira conversa escolhemos juntos um ponto pequeno, para você ver resultado antes de investir em algo maior.",
   },
   {
-    question: "Como vamos saber se a solução trouxe resultado?",
+    question: "Como vou saber se valeu a pena?",
     answer:
-      "Definimos indicadores antes da implementação: tempo de execução, retrabalho, taxa de erros, volume atendido e custo por operação, conforme o caso. Comparamos o processo anterior com a operação assistida, sem prometer ganhos que ainda não foram medidos.",
+      "Combinamos antes o que vamos medir: horas economizadas, erros evitados, pedidos atendidos. Depois comparamos com o que era antes. Sem promessa que ninguém consegue cumprir.",
   },
   {
-    question: "Como são tratados os dados da empresa?",
+    question: "Meus dados ficam seguros?",
     answer:
-      "O projeto define quais dados serão usados, quem pode acessá-los, quais serviços os processam e como serão armazenados. Essas decisões, incluindo permissões e retenção, fazem parte da arquitetura e do escopo acordado.",
+      "Antes de começar, combinamos quais informações serão usadas, quem pode ver e onde ficam guardadas. Você sabe tudo o que acontece com os seus dados.",
   },
   {
-    question: "Preciso saber qual IA ou ferramenta usar?",
+    question: "Preciso entender de inteligência artificial?",
     answer:
-      "Não. Você traz o processo e o problema. A Nexo avalia a viabilidade, identifica onde IA faz sentido e define a arquitetura, as ferramentas e as integrações adequadas.",
+      "Não. Você conta o problema do jeito que ele aparece no seu dia a dia e a gente cuida do resto: escolhe a melhor forma de resolver e explica em português simples.",
   },
   {
-    question: "A solução funciona com os sistemas que já utilizo?",
+    question: "Funciona com os sistemas que eu já uso?",
     answer:
-      "Avaliamos as APIs, os dados e as possibilidades de integração de cada sistema durante o diagnóstico. O escopo é definido a partir do que é tecnicamente viável na sua operação.",
+      "Na maioria dos casos, sim. Olhamos o que você usa hoje e dizemos com sinceridade o que dá para conectar e o que não dá.",
   },
   {
-    question: "Como é definido o investimento?",
+    question: "Quanto custa?",
     answer:
-      "Cada projeto recebe um orçamento conforme o escopo, a complexidade, as integrações e a infraestrutura. Custos recorrentes de modelos, serviços e acompanhamento são considerados na proposta.",
+      "Cada projeto tem um valor, de acordo com o tamanho do problema. Você recebe o orçamento por escrito antes de começar, incluindo os custos que se repetem todo mês, se houver.",
   },
   {
-    question: "O que acontece depois da entrega?",
+    question: "E depois que fica pronto?",
     answer:
-      "Podemos contratar um acompanhamento para monitorar a solução, corrigir falhas e ajustar os fluxos. Novas funcionalidades e mudanças de escopo são avaliadas e orçadas separadamente.",
+      "Você pode contratar o acompanhamento para a gente corrigir, ajustar e melhorar. Se quiser algo novo no futuro, fazemos uma nova proposta.",
   },
   {
-    question: "A IA toma todas as decisões sozinha?",
+    question: "A tecnologia decide tudo sozinha?",
     answer:
-      "O grau de autonomia depende do processo. Definimos regras, limites, registros e pontos de aprovação humana para as etapas que precisam de conferência.",
+      "Só o que você permitir. Nas decisões importantes, uma pessoa da sua equipe confirma antes. Você mantém o controle.",
   },
 ];

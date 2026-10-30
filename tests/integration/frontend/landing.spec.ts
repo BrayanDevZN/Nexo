@@ -2,6 +2,12 @@ import { test, expect } from "../../../src/frontend/test-kit";
 
 const NUMBER = "553199705688";
 
+/** The accounting page opens on a white screen with an Enter button, like the home page. */
+async function enter(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.locator(".rp-intro").waitFor({ state: "detached" });
+}
+
 test("the accounting page has one goal and no way out to the rest of the site", async ({ page }) => {
   await page.goto("/contabilidade");
   await expect(page).toHaveTitle(/contabilidade/i);
@@ -15,8 +21,7 @@ test("the accounting page has one goal and no way out to the rest of the site", 
     expect(decodeURIComponent(href!)).toContain("página de contabilidade");
     expect(decodeURIComponent(href!)).not.toContain("origem");
   }
-  await expect(page.locator(".page-ambient")).toHaveCount(1);
-  await expect(page.locator(".cube-face")).toHaveCount(6);
+  await expect(page.locator(".rp-canvas")).toHaveCount(1);
 });
 
 test("an ad click tags the WhatsApp message with its origin", async ({ page }) => {
@@ -33,6 +38,7 @@ test("a WhatsApp click is reported as the conversion, with where it happened", a
     (window as unknown as { gtag: (...args: unknown[]) => void }).gtag = (...args) => { events.push(args); };
   });
   await page.goto("/contabilidade");
+  await enter(page);
   const popup = page.waitForEvent("popup");
   await page.locator("a[href^='https://wa.me/']").nth(1).click();
   await (await popup).close();
@@ -45,6 +51,7 @@ test("a WhatsApp click is reported as the conversion, with where it happened", a
 
 test("the questions open and close", async ({ page }) => {
   await page.goto("/contabilidade");
+  await enter(page);
   const question = page.getByRole("button", { name: "Quanto custa?" });
   await question.scrollIntoViewIfNeeded();
   await question.click();
@@ -56,7 +63,8 @@ test("the questions open and close", async ({ page }) => {
 test("on a phone the button is on the first screen and nothing scrolls sideways", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/contabilidade");
-  const hero = page.locator(".lp-hero a[href^='https://wa.me/']");
+  await enter(page);
+  const hero = page.locator(".rp-actions a[href^='https://wa.me/']");
   await expect(hero).toBeInViewport();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBe(0);
@@ -72,6 +80,7 @@ test("the main site is unchanged and the page is only served at its own path", a
 
 test("the hero illustration is described, labelled as illustrative and shows no real client", async ({ page }) => {
   await page.goto("/contabilidade");
+  await enter(page);
   const figure = page.getByRole("figure", { name: /Ilustração: extratos, notas fiscais e comprovantes/ });
   await expect(figure).toBeVisible();
   await expect(figure).toContainText("Visão ilustrativa");
@@ -139,6 +148,7 @@ test("an ad visit is saved in the paid-traffic funnel and the WhatsApp click mov
   });
   await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
   await page.goto("/contabilidade?gclid=Cj0abc_123");
+  await enter(page);
   await expect.poll(() => calls.length).toBe(1);
   expect(calls[0]).toEqual({ url: "/api/public/paid-leads/visit", body: { page: "contabilidade", origin: "google-ads", click_id: "Cj0abc_123" } });
   const popup = page.waitForEvent("popup");
@@ -153,6 +163,7 @@ test("a visit that did not come from an ad is not recorded and the button still 
   await page.route("**/api/public/paid-leads/**", route => { calls += 1; return route.fulfill({ status: 201, body: "{}" }); });
   await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
   await page.goto("/contabilidade");
+  await enter(page);
   const popup = page.waitForEvent("popup");
   await page.locator("a[href^='https://wa.me/']").nth(1).click();
   await (await popup).close();
@@ -164,6 +175,7 @@ test("if saving the visit fails the visitor still reaches WhatsApp", async ({ pa
   await page.route("**/api/public/paid-leads/**", route => route.fulfill({ status: 503, body: "down" }));
   await page.context().route(/wa\.me/, route => route.fulfill({ status: 200, body: "ok" }));
   await page.goto("/contabilidade?gclid=abc");
+  await enter(page);
   const popup = page.waitForEvent("popup");
   await page.locator("a[href^='https://wa.me/']").nth(1).click();
   const opened = await popup;
