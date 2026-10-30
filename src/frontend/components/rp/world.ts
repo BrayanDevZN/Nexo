@@ -972,7 +972,8 @@ function outline(group: Group, count: number, random: () => number) {
  * light shows through, and distant things fade into it.
  */
 export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }, stations: readonly Pick<Station, "scene" | "side">[] = homeStations) {
-  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite, alpha: true, powerPreference: "high-performance" });
+  // Sharp screens (2x and up) do not need antialiasing, and it is costly on a weak phone.
+  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite && (window.devicePixelRatio || 1) < 2, alpha: true, powerPreference: "high-performance" });
   renderer.setClearColor(0xffffff, 0);
   const scene = new Scene();
   scene.fog = new Fog(MIST, 9, 26);
@@ -1016,6 +1017,9 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   swarm.frustumCulled = false;
   swarm.visible = false;
   scene.add(swarm);
+  // How much to draw. It only goes down, and only when frames are coming slowly (see the loop): nothing is removed,
+  // the scene is just drawn at a lower resolution with fewer small cubes and dust motes.
+  const quality = { level: 0, ratioCap: options.lite ? 1 : window.innerWidth < 800 ? 1.5 : 2 };
   const dummy = new Object3D();
   const matrixA = new Matrix4();
   const matrixB = new Matrix4();
@@ -1058,7 +1062,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const resize = () => {
     const width = canvas.clientWidth || window.innerWidth;
     const height = canvas.clientHeight || window.innerHeight;
-    const ratio = Math.min(window.devicePixelRatio || 1, options.lite ? 1 : 2);
+    const ratio = Math.min(window.devicePixelRatio || 1, quality.ratioCap);
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -1093,6 +1097,10 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   resize();
   window.addEventListener("resize", resize);
 
+  const startedAt = performance.now();
+  let lastFrame = startedAt;
+  let perfFrames = 0;
+  let perfTime = 0;
   let frame = 0;
   let frames = 0;
   let last = performance.now();
@@ -1104,6 +1112,24 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     frame = requestAnimationFrame(loop);
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    // Watch how long frames take; if the device cannot keep up, step the quality down.
+    if (journey.active && !document.hidden && now - startedAt > 2500) {
+      perfTime += now - lastFrame;
+      if (++perfFrames === 45) {
+        const average = perfTime / perfFrames;
+        const weak = document.documentElement.dataset.perf === "lite";
+        if ((average > 27 || (weak && quality.level < 1)) && quality.level < 3) {
+          quality.level += 1;
+          quality.ratioCap = Math.min(quality.ratioCap, [2, 1.25, 1, 0.8][quality.level]);
+          swarm.count = [CUBES, CUBES, 650, 350][quality.level];
+          dust.geometry.setDrawRange(0, Math.round(dustCount * [1, 1, 0.6, 0.35][quality.level]));
+          resize();
+        }
+        perfFrames = 0;
+        perfTime = 0;
+      }
+    }
+    lastFrame = now;
     // The text can change size (fonts arriving, a rotated phone): re-measure now and then.
     if (layout.portrait && ++frames % 20 === 0 && fitToText()) pieces.forEach(place);
     // Past the corridor the canvas is hidden, otherwise its last frame would show through the page.
@@ -1157,7 +1183,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       matrixB.compose(b.position, b.quaternion, fitted.setScalar(fitOf(base + 1)));
       const travel = smooth(MathUtils.clamp((t - 0.12) / 0.76, 0, 1));
       const burst = Math.sin(Math.PI * t);
-      for (let i = 0; i < CUBES; i++) {
+      for (let i = 0; i < swarm.count; i++) {
         from.copy(outlines[base][i]).applyMatrix4(matrixA);
         to.copy(outlines[base + 1][i]).applyMatrix4(matrixB);
         dummy.position.lerpVectors(from, to, travel).addScaledVector(scatter[i], burst * burst);

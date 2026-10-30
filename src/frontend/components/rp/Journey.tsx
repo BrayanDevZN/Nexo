@@ -42,30 +42,48 @@ export function Journey({
     document.body.appendChild(probe);
     const unit = () => probe.offsetHeight || window.innerHeight;
     const backdrop = document.querySelector<HTMLElement>(".rp-bg");
+    const dotLinks = dots.current ? Array.from(dots.current.querySelectorAll("a")) : [];
+    // The page is only redrawn when the scroll position, the screen size or the visibility changed, and a style is only
+    // written when its value did: standing still costs next to nothing, which matters on a weak phone.
+    let seenTop = NaN;
+    let seenBottom = NaN;
+    let seenUnit = 0;
+    let seenActive: boolean | undefined;
+    const lastOpacity: number[] = [];
     const draw = () => {
+      frame = requestAnimationFrame(draw);
       const rect = node.getBoundingClientRect();
-      const s = clamp(-rect.top / unit(), 0, stations.length - 1);
+      const size = unit();
+      const active = onScreen && !document.hidden;
+      if (rect.top === seenTop && rect.bottom === seenBottom && size === seenUnit && active === seenActive) return;
+      seenTop = rect.top;
+      seenBottom = rect.bottom;
+      seenUnit = size;
+      seenActive = active;
+      const s = clamp(-rect.top / size, 0, stations.length - 1);
       journey.station = s;
-      journey.exit = clamp((1 - rect.bottom / unit()) * 1.5, 0, 1);
+      journey.exit = clamp((1 - rect.bottom / size) * 1.5, 0, 1);
       backdrop?.style.setProperty("--p", (s / (stations.length - 1)).toFixed(4));
-      journey.active = onScreen && !document.hidden;
+      journey.active = active;
       items.current.forEach((item, index) => {
         if (!item) return;
         const distance = Math.abs(index - s);
         const o = clamp(1 - distance * 2.4);
+        // A station that is fully hidden and stays hidden needs no more writes.
+        if (o < 0.02 && lastOpacity[index] === 0) return;
+        lastOpacity[index] = o < 0.02 ? 0 : o;
         item.style.opacity = String(o);
         item.style.transform = `translate3d(0, ${(index - s) * 60}px, 0)`;
         item.style.visibility = o < 0.02 ? "hidden" : "visible";
         item.style.pointerEvents = o > 0.6 ? "auto" : "none";
         item.dataset.active = o > 0.6 ? "true" : "false";
       });
-      dots.current?.querySelectorAll("a").forEach((dot, index) => {
+      dotLinks.forEach((dot, index) => {
         dot.dataset.active = String(Math.round(s) === index);
       });
       if (counter.current) counter.current.textContent = `${pad(Math.round(s) + 1)} / ${pad(stations.length)}`;
       if (bar.current) bar.current.style.transform = `scaleY(${s / (stations.length - 1)})`;
       if (hint.current) hint.current.style.opacity = String(clamp(1 - s * 3));
-      frame = requestAnimationFrame(draw);
     };
     const observer = new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting), { rootMargin: "100px" });
     observer.observe(node);

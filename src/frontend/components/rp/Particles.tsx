@@ -10,13 +10,11 @@ const TINTS = ["109, 40, 217", "139, 92, 246", "76, 29, 149", "167, 139, 250"];
  * - drift: slow dust (the 3D journey)
  * - order: scattered dots snapping into a neat grid (less rework, fewer mistakes)
  * - rise: bubbles floating up (the questions)
- * - network: dots joined by lines (the contact: a connection)
  */
-type Mode = "drift" | "order" | "rise" | "network";
+type Mode = "drift" | "order" | "rise";
 const SECTIONS: [string, Mode][] = [
   ["valor", "order"],
   ["duvidas", "rise"],
-  ["contato", "network"],
 ];
 
 /**
@@ -39,6 +37,10 @@ export function Particles() {
     let stir = 0; // how shaken the dust is right now
     let lastY = window.scrollY;
     let lastTime = performance.now();
+    const startedAt = lastTime;
+    let slowTime = 0;
+    let slowFrames = 0;
+    let thinned = false;
     let mode: Mode = "drift";
 
     const layout = () => {
@@ -55,7 +57,7 @@ export function Particles() {
     };
 
     const build = () => {
-      ratio = Math.min(window.devicePixelRatio || 1, lite ? 1 : 2);
+      ratio = Math.min(window.devicePixelRatio || 1, lite ? 1 : window.innerWidth < 800 ? 1.5 : 2);
       width = window.innerWidth;
       height = window.innerHeight;
       node.width = Math.round(width * ratio);
@@ -89,23 +91,6 @@ export function Particles() {
     const draw = () => {
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, width, height);
-      if (mode === "network") {
-        const reach = width < 800 ? 120 : 170;
-        context.lineWidth = 1;
-        for (let i = 0; i < dots.length; i++) {
-          for (let j = i + 1; j < dots.length; j++) {
-            const dx = dots[i].x - dots[j].x;
-            const dy = dots[i].y - dots[j].y;
-            const distance = Math.hypot(dx, dy);
-            if (distance > reach) continue;
-            context.strokeStyle = `rgba(109, 40, 217, ${(1 - distance / reach) * 0.35})`;
-            context.beginPath();
-            context.moveTo(dots[i].x, dots[i].y);
-            context.lineTo(dots[j].x, dots[j].y);
-            context.stroke();
-          }
-        }
-      }
       for (const dot of dots) {
         const color = TINTS[dot.tint];
         if (mode === "order") {
@@ -141,15 +126,12 @@ export function Particles() {
         const rect = document.getElementById(id)?.getBoundingClientRect();
         if (rect && rect.top <= middle && rect.bottom >= middle) next = kind;
       }
-      // The footer follows the contact section.
-      const footer = document.querySelector(".nx-footer")?.getBoundingClientRect();
-      if (footer && footer.top <= middle) next = "network";
       if (next === mode) return;
       mode = next;
       layout();
       // A little shake so the change of shape reads as the dust rearranging itself.
       stir = Math.min(stir + 0.9, 2.4);
-      if (mode === "rise" || mode === "network" || mode === "drift") dots.forEach((dot) => ((dot.hx = Math.random() * width), (dot.hy = Math.random() * height)));
+      if (mode === "rise" || mode === "drift") dots.forEach((dot) => ((dot.hx = Math.random() * width), (dot.hy = Math.random() * height)));
     };
 
     build();
@@ -173,6 +155,14 @@ export function Particles() {
     const loop = (now: number) => {
       frame = requestAnimationFrame(loop);
       const dt = Math.min((now - lastTime) / 16.67, 3);
+      // If frames are slow, draw half of the dust (once, never again): it is only a backdrop.
+      if (!thinned && now - startedAt > 3000) {
+        slowTime += now - lastTime;
+        if (++slowFrames === 60) {
+          if (slowTime / slowFrames > 30) dots = dots.filter((_, index) => index % 2 === 0);
+          thinned = true;
+        }
+      }
       lastTime = now;
       stir *= Math.pow(0.96, dt);
       const t = now / 1000;
@@ -180,7 +170,7 @@ export function Particles() {
         let tx = dot.hx;
         let ty = dot.hy;
         let pull = 0.006 / (1 + stir * 2);
-        if (mode === "drift" || mode === "network") {
+        if (mode === "drift") {
           tx += Math.sin(t * 0.3 + dot.phase) * 14;
           ty += Math.cos(t * 0.25 + dot.phase * 1.3) * 14;
         } else if (mode === "order") {
