@@ -183,9 +183,10 @@ html, body { background: #f6f1ff; }
 .rp-glow-a { width: 80vmax; height: 80vmax; left: -22vmax; top: -30vmax; background: radial-gradient(closest-side, rgba(139, 92, 246, 0.19), rgba(139, 92, 246, 0.05) 55%, transparent); transform: translate3d(calc(var(--p) * 34vw), calc(var(--p) * 30vh), 0); animation: rp-drift-a 26s ease-in-out infinite alternate; }
 .rp-glow-b { width: 70vmax; height: 70vmax; right: -24vmax; bottom: -32vmax; background: radial-gradient(closest-side, rgba(109, 40, 217, 0.16), rgba(109, 40, 217, 0.04) 55%, transparent); transform: translate3d(calc(var(--p) * -30vw), calc(var(--p) * -26vh), 0); animation: rp-drift-b 32s ease-in-out infinite alternate; }
 .rp-glow-c { width: 46vmax; height: 46vmax; left: 38vw; top: 28vh; background: radial-gradient(closest-side, rgba(167, 139, 250, 0.15), transparent); transform: translate3d(calc(var(--p) * -22vw), calc(var(--p) * 18vh), 0); animation: rp-drift-c 22s ease-in-out infinite alternate; }
-@keyframes rp-drift-a { to { margin: 6vmax 0 0 8vmax; } }
-@keyframes rp-drift-b { to { margin: 0 8vmax 6vmax 0; } }
-@keyframes rp-drift-c { to { margin: -8vmax 0 0 -6vmax; opacity: 0.7; } }
+/* The glows drift with `translate`, which the browser animates on the graphics card without re-laying out the page (the old keyframes moved margins). */
+@keyframes rp-drift-a { to { translate: 8vmax 6vmax; } }
+@keyframes rp-drift-b { to { translate: -8vmax -6vmax; } }
+@keyframes rp-drift-c { to { translate: -6vmax -8vmax; opacity: 0.7; } }
 .rp-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(109, 40, 217, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(109, 40, 217, 0.07) 1px, transparent 1px); background-size: 72px 72px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 15%, transparent 78%); mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 15%, transparent 78%); }
 .rp-spot { position: absolute; inset: 0; background: radial-gradient(460px circle at var(--mx) var(--my), rgba(139, 92, 246, 0.11), transparent 70%); }
 .rp-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(76, 29, 149, 0.05) 100%); }
