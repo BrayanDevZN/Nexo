@@ -18,9 +18,9 @@ type Spark = { angle: number; speed: number; size: number; color: string; offset
  * middle inside the three rings of the logo, the page changes underneath, and a round window opens to show it.
  * `swap` runs while the screen is covered. With reduced motion it runs at once.
  */
-export function playAreaTransition(label: string, swap: () => void) {
+export function playAreaTransition(label: string, swap: () => void, options: { overlap?: boolean } = {}) {
   const root = document.documentElement;
-  if (root.dataset.reduceMotion === "true" || document.querySelector(".admin-transition")) {
+  if (root.dataset.reduceMotion === "true" || (!options.overlap && document.querySelector(".admin-transition"))) {
     swap();
     return;
   }
@@ -55,7 +55,11 @@ export function playAreaTransition(label: string, swap: () => void) {
   const back = dark ? "#0c0716" : "#f3ecff";
   const accent = dark ? "#a78bfa" : "#6d28d9";
   const scale = Math.min(width, height) / 520;
-  const font = Math.max(30, Math.min(88, width * 0.11));
+  let font = Math.max(30, Math.min(88, width * 0.11));
+  // A long label (a name in the welcome) shrinks until it fits the screen.
+  context.font = `600 ${font}px "Barlow Semi Condensed", "Arial Narrow", sans-serif`;
+  const wide = context.measureText(label.toUpperCase().split("").join(String.fromCharCode(8202))).width;
+  if (wide > width * 0.88) font = Math.max(20, font * ((width * 0.88) / wide));
   const start = performance.now();
   let swapped = false;
   const finish = () => {
@@ -174,9 +178,9 @@ function inside(polygon: [number, number][], x: number, y: number) {
 }
 
 /** The sign-in N, made of dust, over a light veil: it holds for a moment, then drifts apart and the veil clears. */
-export function playLoginDissolve() {
+export function playLoginDissolve(onMid?: () => void) {
   const root = document.documentElement;
-  if (root.dataset.reduceMotion === "true" || document.querySelector(".admin-transition")) return;
+  if (root.dataset.reduceMotion === "true" || document.querySelector(".admin-transition")) { onMid?.(); return; }
   const lite = root.dataset.perf === "lite";
   const canvas = document.createElement("canvas");
   canvas.className = "admin-transition";
@@ -213,8 +217,10 @@ export function playLoginDissolve() {
   const HOLD_N = 380;
   const BREAK = 1150;
   const start = performance.now();
+  let called = false;
   const draw = (now: number) => {
     const elapsed = now - start;
+    if (!called && elapsed >= HOLD_N + BREAK * 0.4) { called = true; onMid?.(); }
     if (elapsed >= HOLD_N + BREAK) return canvas.remove();
     requestAnimationFrame(draw);
     context.setTransform(ratio, 0, 0, ratio, 0, 0);

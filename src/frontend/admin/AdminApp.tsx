@@ -106,7 +106,12 @@ export default function AdminApp() {
   useEffect(() => {
     if (!user || user.status !== "approved" || greeted.current) return;
     greeted.current = true;
-    if (takeGoogleLogin()) playLoginDissolve();
+    if (takeGoogleLogin()) {
+      // After a Google sign-in the visitor also lands on the area screen, with the same welcome as a password sign-in.
+      setAreaChoice(null); setPage("general-home");
+      try { sessionStorage.removeItem("nexo:area"); } catch { /* sem armazenamento */ }
+      playLoginDissolve(() => playAreaTransition("Boas-vindas, " + user.name.split(" ")[0], () => {}, { overlap: true }));
+    }
   }, [user]);
   useEffect(() => {
     if (user && inviteToken) window.history.replaceState(null, "", "/admin");
