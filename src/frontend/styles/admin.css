@@ -185,3 +185,15 @@ html.admin-theme .admin-topbar { box-shadow: 0 8px 30px color-mix(in srgb, var(-
   .admin-intro h1 { font-size: clamp(1.7rem, 8vw, 2.4rem); margin: 0.25rem 0 0; }
 }
 @media (max-height: 640px) and (max-width: 760px) { .admin-login-n { max-height: 20vh; } .admin-intro h1 { display: none; } }
+
+/* ---- the particle veil between areas ---- */
+.admin-transition { position: fixed; inset: 0; width: 100vw; height: 100dvh; z-index: 300; pointer-events: all; }
+
+/* ---- sidebar: nothing is cut off or scrolls sideways; the area row wraps when the column is narrow ---- */
+html.admin-theme .admin-sidebar { overflow-x: hidden; }
+html.admin-theme .admin-sidebar > *, html.admin-theme .admin-panel-nav > * { min-width: 0; max-width: 100%; }
+html.admin-theme .admin-panel-nav > div:first-child { flex-wrap: wrap; row-gap: 0.35rem; }
+html.admin-theme .admin-panel-nav > div:first-child [data-slot="badge"] { max-width: 100%; height: auto; white-space: normal; text-align: left; line-height: 1.15; padding-block: 0.2rem; }
+html.admin-theme .admin-panel-nav > div:first-child button { flex: 0 0 auto; }
+html.admin-theme .admin-sidebar-bottom [data-slot="badge"] { max-width: 100%; }
+html.admin-theme .admin-sidebar-header { flex-wrap: wrap; }
