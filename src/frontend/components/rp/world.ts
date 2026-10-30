@@ -1226,8 +1226,11 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
       layout.distance = 12;
       // The widest piece reaches about 4.5 units from its centre. Keep it inside the width and inside
       // the band between the header and the text (the top ~40% of the screen).
-      layout.fit = MathUtils.clamp(Math.min((halfWidth * 0.9) / 4.5, (halfHeight * 0.4) / 4.5), 0.35, 1);
-      layout.lift = halfHeight * 0.4;
+      // The canvas is as tall as the screen with the browser bars hidden, but while they show the page only
+      // has `window.innerHeight`: place everything against what can actually be seen.
+      const seen = Math.min(1, window.innerHeight / height);
+      layout.fit = MathUtils.clamp(Math.min((halfWidth * 0.9) / 4.5, (halfHeight * 0.36 * seen) / 4.5), 0.3, 1);
+      layout.lift = halfHeight * (1 - 0.6 * seen);
     } else {
       layout.distance = 9;
       layout.fit = 1;

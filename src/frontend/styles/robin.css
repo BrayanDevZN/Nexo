@@ -350,3 +350,11 @@ html { font-size: 112.5%; }
 
 /* Very narrow windows (a phone preview in dev tools) shrink the layout instead of scrolling sideways. */
 body { min-width: 0; }
+
+/* Phones with the browser bars showing (a short screen): drop the tag line and tighten the link so the 3D piece keeps room above the text. */
+@media (max-width: 800px) and (max-height: 820px) {
+  .rp-tags { display: none; }
+  .rp-link { font-size: 0.95rem; letter-spacing: 0.06em; }
+  .rp-actions { gap: 0.9rem 1.5rem; }
+  .rp-whats { padding: 0.6rem 1.2rem; }
+}
