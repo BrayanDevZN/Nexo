@@ -972,8 +972,7 @@ function outline(group: Group, count: number, random: () => number) {
  * light shows through, and distant things fade into it.
  */
 export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }, stations: readonly Pick<Station, "scene" | "side">[] = homeStations) {
-  // Sharp screens (2x and up) do not need antialiasing, and it is costly on a weak phone.
-  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite && (window.devicePixelRatio || 1) < 2, alpha: true, powerPreference: "high-performance" });
+  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite, alpha: true, powerPreference: "high-performance" });
   renderer.setClearColor(0xffffff, 0);
   const scene = new Scene();
   scene.fog = new Fog(MIST, 9, 26);
@@ -1017,9 +1016,6 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   swarm.frustumCulled = false;
   swarm.visible = false;
   scene.add(swarm);
-  // How much to draw. It only goes down, and only when frames are coming slowly (see the loop): nothing is removed,
-  // the scene is just drawn at a lower resolution with fewer small cubes and dust motes.
-  const quality = { level: 0, ratioCap: options.lite ? 1 : window.innerWidth < 800 ? 1.5 : 2 };
   const dummy = new Object3D();
   const matrixA = new Matrix4();
   const matrixB = new Matrix4();
@@ -1062,7 +1058,7 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   const resize = () => {
     const width = canvas.clientWidth || window.innerWidth;
     const height = canvas.clientHeight || window.innerHeight;
-    const ratio = Math.min(window.devicePixelRatio || 1, quality.ratioCap);
+    const ratio = Math.min(window.devicePixelRatio || 1, options.lite ? 1 : 2);
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -1096,13 +1092,16 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   };
   resize();
   window.addEventListener("resize", resize);
+  // The text can change size (fonts arriving, a rotated phone, the browser bars): re-measure when that happens,
+  // not every frame, since measuring forces the page to lay itself out.
+  const refit = () => { if (layout.portrait && fitToText()) pieces.forEach(place); };
+  const stage = document.querySelector(".rp-stage");
+  const watcher = typeof ResizeObserver !== "undefined" ? new ResizeObserver(refit) : undefined;
+  if (stage) watcher?.observe(stage);
+  void document.fonts?.ready.then(refit);
+  const retries = [400, 1500, 4000].map((ms) => window.setTimeout(refit, ms));
 
-  const startedAt = performance.now();
-  let lastFrame = startedAt;
-  let perfFrames = 0;
-  let perfTime = 0;
   let frame = 0;
-  let frames = 0;
   let last = performance.now();
   let time = 0;
   let shown = journey.station;
@@ -1112,26 +1111,6 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
     frame = requestAnimationFrame(loop);
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    // Watch how long frames take; if the device cannot keep up, step the quality down.
-    if (journey.active && !document.hidden && now - startedAt > 2500) {
-      perfTime += now - lastFrame;
-      if (++perfFrames === 45) {
-        const average = perfTime / perfFrames;
-        const weak = document.documentElement.dataset.perf === "lite";
-        if ((average > 27 || (weak && quality.level < 1)) && quality.level < 3) {
-          quality.level += 1;
-          quality.ratioCap = Math.min(quality.ratioCap, [2, 1.25, 1, 0.8][quality.level]);
-          swarm.count = [CUBES, CUBES, 650, 350][quality.level];
-          dust.geometry.setDrawRange(0, Math.round(dustCount * [1, 1, 0.6, 0.35][quality.level]));
-          resize();
-        }
-        perfFrames = 0;
-        perfTime = 0;
-      }
-    }
-    lastFrame = now;
-    // The text can change size (fonts arriving, a rotated phone): re-measure now and then.
-    if (layout.portrait && ++frames % 20 === 0 && fitToText()) pieces.forEach(place);
     // Past the corridor the canvas is hidden, otherwise its last frame would show through the page.
     const visibility = journey.active ? "visible" : "hidden";
     if (canvas.style.visibility !== visibility) canvas.style.visibility = visibility;
@@ -1201,6 +1180,8 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   return () => {
     cancelAnimationFrame(frame);
     window.removeEventListener("resize", resize);
+      watcher?.disconnect();
+      retries.forEach((timer) => window.clearTimeout(timer));
     scene.traverse((object) => {
       const item = object as Mesh;
       item.geometry?.dispose?.();
@@ -1249,7 +1230,7 @@ function surfacePoints(geometry: BufferGeometry, count: number, random: () => nu
  * up and away, and resolves when they are gone (right away with reduced motion).
  */
 export function createLoginN(canvas: HTMLCanvasElement, options: { lite: boolean; reduced: boolean }) {
-  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite && (window.devicePixelRatio || 1) < 2, alpha: true });
+  const renderer = new WebGLRenderer({ canvas, antialias: !options.lite, alpha: true });
   renderer.setClearColor(0xffffff, 0);
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 40);
@@ -1277,7 +1258,7 @@ export function createLoginN(canvas: HTMLCanvasElement, options: { lite: boolean
   const resize = () => {
     const width = canvas.clientWidth || 300;
     const height = canvas.clientHeight || 300;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.lite ? 1 : 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.lite ? 1 : 2));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     // Keep the whole letter in view on a narrow or short box.

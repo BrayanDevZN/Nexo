@@ -37,10 +37,6 @@ export function Particles() {
     let stir = 0; // how shaken the dust is right now
     let lastY = window.scrollY;
     let lastTime = performance.now();
-    const startedAt = lastTime;
-    let slowTime = 0;
-    let slowFrames = 0;
-    let thinned = false;
     let mode: Mode = "drift";
 
     const layout = () => {
@@ -57,7 +53,7 @@ export function Particles() {
     };
 
     const build = () => {
-      ratio = Math.min(window.devicePixelRatio || 1, lite ? 1 : window.innerWidth < 800 ? 1.5 : 2);
+      ratio = Math.min(window.devicePixelRatio || 1, lite ? 1 : 2);
       width = window.innerWidth;
       height = window.innerHeight;
       node.width = Math.round(width * ratio);
@@ -139,6 +135,8 @@ export function Particles() {
     if (reduced || paused) return;
     pick();
 
+    // Which section is in view is worked out at most once per frame: reading the layout on every scroll event is costly.
+    let picking = false;
     const onScroll = () => {
       const raw = window.scrollY - lastY;
       lastY = window.scrollY;
@@ -149,20 +147,12 @@ export function Particles() {
         dot.vy -= delta * 0.03 * dot.depth * (0.4 + Math.random());
         dot.vx += (Math.random() - 0.5) * Math.abs(delta) * 0.07 * dot.depth;
       }
-      pick();
+      if (!picking) { picking = true; requestAnimationFrame(() => { picking = false; pick(); }); }
     };
 
     const loop = (now: number) => {
       frame = requestAnimationFrame(loop);
       const dt = Math.min((now - lastTime) / 16.67, 3);
-      // If frames are slow, draw half of the dust (once, never again): it is only a backdrop.
-      if (!thinned && now - startedAt > 3000) {
-        slowTime += now - lastTime;
-        if (++slowFrames === 60) {
-          if (slowTime / slowFrames > 30) dots = dots.filter((_, index) => index % 2 === 0);
-          thinned = true;
-        }
-      }
       lastTime = now;
       stir *= Math.pow(0.96, dt);
       const t = now / 1000;
