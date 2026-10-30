@@ -3,6 +3,7 @@ import {
   BoxGeometry,
   BufferGeometry,
   CanvasTexture,
+  CapsuleGeometry,
   Color,
   CylinderGeometry,
   DoubleSide,
@@ -335,6 +336,105 @@ function gearGeometry(teeth: number, outer: number, depth: number) {
   const geometry = new ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 12 });
   geometry.translate(0, 0, -depth / 2);
   return geometry;
+}
+
+/** The opening: a small floating robot that looks around, blinks and waves, with a glowing ring under it. Sits beside the text. */
+function robot(): Piece {
+  const group = new Group();
+  group.add(halo(11, 0.7));
+  const figure = new Group();
+  group.add(figure);
+
+  // Head: a faceted glass dome with a dark visor, two eyes, ears and an antenna.
+  const head = new Group();
+  head.position.y = 1.25;
+  const dome = new Group();
+  dome.scale.set(1.25, 1, 1.05);
+  const domeShape = new IcosahedronGeometry(1, 2);
+  dome.add(glass(domeShape), wire(new IcosahedronGeometry(1.02, 1), lineMaterial(INK, 0.55), 1));
+  const visorShape = roundedRect(1.7, 0.7, 0.34, 0.2);
+  const visor = new Group();
+  visor.add(glass(visorShape, 1), wire(visorShape, lineMaterial(VIOLET, 0.95), 20));
+  visor.position.set(0, 0.05, 0.92);
+  const eyes = [-0.4, 0.4].map((x) => {
+    const eye = dot(0.12, BRIGHT);
+    eye.position.set(x, 0.05, 1.08);
+    return eye;
+  });
+  const ears = [-1, 1].map((side) => {
+    const geometry = new CylinderGeometry(0.3, 0.3, 0.18, 24);
+    const ear = new Group();
+    ear.add(glass(geometry), wire(geometry, lineMaterial(VIOLET, 0.9), 20));
+    ear.rotation.z = Math.PI / 2;
+    ear.position.set(side * 1.3, 0, 0);
+    return ear;
+  });
+  const stem = new Line(new BufferGeometry().setFromPoints([new Vector3(0, 0.98, 0), new Vector3(0, 1.55, 0)]), lineMaterial(INK, 0.9, 0));
+  const bulb = dot(0.13, BRIGHT);
+  bulb.position.y = 1.65;
+  head.add(dome, visor, ...eyes, ...ears, stem, bulb);
+
+  // Body: a glass capsule with a glowing chest light.
+  const bodyShape = new CapsuleGeometry(0.72, 0.75, 6, 20);
+  const body = new Group();
+  body.add(glass(bodyShape), wire(bodyShape, lineMaterial(INK, 0.7), 20));
+  body.position.y = -0.85;
+  const chest = circle(0.28, lineMaterial(VIOLET, 1, 0));
+  chest.position.set(0, 0.15, 0.74);
+  const heart = dot(0.12, BRIGHT);
+  heart.position.set(0, 0.15, 0.76);
+  body.add(chest, heart);
+
+  // Arms hang from the shoulders; the right one waves.
+  const arm = (side: -1 | 1) => {
+    const holder = new Group();
+    holder.position.set(side * 1.0, -0.45, 0);
+    const geometry = new CapsuleGeometry(0.17, 0.75, 4, 12);
+    const limb = new Group();
+    limb.add(glass(geometry), wire(geometry, lineMaterial(VIOLET, 0.9), 20));
+    limb.position.y = -0.55;
+    holder.add(limb);
+    return holder;
+  };
+  const left = arm(-1);
+  const right = arm(1);
+
+  // A glowing ring under it, instead of legs.
+  const ringA = circle(1.2, lineMaterial(VIOLET, 0.9, 1));
+  const ringB = circle(1.7, lineMaterial(DEEP, 0.45, 0));
+  [ringA, ringB].forEach((ring) => {
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = -2.25;
+  });
+  const sparks = [0, 1, 2].map((i) => {
+    const d = dot(0.07, i === 1 ? BRIGHT : VIOLET);
+    group.add(d);
+    return d;
+  });
+  figure.add(head, body, left, right);
+  group.add(ringA, ringB);
+
+  return {
+    group,
+    update: (t) => {
+      figure.position.y = Math.sin(t * 1.2) * 0.14;
+      figure.rotation.y = Math.sin(t * 0.5) * 0.5;
+      head.rotation.set(Math.sin(t * 0.7) * 0.08, Math.sin(t * 0.9) * 0.25, Math.sin(t * 0.6) * 0.06);
+      // Blinks every few seconds.
+      const blink = (t % 4) > 3.85 ? 0.1 : 1;
+      eyes.forEach((eye) => (eye.scale.y = blink));
+      bulb.scale.setScalar(1 + Math.sin(t * 4) * 0.25);
+      heart.scale.setScalar(1 + Math.sin(t * 2.4) * 0.25);
+      left.rotation.z = 0.15 + Math.sin(t * 1.2) * 0.08;
+      right.rotation.z = -2.5 + Math.sin(t * 5) * 0.35;
+      ringA.scale.setScalar(1 + Math.sin(t * 1.2) * 0.06);
+      ringB.scale.setScalar(1 + ((t * 0.5) % 1) * 0.15);
+      sparks.forEach((spark, i) => {
+        const angle = t * (0.9 + i * 0.25) + i * 2.1;
+        spark.position.set(Math.cos(angle) * 1.7, -2.25 + Math.sin(angle * 1.5) * 0.25, Math.sin(angle) * 1.7);
+      });
+    },
+  };
 }
 
 /** Agents: a conversation. Message bubbles pop in one after another around a glowing core, then a reply is typed. */
@@ -907,6 +1007,7 @@ function fitted(build: () => Piece, size: number): () => Piece {
 
 const builders = {
   rings,
+  robot: fitted(robot, 0.95),
   agent: fitted(agent, 0.85),
   flow: fitted(flow, 0.7),
   systems: fitted(systems, 0.6),
@@ -974,10 +1075,10 @@ export function createWorld(canvas: HTMLCanvasElement, options: { lite: boolean;
   // Where each piece sits: beside the text on wide screens, centred above it on a phone (set in resize).
   const layout = { fit: 1, lift: 0, distance: 9, portrait: false };
   // How far each piece reaches from its centre (the ribbon is the widest); on a phone this sets its scale.
-  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : 4.5);
+  const reach = (index: number) => (stations[index].scene === "flow" ? 5.3 : stations[index].scene === "robot" ? 4.3 : 4.5);
   const fitOf = (index: number) => (layout.portrait ? layout.fit * (4.5 / reach(index)) : 1);
   const sideOf = (index: number) => (stations[index].side === "left" ? 3.6 : stations[index].side === "right" ? -3.6 : 0);
-  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift, -index * SPACING);
+  const place = (piece: Piece, index: number) => piece.group.position.set(layout.portrait ? 0 : sideOf(index), layout.lift + (layout.portrait && stations[index].scene === "robot" ? 0.9 : 0), -index * SPACING);
 
   const pieces = stations.map((station, index) => {
     const piece = builders[station.scene]();

@@ -1,5 +1,5 @@
 # Project Anatomy: nexo
-Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
+Generated: 2026-10-30 | 420 files | ~489.2K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -218,7 +218,7 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | src/frontend/components/rp/Journey.tsx | 275 | 3.2K | source |
 | src/frontend/components/rp/Particles.tsx | 229 | 2.2K | source |
 | src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
-| src/frontend/components/rp/world.ts | 1143 | 11.7K | source |
+| src/frontend/components/rp/world.ts | 1244 | 12.7K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
 | src/frontend/components/StreamingDemo.tsx | 476 | 4.0K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
@@ -256,7 +256,7 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | src/frontend/lib/accountingLanding.ts | 225 | 2.4K | source |
 | src/frontend/lib/consent.ts | 23 | 160 | source |
 | src/frontend/lib/content.ts | 175 | 1.7K | source |
-| src/frontend/lib/journey.ts | 81 | 791 | source |
+| src/frontend/lib/journey.ts | 81 | 793 | source |
 | src/frontend/lib/paidLeads.ts | 38 | 475 | source |
 | src/frontend/lib/seo.ts | 22 | 187 | source |
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
@@ -404,7 +404,7 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/landing.css | 251 | 1.1K | style |
-| src/frontend/styles/robin.css | 350 | 7.8K | style |
+| src/frontend/styles/robin.css | 353 | 7.8K | style |
 | src/frontend/styles/site.css | 344 | 6.0K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
@@ -426,16 +426,16 @@ Generated: 2026-10-29 | 420 files | ~488.2K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 267 files, ~309.3K tokens
+- source: 267 files, ~310.3K tokens
 - config: 13 files, ~3.6K tokens
 - test: 107 files, ~121.8K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~30.5K tokens
+- style: 4 files, ~30.6K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
-2. src/frontend/components/rp/world.ts — 1143 lines (~11.7K tokens)
+2. src/frontend/components/rp/world.ts — 1244 lines (~12.7K tokens)
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)

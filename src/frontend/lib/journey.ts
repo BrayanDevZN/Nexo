@@ -30,7 +30,7 @@ export type Station = {
   points?: string[];
   note?: string;
   side: "left" | "right" | "center";
-  scene: "rings" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "docs" | "coins" | "ledger" | "archive" | "balance";
+  scene: "rings" | "robot" | "agent" | "flow" | "systems" | "software" | "stages" | "stages3" | "orb" | "docs" | "coins" | "ledger" | "archive" | "balance";
 };
 
 export const stations: Station[] = [
@@ -40,8 +40,8 @@ export const stations: Station[] = [
     title: "Mais capacidade. Esse é o nexo.",
     text: "Sua equipe gasta tempo demais em tarefas repetitivas. Nós usamos IA para resolver isso, para você atender mais clientes e entregar mais sem sobrecarregar ninguém.",
     tags: "Atendimento | Rotinas automáticas | Sistemas conectados",
-    side: "center",
-    scene: "rings",
+    side: "left",
+    scene: "robot",
   },
   ...solutions.map((solution, index): Station => ({
     id: `solucao-${index + 1}`,
