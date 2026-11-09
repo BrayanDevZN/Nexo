@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~486.4K tokens if all read
 | src/frontend/styles/globals.css | 2779 | 16.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 183 | 3.6K | style |
+| src/frontend/styles/vet.css | 182 | 3.6K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -424,7 +424,7 @@ Generated: 2026-11-09 | 414 files | ~486.4K tokens if all read
 - config: 13 files, ~3.6K tokens
 - test: 106 files, ~118.6K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~38.4K tokens
+- style: 5 files, ~38.3K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
