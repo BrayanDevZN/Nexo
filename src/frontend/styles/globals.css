@@ -224,6 +224,7 @@ h2 span {
   font-weight: 600;
   letter-spacing: -0.07em;
   line-height: 1;
+  font-family: var(--rp-display);
 }
 .brand > img {
   width: 29px;

@@ -12,7 +12,7 @@ html.rp-locked { overflow: hidden; }
 .rp-canvas[data-ready="failed"] { display: none; }
 
 /* header */
-.rp-header { position: fixed; inset: 0 0 auto 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; padding: clamp(1rem, 2.2vw, 2rem) clamp(1.25rem, 3vw, 3rem); pointer-events: none; }
+.rp-header { position: fixed; inset: 0 0 auto 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; padding: clamp(1rem, 2.2vw, 2rem) clamp(1.25rem, 3vw, 3rem); pointer-events: none; background: color-mix(in srgb, #fff 92%, transparent); backdrop-filter: blur(8px); }
 .rp-header > * { pointer-events: auto; }
 .rp-menu-btn { position: relative; display: grid; place-items: center; width: 5.25rem; height: 5.25rem; background: color-mix(in srgb, #fff 80%, transparent); border-radius: 50%; color: var(--rp-ink); cursor: pointer; font-family: var(--rp-display); font-size: 1.05rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .rp-header-cta { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; margin-right: 1rem; padding: 0.75rem 1.4rem; border-radius: 999px; background: var(--primary); color: #fff; font-family: var(--rp-display); font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase; transition: filter 0.3s, box-shadow 0.3s; }
@@ -88,18 +88,21 @@ html.rp-locked { overflow: hidden; }
 .rp-letter { display: inline-block; opacity: 0; transform-origin: 50% 100%; animation: rp-letter 0.9s cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes rp-letter { from { opacity: 0; transform: translateY(60%) rotateX(-90deg); } to { opacity: 1; transform: none; } }
 .rp-intro-stage { position: relative; width: min(30rem, 80vw); height: min(18rem, 26vh); display: grid; place-items: center; }
+.rp-intro-stage::before { content: ""; position: absolute; inset: -1.5rem; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%); opacity: 0.55; animation: rp-pulse 3.2s ease-in-out infinite; }
 .rp-intro-logo { position: absolute; inset: 0; width: 100%; height: 100%; animation: rp-logo-out 0.8s ease 3.1s forwards; }
 .rp-ring { fill: none; stroke: var(--rp-ink); stroke-width: 0.6; stroke-dasharray: 1; stroke-dashoffset: 1; animation: rp-draw 1.8s cubic-bezier(.65,0,.35,1) forwards; }
 .rp-ring:nth-child(3n+1) { stroke: var(--primary); }
 @keyframes rp-draw { to { stroke-dashoffset: 0; } }
 @keyframes rp-logo-out { to { opacity: 0; transform: scale(0.9); } }
-.rp-enter { position: relative; display: grid; place-items: center; width: clamp(8rem, 13vw, 11rem); aspect-ratio: 1; border-radius: 50%; cursor: pointer; color: var(--rp-ink); font-family: var(--rp-display); font-weight: 600; font-size: clamp(1.4rem, 2vw, 2rem); letter-spacing: 0.05em; opacity: 0; transform: scale(0.7); animation: rp-pop 0.9s cubic-bezier(.2,.7,.2,1) 3.3s forwards; }
+.rp-enter { position: relative; display: grid; place-items: center; width: clamp(8rem, 13vw, 11rem); aspect-ratio: 1; border-radius: 50%; cursor: pointer; color: var(--rp-ink); font-family: var(--rp-display); font-weight: 600; font-size: clamp(1.4rem, 2vw, 2rem); letter-spacing: 0.05em; opacity: 0; transform: scale(0.7); animation: rp-pop 0.9s cubic-bezier(.2,.7,.2,1) 3.3s forwards; box-shadow: 0 0 0 1px color-mix(in srgb, var(--rp-ink) 14%, transparent), 0 0 0 1px transparent inset, 0 0 0 12px color-mix(in srgb, var(--primary) 8%, transparent); }
 .rp-enter svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.rp-enter circle { fill: none; stroke: var(--rp-ink); stroke-width: 1; transform-origin: center; transition: transform 0.5s cubic-bezier(.2,.7,.2,1), stroke 0.3s; }
+.rp-enter circle { fill: none; stroke: var(--rp-ink); stroke-width: 1.4; transform-origin: center; transition: transform 0.5s cubic-bezier(.2,.7,.2,1), stroke 0.3s; }
+.rp-enter circle:first-child { stroke-width: 1.2; }
 .rp-enter:hover circle:first-child { transform: scale(1.08); stroke: var(--primary); }
 .rp-enter:hover circle:last-child { transform: scale(0.94); }
-.rp-enter span { position: relative; }
+.rp-enter span { position: relative; z-index: 1; }
 @keyframes rp-pop { to { opacity: 1; transform: none; } }
+@keyframes rp-pulse { 50% { opacity: 0.25; } }
 .rp-intro-note { font-style: italic; font-weight: 300; font-size: 0.95rem; opacity: 0; animation: rp-fade-in 1s ease 3.6s forwards; }
 @keyframes rp-fade-in { to { opacity: 0.6; } }
 
