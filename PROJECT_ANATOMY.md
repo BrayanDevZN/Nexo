@@ -309,7 +309,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
-| tests/integration/frontend/performance.spec.ts | 69 | 943 | test |
+| tests/integration/frontend/performance.spec.ts | 69 | 941 | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
 | tests/integration/infra/test_embedded_video_server.py | 91 | 975 | test |
@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | src/frontend/styles/globals.css | 2779 | 16.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 148 | 3.1K | style |
+| src/frontend/styles/vet.css | 147 | 3.1K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -412,7 +412,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | maps-server/maps.conf | 71 | 570 | other |
 | maps-server/nginx.conf.template | 75 | 562 | other |
 | src/frontend/.env.example | 9 | 88 | other |
-| src/frontend/index.html | 25 | 230 | other |
+| src/frontend/index.html | 25 | 228 | other |
 | src/frontend/public/manifest.webmanifest | 13 | 91 | other |
 | src/frontend/public/sitemap.xml | 6 | 71 | other |
 | src/frontend/vite.config.mts | 17 | 146 | other |

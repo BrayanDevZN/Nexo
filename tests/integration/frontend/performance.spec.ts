@@ -20,7 +20,7 @@ test("a weak device gets the lite rendering without losing any element or animat
 });
 
 test("the brand images are small files", async ({ page }) => {
-  for (const path of ["/images/nexo-symbol-green-light.png", "/images/nexo-logo-green.png"]) {
+  for (const path of ["/images/nexo-symbol-aqua.png", "/images/nexo-logo-green.png"]) {
     const response = await page.request.get(path);
     expect(response.ok()).toBe(true);
     expect((await response.body()).length).toBeLessThan(100 * 1024);

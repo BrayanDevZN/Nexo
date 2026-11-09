@@ -34,7 +34,7 @@ export default function App() {
       <header className="vt-header">
         <a className="vt-logo" href="#inicio" aria-label="Nexo: início">
           <span className="vt-chip">
-            <img src="/images/nexo-symbol-green-light.png" alt="" width="40" height="40" />
+            <img src="/images/nexo-symbol-aqua.png" alt="" width="40" height="40" />
           </span>
           <span className="vt-logo-text">
             nexo<span>.</span>
@@ -151,7 +151,7 @@ export default function App() {
       <footer className="vt-footer">
         <a className="vt-logo" href="#inicio" aria-label="Nexo: voltar ao início">
           <span className="vt-chip">
-            <img src="/images/nexo-symbol-green-light.png" alt="" width="40" height="40" />
+            <img src="/images/nexo-symbol-aqua.png" alt="" width="40" height="40" />
           </span>
           <span className="vt-logo-text">
             nexo<span>.</span>
