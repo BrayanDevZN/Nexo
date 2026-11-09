@@ -29,7 +29,12 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 /* ---- header ---- */
 .vt-header { position: fixed; z-index: 50; inset: 0 0 auto 0; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.5rem clamp(1.25rem, 5vw, 6.25rem); pointer-events: none; }
 .vt-header > * { pointer-events: auto; }
-.vt-logo img { display: block; height: 40px; width: auto; }
+.vt-logo { display: inline-flex; align-items: center; gap: 0.6rem; }
+.vt-chip { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--vt-deep); box-shadow: 0 8px 18px -6px rgb(7 59 32 / 0.55); transition: transform 0.3s ease; }
+.vt-chip img { display: block; width: 34px; height: 34px; }
+.vt-logo:hover .vt-chip { transform: rotate(-6deg) scale(1.05); }
+.vt-logo-text { font-family: var(--vt-display); font-weight: 800; font-size: 1.7rem; line-height: 1; letter-spacing: -0.01em; color: var(--vt-deep); }
+.vt-logo-text span { color: var(--vt-cream); }
 .vt-header nav { flex: 1; }
 .vt-header ul { display: flex; justify-content: center; gap: clamp(1rem, 3vw, 3rem); margin: 0; padding: 0; list-style: none; }
 .vt-header nav a { font-weight: 700; font-size: 0.95rem; position: relative; padding-block: 0.4rem; }
@@ -108,7 +113,6 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 
 /* ---- footer ---- */
 .vt-footer { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem 1rem 3rem; text-align: center; }
-.vt-footer img { height: 40px; width: auto; }
 .vt-footer p { margin: 0; font-size: 0.75rem; }
 .vt-footer p a { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -118,7 +122,9 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
   .vt-header { justify-content: space-between; padding: 1rem 1.25rem; }
   .vt-round { display: none; }
   .vt-pill-header { display: inline-flex; padding: 0.7rem 1.3rem; font-size: 0.85rem; }
-  .vt-logo img { height: 34px; }
+  .vt-chip { width: 40px; height: 40px; border-radius: 12px; }
+  .vt-chip img { width: 29px; height: 29px; }
+  .vt-logo-text { font-size: 1.45rem; }
   .vt-service { grid-template-columns: 1fr; margin-bottom: 4.5rem; }
   .vt-flip .vt-photo { order: 0; }
   .vt-steps ol { grid-template-columns: 1fr 1fr; }

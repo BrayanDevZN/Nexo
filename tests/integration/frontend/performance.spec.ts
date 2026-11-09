@@ -20,13 +20,13 @@ test("a weak device gets the lite rendering without losing any element or animat
 });
 
 test("the brand images are small files", async ({ page }) => {
-  for (const path of ["/images/nexo-symbol-green.png", "/images/nexo-logo-green.png"]) {
+  for (const path of ["/images/nexo-symbol-green-light.png", "/images/nexo-logo-green.png"]) {
     const response = await page.request.get(path);
     expect(response.ok()).toBe(true);
     expect((await response.body()).length).toBeLessThan(100 * 1024);
   }
   await page.goto("/");
-  const natural = await page.evaluate(() => (document.querySelector(".vt-logo img") as HTMLImageElement).naturalWidth);
+  const natural = await page.evaluate(() => (document.querySelector(".vt-chip img") as HTMLImageElement).naturalWidth);
   expect(natural).toBeLessThanOrEqual(1000);
 });
 

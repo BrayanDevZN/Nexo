@@ -33,7 +33,12 @@ export default function App() {
       </a>
       <header className="vt-header">
         <a className="vt-logo" href="#inicio" aria-label="Nexo: início">
-          <img src="/images/nexo-logo-green.png" alt="Nexo" width="150" height="47" />
+          <span className="vt-chip">
+            <img src="/images/nexo-symbol-green-light.png" alt="" width="40" height="40" />
+          </span>
+          <span className="vt-logo-text">
+            nexo<span>.</span>
+          </span>
         </a>
         <nav aria-label="Principal">
           <ul>
@@ -144,8 +149,13 @@ export default function App() {
       </main>
 
       <footer className="vt-footer">
-        <a href="#inicio" aria-label="Nexo: voltar ao início">
-          <img src="/images/nexo-logo-green.png" alt="Nexo" width="150" height="47" />
+        <a className="vt-logo" href="#inicio" aria-label="Nexo: voltar ao início">
+          <span className="vt-chip">
+            <img src="/images/nexo-symbol-green-light.png" alt="" width="40" height="40" />
+          </span>
+          <span className="vt-logo-text">
+            nexo<span>.</span>
+          </span>
         </a>
         <p>
           © {new Date().getFullYear()} Nexo. Todos os direitos reservados. <a href="/privacidade">Privacidade</a>
