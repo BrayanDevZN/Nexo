@@ -1,7 +1,7 @@
 /* Public home: services for veterinary clinics. Flat green, huge type, real photos (layout inspired by le-lab.io). */
 html.vt-home,
 html.vt-home body {
-  --vt-bg: #5cf03a;
+  --vt-bg: #6fd04f;
   --vt-bg-deep: #138a2c;
   --vt-ink: #0a2e1a;
   --vt-deep: #073b20;
@@ -17,8 +17,8 @@ html.vt-home body {
 html.vt-home {
   /* A bright lime-to-green wash with a pale glow at the top, like the reference swatch. */
   background:
-    radial-gradient(ellipse 75% 55% at 38% 8%, #dfffb0 0%, rgb(223 255 176 / 0) 70%),
-    linear-gradient(180deg, #86ff1a 0%, #36f04a 50%, #07c807 100%) fixed !important;
+    radial-gradient(ellipse 75% 55% at 38% 8%, #d6f5b8 0%, rgb(214 245 184 / 0) 70%),
+    linear-gradient(180deg, #8fd84a 0%, #55c660 50%, #2a9d45 100%) fixed !important;
 }
 html.vt-home ::-webkit-scrollbar-thumb { background: var(--vt-deep); border-radius: 15px; }
 html.vt-home .nx-curtain { background: var(--vt-deep); }
