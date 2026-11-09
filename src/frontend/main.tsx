@@ -20,11 +20,9 @@ import "./styles/robin.css";
 import "./styles/admin.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
-const AccountingLanding = lazy(() => import("./AccountingLanding"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
 const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
-const landingRoute = /^\/contabilidade\/?$/.test(window.location.pathname);
 
 if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); document.documentElement.classList.add("admin-theme"); }
 else {
@@ -38,7 +36,7 @@ createRoot(document.getElementById("root")!).render(
       <Backdrop />
       {adminRoute ? <Particles /> : null}
       {privacyRoute ? <AnimatedBackground /> : null}
-      {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : landingRoute ? <Suspense fallback={null}><AccountingLanding /></Suspense> : <App />}
+      {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : <App />}
       {adminRoute ? null : <CookieNotice />}
     </MotionProvider>
   </StrictMode>,

@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
+Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -159,7 +159,6 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/AccountingLanding.tsx | 184 | 1.8K | source |
 | src/frontend/admin/AdminApp.tsx | 288 | 6.4K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
@@ -205,7 +204,6 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 414 | source |
-| src/frontend/components/AccountingVisual.tsx | 65 | 506 | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -256,19 +254,17 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | src/frontend/hooks/useScrollReveal.ts | 44 | 488 | source |
 | src/frontend/hooks/useScrollTrigger.ts | 61 | 512 | source |
 | src/frontend/hooks/useSectionNavigation.ts | 59 | 504 | source |
-| src/frontend/lib/accountingLanding.ts | 225 | 2.4K | source |
 | src/frontend/lib/consent.ts | 23 | 160 | source |
 | src/frontend/lib/content.ts | 175 | 1.7K | source |
 | src/frontend/lib/journey.ts | 81 | 798 | source |
-| src/frontend/lib/paidLeads.ts | 38 | 475 | source |
-| src/frontend/lib/seo.ts | 22 | 187 | source |
+| src/frontend/lib/seo.ts | 22 | 186 | source |
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 46 | 535 | source |
+| src/frontend/main.tsx | 44 | 480 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
-| src/frontend/PrivacyPage.tsx | 110 | 1.4K | source |
+| src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
 | src/frontend/test-kit.ts | 3 | 24 | source |
 | src/frontend/vite-env.d.ts | 2 | 10 | source |
@@ -285,7 +281,7 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | src/frontend/components.json | 26 | 131 | config |
 | src/frontend/package.json | 48 | 326 | config |
 | src/frontend/tsconfig.json | 42 | 187 | config |
-| src/frontend/vercel.json | 18 | 171 | config |
+| src/frontend/vercel.json | 16 | 139 | config |
 | video-server/package.json | 19 | 102 | config |
 | n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
@@ -317,7 +313,6 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/landing.spec.ts | 172 | 2.3K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -407,9 +402,8 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
-| src/frontend/styles/landing.css | 251 | 1.1K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
-| src/frontend/styles/site.css | 344 | 6.0K | style |
+| src/frontend/styles/site.css | 328 | 5.7K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -424,17 +418,17 @@ Generated: 2026-11-09 | 424 files | ~499.5K tokens if all read
 | src/frontend/.env.example | 9 | 88 | other |
 | src/frontend/index.html | 25 | 224 | other |
 | src/frontend/public/manifest.webmanifest | 13 | 91 | other |
-| src/frontend/public/sitemap.xml | 7 | 94 | other |
+| src/frontend/public/sitemap.xml | 6 | 71 | other |
 | src/frontend/vite.config.mts | 17 | 146 | other |
 | video-server/.dockerignore | 2 | 4 | other |
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 270 files, ~315.5K tokens
+- source: 266 files, ~310.2K tokens
 - config: 13 files, ~3.6K tokens
-- test: 107 files, ~121.7K tokens
+- test: 106 files, ~119.4K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~35.8K tokens
+- style: 4 files, ~34.3K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

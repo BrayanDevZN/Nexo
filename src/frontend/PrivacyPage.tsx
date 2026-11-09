@@ -36,13 +36,6 @@ export default function PrivacyPage() {
             e para tratar do seu pedido.
           </li>
           <li>
-            <strong>Visita vinda de anúncio.</strong> Quando você chega pela página de contabilidade a partir de um
-            anúncio do Google, registramos no nosso sistema que houve uma visita, o código desse clique do anúncio, a
-            data e hora e se você clicou em um dos botões de WhatsApp. Esse registro não tem o seu nome, telefone ou
-            e-mail, e não grava nenhum cookie no seu aparelho. Se você nos chamar no WhatsApp, a equipe pode
-            relacionar a conversa a esse registro e anotar o que for descobrindo sobre o atendimento.
-          </li>
-          <li>
             <strong>Origem da visita.</strong> Se você chegou por um anúncio, a mensagem do WhatsApp pode trazer
             uma marca de origem, por exemplo &quot;google-ads&quot;. Ela só diz de onde você veio.
           </li>

@@ -1,6 +1,6 @@
 const ORIGIN = "https://nexoaicompany.com";
 
-/** One canonical address per public page, so /contabilidade and /contabilidade/ count as the same page. */
+/** One canonical address per public page, so /privacidade and /privacidade/ count as the same page. */
 export function setCanonical(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   let link = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');

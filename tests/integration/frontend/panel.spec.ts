@@ -640,7 +640,7 @@ test("the admin panel has a night mode button that turns the background black an
 
 test("night mode is only for the panel: the public site stays light", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem("nexo:admin-theme", "dark"));
-  for (const path of ["/", "/contabilidade", "/privacidade"]) {
+  for (const path of ["/", "/privacidade"]) {
     await page.goto(path);
     await expect(page.locator("html")).not.toHaveClass(/dark/);
   }
