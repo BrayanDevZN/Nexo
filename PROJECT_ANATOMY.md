@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~486.1K tokens if all read
 | src/frontend/styles/globals.css | 2779 | 16.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 160 | 3.3K | style |
+| src/frontend/styles/vet.css | 158 | 3.3K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |

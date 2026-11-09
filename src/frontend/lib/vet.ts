@@ -38,7 +38,7 @@ export const services: VetService[] = [
       "Nenhum tutor fica sem resposta",
     ],
     image: "/images/vet/atendimento.jpg",
-    alt: "Tutora fazendo carinho em um gato",
+    alt: "Recepcionista sorrindo enquanto atende uma ligação",
   },
   {
     number: "02",
