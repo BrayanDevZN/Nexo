@@ -20,7 +20,7 @@ test("a weak device gets the lite rendering without losing any element or animat
 });
 
 test("the brand images are small files", async ({ page }) => {
-  for (const path of ["/images/nexo-symbol-aqua.png", "/images/nexo-logo-green.png"]) {
+  for (const path of ["/images/nexo-symbol-light.png", "/images/nexo-logo-green.png"]) {
     const response = await page.request.get(path);
     expect(response.ok()).toBe(true);
     expect((await response.body()).length).toBeLessThan(100 * 1024);
@@ -39,23 +39,6 @@ test("animations play even when the operating system asks to reduce motion", asy
   expect(await page.evaluate(running)).toBeGreaterThan(0);
   expect(await page.evaluate(() => getComputedStyle(document.querySelector(".vt-orb")!).animationName)).toBe("vt-float");
   await context.close();
-});
-
-test("the footer button turns reduced motion on and off and remembers the choice", async ({ page }) => {
-  await page.goto("/");
-  const toggle = page.getByRole("button", { name: "Reduzir animações" });
-  await toggle.scrollIntoViewIfNeeded();
-  await toggle.click();
-  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
-  await expect(page.getByRole("button", { name: "Ativar animações" })).toHaveAttribute("aria-pressed", "true");
-  expect(await page.evaluate(() => getComputedStyle(document.querySelector(".vt-orb")!).animationName)).toBe("none");
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
-  await page.getByRole("button", { name: "Ativar animações" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "false");
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(800);
-  expect(await page.evaluate(running)).toBeGreaterThan(0);
 });
 
 test("the home shows the veterinary services with real photos", async ({ page }) => {

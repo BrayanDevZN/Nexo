@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
+Generated: 2026-11-09 | 414 files | ~486.1K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -203,7 +203,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | src/frontend/admin/Videos.tsx | 289 | 4.6K | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
-| src/frontend/App.tsx | 170 | 1.8K | source |
+| src/frontend/App.tsx | 161 | 1.7K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -309,7 +309,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
-| tests/integration/frontend/performance.spec.ts | 69 | 941 | test |
+| tests/integration/frontend/performance.spec.ts | 52 | 691 | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
 | tests/integration/infra/test_embedded_video_server.py | 91 | 975 | test |
@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | src/frontend/styles/globals.css | 2779 | 16.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 147 | 3.1K | style |
+| src/frontend/styles/vet.css | 160 | 3.3K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -412,7 +412,7 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | maps-server/maps.conf | 71 | 570 | other |
 | maps-server/nginx.conf.template | 75 | 562 | other |
 | src/frontend/.env.example | 9 | 88 | other |
-| src/frontend/index.html | 25 | 228 | other |
+| src/frontend/index.html | 25 | 229 | other |
 | src/frontend/public/manifest.webmanifest | 13 | 91 | other |
 | src/frontend/public/sitemap.xml | 6 | 71 | other |
 | src/frontend/vite.config.mts | 17 | 146 | other |
@@ -420,11 +420,11 @@ Generated: 2026-11-09 | 414 files | ~486.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 261 files, ~303.0K tokens
+- source: 261 files, ~302.9K tokens
 - config: 13 files, ~3.6K tokens
-- test: 106 files, ~118.9K tokens
+- test: 106 files, ~118.6K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~37.9K tokens
+- style: 5 files, ~38.1K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

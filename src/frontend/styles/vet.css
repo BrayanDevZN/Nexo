@@ -1,8 +1,8 @@
 /* Public home: services for veterinary clinics. Flat green, huge type, real photos (layout inspired by le-lab.io). */
 html.vt-home,
 html.vt-home body {
-  --vt-bg: #3bbe6f;
-  --vt-bg-deep: #2fa85f;
+  --vt-bg: #5cf03a;
+  --vt-bg-deep: #138a2c;
   --vt-ink: #0a2e1a;
   --vt-deep: #073b20;
   --vt-cream: #f3ffef;
@@ -10,9 +10,15 @@ html.vt-home body {
   --primary-foreground: #f3ffef;
   --ring: #073b20;
   --vt-display: "Barlow Semi Condensed", "Lato", system-ui, sans-serif;
-  background: var(--vt-bg) !important;
+  background: transparent !important;
   color: var(--vt-ink);
   overflow-x: clip;
+}
+html.vt-home {
+  /* A bright lime-to-green wash with a pale glow at the top, like the reference swatch. */
+  background:
+    radial-gradient(ellipse 75% 55% at 38% 8%, #dfffb0 0%, rgb(223 255 176 / 0) 70%),
+    linear-gradient(180deg, #86ff1a 0%, #36f04a 50%, #07c807 100%) fixed !important;
 }
 html.vt-home ::-webkit-scrollbar-thumb { background: var(--vt-deep); border-radius: 15px; }
 html.vt-home .nx-curtain { background: var(--vt-deep); }
@@ -33,8 +39,7 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-chip { display: grid; place-items: center; width: 46px; height: 46px; transition: transform 0.3s ease; }
 .vt-chip img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 0 rgb(7 59 32 / 0.55)) drop-shadow(0 6px 10px rgb(7 59 32 / 0.35)); }
 .vt-logo:hover .vt-chip { transform: rotate(-6deg) scale(1.05); }
-.vt-logo-text { font-family: var(--vt-display); font-weight: 800; font-size: 1.7rem; line-height: 1; letter-spacing: -0.01em; color: var(--vt-deep); }
-.vt-logo-text span { color: var(--vt-cream); }
+.vt-logo-text { text-shadow: 0 2px 0 rgb(255 255 255 / 0.45), 0 4px 14px rgb(7 59 32 / 0.35); font-family: var(--vt-display); font-weight: 800; font-size: 1.7rem; line-height: 1; letter-spacing: -0.01em; color: var(--vt-deep); }
 .vt-header nav { flex: 1; }
 .vt-header ul { display: flex; justify-content: center; gap: clamp(1rem, 3vw, 3rem); margin: 0; padding: 0; list-style: none; }
 .vt-header nav a { font-weight: 700; font-size: 0.95rem; position: relative; padding-block: 0.4rem; }
@@ -77,7 +82,7 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-big { margin: 0; font-family: var(--vt-display); font-weight: 800; line-height: 0.92; letter-spacing: -0.01em; font-size: clamp(2.8rem, 8.5vw, 8rem); color: var(--vt-ink); text-wrap: balance; }
 .vt-big span { display: block; margin-top: 1.4rem; font-family: "Lato", sans-serif; font-weight: 400; letter-spacing: 0.02em; line-height: 1.4; font-size: clamp(0.9rem, 1.6vw, 1.25rem); color: var(--vt-deep); }
 .vt-big-sm { font-size: clamp(2.6rem, 7vw, 6rem); }
-.vt-lead { margin: 0; max-width: 40rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.15; color: var(--vt-cream); }
+.vt-lead { margin: 0; max-width: 40rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.15; color: var(--vt-deep); }
 .vt-text { margin: 0; max-width: 40rem; font-size: 1.05rem; line-height: 1.85; }
 
 /* ---- services ---- */
@@ -88,9 +93,9 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-photo::after { content: ""; position: absolute; inset: 0; border-radius: 28px; border: 6px solid var(--vt-cream); pointer-events: none; }
 @media (hover: hover) { .vt-service:hover .vt-photo img { transform: scale(1.03) rotate(-0.6deg); } }
 .vt-photo { overflow: hidden; border-radius: 28px; }
-.vt-number { margin: 0 0 0.4rem; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; color: var(--vt-cream); }
+.vt-number { margin: 0 0 0.4rem; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; color: var(--vt-deep); }
 .vt-copy h3 { margin: 0; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2.6rem, 6vw, 5.6rem); line-height: 0.92; color: var(--vt-ink); text-wrap: balance; }
-.vt-summary { margin: 1.4rem 0 1rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; color: var(--vt-cream); }
+.vt-summary { margin: 1.4rem 0 1rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; color: var(--vt-deep); }
 .vt-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.7rem; }
 .vt-points li { position: relative; padding-left: 1.7rem; line-height: 1.65; font-size: 1rem; }
 .vt-points li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--vt-deep); box-shadow: 0 0 0 3px var(--vt-cream); }
@@ -141,6 +146,14 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 @media (max-width: 520px) {
   .vt-steps ol { grid-template-columns: 1fr; }
 }
-.vt-motion { appearance: none; border: 1.5px solid var(--vt-deep); background: transparent; color: var(--vt-deep); border-radius: 999px; padding: 0.45rem 1rem; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: background-color 0.25s, color 0.25s; }
-.vt-motion:hover { background: var(--vt-deep); color: var(--vt-cream); }
 html[data-reduce-motion="true"] .vt-orb, html[data-reduce-motion="true"] .vt-mouse span { animation: none; }
+
+/* Soft shadows around the elements of the page. */
+.vt-big, .vt-copy h3, .vt-lead, .vt-summary, .vt-number { text-shadow: 0 2px 0 rgb(255 255 255 / 0.35), 0 8px 28px rgb(7 59 32 / 0.28); }
+.vt-kicker, .vt-text, .vt-points li, .vt-header nav a { text-shadow: 0 1px 10px rgb(255 255 255 / 0.35); }
+.vt-photo { box-shadow: 0 30px 70px -10px rgb(7 59 32 / 0.6), 0 0 0 1px rgb(7 59 32 / 0.08), 0 0 60px rgb(7 59 32 / 0.18); }
+.vt-orb, .vt-strip img { box-shadow: 0 24px 46px -8px rgb(7 59 32 / 0.6), 0 0 36px rgb(7 59 32 / 0.2); }
+.vt-podium { box-shadow: 0 36px 70px -8px rgb(7 59 32 / 0.6), 0 0 80px rgb(7 59 32 / 0.2), inset 0 -10px 18px rgb(7 59 32 / 0.18); }
+.vt-steps li, .vt-note { box-shadow: 0 24px 50px -14px rgb(7 59 32 / 0.55), 0 0 40px rgb(7 59 32 / 0.16); }
+.vt-pill, .vt-round { box-shadow: 0 14px 34px -6px rgb(7 59 32 / 0.6), 0 0 24px rgb(7 59 32 / 0.25); }
+.vt-points li::before { box-shadow: 0 0 0 3px var(--vt-cream), 0 4px 10px rgb(7 59 32 / 0.35); }

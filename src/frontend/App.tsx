@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
-import { useMotionPreferences } from "@/components/MotionProvider";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
@@ -12,7 +11,6 @@ const orbs = [...heroPhotos.left, ...heroPhotos.right, ...heroPhotos.podium];
 /** The public home: services for veterinary clinics. Solid green, huge type, real photos. */
 export default function App() {
   const revealRef = useScrollReveal();
-  const { reduced, setReduced } = useMotionPreferences();
   useSectionNavigation();
   useButtonFeedback();
   useEffect(() => {
@@ -34,11 +32,9 @@ export default function App() {
       <header className="vt-header">
         <a className="vt-logo" href="#inicio" aria-label="Nexo: início">
           <span className="vt-chip">
-            <img src="/images/nexo-symbol-aqua.png" alt="" width="40" height="40" />
+            <img src="/images/nexo-symbol-light.png" alt="" width="40" height="40" />
           </span>
-          <span className="vt-logo-text">
-            nexo<span>.</span>
-          </span>
+          <span className="vt-logo-text">nexo</span>
         </a>
         <nav aria-label="Principal">
           <ul>
@@ -151,18 +147,13 @@ export default function App() {
       <footer className="vt-footer">
         <a className="vt-logo" href="#inicio" aria-label="Nexo: voltar ao início">
           <span className="vt-chip">
-            <img src="/images/nexo-symbol-aqua.png" alt="" width="40" height="40" />
+            <img src="/images/nexo-symbol-light.png" alt="" width="40" height="40" />
           </span>
-          <span className="vt-logo-text">
-            nexo<span>.</span>
-          </span>
+          <span className="vt-logo-text">nexo</span>
         </a>
         <p>
           © {new Date().getFullYear()} Nexo. Todos os direitos reservados. <a href="/privacidade">Privacidade</a>
         </p>
-        <button type="button" className="vt-motion" aria-pressed={reduced} onClick={() => setReduced(!reduced)}>
-          {reduced ? "Ativar animações" : "Reduzir animações"}
-        </button>
       </footer>
     </div>
   );
