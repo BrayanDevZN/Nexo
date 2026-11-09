@@ -125,7 +125,7 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 @media (hover: hover) { .vt-service:hover .vt-photo img { transform: scale(1.03) rotate(-0.6deg); } }
 .vt-photo { overflow: hidden; border-radius: 28px; }
 .vt-number { margin: 0 0 0.4rem; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; color: var(--vt-deep); }
-.vt-copy h3 { margin: 0; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2.6rem, 6vw, 5.6rem); line-height: 0.92; color: var(--vt-ink); text-wrap: balance; }
+.vt-copy h3 { margin: 0; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2.3rem, 5.2vw, 4.9rem); line-height: 0.92; color: var(--vt-ink); text-wrap: balance; }
 .vt-summary { margin: 1.4rem 0 1rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; color: var(--vt-deep); }
 .vt-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.7rem; }
 .vt-points li { position: relative; padding-left: 1.7rem; line-height: 1.65; font-size: 1rem; }
@@ -177,5 +177,8 @@ html[data-reduce-motion="true"] .vt-orb, html[data-reduce-motion="true"] .vt-mou
 .vt-pill, .vt-round { box-shadow: 0 14px 34px -6px rgb(7 59 32 / 0.6), 0 0 24px rgb(7 59 32 / 0.25); }
 .vt-points li::before { box-shadow: 0 0 0 3px var(--vt-cream), 0 4px 10px rgb(7 59 32 / 0.35); }
 
-.vt-copy, .vt-photo, .vt-copy > * { min-width: 0; overflow-wrap: anywhere; }
+.vt-copy, .vt-photo, .vt-copy > * { min-width: 0; overflow-wrap: break-word; }
 .vt-photo img { max-width: 100%; }
+
+.vt-copy h3 { hyphens: auto; }
+@media (max-width: 400px) { .vt-copy h3 { font-size: 1.95rem; } }

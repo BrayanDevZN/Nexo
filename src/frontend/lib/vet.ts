@@ -51,7 +51,7 @@ export const services: VetService[] = [
       "Confirmação automática na véspera e remarcação pelo próprio WhatsApp, pra reduzir faltas",
     ],
     image: "/images/vet/agendamento.jpg",
-    alt: "Um corgi e um cachorro peludo correndo juntos em uma estrada",
+    alt: "Agenda aberta em um calendário de setembro com as datas marcadas",
   },
   {
     number: "03",
@@ -65,7 +65,7 @@ export const services: VetService[] = [
       "Se ele não responder, a Nexo lembra de novo",
     ],
     image: "/images/vet/lembretes.jpg",
-    alt: "Frascos e ampolas de vacina sobre uma bancada",
+    alt: "Corgi cercado de corações de papel",
   },
   {
     number: "04",

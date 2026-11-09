@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 414 files | ~486.4K tokens if all read
+Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -396,10 +396,10 @@ Generated: 2026-11-09 | 414 files | ~486.4K tokens if all read
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/globals.css | 2779 | 16.0K | style |
-| src/frontend/styles/robin.css | 393 | 8.4K | style |
+| src/frontend/styles/globals.css | 2780 | 16.0K | style |
+| src/frontend/styles/robin.css | 396 | 8.6K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 182 | 3.6K | style |
+| src/frontend/styles/vet.css | 185 | 3.6K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -424,11 +424,11 @@ Generated: 2026-11-09 | 414 files | ~486.4K tokens if all read
 - config: 13 files, ~3.6K tokens
 - test: 106 files, ~118.6K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~38.3K tokens
+- style: 5 files, ~38.5K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
-1. src/frontend/styles/globals.css — 2779 lines (~16.0K tokens)
+1. src/frontend/styles/globals.css — 2780 lines (~16.0K tokens)
 2. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
