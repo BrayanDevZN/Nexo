@@ -134,7 +134,7 @@ function startCursor() {
 
 // ---- magnetic buttons ----------------------------------------------------------------------------
 
-const MAGNETIC = '.rp-enter, .rp-menu-btn, .rp-menu-cta, .nx-actions [data-slot="button"], .nx-close [data-slot="button"]';
+const MAGNETIC = '.rp-enter, .rp-menu-btn, .rp-menu-cta, .nx-actions [data-slot="button"], .nx-close [data-slot="button"], .vt-round, .vt-pill';
 const MAGNET_STRENGTH = 36;
 
 function startMagnets() {

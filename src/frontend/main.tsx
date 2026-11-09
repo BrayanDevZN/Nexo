@@ -10,6 +10,7 @@ import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
 import { startPageEntrance, startSiteEffects } from "./lib/siteEffects";
 import "@fontsource/barlow-semi-condensed/600.css";
+import "@fontsource/barlow-semi-condensed/800.css";
 import "@fontsource/lato/300.css";
 import "@fontsource/lato/300-italic.css";
 import "@fontsource/lato/400.css";
@@ -33,7 +34,7 @@ else {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
-      <Backdrop />
+      {adminRoute || privacyRoute ? <Backdrop /> : null}
       {adminRoute ? <Particles /> : null}
       {privacyRoute ? <AnimatedBackground /> : null}
       {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : <App />}

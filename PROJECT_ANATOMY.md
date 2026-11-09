@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
+Generated: 2026-11-09 | 414 files | ~486.0K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -203,25 +203,19 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/frontend/admin/Videos.tsx | 289 | 4.6K | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
-| src/frontend/App.tsx | 44 | 414 | source |
+| src/frontend/App.tsx | 160 | 1.8K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
 | src/frontend/components/home/Art.tsx | 198 | 2.2K | source |
-| src/frontend/components/home/Close.tsx | 113 | 1.2K | source |
-| src/frontend/components/home/Faq.tsx | 35 | 281 | source |
-| src/frontend/components/home/Value.tsx | 125 | 1.2K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
 | src/frontend/components/rp/Backdrop.tsx | 14 | 111 | source |
 | src/frontend/components/rp/Intro.tsx | 75 | 610 | source |
-| src/frontend/components/rp/Journey.tsx | 293 | 3.4K | source |
 | src/frontend/components/rp/nexoShape.ts | 5 | 610 | source |
 | src/frontend/components/rp/Particles.tsx | 209 | 2.0K | source |
-| src/frontend/components/rp/Scene.tsx | 34 | 310 | source |
 | src/frontend/components/rp/world.ts | 1332 | 13.8K | source |
 | src/frontend/components/SiteHeader.tsx | 82 | 808 | source |
-| src/frontend/components/StreamingDemo.tsx | 474 | 3.9K | source |
 | src/frontend/components/ui/accordion.tsx | 85 | 684 | source |
 | src/frontend/components/ui/alert.tsx | 72 | 387 | source |
 | src/frontend/components/ui/attachment.tsx | 6 | 181 | source |
@@ -261,8 +255,9 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
+| src/frontend/lib/vet.ts | 167 | 1.7K | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 44 | 480 | source |
+| src/frontend/main.tsx | 45 | 502 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -314,7 +309,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
-| tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
+| tests/integration/frontend/performance.spec.ts | 69 | 941 | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
 | tests/integration/infra/test_embedded_video_server.py | 91 | 975 | test |
@@ -401,9 +396,10 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/globals.css | 2689 | 15.6K | style |
+| src/frontend/styles/globals.css | 2779 | 16.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
+| src/frontend/styles/vet.css | 142 | 3.0K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -416,7 +412,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | maps-server/maps.conf | 71 | 570 | other |
 | maps-server/nginx.conf.template | 75 | 562 | other |
 | src/frontend/.env.example | 9 | 88 | other |
-| src/frontend/index.html | 25 | 224 | other |
+| src/frontend/index.html | 25 | 229 | other |
 | src/frontend/public/manifest.webmanifest | 13 | 91 | other |
 | src/frontend/public/sitemap.xml | 6 | 71 | other |
 | src/frontend/vite.config.mts | 17 | 146 | other |
@@ -424,15 +420,15 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 266 files, ~310.2K tokens
+- source: 261 files, ~302.9K tokens
 - config: 13 files, ~3.6K tokens
-- test: 106 files, ~119.4K tokens
+- test: 106 files, ~118.9K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 4 files, ~34.3K tokens
+- style: 5 files, ~37.7K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
-1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
+1. src/frontend/styles/globals.css — 2779 lines (~16.0K tokens)
 2. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
