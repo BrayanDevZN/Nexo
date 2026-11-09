@@ -39,6 +39,8 @@ CLIENT_FIELDS = {
     "niche",
     "phone",
     "email",
+    "address",
+    "sales_channel",
     "pipeline_stage",
     "contract_closed",
     "contract_value",
@@ -46,6 +48,8 @@ CLIENT_FIELDS = {
     "next_follow_up",
     "pain",
     "approach",
+    "instagram",
+    "website",
 }
 
 
@@ -195,9 +199,10 @@ async def nexo_clients_list(
     niche: str | None = None,
     created_by_id: str | None = None,
     pipeline_stage: str | None = None,
+    sales_channel: str | None = None,
     contract_closed: bool | None = None,
 ) -> Any:
-    """List clients with optional name, niche, owner, stage and contract filters."""
+    """List clients with optional name, niche, owner, stage, sales channel and contract filters."""
     _pagination(limit, offset)
     params: dict[str, Any] = {"limit": limit, "offset": offset}
     for key, value in {
@@ -205,6 +210,7 @@ async def nexo_clients_list(
         "niche": niche,
         "created_by_id": created_by_id,
         "pipeline_stage": pipeline_stage,
+        "sales_channel": sales_channel,
         "contract_closed": contract_closed,
     }.items():
         if value is not None and value != "":
@@ -242,7 +248,7 @@ async def nexo_clients_search(search_term: str, search_by: str = "auto") -> Any:
 
 @mcp.tool()
 async def nexo_clients_create(fields: dict[str, Any]) -> Any:
-    """Create a client. Supported fields: name, niche, phone, email, pipeline_stage, contract_closed, contract_value, notes, next_follow_up, pain and approach."""
+    """Create a client. Supported fields: name, niche, phone, email, address, sales_channel (email, whatsapp, instagram, google_ads, phone, in_person, other or null), pipeline_stage, contract_closed, contract_value, notes, next_follow_up, pain, approach, instagram (profile link or @user) and website."""
     payload = _client_fields(fields, require_name_niche=True)
     return await _request("POST", "/clients", body=payload)
 
@@ -491,10 +497,15 @@ async def nexo_notifications_mark_chat_read(member_id: str) -> Any:
 
 
 @mcp.tool()
-async def nexo_announcement_create(title: str, body: str) -> Any:
-    """Create an administrative announcement. The Nexo API requires an admin key."""
+async def nexo_announcement_create(title: str, body: str, audience: str = "all") -> Any:
+    """Create an administrative announcement. The Nexo API requires an admin key.
+
+    audience is "all", "commercial" or "dev"; admins and owners always receive it."""
+    if audience not in {"all", "commercial", "dev"}:
+        raise ValueError("audience must be all, commercial or dev")
     return await _request(
-        "POST", "/admin/announcements", body={"title": title, "body": body}
+        "POST", "/admin/announcements",
+        body={"title": title, "body": body, "audience": audience},
     )
 
 

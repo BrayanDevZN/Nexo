@@ -166,3 +166,19 @@ def test_announcement_returns_success_if_push_fails_after_commit(app, monkeypatc
         assert response.json()["recipients"] >= 1
         notices = client.get("/notifications").json()
         assert any(note["announcement_id"] == response.json()["id"] for note in notices)
+
+
+def test_announcement_audience_is_validated_and_returned(app):
+    with TestClient(app) as client:
+        headers = login(client, "owner@example.com", "initial-admin-password")
+        created = client.post("/admin/announcements", headers=headers,
+                              json={"title": "Só o comercial", "body": "Texto", "audience": "commercial"})
+        assert created.status_code == 201 and created.json()["audience"] == "commercial"
+        notice = next(item for item in client.get("/notifications", headers=headers).json()
+                      if item["announcement_id"] == created.json()["id"])
+        assert notice["audience"] == "commercial"
+        assert client.post("/admin/announcements", headers=headers,
+                           json={"title": "x", "body": "y", "audience": "everyone"}).status_code == 422
+        assert client.post("/admin/announcements/with-image", headers=headers,
+                           data={"title": "x", "body": "y", "audience": "dev"}).status_code == 201
+        assert client.post("/admin/announcements", headers=headers, json={"title": "Sem público", "body": "Texto"}).json()["audience"] == "all"

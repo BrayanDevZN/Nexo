@@ -15,6 +15,7 @@ def test_authorization_url_uses_pkce_without_client_secret(settings):
     expected = base64.urlsafe_b64encode(hashlib.sha256(b"verifier").digest()).rstrip(b"=").decode()
     assert query["code_challenge"] == [expected]
     assert query["code_challenge_method"] == ["S256"]
+    assert query["prompt"] == ["select_account"]
     assert query["state"] == ["state"] and query["nonce"] == ["nonce"]
     assert query["scope"] == ["openid email profile"]
     assert "secret-sentinel" not in url

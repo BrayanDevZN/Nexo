@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, MessageCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Download, Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,10 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DocumentPreviewButton } from "./DocumentPreviewButton";
-import { CLIENT_NICHES, PIPELINE_STAGES, type createApi, type ClientRecord, type ClientInput } from "./api";
-import { whatsappUrl } from "./contact";
+import { CLIENT_NICHES, PIPELINE_STAGES, SALES_CHANNELS, salesChannelLabel, type createApi, type ClientRecord, type ClientInput } from "./api";
+import { mapsUrl } from "./contact";
+import { ContactButtons } from "./ContactButtons";
+import { MapsButton } from "./MapsLink";
 import { type DirectoryMember } from "./Directory";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, Loading, TextField, message } from "./shared";
 
@@ -23,7 +25,7 @@ type ClientDocument = { id: string; filename: string; size: number; client_id: s
 export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
   const [rows, setRows] = useState<ClientRecord[]>([]);
   const [offset, setOffset] = useState(0);
-  const [filters, setFilters] = useState({ niche: "", status: "", stage: "", name: "", created_by_id: "" });
+  const [filters, setFilters] = useState({ niche: "", status: "", stage: "", channel: "", name: "", created_by_id: "" });
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [draftName, setDraftName] = useState("");
   useEffect(() => {
@@ -60,6 +62,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     if (filters.niche) params.set("niche", filters.niche);
     if (filters.status) params.set("contract_closed", filters.status);
     if (filters.stage) params.set("pipeline_stage", filters.stage);
+    if (filters.channel) params.set("sales_channel", filters.channel);
     try {
       const result = await api.request<ClientRecord[]>("/clients?" + params);
       if (id === serial.current) setRows(result);
@@ -96,7 +99,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     }
     const body: ClientInput = {
       name: value("name"), niche, phone: value("phone") || null,
-      email: value("email") || null, notes: value("notes") || null,
+      email: value("email") || null, address: value("address") || null, instagram: value("instagram") || null, website: value("website") || null, sales_channel: (value("sales_channel") || null) as ClientInput["sales_channel"], notes: value("notes") || null,
       pain: value("pain") || null, approach: value("approach") || null, contract_closed: value("contract") === "true", contract_value: value("contract_value") ? Number(value("contract_value")) : null,
       pipeline_stage: value("pipeline_stage") as ClientInput["pipeline_stage"], next_follow_up: value("next_follow_up") || null,
       ...(editor === "new" ? { idempotency_key: createRequestId } : {}),
@@ -142,6 +145,7 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <Field><FieldLabel htmlFor="creator-filter">Criado por</FieldLabel><NativeSelect id="creator-filter" value={filters.created_by_id} onChange={e => { setOffset(0); setFilters({ ...filters, created_by_id: e.target.value }); }}><NativeSelectOption value="">Todos os membros</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="niche-filter">Nicho</FieldLabel><NativeSelect id="niche-filter" value={draftNiche} onChange={e => setDraftNiche(e.target.value)}><NativeSelectOption value="">Todos os nichos</NativeSelectOption>{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="stage-filter">Etapa</FieldLabel><NativeSelect id="stage-filter" value={filters.stage} onChange={e => { setOffset(0); setFilters({ ...filters, stage: e.target.value }); }}><NativeSelectOption value="">Todas</NativeSelectOption>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
+          <Field><FieldLabel htmlFor="channel-filter">Canal de vendas</FieldLabel><NativeSelect id="channel-filter" value={filters.channel} onChange={e => { setOffset(0); setFilters({ ...filters, channel: e.target.value }); }}><NativeSelectOption value="">Todos</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>
           <Field><FieldLabel htmlFor="contract-filter">Contrato</FieldLabel><NativeSelect id="contract-filter" value={filters.status} onChange={e => { setOffset(0); setFilters({ ...filters, status: e.target.value }); }}>
             <NativeSelectOption value="">Todos</NativeSelectOption><NativeSelectOption value="true">Fechado</NativeSelectOption><NativeSelectOption value="false">Em negociação</NativeSelectOption>
           </NativeSelect></Field>
@@ -153,17 +157,19 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
     {loading ? <Loading /> : rows.length === 0 && !error ? <Empty>
       <EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Nenhum cliente nesta lista</EmptyTitle><EmptyDescription>Cadastre um cliente ou ajuste os filtros para encontrar seus contatos.</EmptyDescription></EmptyHeader>
     </Empty> : <div className="admin-client-grid">{rows.map(client => {
-      const contactUrl = client.phone ? whatsappUrl(client.phone, client.name) : "";
       return <Card key={client.id}>
       <CardHeader><div className="flex items-start justify-between gap-3"><CardTitle>{client.name}</CardTitle><Badge variant={client.contract_closed || client.pipeline_stage === "won" ? "default" : client.pipeline_stage === "lost" ? "destructive" : "secondary"}>{client.contract_closed || client.pipeline_stage === "won" ? "Fechado" : PIPELINE_STAGES.find(stage => stage.value === client.pipeline_stage)?.label || "Em negociação"}</Badge></div><CardDescription>{client.niche}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Criado por {client.created_by_name}</p>
+        {client.sales_channel && <p className="text-sm text-muted-foreground">Canal de vendas: {salesChannelLabel(client.sales_channel)}</p>}
         {client.email && <p className="break-all text-sm">{client.email}</p>}
-        {client.phone && <div className="flex flex-wrap items-center gap-2"><p className="text-sm">{client.phone}</p>{contactUrl && <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"><a href={contactUrl} target="_blank" rel="noreferrer" aria-label={"Entrar em contato com " + client.name + " pelo WhatsApp"}><MessageCircle data-icon="inline-start" /> WhatsApp</a></Button>}</div>}
+        {client.phone && <p className="text-sm">{client.phone}</p>}
+        <div className="flex flex-wrap items-center gap-2"><ContactButtons client={client} whatsappClassName="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" /></div>
+        {client.address && <div className="flex flex-wrap items-center gap-2"><p className="break-words text-sm">{client.address}</p><MapsButton href={mapsUrl({ query: client.name + " " + client.address })} label={"Ver " + client.name + " no mapa"} /></div>}
         {typeof client.contract_value === "number" && <p className="text-sm font-medium">Valor: {client.contract_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
         {client.next_follow_up && <p className="text-sm text-muted-foreground">Próximo follow-up: {new Date(client.next_follow_up).toLocaleDateString("pt-BR")}</p>}
         {client.notes && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{client.notes}</p>}
-        {!client.phone && !client.email && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
+        {!client.phone && !client.email && !client.instagram && !client.website && !client.address && !client.notes && <p className="text-sm text-muted-foreground">Adicione os dados de contato e observações.</p>}
       </CardContent>
       <CardFooter className="flex-wrap justify-between gap-2"><Button variant="secondary" onClick={() => setViewing(client)} aria-label={"Ver dados de " + client.name}><Eye data-icon="inline-start" /> Ver</Button><div className="flex gap-2"><Button variant="outline" onClick={() => { setError(""); setEditor(client); }} aria-label={"Editar " + client.name}><Pencil data-icon="inline-start" /> Editar</Button><Button variant="destructive" onClick={() => { setError(""); setDeleting(client); }} aria-label={"Excluir " + client.name}><Trash2 data-icon="inline-start" /> Excluir</Button></div></CardFooter>
     </Card>;
@@ -179,10 +185,13 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Detail label="E-mail" value={viewing.email} />
             <Detail label="Celular" value={viewing.phone} />
+            {(viewing.phone || viewing.email || viewing.instagram || viewing.website) && <div className="flex flex-wrap items-center gap-2 sm:col-span-2"><ContactButtons client={viewing} /></div>}
+            <div className="sm:col-span-2"><Detail label="Endereço" value={viewing.address} />{viewing.address && <div className="mt-2"><MapsButton href={mapsUrl({ query: viewing.name + " " + viewing.address })} label={"Ver " + viewing.name + " no mapa"} /></div>}</div>
             <Detail label="Valor do contrato" value={viewing.contract_value == null ? null : Number(viewing.contract_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
             <Detail label="Próximo follow-up" value={viewing.next_follow_up ? new Date(viewing.next_follow_up).toLocaleDateString("pt-BR") : null} />
             <Detail label="Criado por" value={viewing.created_by_name} />
             <Detail label="Etapa do funil" value={PIPELINE_STAGES.find(stage => stage.value === viewing.pipeline_stage)?.label || viewing.pipeline_stage} />
+            <Detail label="Canal de vendas" value={salesChannelLabel(viewing.sales_channel)} />
             <Detail label="Possível dor do cliente" value={viewing.pain} multiline />
             <Detail label="Melhor forma de abordagem" value={viewing.approach} multiline />
             <Detail label="Observações" value={viewing.notes} multiline />
@@ -201,7 +210,11 @@ export function Clients({ api }: { api: ReturnType<typeof createApi> }) {
             <TextField label="Nome / empresa" name="name" required maxLength={160} defaultValue={row?.name} />
             <Field><FieldLabel htmlFor="client-niche">Nicho</FieldLabel><NativeSelect id="client-niche" name="niche" required defaultValue={row?.niche || ""}><NativeSelectOption value="" disabled>Selecione um nicho</NativeSelectOption>{row && !CLIENT_NICHES.includes(row.niche as typeof CLIENT_NICHES[number]) && <NativeSelectOption value={row.niche}>{row.niche} (nicho anterior)</NativeSelectOption>}{CLIENT_NICHES.map(niche => <NativeSelectOption key={niche} value={niche}>{niche}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="E-mail (opcional)" name="email" type="email" defaultValue={row?.email || ""} />
+            <TextField label="Instagram (opcional)" name="instagram" placeholder="@usuario ou link do perfil" defaultValue={row?.instagram || ""} />
+            <TextField label="Site (opcional)" name="website" placeholder="empresa.com.br" defaultValue={row?.website || ""} />
             <TextField label="Celular (opcional)" name="phone" type="tel" minLength={10} maxLength={30} defaultValue={row?.phone || ""} />
+            <TextField label="Endereço (opcional)" name="address" maxLength={300} placeholder="Rua, número, bairro, cidade" defaultValue={row?.address || ""} />
+            <Field><FieldLabel htmlFor="client-channel">Canal de vendas (opcional)</FieldLabel><NativeSelect id="client-channel" name="sales_channel" defaultValue={row?.sales_channel || ""}><NativeSelectOption value="">Sem canal</NativeSelectOption>{SALES_CHANNELS.map(channel => <NativeSelectOption key={channel.value} value={channel.value}>{channel.label}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="Valor do contrato (opcional)" name="contract_value" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={row?.contract_value ?? ""} />
             <Field><FieldLabel htmlFor="pipeline-stage">Etapa do funil</FieldLabel><NativeSelect id="pipeline-stage" name="pipeline_stage" defaultValue={row?.pipeline_stage || "lead"}>{PIPELINE_STAGES.map(stage => <NativeSelectOption key={stage.value} value={stage.value}>{stage.label}</NativeSelectOption>)}</NativeSelect></Field>
             <TextField label="Próximo follow-up (opcional)" name="next_follow_up" type="date" defaultValue={row?.next_follow_up ? row.next_follow_up.slice(0, 10) : ""} />

@@ -64,7 +64,7 @@ def notifications(request: Request, unresolved_only: bool = False,
 @announcements_router.post("", response_model=AnnouncementOutput, status_code=201)
 def create_announcement(data: AnnouncementInput, request: Request, actor=Depends(admin_user)):
     try:
-        return request.app.state.services.announcements.create(actor, title=data.title, body=data.body)
+        return request.app.state.services.announcements.create(actor, title=data.title, body=data.body, audience=data.audience)
     except (AnnouncementPermissionError, ValueError) as exc:
         raise fail(exc) from None
 
@@ -74,11 +74,12 @@ async def create_announcement_with_image(
     request: Request,
     title: str = Form(min_length=1, max_length=160),
     body: str = Form(min_length=1, max_length=5000),
+    audience: str = Form(default="all"),
     image: UploadFile | None = File(default=None),
     actor=Depends(admin_user),
 ):
     try:
-        data = AnnouncementInput(title=title, body=body)
+        data = AnnouncementInput(title=title, body=body, audience=audience)
         image_data = None
         if image is not None:
             raw = await image.read(request.app.state.settings.profile_photo_max_bytes + 1)
@@ -88,7 +89,7 @@ async def create_announcement_with_image(
                 max_pixels=request.app.state.settings.profile_photo_max_pixels,
             )
         return request.app.state.services.announcements.create(
-            actor, title=data.title, body=data.body, image_data=image_data,
+            actor, title=data.title, body=data.body, image_data=image_data, audience=data.audience,
         )
     except PhotoTooLarge as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from None

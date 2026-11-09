@@ -44,3 +44,18 @@ def test_automation_rejects_unsupported_file_and_api_keys_only_access(client):
                            files={"file": ("workflow.exe", b"not an automation")})
     assert response.status_code == 400
     assert client.get("/automations").status_code == 200
+
+
+def test_api_key_validate_route_accepts_only_valid_api_keys(client):
+    session = login(client)
+    key = client.post("/auth/api-keys", headers=session, json={"name": "maps"}).json()["key"]
+
+    ok = client.get("/auth/api-keys/validate", headers={"Authorization": f"Bearer {key}"})
+    assert ok.status_code == 200 and ok.json() == {"valid": True}
+
+    bad = client.get("/auth/api-keys/validate", headers={"Authorization": "Bearer nexo_live_wrong"})
+    assert bad.status_code == 401
+    # A logged-in session without an API key is not accepted.
+    assert client.get("/auth/api-keys/validate", headers=session).status_code == 401
+    client.cookies.clear()
+    assert client.get("/auth/api-keys/validate").status_code == 401

@@ -3,6 +3,9 @@ import re
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
+from backend.domain.client_channels import SALES_CHANNELS
+from backend.domain.lead_contacts import clean_instagram, clean_website
+from backend.domain.pipeline_stages import PIPELINE_STAGES
 from backend.repository.db.models import Base
 
 
@@ -48,6 +51,77 @@ def _migrate_user_roles(engine: Engine, principal_email: str | None) -> None:
         connection.commit()
 
 
+def _quoted(values: tuple[str, ...]) -> str:
+    return ", ".join(f"'{value}'" for value in values)
+
+
+def _migrate_client_checks(engine: Engine) -> None:
+    """Widen the stage and channel CHECKs of tables created before the paid-traffic funnel, keeping every row."""
+    with engine.connect() as connection:
+        sql = connection.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name='clients'")).scalar_one()
+        migrated = sql
+        for column, values in (("pipeline_stage", PIPELINE_STAGES), ("sales_channel", SALES_CHANNELS)):
+            pattern = rf"({column} (?:IS NULL OR {column} )?IN \()[^)]*(\))"
+            migrated = re.sub(pattern, lambda match: match.group(1) + _quoted(values) + match.group(2), migrated)
+        if migrated == sql:
+            return
+        migrated = re.sub(r'^CREATE TABLE ["`]?clients["`]?', "CREATE TABLE clients_check_migration", migrated, count=1)
+        if "clients_check_migration" not in migrated:
+            raise RuntimeError("Cannot safely migrate the clients constraints")
+        names = ", ".join('"' + column["name"].replace('"', '""') + '"' for column in inspect(connection).get_columns("clients"))
+        connection.commit()
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
+        try:
+            with connection.begin():
+                connection.exec_driver_sql(migrated)
+                connection.exec_driver_sql(f"INSERT INTO clients_check_migration ({names}) SELECT {names} FROM clients")
+                connection.exec_driver_sql("DROP TABLE clients")
+                connection.exec_driver_sql("ALTER TABLE clients_check_migration RENAME TO clients")
+                if connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall():
+                    raise RuntimeError("Client constraint migration would break foreign keys")
+        finally:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
+
+
+def _move_lead_links_out_of_notes(engine: Engine) -> None:
+    """Leads saved from the map kept "Instagram: <link>" and "Site: <link>" lines in the notes: move them to their fields.
+
+    Nothing is ever lost: a line leaves the notes only after its link was stored in the new column, a link that cannot
+    be stored (invalid, too long, a second one of the same kind) stays in the notes, and rows that already have a link
+    are not touched. The whole move is one transaction, so it either happens fully or not at all.
+    """
+    pattern = re.compile(r"^(Instagram|Site): *(\S+) *$", re.M)
+    cleaners = {"Instagram": ("instagram", clean_instagram), "Site": ("website", clean_website)}
+    with engine.begin() as connection:
+        columns = {column["name"] for column in inspect(connection).get_columns("clients")}
+        if not {"notes", "instagram", "website"} <= columns:
+            return
+        rows = connection.execute(text(
+            "SELECT id, notes FROM clients WHERE instagram IS NULL AND website IS NULL "
+            "AND (notes LIKE '%Instagram: %' OR notes LIKE '%Site: %')")).all()
+        for client_id, notes in rows:
+            moved, kept = {}, notes
+            for match in pattern.finditer(notes or ""):
+                column, clean = cleaners[match.group(1)]
+                if column in moved:
+                    continue
+                try:
+                    link = clean(match.group(2))
+                except ValueError:
+                    continue
+                if link and len(link) <= 300:
+                    moved[column] = link
+                    kept = kept.replace(match.group(0), "", 1)
+            if not moved:
+                continue
+            kept = re.sub(r"\n{2,}", "\n", kept).strip()
+            connection.execute(
+                text("UPDATE clients SET instagram = :instagram, website = :website, notes = :notes WHERE id = :id"),
+                {"instagram": moved.get("instagram"), "website": moved.get("website"), "notes": kept or None, "id": client_id})
+
+
 def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     """Create missing tables and apply additive, data-preserving schema changes."""
     Base.metadata.create_all(engine)
@@ -56,7 +130,7 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     # announcement fields in place so deploying this feature preserves history.
     columns = {column["name"] for column in inspect(engine).get_columns("notifications")}
     additions = {"announcement_id": "VARCHAR(36)", "title": "VARCHAR(160)", "body": "TEXT",
-                 "image_storage_key": "VARCHAR(64)"}
+                 "image_storage_key": "VARCHAR(64)", "audience": "VARCHAR(16)"}
     client_columns = {column["name"] for column in inspect(engine).get_columns("clients")}
     if "contract_value" not in client_columns:
         with engine.begin() as connection:
@@ -76,12 +150,38 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
                 "UPDATE clients SET contract_closed_at = updated_at "
                 "WHERE (contract_closed = 1 OR pipeline_stage = 'won') AND updated_at IS NOT NULL"
             ))
+    if "user_id" not in {column["name"] for column in inspect(engine).get_columns("maps_credentials")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE maps_credentials ADD COLUMN user_id VARCHAR(36)"))
+    if "address" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN address VARCHAR(300)"))
+    if "sales_channel" not in client_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE clients ADD COLUMN sales_channel VARCHAR(24)"))
     if "pain" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN pain TEXT"))
     if "approach" not in client_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE clients ADD COLUMN approach TEXT"))
+    for name, definition in (("instagram", "VARCHAR(300)"), ("website", "VARCHAR(300)")):
+        if name not in client_columns:
+            with engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE clients ADD COLUMN {name} {definition}"))
+    _move_lead_links_out_of_notes(engine)
+    _migrate_client_checks(engine)
+    maps_job_columns = {column["name"] for column in inspect(engine).get_columns("maps_jobs")}
+    with engine.begin() as connection:
+        for name, definition in (("auto_expand", "BOOLEAN NOT NULL DEFAULT 0"), ("radius", "INTEGER"),
+                                 ("start_radius", "INTEGER"), ("params", "TEXT"), ("expanded_to", "VARCHAR(36)"),
+                                 ("max_leads", "INTEGER"), ("contact", "VARCHAR(16)")):
+            if name not in maps_job_columns:
+                connection.execute(text(f"ALTER TABLE maps_jobs ADD COLUMN {name} {definition}"))
+    video_job_columns = {column["name"] for column in inspect(engine).get_columns("video_jobs")}
+    if "audio" not in video_job_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE video_jobs ADD COLUMN audio BOOLEAN NOT NULL DEFAULT 0"))
     blob_columns = {
         "users": ("profile_photo_data", "BLOB"),
         "documents": ("content", "BLOB"),

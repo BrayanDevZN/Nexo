@@ -1,5 +1,5 @@
 import { test, expect } from "../../../src/frontend/test-kit";
-import { apiBase, ApiError, createApi } from "../../../src/frontend/admin/api";
+import { PAID_LEAD_STAGES, apiBase, ApiError, createApi } from "../../../src/frontend/admin/api";
 
 test("validates public backend URLs", () => {
   expect(apiBase("")).toBe("/api");
@@ -109,4 +109,23 @@ test("profile image fetch includes cookies and returns a private blob", async ()
   expect(credentials).toBe("include");
   expect(blob.type).toBe("image/jpeg");
   expect(await blob.text()).toBe("image-bytes");
+});
+
+test("the paid-traffic funnel starts with the two stages the site records, then the team's stages", () => {
+  expect(PAID_LEAD_STAGES.map(stage => stage.value)).toEqual(["visited", "whatsapp_click", "in_conversation", "qualified", "meeting", "proposal", "won", "lost"]);
+  expect(PAID_LEAD_STAGES.filter(stage => stage.bySite).map(stage => stage.value)).toEqual(["visited", "whatsapp_click"]);
+  expect(new Set(PAID_LEAD_STAGES.map(stage => stage.label)).size).toBe(PAID_LEAD_STAGES.length);
+});
+
+test("explains the video errors in Portuguese", async () => {
+  const answer = (status: number, detail: string): typeof fetch => async () => Response.json({ detail }, { status });
+  const message = async (status: number, detail: string, path = "/videos/generate") => {
+    try { await createApi("/api", answer(status, detail)).request(path); } catch (error) { return (error as ApiError).message; }
+    return "";
+  };
+  expect(await message(503, "Video generator is not configured")).toContain("GROQ_API_KEY");
+  expect(await message(503, "Video server is not configured")).toContain("servidor de vídeo");
+  expect(await message(429, "Too many videos in progress. Wait for one to finish.")).toContain("2 vídeos em andamento");
+  expect(await message(422, "x")).toContain("campos do vídeo");
+  expect(await message(429, "x", "/clients")).toContain("Muitas tentativas");
 });

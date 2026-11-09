@@ -18,13 +18,20 @@ export type ApiKeyUsage = { date: string; count: number; api_key_id: string; api
 export type Member = User & { is_principal: boolean };
 export type ClientRecord = {
   id: string; name: string; niche: string; phone: string | null; email: string | null;
-  notes: string | null; pain: string | null; approach: string | null;
+  address: string | null; instagram: string | null; website: string | null; notes: string | null; pain: string | null; approach: string | null;
+  sales_channel: SalesChannel | null;
   contract_closed_at: string | null;
   contract_closed: boolean; contract_value: number | string | null;
   pipeline_stage: PipelineStage; next_follow_up: string | null;
   created_by_id: string; created_by_name: string;
   created_at: string; updated_at: string;
 };
+export type SalesChannel = "email" | "whatsapp" | "instagram" | "google_ads" | "phone" | "in_person" | "other";
+export const SALES_CHANNELS: { value: SalesChannel; label: string }[] = [
+  { value: "email", label: "E-mail" }, { value: "whatsapp", label: "WhatsApp" }, { value: "instagram", label: "Instagram" }, { value: "google_ads", label: "Google Ads" },
+  { value: "phone", label: "Ligação" }, { value: "in_person", label: "Presencial" }, { value: "other", label: "Outro" },
+];
+export const salesChannelLabel = (value: SalesChannel | null | undefined) => SALES_CHANNELS.find(channel => channel.value === value)?.label ?? null;
 export type PipelineStage = "lead" | "contacted" | "diagnosis" | "proposal" | "negotiation" | "won" | "lost";
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "lead", label: "Lead" }, { value: "contacted", label: "Contato feito" },
@@ -32,13 +39,30 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: "negotiation", label: "Negociação" }, { value: "won", label: "Fechado" },
   { value: "lost", label: "Perdido" },
 ];
+/** Leads that came from paid ads live in their own table; the site records the first two stages. */
+export type PaidLeadStage = "visited" | "whatsapp_click" | "in_conversation" | "qualified" | "meeting" | "proposal" | "won" | "lost";
+export const PAID_LEAD_STAGES: { value: PaidLeadStage; label: string; description: string; bySite?: boolean }[] = [
+  { value: "visited", label: "Visitou a página", description: "Chegou pelo anúncio", bySite: true },
+  { value: "whatsapp_click", label: "Clicou no WhatsApp", description: "Foi chamar a Nexo", bySite: true },
+  { value: "in_conversation", label: "Em conversa", description: "Já respondemos e conversamos" },
+  { value: "qualified", label: "Qualificado", description: "Tem perfil e interesse real" },
+  { value: "meeting", label: "Reunião marcada", description: "Reunião ou demonstração marcada" },
+  { value: "proposal", label: "Proposta", description: "Proposta enviada" },
+  { value: "won", label: "Fechado", description: "Contratos ganhos" },
+  { value: "lost", label: "Perdido", description: "Oportunidades perdidas" },
+];
+export type PaidLead = {
+  id: string; stage: PaidLeadStage; source: string; click_id: string | null; page: string; placement: string | null;
+  whatsapp_clicked_at: string | null; name: string | null; phone: string | null; email: string | null;
+  notes: string | null; contract_value: number | string | null; created_at: string; updated_at: string;
+};
 export const CLIENT_NICHES = [
   "Contabilidade", "Saúde", "Beleza e estética", "Imobiliário", "Advocacia",
   "Educação", "Varejo", "Comércio", "Alimentação", "Tecnologia",
   "Construção civil", "Indústria", "Logística", "Serviços profissionais",
   "Marketing e publicidade", "Automotivo", "Outro",
 ] as const;
-export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
+export type ClientInput = Pick<ClientRecord, "name" | "niche" | "phone" | "email" | "address" | "instagram" | "website" | "sales_channel" | "notes" | "pain" | "approach" | "contract_closed" | "contract_value" | "pipeline_stage" | "next_follow_up"> & { idempotency_key?: string };
 export type Approval = {
   id: string; requested_user_id: string; read_at: string | null; created_at: string;
 };
@@ -83,6 +107,9 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
           : detail === "Administrator access required" ? "admin"
           : detail === "Owner access required" ? "owner" : undefined;
         const messages: Record<number, string> = {
+          400: path.startsWith("/admin/databases") ? detail || "Consulta inválida."
+            : path === "/maps/key" ? "O servidor do Maps recusou esta chave. Use uma chave válida de Dev, Admin ou Owner."
+            : "Confira os dados e tente novamente.",
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
           404: "Registro não encontrado.",
@@ -93,13 +120,22 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
           413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
-          422: path.startsWith("/push")
+          422: path.startsWith("/videos") ? "Confira os campos do vídeo e tente novamente."
+            : path === "/maps/key" ? "A chave deve começar com nexo_live_ e ter o formato gerado na página API."
+            : path.startsWith("/maps") ? "Confira os campos da busca e tente novamente."
+            : path.startsWith("/push")
             ? "Não foi possível registrar as notificações neste dispositivo. Atualize a página e tente novamente."
             : path.startsWith("/clients")
             ? "Confira os campos do cliente e tente novamente."
             : "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
-          429: "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
-          503: path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
+          429: path.startsWith("/videos") ? "Você já tem 2 vídeos em andamento. Aguarde um terminar para pedir outro."
+            : "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",
+          502: path.startsWith("/maps") ? "O servidor do Maps recusou a chave da Nexo. Confira MAPS_API_KEY no backend." : "Serviço temporariamente indisponível. Tente novamente em instantes.",
+          503: path.startsWith("/videos") ? (detail.includes("generator")
+              ? "A IA de vídeos não está configurada no servidor (falta GROQ_API_KEY). Você ainda pode renderizar um HTML."
+              : "O servidor de vídeo não está disponível. Tente novamente em instantes.")
+            : path.startsWith("/maps") ? "O servidor do Maps está indisponível ou sem chave configurada (MAPS_API_KEY)."
+            : path === "/auth/account/deletion/request" ? "Não foi possível enviar o código de exclusão. Tente novamente mais tarde."
             : path === "/auth/register" ? "Não foi possível enviar o código por e-mail. O serviço de envio está indisponível."
             : path.startsWith("/push") ? "As notificações push não estão configuradas no servidor."
             : "Serviço temporariamente indisponível. Tente novamente em instantes.",

@@ -15,9 +15,11 @@ from pydantic import (
 )
 
 from backend.controller.schema.auth import ProfileInput
+from backend.domain.client_channels import SalesChannel
 from backend.domain.client_niches import validate_client_niche
+from backend.domain.lead_contacts import clean_instagram, clean_website
+from backend.domain.pipeline_stages import PipelineStage
 
-PipelineStage = Literal["lead", "contacted", "diagnosis", "proposal", "negotiation", "won", "lost"]
 
 
 class ClientFields(BaseModel):
@@ -28,8 +30,12 @@ class ClientFields(BaseModel):
     contract_value: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     pipeline_stage: PipelineStage = "lead"
     next_follow_up: datetime | None = None
+    sales_channel: SalesChannel | None = None
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
+    address: str | None = Field(default=None, max_length=300)
+    instagram: str | None = Field(default=None, max_length=300)
+    website: str | None = Field(default=None, max_length=300)
     notes: str | None = Field(default=None, max_length=10000)
     pain: str | None = Field(default=None, max_length=5000)
     approach: str | None = Field(default=None, max_length=5000)
@@ -49,6 +55,14 @@ class ClientFields(BaseModel):
     @classmethod
     def clean_phone(cls, value):
         return ProfileInput.clean_phone(value) if value is not None else None
+
+    @field_validator("instagram", "website")
+    @classmethod
+    def clean_links(cls, value, info: ValidationInfo):
+        # Historical records stay readable; create and patch inputs are normalized and strict.
+        if cls.__name__ == "ClientOutput":
+            return value
+        return clean_instagram(value) if info.field_name == "instagram" else clean_website(value)
 
 
 class ClientCreate(ClientFields):

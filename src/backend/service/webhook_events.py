@@ -12,6 +12,10 @@ from fastapi.encoders import jsonable_encoder
 
 logger = logging.getLogger(__name__)
 
+# Only failures where the workflow certainly did not run are retried; a timeout or a 500 may have run it already,
+# and retrying would send the same message twice.
+RETRY_STATUSES = {429, 502, 503, 504}
+
 SUPPORTED_EVENTS = {
     "any",
     "teamAnnouncement",
@@ -52,6 +56,14 @@ class WebhookEventService:
         if event not in SUPPORTED_EVENTS:
             raise ValueError("Unsupported event")
         url = self._validate_url(url)
+        # The same workflow asking twice (reactivated, or an old subscription it failed to remove) must not
+        # make every event arrive twice, so an identical subscription is reused.
+        for raw_id in self.redis.smembers(f"{self.prefix}:owner:{owner_id}"):
+            existing = self.redis.get(f"{self.prefix}:subscription:{raw_id.decode() if isinstance(raw_id, bytes) else raw_id}")
+            if existing:
+                found = json.loads(existing)
+                if found.get("event") == event and found.get("url") == url:
+                    return found
         identifier = str(uuid4())
         record = {"id": identifier, "owner_id": owner_id, "event": event, "url": url}
         pipe = self.redis.pipeline(transaction=True)
@@ -88,13 +100,18 @@ class WebhookEventService:
             raise ValueError("Unsupported event")
         ids = set(self.redis.smembers(f"{self.prefix}:event:{event}"))
         ids.update(self.redis.smembers(f"{self.prefix}:event:any"))
+        payload = jsonable_encoder({"event": event, "data": data})
+        delivered = set()
         for raw_id in ids:
             identifier = raw_id.decode() if isinstance(raw_id, bytes) else str(raw_id)
             raw = self.redis.get(f"{self.prefix}:subscription:{identifier}")
             if not raw:
                 continue
             record = json.loads(raw)
-            payload = jsonable_encoder({"event": event, "data": data})
+            # One delivery per address: two subscriptions to the same URL would run the workflow twice.
+            if record["url"] in delivered:
+                continue
+            delivered.add(record["url"])
             self.executor.submit(self._deliver, record["url"], payload)
 
     @staticmethod
@@ -111,18 +128,26 @@ class WebhookEventService:
             try:
                 with httpx.Client(timeout=10, follow_redirects=False) as client:
                     response = client.post(url, json=payload, headers=headers)
-                    response.raise_for_status()
+                    if response.status_code in RETRY_STATUSES:
+                        response.raise_for_status()
+                    elif response.is_error:
+                        logger.error("Webhook rejected: id=%s event=%s status=%s", delivery_id, payload.get("event"), response.status_code)
+                        return
                 logger.info(
                     "Webhook event delivered: id=%s event=%s status=%s attempt=%s",
                     delivery_id, payload.get("event"), response.status_code, attempt,
                 )
                 return
-            except Exception as exc:
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.HTTPStatusError) as exc:
                 last_error = exc
                 logger.warning(
                     "Webhook delivery attempt failed: id=%s event=%s attempt=%s url=%s",
                     delivery_id, payload.get("event"), attempt, url, exc_info=True,
                 )
+            except Exception:
+                # E.g. a read timeout: the workflow may have run, so it is not sent again.
+                logger.error("Webhook delivery not confirmed, not retried: id=%s event=%s url=%s", delivery_id, payload.get("event"), url, exc_info=True)
+                return
         logger.error(
             "Webhook event delivery exhausted retries: id=%s event=%s url=%s error=%r",
             delivery_id, payload.get("event"), url, last_error,

@@ -2,17 +2,42 @@ import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AnimatedBackground } from "./components/AnimatedBackground";
+import { Backdrop } from "./components/rp/Backdrop";
+import { Particles } from "./components/rp/Particles";
+import { CookieNotice } from "./components/CookieNotice";
 import { MotionProvider } from "./components/MotionProvider";
+import { applyAdminTheme, readAdminTheme } from "./admin/theme";
+import { setCanonical, setNoIndex } from "./lib/seo";
+import { startPageEntrance, startSiteEffects } from "./lib/siteEffects";
+import "@fontsource/barlow-semi-condensed/600.css";
+import "@fontsource/lato/300.css";
+import "@fontsource/lato/300-italic.css";
+import "@fontsource/lato/400.css";
+import "@fontsource/lato/700.css";
 import "./styles/globals.css";
+import "./styles/site.css";
+import "./styles/robin.css";
+import "./styles/admin.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
+const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
+const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
+
+if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); document.documentElement.classList.add("admin-theme"); }
+else {
+  setCanonical(window.location.pathname);
+  startSiteEffects(startPageEntrance());
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MotionProvider>
-      <AnimatedBackground />
-      {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : <App />}
+      <Backdrop />
+      {adminRoute ? <Particles /> : null}
+      {privacyRoute ? <AnimatedBackground /> : null}
+      {adminRoute ? <Suspense fallback={<main className="admin-loading" role="status">Carregando painel…</main>}><AdminApp /></Suspense> : privacyRoute ? <Suspense fallback={null}><PrivacyPage /></Suspense> : <App />}
+      {adminRoute ? null : <CookieNotice />}
     </MotionProvider>
   </StrictMode>,
 );

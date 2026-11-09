@@ -3,7 +3,7 @@ import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
-from backend.domain.roles import DEVELOPERS
+from backend.domain.roles import API_KEY_HOLDERS
 from backend.repository.db.models import ApiKey
 from backend.service.access import AccessDenied, ResourceNotFound, authorize
 
@@ -31,14 +31,14 @@ class ApiKeyService:
         }
 
     @staticmethod
-    def _developer(user):
-        if user.role not in DEVELOPERS:
-            raise AccessDenied("Developer access required")
+    def _holder(user):
+        if user.role not in API_KEY_HOLDERS:
+            raise AccessDenied("API key access required")
         return user
 
     def create(self, actor, name: str) -> tuple[dict, str]:
         with self.repositories.transaction() as repos:
-            current = self._developer(authorize(repos, actor, approved=True))
+            current = self._holder(authorize(repos, actor, approved=True))
             raw = self.prefix + secrets.token_urlsafe(32)
             key = repos.api_keys.create(user_id=current.id, name=name,
                                         key_prefix=raw[:len(self.prefix) + 8], key_hash=self._hash(raw))
@@ -46,12 +46,12 @@ class ApiKeyService:
 
     def list(self, actor):
         with self.repositories.read_transaction() as repos:
-            current = self._developer(authorize(repos, actor, approved=True))
+            current = self._holder(authorize(repos, actor, approved=True))
             return [self._output(key) for key in repos.api_keys.list_for_user(current.id)]
 
     def revoke(self, actor, identifier: str) -> None:
         with self.repositories.transaction() as repos:
-            current = self._developer(authorize(repos, actor, approved=True))
+            current = self._holder(authorize(repos, actor, approved=True))
             if not repos.api_keys.revoke(current.id, identifier, datetime.now(UTC).replace(tzinfo=None)):
                 raise ResourceNotFound("API key not found")
 
@@ -65,7 +65,7 @@ class ApiKeyService:
             user = repos.users.for_auth(key.user_id)
             # A role downgrade immediately disables all existing API keys.
             # Each endpoint then checks the current role for its own operation.
-            if user is None or user.status != "approved" or user.role not in DEVELOPERS:
+            if user is None or user.status != "approved" or user.role not in API_KEY_HOLDERS:
                 raise ApiKeyAuthenticationError("Invalid API key")
             key_id = key.id
         self._usage_executor.submit(self._record_access, key_id)
@@ -86,6 +86,6 @@ class ApiKeyService:
 
     def usage(self, actor, days: int):
         with self.repositories.read_transaction() as repos:
-            current = self._developer(authorize(repos, actor, approved=True))
+            current = self._holder(authorize(repos, actor, approved=True))
             return repos.api_keys.usage_for_user(current.id, days)
 

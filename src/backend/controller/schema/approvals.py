@@ -13,6 +13,8 @@ class AnnouncementInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=1, max_length=160)
     body: str = Field(min_length=1, max_length=5000)
+    # Who receives it. Admins and owners always receive every announcement.
+    audience: Literal["all", "commercial", "dev"] = "all"
 
     @field_validator("title", "body")
     @classmethod
@@ -27,6 +29,7 @@ class AnnouncementOutput(BaseModel):
     id: str
     title: str
     body: str
+    audience: Literal["all", "commercial", "dev"] = "all"
     recipients: int
     email_queued: int
     created_at: datetime
@@ -36,6 +39,7 @@ class NotificationOutput(BaseModel):
     id: str
     kind: str
     announcement_id: str | None = None
+    audience: Literal["all", "commercial", "dev"] | None = None
     title: str | None = None
     body: str | None = None
     sender_name: str | None = None

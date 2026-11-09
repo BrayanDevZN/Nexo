@@ -57,6 +57,26 @@ a invalidação falhar, houver crash ou escritas SQL externas ao manager.
 | --- | --- |
 | comercial | Clientes, funil, dashboard e documentos; biblioteca para consultar/baixar |
 | dev | Chaves de API, automações e acesso ao n8n; biblioteca para consultar/baixar |
+
+### Público dos avisos
+
+Todo aviso tem um público: `all` (todos), `commercial` ou `dev`. Notificação, push e e-mail vão só para quem tem o cargo do
+público, e administradores e owners recebem sempre todos. Os avisos automáticos seguem a mesma regra: eventos de clientes e
+de documentos vão ao comercial (mais admin e owner); eventos da biblioteca de automações vão ao dev (mais admin e owner).
+`POST /admin/announcements` aceita `audience` (padrão `all`).
+
+### Chaves de API por cargo
+
+Todo membro aprovado gera e revoga as próprias chaves (`/auth/api-keys`, sessão do painel). O alcance da chave depende
+do cargo do dono, lido a cada requisição:
+
+| Cargo do dono | O que a chave acessa |
+| --- | --- |
+| dev, admin, owner | Toda a API, conforme as regras de cada rota |
+| comercial | Apenas `/clients` e `/auth/api-keys/validate` (a checagem que o servidor do Maps usa); qualquer outra rota responde 403 |
+
+A chave que o painel usa no Maps é pessoal (cada membro salva a sua em `/maps/key`). Ela é guardada criptografada; a chave
+compartilhada antiga e `MAPS_API_KEY` continuam como reserva para quem ainda não salvou a sua.
 | admin | Áreas comerciais e de desenvolvimento; avisos; sem convites, aprovações ou gestão da equipe |
 | owner | Todas as áreas, inclusive convites, aprovações e gestão de membros |
 
@@ -90,14 +110,14 @@ Contas antigas `member` são migradas para `commercial`; a conta configurada por
 | GET /admin/notifications | somente owner; filtro unresolved_only, limit/offset |
 | PATCH /admin/notifications/{id}/read | somente owner destinatário |
 | POST /admin/notifications/{id}/decision | somente owner; decision approved/rejected |
-| GET /clients | comercial/admin/owner; filtros niche, contract_closed, limit/offset |
+| GET /clients | comercial/admin/owner; filtros niche, pipeline_stage, sales_channel, contract_closed, limit/offset |
 | GET /automations | membro aprovado ou API key; lista a biblioteca compartilhada |
 | POST /automations | dev/admin/owner; multipart `name`, `description`, `file` e `image` opcional; avisa os membros aprovados |
 | PATCH /automations/{id} | dev/admin/owner; multipart com qualquer combinação de `name`, `description`, `file` e `image`; campos omitidos são preservados; gera aviso com a imagem atual |
 | DELETE /automations/{id} | dev/admin/owner; exclui e gera aviso preservando a imagem |
 | GET /automations/{id}/download | membro aprovado ou API key; baixa o arquivo privado |
 | GET /automations/{id}/image | membro aprovado ou API key; foto opcional da automação |
-| POST /clients | comercial/admin/owner; name, niche, phone/email/notes opcionais, contract_closed |
+| POST /clients | comercial/admin/owner; name, niche, phone/email/notes opcionais, sales_channel opcional (email, whatsapp, instagram, phone, in_person, other; vazio = sem canal), contract_closed |
 | GET/PATCH/DELETE /clients/{id} | comercial/admin/owner; consulta, alteração ou remoção |
 | PUT /auth/profile | próprio name e phone, inclusive pendente |
 | PUT/GET/DELETE /auth/profile/photo | própria foto; upload multipart no campo file |

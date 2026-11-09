@@ -1,0 +1,98 @@
+# Local stack for Nexo. Credentials (EMAIL, PASSWORD, RESEND_KEY, GOOGLE_*, GROQ_API_KEY...) come from .env
+# (see .env.example); it holds the local values (redis, qdrant and maps by service name).
+# Everything is published on 127.0.0.1 only.
+#   frontend  http://localhost:8080   (nginx, proxies /api and /realtime to the backend)
+#   backend   http://localhost:8000
+#   mcp       http://localhost:8001
+#   maps      http://localhost:8082   (needs a Nexo API key)
+#   n8n       http://localhost:5678
+#   qdrant    http://localhost:6333
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      - redis
+      - qdrant
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - nexo_data:/data    # SQLite database and uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    restart: unless-stopped
+    environment:
+      PORT: "8000"
+      NEXO_BASE_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8001:8000"
+
+  maps:
+    build:
+      context: maps-server
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      NEXO_API_URL: http://backend:8000
+      DATA_DIR: /gmapsdata
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8082:8080"
+    volumes:
+      - maps_data:/gmapsdata
+
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile.n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  redis_data:
+  qdrant_data:
+  nexo_data:
+  maps_data:
+  n8n_data:

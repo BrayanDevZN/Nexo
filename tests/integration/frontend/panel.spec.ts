@@ -108,11 +108,194 @@ test("approved member creates, edits and confirms deletion", async ({ page }) =>
 test("Owner sees notification and approves request", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" }, requests: true });
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
   await expect(page.getByText("Há solicitações de acesso aguardando sua decisão.")).toBeVisible();
   await page.getByRole("button", { name: "Ver solicitações" }).click();
   await page.getByRole("button", { name: "Autorizar", exact: true }).click();
   await page.getByRole("button", { name: "Confirmar decisão" }).click();
   await expect(page.getByText("Acesso autorizado.")).toBeVisible();
+});
+
+const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
+
+test("owner chooses among three areas and the menu follows each one", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.goto("/admin");
+  for (const area of ["Geral", "Comercial", "Desenvolvimento"]) await expect(page.getByRole("button", { name: "Entrar na área " + area })).toBeVisible();
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  for (const item of ["Início", "Documentos", "Chat", "Solicitações", "Avisos", "Membros", "Gerenciar membros", "Meu perfil"]) await expect(button(page, item).first()).toBeVisible();
+  await expect(button(page, "Funil comercial")).toHaveCount(0);
+  await expect(button(page, "Bancos de dados")).toHaveCount(0);
+  await page.getByRole("button", { name: "Trocar de área" }).click();
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  for (const item of ["Início", "Dashboard do negócio", "Funil comercial", "Funil tráfego pago", "Clientes", "Maps", "Chaves", "Avisos"]) await expect(button(page, item).first()).toBeVisible();
+  for (const gone of ["Chat", "Documentos", "Automações", "Solicitações", "Gerenciar membros", "Membros", "Meu perfil"]) await expect(button(page, gone)).toHaveCount(0);
+  await button(page, "Funil tráfego pago").click();
+  await expect(page.getByRole("heading", { name: "Funil de tráfego pago" })).toBeVisible();
+  for (const stage of ["Visitou a página", "Clicou no WhatsApp", "Em conversa", "Qualificado", "Reunião marcada", "Proposta", "Fechado", "Perdido"]) await expect(page.getByRole("heading", { name: stage, exact: true }).or(page.getByText(stage, { exact: true })).first()).toBeVisible();
+  await page.getByRole("button", { name: "Trocar de área" }).click();
+  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
+  for (const item of ["Início", "Automações", "API", "Bancos de dados"]) await expect(button(page, item).first()).toBeVisible();
+  for (const gone of ["Chat", "Meu perfil", "Funil comercial", "Chaves"]) await expect(button(page, gone)).toHaveCount(0);
+});
+
+test("each role is offered only the areas it may enter", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  await page.goto("/admin");
+  await expect(page.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar na área Comercial" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toHaveCount(0);
+  // The area the role cannot enter is still listed, locked.
+  await expect(page.getByLabel("Área Desenvolvimento: sem acesso para o seu cargo")).toBeVisible();
+  await expect(page.getByText("Sem acesso")).toBeVisible();
+  const dev = await page.context().newPage();
+  await mock(dev, { user: { ...member, role: "dev", status: "approved" } });
+  await dev.goto("/admin");
+  await expect(dev.getByRole("button", { name: "Entrar na área Geral" })).toBeVisible();
+  await expect(dev.getByRole("button", { name: "Entrar na área Desenvolvimento" })).toBeVisible();
+  await expect(dev.getByRole("button", { name: "Entrar na área Comercial" })).toHaveCount(0);
+  await expect(dev.getByLabel("Área Comercial: sem acesso para o seu cargo")).toBeVisible();
+});
+
+test("announcements require choosing who receives them", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.route("**/api/notifications?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  const sent: Record<string, unknown>[] = [];
+  await page.route("**/api/admin/announcements", route => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "a1", title: "t", body: "b", audience: "commercial", recipients: 3, email_queued: 3, created_at: "2026-10-23T10:00:00" }) });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  await page.getByRole("button", { name: "Avisos", exact: true }).click();
+  await page.getByRole("button", { name: "Criar aviso" }).click();
+  await page.getByLabel("Título").fill("Reunião do comercial");
+  await page.getByLabel("Mensagem").fill("Sexta às 10h.");
+  await page.getByRole("button", { name: "Publicar aviso" }).click();
+  await expect(page.getByText("Escolha quem vai receber o aviso.")).toBeVisible();
+  expect(sent).toHaveLength(0);
+  await page.getByRole("radio", { name: "Público: Comercial" }).click();
+  await expect(page.getByText("Só o time Comercial recebe")).toBeVisible();
+  await page.getByRole("button", { name: "Publicar aviso" }).click();
+  await expect(page.getByText("Aviso publicado e enviado para comercial.")).toBeVisible();
+  expect(sent).toEqual([{ title: "Reunião do comercial", body: "Sexta às 10h.", audience: "commercial" }]);
+});
+
+test("general home explains Nexo without data from the other areas", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
+  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(page.getByText("agência de inteligência artificial")).toBeVisible();
+  await expect(page.getByText("Valor potencial")).toHaveCount(0);
+  await expect(page.getByText("Chaves de API ativas")).toHaveCount(0);
+});
+
+test("commercial keys page creates a key, uses it in Maps and revokes it, without code samples", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  let keys: Record<string, unknown>[] = [];
+  await page.route("**/api/auth/api-keys", async route => {
+    if (route.request().method() === "POST") {
+      const key = { id: "k1", name: route.request().postDataJSON().name, key_prefix: "nexo_live_abcd1234", created_at: "2026-10-23T10:00:00", last_used_at: null, key: "nexo_live_abcd1234secret" };
+      keys = [key];
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(key) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(keys) });
+  });
+  await page.route("**/api/auth/api-keys/usage?*", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  await page.route("**/api/auth/api-keys/k1", route => { keys = []; return route.fulfill({ status: 204 }); });
+  let mapsKey = "";
+  await page.route("**/api/maps/status", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: !!mapsKey, source: mapsKey ? "panel" : null, key_prefix: mapsKey.slice(0, 14) || null, updated_at: null, own: !!mapsKey }) }));
+  await page.route("**/api/maps/key", route => { mapsKey = route.request().postDataJSON?.()?.api_key ?? JSON.parse(route.request().postData() || "{}").api_key; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, source: "panel", key_prefix: mapsKey.slice(0, 14), updated_at: null, own: true }) }); });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Chaves").click();
+  await expect(page.getByRole("heading", { name: "Chaves", exact: true })).toBeVisible();
+  await expect(page.getByText("Authorization")).toHaveCount(0);
+  await expect(page.getByText("curl")).toHaveCount(0);
+  await page.getByRole("button", { name: "Criar chave" }).click();
+  await expect(page.getByTestId("new-key")).toHaveText("nexo_live_abcd1234secret");
+  await page.getByRole("button", { name: "Usar no Maps" }).click();
+  await expect(page.getByText("Pronto! Essa chave agora é a que o Maps usa para você.")).toBeVisible();
+  expect(mapsKey).toBe("nexo_live_abcd1234secret");
+  await page.getByRole("button", { name: "Revogar Minha chave do Maps" }).click();
+  await page.getByRole("button", { name: "Revogar", exact: true }).click();
+  await expect(page.getByText("Chave revogada.")).toBeVisible();
+});
+
+test("dev home shows keys, API usage, databases and automations, each tolerating failures", async ({ page }) => {
+  await mock(page, { user: { ...member, role: "dev", status: "approved" } });
+  await page.route("**/api/auth/api-keys", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: "k1", name: "n8n produção", key_prefix: "nexo_live_ab12", created_at: "2026-10-01T10:00:00", last_used_at: null }]) }));
+  await page.route("**/api/auth/api-keys/usage?*", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { date: new Date().toISOString().slice(0, 10), count: 7, api_key_id: "k1", api_key_name: "n8n" }]) }));
+  await page.route("**/api/admin/databases", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: "sqlite", name: "SQLite", status: "online", details: {} }, { id: "qdrant", name: "Qdrant", status: "unreachable", details: {} }]) }));
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Desenvolvimento" }).click();
+  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(page.getByText("n8n produção")).toBeVisible();
+  await expect(page.getByText("Sem conexão")).toBeVisible();
+  await expect(page.getByText("Não foi possível carregar agora.").first()).toBeVisible();
+  await page.getByRole("button", { name: "Gerenciar chaves" }).click();
+  await expect(page.getByRole("button", { name: "Início", exact: true })).toBeVisible();
+});
+
+async function openMaps(page: Page, status: "working" | "ok", leadRequests: Record<string, unknown>[] = [], extraRows: Record<string, unknown>[] = []) {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  const json = (body: unknown, code = 200) => ({ status: code, contentType: "application/json", body: JSON.stringify(body) });
+  await page.route("**/api/maps/status", route => route.fulfill(json({ configured: true, source: "panel", key_prefix: "nexo_live_ab12", updated_at: null, own: true })));
+  await page.route("**/api/maps/jobs", route => route.fulfill(json([{ id: "11111111-1111-4111-8111-111111111111", name: "Alimentação · São Paulo", status, created_at: "2026-10-23T10:00:00" }])));
+  await page.route("**/api/maps/jobs/*/results", route => route.fulfill(json({ total: 2 + extraRows.length, in_funnel: 0, truncated: false, rows: [
+    { title: "Padaria A", category: "Padaria", address: "Rua A, 1", phone: "11 3333-4444", website: null, emails: null, review_rating: 4.5, review_count: 10, link: null, latitude: -23.5, longitude: -46.6 },
+    { title: "Padaria B", category: "Padaria", address: "Rua B, 2", phone: null, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null }, ...extraRows] })));
+  // The server saves the leads in the background: one more lead is done every two status polls.
+  let total = 0, polls = 0;
+  const snapshot = () => {
+    const done = Math.min(total, Math.floor(polls / 2));
+    return { id: "b1", total, done, created: done, skipped: 0, failed: 0, finished: done === total,
+      items: Array.from({ length: total }, (_, index) => index < done ? "created" : index === done ? "processing" : "queued") };
+  };
+  await page.route("**/api/maps/funnel/batches", route => {
+    const body = route.request().postDataJSON();
+    leadRequests.push(body); total = body.leads.length; polls = 0;
+    return route.fulfill(json({ ...snapshot(), items: Array(total).fill("queued") }, 202));
+  });
+  await page.route("**/api/maps/funnel/batches/b1", route => { polls += 1; return route.fulfill(json(snapshot())); });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Maps").click();
+  await page.getByRole("button", { name: /^Alimentação · São Paulo/ }).click();
+}
+
+test("maps shows a spinner while a search is running", async ({ page }) => {
+  await openMaps(page, "working");
+  await expect(page.getByText("Buscando empresas…")).toBeVisible();
+  await expect(page.getByRole("status", { name: "Buscando empresas" })).toBeVisible();
+});
+
+test("adding a lead swaps its button for a spinner until the background task saves it", async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await openMaps(page, "ok", requests);
+  await page.getByRole("button", { name: "Adicionar Padaria A ao funil" }).click();
+  await expect(page.getByRole("status", { name: "Adicionando Padaria A ao funil" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Adicionar Padaria A ao funil" })).toHaveCount(0);
+  await expect(page.getByText("Adicionado!")).toBeVisible({ timeout: 10000 });
+  expect(requests).toHaveLength(1);
+  expect((requests[0].leads as unknown[]).length).toBe(1);
+  await expect(page.getByRole("button", { name: "Adicionar Padaria B ao funil" })).toBeEnabled();
+});
+
+test("adding all leads queues one task per lead and follows the progress", async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await openMaps(page, "ok", requests);
+  await page.getByRole("button", { name: /Adicionar todos no funil/ }).click();
+  await expect(page.getByRole("progressbar", { name: "Andamento da adição ao funil" })).toBeVisible();
+  await expect(page.getByText("Na fila")).toBeVisible();
+  await expect(page.getByText("Adicionado!")).toHaveCount(2, { timeout: 15000 });
+  await expect(page.getByText("2 lead(s) adicionados ao funil.")).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect((requests[0].leads as { title: string }[]).map(lead => lead.title)).toEqual(["Padaria A", "Padaria B"]);
 });
 
 test("mobile login and panel fit the viewport", async ({ page }) => {
@@ -213,6 +396,7 @@ test("failed SMTP delivery keeps signup form and does not claim code was sent", 
 test("admin edits approved member role and data, protects principal and confirms deletion", async ({ page }) => {
   await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Geral" }).click();
   await page.getByRole("button", { name: "Gerenciar membros", exact: true }).click();
   await expect(page.getByRole("button", { name: "Excluir membro Principal" })).toBeDisabled();
   await page.getByRole("button", { name: "Editar membro Principal" }).click();
@@ -395,4 +579,241 @@ test("chat lists members and switches private conversations on desktop and mobil
   await directory.getByRole("button", { name: "Conversar com Principal", exact: true }).click();
   await expect(page.getByText("Mensagem de Principal", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test("the paid-traffic funnel lists the leads the site recorded and the team moves, edits and removes them", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  const lead = { id: "11111111-1111-1111-1111-111111111111", stage: "whatsapp_click", source: "google-ads", click_id: "gclid-1", page: "contabilidade", placement: "hero",
+    whatsapp_clicked_at: "2026-10-26T19:00:00", name: null, phone: null, email: null, notes: null, contract_value: null, created_at: "2026-10-26T18:59:00", updated_at: "2026-10-26T19:00:00" };
+  const visitor = { ...lead, id: "22222222-2222-2222-2222-222222222222", stage: "visited", placement: null, whatsapp_clicked_at: null, click_id: "gclid-2" };
+  const rows = [lead, visitor];
+  const patches: Record<string, unknown>[] = [];
+  await page.route("**/api/paid-leads**", async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace("/api", "");
+    if (request.method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(path === "/paid-leads" && new URL(request.url()).searchParams.get("offset") === "0" ? rows : []) });
+    const row = rows.find(item => path.endsWith(item.id))!;
+    if (request.method() === "PATCH") { expect(request.headers()["x-csrf-token"]).toBe("test-csrf"); patches.push(request.postDataJSON()); Object.assign(row, request.postDataJSON()); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(row) }); }
+    rows.splice(rows.indexOf(row), 1);
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Funil tráfego pago").click();
+  const board = page.getByLabel("Quadro do funil de tráfego pago");
+  await expect(page.getByText("Visitas do anúncio").locator("..").getByText("2", { exact: true })).toBeVisible();
+  await expect(page.getByText("50% das visitas")).toBeVisible();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Visitante do anúncio" })).toHaveCount(2);
+  await page.getByRole("button", { name: "Avançar Visitante do anúncio" }).first().click();
+  await expect.poll(() => patches).toEqual([{ stage: "whatsapp_click" }]);
+  await page.getByRole("button", { name: "Editar Visitante do anúncio" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Editar lead do anúncio" });
+  await dialog.getByLabel("Nome").fill("Maria Souza");
+  await dialog.getByLabel("Celular").fill("(31) 99999-8888");
+  await dialog.getByRole("button", { name: "Salvar" }).click();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Maria Souza" })).toBeVisible();
+  expect(patches.at(-1)).toMatchObject({ name: "Maria Souza", phone: "(31) 99999-8888" });
+  await page.getByRole("button", { name: "Remover Maria Souza do quadro" }).click();
+  await page.getByRole("button", { name: "Remover lead" }).click();
+  await expect(board.locator("[data-slot=card-title]", { hasText: "Maria Souza" })).toHaveCount(0);
+});
+
+test("the admin panel has a night mode button that turns the background black and is remembered", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  const html = page.locator("html");
+  const toggle = page.getByRole("button", { name: "Ativar modo noturno" });
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(html).not.toHaveClass(/dark/);
+  await toggle.click();
+  await expect(html).toHaveClass(/dark/);
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(page.getByRole("button", { name: "Desativar modo noturno" })).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(html).toHaveClass(/dark/);
+  await page.getByRole("button", { name: "Desativar modo noturno" }).click();
+  await expect(html).not.toHaveClass(/dark/);
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+});
+
+test("night mode is only for the panel: the public site stays light", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem("nexo:admin-theme", "dark"));
+  for (const path of ["/", "/privacidade"]) {
+    await page.goto(path);
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
+  }
+});
+
+test("the night mode button is also in the panel's top bar once signed in", async ({ page }) => {
+  await mock(page, { user: { ...member, id: "owner", role: "owner", status: "approved" } });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await page.locator(".admin-topbar").getByRole("button", { name: "Ativar modo noturno" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.locator(".admin-topbar").getByRole("button", { name: "Desativar modo noturno" })).toBeVisible();
+});
+
+
+test("maps shows only the contact the team chose, filters by it and saves it as the leads' channel", async ({ page }) => {
+  const lead = (title: string, phone: string | null, emails: string | null, website: string | null) => ({ title, category: "Contabilidade", address: "Rua " + title, phone, website, emails, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
+  const requests: Record<string, unknown>[] = [];
+  await openMaps(page, "ok", requests, [
+    lead("Padaria Celular", "(31) 99999-1111", null, "https://celular.example.com"),
+    lead("Padaria Email", null, "oi@padariaemail.com", "https://www.instagram.com/padariaemail"),
+    lead("Padaria Completa", "+55 31 98888-2222", "a@b.com, c@d.com", "https://completa.example.com/"),
+  ]);
+  const choose = async (label: string) => { await page.getByLabel("Contato", { exact: true }).click(); await page.getByRole("option", { name: label, exact: true }).click(); };
+  // "Todos os contatos" shows everything the map has.
+  await expect(page.getByText("Padaria A", { exact: true })).toBeVisible();
+  await expect(page.getByText("celular.example.com")).toBeVisible();
+  await expect(page.getByText("Instagram: @padariaemail")).toBeVisible();
+  await expect(page.getByText("oi@padariaemail.com")).toBeVisible();
+
+  await choose("WhatsApp (celular)");
+  await expect(page.getByText("Padaria Celular", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria A", { exact: true })).toHaveCount(0); // a landline does not count as WhatsApp
+  await expect(page.getByText("Padaria Email", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("(31) 99999-1111")).toBeVisible();
+  await expect(page.getByText("celular.example.com")).toHaveCount(0); // only the contact that was chosen
+  await expect(page.getByText("a@b.com")).toHaveCount(0);
+
+  await choose("E-mail");
+  await expect(page.getByText("Padaria Email", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Celular", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("oi@padariaemail.com")).toBeVisible();
+  await expect(page.getByText("completa.example.com")).toHaveCount(0);
+  await expect(page.getByText("Instagram: @padariaemail")).toHaveCount(0);
+  await expect(page.getByText("98888-2222")).toHaveCount(0);
+
+  await choose("Instagram");
+  await expect(page.getByText("Instagram: @padariaemail")).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("oi@padariaemail.com")).toHaveCount(0);
+
+  await choose("Site");
+  await expect(page.getByText("Padaria Celular", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Email", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("celular.example.com")).toBeVisible();
+  await expect(page.getByText("(31) 99999-1111")).toHaveCount(0);
+
+  await choose("WhatsApp e e-mail");
+  await expect(page.getByText("Padaria Completa", { exact: true })).toBeVisible();
+  await expect(page.getByText("Padaria Celular", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("completa.example.com")).toHaveCount(0);
+  await page.getByRole("button", { name: "Adicionar Padaria Completa ao funil" }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0].sales_channel).toBeNull();
+
+  await choose("Instagram");
+  await page.getByRole("button", { name: "Adicionar Padaria Email ao funil" }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].sales_channel).toBe("instagram");
+});
+
+async function mapsWithJobs(page: Page, options: { jobs: () => unknown[]; results: Record<string, unknown>; created: Record<string, unknown>[] }) {
+  await mock(page, { user: { ...member, role: "commercial", status: "approved" } });
+  const json = (body: unknown, code = 200) => ({ status: code, contentType: "application/json", body: JSON.stringify(body) });
+  await page.route("**/api/maps/status", route => route.fulfill(json({ configured: true, source: "panel", key_prefix: "nexo_live_ab12", updated_at: null, own: true })));
+  await page.route("**/api/maps/jobs", route => {
+    if (route.request().method() === "POST") { options.created.push(route.request().postDataJSON()); return route.fulfill(json({ id: "99999999-9999-4999-8999-999999999999" }, 201)); }
+    return route.fulfill(json(options.jobs()));
+  });
+  await page.route("**/api/maps/jobs/*/results", route => {
+    const id = route.request().url().split("/jobs/")[1].split("/")[0];
+    return route.fulfill(json(options.results[id] ?? { rows: [], total: 0, truncated: false, in_funnel: 0 }));
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Entrar na área Comercial" }).click();
+  await button(page, "Maps").click();
+}
+
+test("maps hides latitude, longitude and radius until the button is pressed, and widens only the default place", async ({ page }) => {
+  const created: Record<string, unknown>[] = [];
+  await mapsWithJobs(page, { jobs: () => [], results: {}, created });
+  await expect(page.getByLabel("Latitude")).toHaveCount(0);
+  await expect(page.getByLabel("Longitude")).toHaveCount(0);
+  await expect(page.getByLabel("Raio (m)")).toHaveCount(0);
+  await expect(page.getByText("o raio cresce sozinho")).toBeVisible();
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(1);
+  expect(created[0]).toMatchObject({ lat: -23.5505, lon: -46.6333, radius: 5000, auto_expand: true, niche: "Contabilidade" });
+
+  await page.getByRole("button", { name: "Adicionar latitude, longitude e raio" }).click();
+  await expect(page.getByLabel("Latitude")).toHaveValue("-23.5505");
+  await expect(page.getByText("sem ampliar o raio")).toBeVisible();
+  await page.getByLabel("Latitude").fill("-19.9");
+  await page.getByLabel("Raio (m)").fill("3000");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(2);
+  expect(created[1]).toMatchObject({ lat: -19.9, radius: 3000, auto_expand: false });
+
+  await page.getByRole("button", { name: "Voltar ao local padrão" }).click();
+  await expect(page.getByLabel("Latitude")).toHaveCount(0);
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => created.length).toBe(3);
+  expect(created[2]).toMatchObject({ lat: -23.5505, lon: -46.6333, radius: 5000, auto_expand: true });
+});
+
+test("maps follows a search that was widened because it found nothing", async ({ page }) => {
+  const first = "11111111-1111-4111-8111-111111111111", wider = "22222222-2222-4222-8222-222222222222";
+  const lead = { title: "Contábil Alfa", category: "Contador", address: "Rua A", phone: "(31) 99999-1111", website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null };
+  const jobs = [{ id: first, name: "Contabilidade · São Paulo (SP)", status: "ok", created_at: "2026-10-27T10:00:00" }];
+  const results = {
+    [first]: { rows: [], total: 0, truncated: false, in_funnel: 0, auto_expand: true, radius: 5000, start_radius: 5000, expanded_to: wider },
+    [wider]: { rows: [lead], total: 1, truncated: false, in_funnel: 0, auto_expand: true, radius: 10000, start_radius: 5000, expanded_to: null },
+  };
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  jobs.push({ id: wider, name: "Contabilidade · São Paulo (SP) · 10 km", status: "ok", created_at: "2026-10-27T10:05:00" });
+  await page.getByRole("button", { name: /^Contabilidade · São Paulo \(SP\)\s*27/ }).first().click();
+  await expect(page.getByText("Raio ampliado")).toBeVisible();
+  await expect(page.getByText("Esta cobre 10 km (começou em 5 km).")).toBeVisible();
+  await expect(page.getByText("Contábil Alfa").first()).toBeVisible();
+});
+
+test("maps says when nothing was found, with the reason", async ({ page }) => {
+  const mine = "33333333-3333-4333-8333-333333333333", maxed = "44444444-4444-4444-8444-444444444444";
+  const jobs = [
+    { id: mine, name: "Local do usuário", status: "ok", created_at: "2026-10-27T10:00:00" },
+    { id: maxed, name: "Já ampliada", status: "ok", created_at: "2026-10-27T09:00:00" },
+  ];
+  const empty = { rows: [], total: 0, truncated: false, in_funnel: 0 };
+  const results = { [mine]: { ...empty, auto_expand: false, radius: 2000, start_radius: 2000, expanded_to: null }, [maxed]: { ...empty, auto_expand: true, radius: 50000, start_radius: 5000, expanded_to: null } };
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  await page.getByRole("button", { name: /^Local do usuário/ }).click();
+  await expect(page.getByText("Nenhuma empresa encontrada")).toBeVisible();
+  await expect(page.getByText("A busca foi só em 2 km ao redor do ponto informado")).toBeVisible();
+  await page.getByRole("button", { name: /^Já ampliada/ }).click();
+  await expect(page.getByText("Nem ampliando o raio até 50 km")).toBeVisible();
+});
+
+test("maps shows only the limit chosen for the search and widens it when no company has the chosen contact", async ({ page }) => {
+  const limited = "55555555-5555-4555-8555-555555555555", noEmail = "66666666-6666-4666-8666-666666666666", wider = "77777777-7777-4777-8777-777777777777";
+  const lead = (n: number, phone: string | null) => ({ title: `Escritório ${n}`, category: "Contador", address: "Rua A", phone, website: null, emails: null, review_rating: null, review_count: null, link: null, latitude: null, longitude: null });
+  const jobs = [
+    { id: noEmail, name: "Só com e-mail", status: "ok", created_at: "2026-10-27T10:00:00" },
+    { id: limited, name: "Com limite", status: "ok", created_at: "2026-10-27T09:00:00" },
+  ];
+  const results = {
+    [limited]: { rows: Array.from({ length: 20 }, (_, n) => lead(n, "(31) 99999-0000")), total: 35, truncated: true, in_funnel: 0, limit: 20, auto_expand: false, radius: 2000, start_radius: 2000, expanded_to: null },
+    [noEmail]: { rows: [lead(1, "(31) 99999-1111")], total: 1, truncated: false, in_funnel: 0, limit: null, auto_expand: true, radius: 5000, start_radius: 5000, expanded_to: null },
+    [wider]: { rows: [lead(2, "(31) 99999-2222")], total: 1, truncated: false, in_funnel: 0, limit: null, auto_expand: true, radius: 10000, start_radius: 5000, expanded_to: null },
+  };
+  const widened: string[] = [];
+  await page.addInitScript(id => localStorage.setItem("nexo-maps-job-meta", JSON.stringify({ [id]: { contact: "email" } })), noEmail);
+  await mapsWithJobs(page, { jobs: () => jobs, results, created: [] });
+  await page.route("**/api/maps/jobs/*/expand", route => {
+    widened.push(route.request().url());
+    jobs.push({ id: wider, name: "Só com e-mail · 10 km", status: "ok", created_at: "2026-10-27T10:05:00" });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expanded_to: wider }) });
+  });
+  await page.getByRole("button", { name: /^Com limite/ }).click();
+  await expect(page.getByText("20 de 35 empresa(s) nova(s)")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Baixar CSV (20)" })).toBeVisible();
+  await page.getByRole("button", { name: /^Só com e-mail/ }).click();
+  await expect.poll(() => widened.length).toBe(1);
+  expect(widened[0]).toContain(`/jobs/${noEmail}/expand`);
 });

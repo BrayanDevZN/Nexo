@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from backend.controller.dependencies import current_user
+from backend.controller.dependencies import api_key_user, current_user
 from backend.controller.schema.api_keys import ApiKeyCreatedOutput, ApiKeyCreateInput, ApiKeyOutput
-from backend.domain.roles import DEVELOPERS
+from backend.domain.roles import API_KEY_HOLDERS
 from backend.service.access import AccessDenied, ResourceNotFound
 
 router = APIRouter(prefix="/auth/api-keys", tags=["api keys"])
 
 
 def _check(actor):
-    if actor.status != "approved" or actor.role not in DEVELOPERS:
-        raise HTTPException(status_code=403, detail="Developer access required")
+    if actor.status != "approved" or actor.role not in API_KEY_HOLDERS:
+        raise HTTPException(status_code=403, detail="API key access required")
 
 
 @router.get("", response_model=list[ApiKeyOutput])
@@ -27,6 +27,12 @@ def create(data: ApiKeyCreateInput, request: Request, actor=Depends(current_user
         return {**metadata, "key": secret}
     except (AccessDenied, ValueError) as error:
         raise HTTPException(status_code=403, detail=str(error)) from None
+
+
+@router.get("/validate")
+def validate(_actor=Depends(api_key_user)):
+    # Used by external services (e.g. the maps server's nginx auth_request) to check a key.
+    return {"valid": True}
 
 
 @router.get("/usage")

@@ -7,10 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 const BASE_URL = "https://nexo-production-60a0.up.railway.app";
+const MAPS_URL = "https://nexo-production-52a1.up.railway.app";
 
 type Method = "GET" | "POST" | "PATCH" | "DELETE";
 type Language = "curl" | "javascript" | "python" | "go" | "java" | "php" | "csharp";
-type Route = "/dashboard" | "/clients" | "/documents" | "/automations" | "/notifications" | "/admin/announcements";
+type Route = "/dashboard" | "/clients" | "/documents" | "/automations" | "/notifications" | "/admin/announcements" | "/maps";
 
 type Endpoint = {
   method: Method;
@@ -47,7 +48,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/clients",
     title: "Listar clientes",
     description: "Lista clientes com paginação e filtros opcionais.",
-    query: ["niche", "name", "created_by_id", "pipeline_stage", "contract_closed", "limit", "offset"],
+    query: ["niche", "name", "created_by_id", "pipeline_stage", "sales_channel", "contract_closed", "limit", "offset"],
     response: `[
   {
     "id": "uuid-do-cliente",
@@ -76,12 +77,14 @@ const ENDPOINTS: Endpoint[] = [
     route: "/clients",
     path: "/clients",
     title: "Criar cliente",
-    description: "Cria um cliente e registra a alteração no painel.",
+    description: "Cria um cliente e registra a alteração no painel. sales_channel é opcional (email, whatsapp, instagram, google_ads, phone, in_person ou other); omita ou envie null para ficar sem canal.",
     body: `{
   "name": "Empresa Exemplo",
   "niche": "Contabilidade",
   "phone": "31999999999",
   "email": "contato@empresa.com",
+  "address": "Rua das Flores, 100, Centro, Belo Horizonte",
+  "sales_channel": "email",
   "pipeline_stage": "lead",
   "contract_closed": false,
   "contract_value": 1500,
@@ -118,7 +121,7 @@ const ENDPOINTS: Endpoint[] = [
     route: "/clients",
     path: "/clients/{identifier}",
     title: "Atualizar cliente",
-    description: "Atualiza somente os campos enviados no corpo da requisição.",
+    description: "Atualiza somente os campos enviados no corpo da requisição. Envie \"sales_channel\": null para remover o canal de vendas.",
     body: `{
   "pipeline_stage": "won",
   "contract_closed": true,
@@ -355,10 +358,11 @@ const ENDPOINTS: Endpoint[] = [
     route: "/admin/announcements",
     path: "/admin/announcements",
     title: "Criar aviso",
-    description: "Cria um aviso para os membros. Esta rota exige uma chave pertencente a um administrador.",
+    description: "Cria um aviso. O campo audience define o público: all (todos), commercial ou dev; administradores e owners sempre recebem. Esta rota exige uma chave pertencente a um administrador.",
     body: `{
   "title": "Manutenção programada",
-  "body": "O painel ficará indisponível às 22h por alguns minutos."
+  "body": "O painel ficará indisponível às 22h por alguns minutos.",
+  "audience": "all"
 }`,
     response: `{
   "id": "uuid-do-aviso",
@@ -371,9 +375,79 @@ const ENDPOINTS: Endpoint[] = [
     notifies: true,
     adminOnly: true,
   },
+  {
+    method: "POST",
+    route: "/maps",
+    path: "/api/v1/jobs",
+    title: "Criar busca no Maps",
+    description: "Cria uma busca de empresas no Google Maps. Use a mesma chave API da Nexo, no header Authorization. lat e lon vão como texto, radius em metros e max_time em segundos. O resultado fica pronto quando o status chega a ok.",
+    body: `{
+  "name": "Padarias em São Paulo",
+  "keywords": ["padaria"],
+  "lang": "pt",
+  "lat": "-23.5505",
+  "lon": "-46.6333",
+  "zoom": 15,
+  "radius": 5000,
+  "depth": 3,
+  "email": false,
+  "fast_mode": false,
+  "max_time": 300
+}`,
+    response: `{
+  "id": "uuid-da-busca"
+}`,
+  },
+  {
+    method: "GET",
+    route: "/maps",
+    path: "/api/v1/jobs",
+    title: "Listar buscas",
+    description: "Lista as buscas criadas no servidor do Maps.",
+    response: `[
+  {
+    "ID": "uuid-da-busca",
+    "Name": "Padarias em São Paulo",
+    "Date": "2026-10-23T13:46:40Z",
+    "Status": "ok"
+  }
+]`,
+  },
+  {
+    method: "GET",
+    route: "/maps",
+    path: "/api/v1/jobs/{identifier}",
+    title: "Ver status da busca",
+    description: "Consulta uma busca. O campo Status começa em working e termina em ok (concluída) ou failed.",
+    response: `{
+  "ID": "uuid-da-busca",
+  "Name": "Padarias em São Paulo",
+  "Status": "working"
+}`,
+  },
+  {
+    method: "GET",
+    route: "/maps",
+    path: "/api/v1/jobs/{identifier}/download",
+    title: "Baixar resultados",
+    description: "Baixa os resultados da busca em CSV, com uma linha por empresa (title, category, address, phone, website, emails, review_rating, review_count e outras colunas). Só funciona depois que o status for ok.",
+    headers: { Accept: "text/csv" },
+    response: `title,category,address,phone,website,emails,review_rating,review_count
+Padaria Santa Tereza,Padaria,"Rua Exemplo, 100",+55 11 1111-1111,https://exemplo.com.br,,4.4,120`,
+  },
+  {
+    method: "DELETE",
+    route: "/maps",
+    path: "/api/v1/jobs/{identifier}",
+    title: "Excluir busca",
+    description: "Apaga a busca e os resultados do servidor do Maps para liberar espaço.",
+    response: "HTTP 200, sem corpo na resposta.",
+  },
 ];
 
-const ROUTES: Route[] = ["/dashboard", "/clients", "/documents", "/automations", "/notifications", "/admin/announcements"];
+const ROUTES: Route[] = ["/dashboard", "/clients", "/documents", "/automations", "/notifications", "/admin/announcements", "/maps"];
+
+const baseUrl = (route: Route) => route === "/maps" ? MAPS_URL : BASE_URL;
 
 const METHOD_STYLE: Record<Method, string> = {
   GET: "border-sky-500/30 bg-sky-500/10 text-sky-600",
@@ -430,7 +504,7 @@ function examplePath(path: string) {
 }
 
 function requestExample(endpoint: Endpoint, language: Language): string {
-  const url = `${BASE_URL}${examplePath(endpoint.path)}`;
+  const url = `${baseUrl(endpoint.route)}${examplePath(endpoint.path)}`;
   const headers = headersFor(endpoint);
   const body = endpoint.body;
 
@@ -652,7 +726,7 @@ export function ApiDocumentation() {
       {!selected ? <>
         <DialogHeader className="border-b px-6 pb-5 pt-6">
           <DialogTitle>Documentação da API</DialogTitle>
-          <DialogDescription>Apenas dev, admin e owner podem criar e usar chaves API. Se o titular mudar para Comercial, suas chaves deixam de autenticar. Dev acessa automações; admin e owner acessam também clientes, dashboard e documentos.</DialogDescription>
+          <DialogDescription>Apenas dev, admin e owner podem criar e usar chaves API. Se o titular mudar para Comercial, suas chaves deixam de autenticar. Dev acessa automações; admin e owner acessam também clientes, dashboard e documentos. O Maps usa a mesma chave, mas em outro endereço base.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 p-6">
@@ -664,7 +738,7 @@ export function ApiDocumentation() {
               </NativeSelect>
             </div>
             <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Base:</span> <code>{BASE_URL}</code>
+              <span className="font-medium text-foreground">Base:</span> <code>{baseUrl(route)}</code>
             </div>
           </div>
 

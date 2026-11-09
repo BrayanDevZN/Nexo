@@ -35,6 +35,8 @@
   --color-primary: var(--primary);
   --color-funnel-lead: var(--funnel-lead);
   --color-funnel-contacted: var(--funnel-contacted);
+  --color-funnel-qualified: var(--funnel-qualified);
+  --color-funnel-meeting: var(--funnel-meeting);
   --color-funnel-diagnosis: var(--funnel-diagnosis);
   --color-funnel-proposal: var(--funnel-proposal);
   --color-funnel-negotiation: var(--funnel-negotiation);
@@ -80,12 +82,41 @@
   --shadow-tone: #7c3aed;
   --funnel-lead: #06b6d4;
   --funnel-contacted: #2563eb;
+  --funnel-qualified: #0d9488;
+  --funnel-meeting: #db2777;
   --funnel-diagnosis: #7c3aed;
   --funnel-proposal: #f59e0b;
   --funnel-negotiation: #f97316;
   --funnel-won: #16a34a;
   --funnel-lost: #dc2626;
 }
+
+/* Dark mode of the admin panel: the panel puts .dark on <html> (see admin/theme.ts), so portals follow it. */
+.dark {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #f1ebfb;
+  --card: #0c0814;
+  --card-foreground: #f1ebfb;
+  --popover: #0c0814;
+  --popover-foreground: #f1ebfb;
+  --primary: #a78bfa;
+  --primary-foreground: #12071f;
+  --secondary: #1c1330;
+  --secondary-foreground: #d9c9ff;
+  --muted: #120d1d;
+  --muted-foreground: #b5a8c9;
+  --accent: #1f1535;
+  --accent-foreground: #e4d9ff;
+  --destructive: #f87171;
+  --border: #2a2040;
+  --input: #66559a;
+  --ring: #a78bfa;
+  --highlight: #8b5cf6;
+}
+/* The animated background stays, only much quieter, so the panel reads as black. */
+.dark .ambient-wash { opacity: 0.3; }
+.dark .ambient-drop { opacity: calc(var(--drop-opacity) * 0.45); }
 
 @layer base {
   * {
@@ -760,6 +791,16 @@ h2 span {
 .footer-bottom a {
   font-size: 10px;
 }
+.motion-toggle-link {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+.motion-toggle-link:hover {
+  color: var(--foreground);
+}
 .skip-link {
   position: fixed;
   left: 16px;
@@ -1011,18 +1052,17 @@ h2 span {
     gap: 14px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  html {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] {
     scroll-behavior: auto;
   }
-  *,
-  *:before,
-  *:after {
+  html[data-reduce-motion="true"] *,
+  html[data-reduce-motion="true"] *:before,
+  html[data-reduce-motion="true"] *:after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
 
 /* Animated dimensional geometry. Motion is paused when offscreen or requested. */
 .core-stage {
@@ -1332,7 +1372,7 @@ h2 span {
     transform 0.35s ease,
     box-shadow 0.35s ease;
 }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) {
   .solution-card:hover {
     transform: translateY(-5px) rotateX(1.5deg) rotateY(-1deg);
     box-shadow:
@@ -1565,30 +1605,29 @@ h2 span {
     gap: 20px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .core-space,
-  .core-cube,
-  .core-orbit,
-  .stream-caret,
-  .connector-line:after {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] .core-space,
+  html[data-reduce-motion="true"] .core-cube,
+  html[data-reduce-motion="true"] .core-orbit,
+  html[data-reduce-motion="true"] .stream-caret,
+  html[data-reduce-motion="true"] .connector-line:after {
     animation: none !important;
   }
-  .core-cube {
+  html[data-reduce-motion="true"] .core-cube {
     transform: rotateX(-15deg) rotateY(25deg);
   }
-  .orbit-one {
+  html[data-reduce-motion="true"] .orbit-one {
     transform: rotateX(66deg);
   }
-  .orbit-two {
+  html[data-reduce-motion="true"] .orbit-two {
     transform: rotateY(65deg);
   }
-  .orbit-three {
+  html[data-reduce-motion="true"] .orbit-three {
     transform: rotateX(-40deg) rotateY(40deg);
   }
-  .stream-caret {
+  html[data-reduce-motion="true"] .stream-caret {
     display: none;
   }
-}
 
 /* Nexo identity: white surfaces, lavender and violet. */
 .brand > img {
@@ -1673,16 +1712,15 @@ h2 span {
 [data-reveal]:focus-within > * {
   transform: translate3d(0, 0, 0);
 }
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal] {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] [data-reveal] {
     opacity: 1;
     transition: none;
   }
-  [data-reveal] > * {
+  html[data-reduce-motion="true"] [data-reveal] > * {
     transform: none;
     transition: none;
   }
-}
 
 /* White surfaces with violet depth, using the shadcn semantic theme. */
 .section-tinted {
@@ -1735,7 +1773,7 @@ h2 span {
 .tiny-label {
   color: var(--muted-foreground);
 }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) {
   .solution-card:hover {
     box-shadow:
       0 20px 45px color-mix(in srgb, var(--shadow-tone) 16%, transparent),
@@ -1789,10 +1827,16 @@ main,
   opacity: 0.85;
   animation: ambient-sweep-one 38s ease-in-out infinite alternate-reverse;
 }
+.ambient-rain {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  animation: ambient-rain-fall var(--rain-duration) linear infinite;
+}
 .ambient-drop {
   position: absolute;
-  left: var(--drop-x);
-  top: -70px;
+  left: calc(var(--drop-x) + var(--drop-progress) * (60vh + 84px));
+  top: calc(-70px + var(--drop-progress) * (100vh + 140px));
   width: 2px;
   height: var(--drop-length);
   border-radius: 999px;
@@ -1803,16 +1847,14 @@ main,
     var(--primary)
   );
   box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 15%, transparent);
-  animation: ambient-rain var(--drop-duration) linear infinite;
-  animation-delay: var(--drop-delay);
+  transform: rotate(-31deg);
 }
-@keyframes ambient-rain {
+@keyframes ambient-rain-fall {
   from {
-    transform: translate3d(0, 0, 0) rotate(-31deg);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0)
-      rotate(-31deg);
+    transform: translate3d(calc(60vh + 84px), calc(100vh + 140px), 0);
   }
 }
 @keyframes ambient-sweep-one {
@@ -1884,7 +1926,7 @@ main,
 .contact-note {
   font-size: 9px;
 }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) {
   .solution-card:hover {
     box-shadow:
       0 26px 55px color-mix(in srgb, var(--shadow-tone) 26%, transparent),
@@ -1907,11 +1949,10 @@ main,
     font-size: 8px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .page-ambient * {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] .page-ambient * {
     animation: none !important;
   }
-}
 
 /* Give the examples a larger stage without changing the site's visual language. */
 .stream-gallery {
@@ -2040,22 +2081,20 @@ main,
     0 0 0 3px color-mix(in srgb, var(--ring) 50%, transparent),
     0 5px 18px color-mix(in srgb, var(--shadow-tone) 24%, transparent);
 }
-@media (prefers-reduced-motion: reduce) {
-  :is(button, [data-slot="button"]) {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] :is(button, [data-slot="button"]) {
     transition: none;
   }
-}
 
 @media (max-width: 767px) {
-  .ambient-drop:nth-of-type(n + 49) {
+  .ambient-drop-extra {
     display: none;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ambient-drop {
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */
+  html[data-reduce-motion="true"] .ambient-drop {
     display: none;
   }
-}
 
 .mobile-copy {
   display: none;
@@ -2638,7 +2677,8 @@ main,
   .admin-pending { margin: 0; }
   .admin-auth-card [data-slot="card-header"], .admin-auth-card [data-slot="card-content"], .admin-auth-card [data-slot="card-footer"] { padding-inline: 1.25rem; }
 }
-@media (prefers-reduced-motion: reduce) { .admin-layout *, .admin-auth * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* Reduced motion is an explicit choice (footer button), not the OS setting. */ html[data-reduce-motion="true"] .admin-layout *,
+ html[data-reduce-motion="true"] .admin-auth * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 
 /* Layout and typography refinements. No color tokens are changed here. */
 html {
@@ -2728,4 +2768,11 @@ p,
     flex-wrap: wrap;
     gap: 12px 20px;
   }
+}
+
+/* Slow devices (detected at runtime): same animations and elements, cheaper effects.
+   A live blur behind the sticky header is redrawn every frame while the background moves. */
+html[data-perf="lite"] .site-header {
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--background) 96%, transparent);
 }

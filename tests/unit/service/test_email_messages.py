@@ -38,6 +38,18 @@ def test_announcement_html_escapes_user_content_and_has_plain_text_fallback():
     assert "Linha 1" in args[2]
 
 
+def test_maps_results_email_lists_leads_escapes_content_and_links_to_the_search():
+    sender = Mock(configured=True)
+    message = AccountMessages(sender)
+    leads = [{"title": "<b>Padaria</b>", "phone": "+5511911111111", "address": "Rua A, 1"}]
+    message.maps_results(SimpleNamespace(email="ana@example.com", name="Ana"), "job-1", "Padarias", 3, 1, leads)
+    args, kwargs = sender.send.call_args
+    assert args[0] == "ana@example.com" and "Padarias" in args[1]
+    assert "&lt;b&gt;Padaria&lt;/b&gt;" in kwargs["html"] and "<b>Padaria</b>" not in kwargs["html"]
+    assert "3 empresa(s) nova(s); 1 já estavam no funil" in args[2] and "e mais 2 no painel" in args[2]
+    assert "/admin?maps=job-1" in args[2] and "/admin?maps=job-1" in kwargs["html"]
+
+
 def test_access_decision_sends_branded_html_and_panel_link():
     sender = Mock(configured=True)
     user = SimpleNamespace(email="ana@example.com", name="Ana")

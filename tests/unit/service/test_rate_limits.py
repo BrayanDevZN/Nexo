@@ -27,3 +27,20 @@ def test_settings_limits_and_windows_are_used(settings):
     settings.auth_rate_limit_window_seconds = 16
     budgets = RateLimitService(Mock(), settings, "test:rate").budgets("peer", "POST", "/auth/login")
     assert [(b.limit, b.window_seconds) for b in budgets] == [(11, 12), (13, 14), (15, 16)]
+
+
+def test_leads_route_gets_a_larger_budget_than_the_default(settings):
+    settings.rate_limit = 60
+    service = RateLimitService(Mock(), settings, "test:rate")
+    assert service.budgets("peer", "POST", "/maps/funnel")[1].limit == 600
+    assert service.budgets("peer", "POST", "/clients")[1].limit == 60
+
+
+def test_public_paid_lead_routes_get_a_small_extra_budget_per_address(settings):
+    service = RateLimitService(Mock(), settings, "test:rate")
+    visit = service.budgets("peer", "POST", "/public/paid-leads/visit")
+    click = service.budgets("peer", "POST", "/public/paid-leads/{lead_id}/whatsapp")
+    assert len(visit) == 3 and visit[2].limit == 20 and visit[2].window_seconds == settings.auth_rate_limit_window_seconds
+    assert visit[2].key != click[2].key
+    assert service.budgets("other", "POST", "/public/paid-leads/visit")[2].key != visit[2].key
+    assert len(service.budgets("peer", "POST", "/clients")) == 2
