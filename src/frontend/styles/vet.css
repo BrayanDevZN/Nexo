@@ -1,8 +1,8 @@
 /* Public home: services for veterinary clinics. Flat green, huge type, real photos (layout inspired by le-lab.io). */
 html.vt-home,
 html.vt-home body {
-  --vt-bg: #6fd04f;
-  --vt-bg-deep: #138a2c;
+  --vt-bg: #86e2c0;
+  --vt-bg-deep: #0f8a63;
   --vt-ink: #0a2e1a;
   --vt-deep: #073b20;
   --vt-cream: #f3ffef;
@@ -17,8 +17,8 @@ html.vt-home body {
 html.vt-home {
   /* A bright lime-to-green wash with a pale glow at the top, like the reference swatch. */
   background:
-    radial-gradient(ellipse 75% 55% at 38% 8%, #d6f5b8 0%, rgb(214 245 184 / 0) 70%),
-    linear-gradient(180deg, #8fd84a 0%, #55c660 50%, #2a9d45 100%) fixed !important;
+    radial-gradient(ellipse 75% 55% at 38% 8%, #eafff4 0%, rgb(234 255 244 / 0) 70%),
+    linear-gradient(180deg, #b4f0d2 0%, #86e2c0 50%, #5fcfb0 100%) fixed !important;
 }
 html.vt-home ::-webkit-scrollbar-thumb { background: var(--vt-deep); border-radius: 15px; }
 html.vt-home .nx-curtain { background: var(--vt-deep); }
@@ -61,15 +61,15 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-stage { position: relative; width: min(1240px, 100%); container-type: inline-size; aspect-ratio: 2 / 1; }
 .vt-podium { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); width: 74%; aspect-ratio: 3.4 / 1; display: grid; place-items: center; }
 /* the side of the disc, so it reads as a solid podium */
-.vt-podium::before { content: ""; position: absolute; z-index: 0; left: 0; right: 0; top: 10%; bottom: -10%; border-radius: 50%; background: linear-gradient(180deg, #3fb765 0%, #1f8a45 55%, #146b34 100%); box-shadow: 0 3.4cqw 6cqw -1cqw rgb(7 59 32 / 0.6), 0 0 8cqw rgb(7 59 32 / 0.22); }
+.vt-podium::before { content: ""; position: absolute; z-index: 0; left: 0; right: 0; top: 10%; bottom: -10%; border-radius: 50%; background: linear-gradient(180deg, #3cbd93 0%, #1f9470 55%, #137355 100%); box-shadow: 0 3.4cqw 6cqw -1cqw rgb(7 59 32 / 0.6), 0 0 8cqw rgb(7 59 32 / 0.22); }
 /* the lit top face of the disc */
 .vt-podium::after { content: ""; position: absolute; z-index: 0; inset: 0; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(ellipse 70% 80% at 50% 28%, #ffffff 0%, #effcf0 38%, #d3f3cf 72%, #b4e6b2 100%);
+  background: radial-gradient(ellipse 70% 80% at 50% 28%, #ffffff 0%, #f1fdf8 38%, #d6f5ea 72%, #b6e9d6 100%);
   box-shadow: inset 0 0 0 0.3cqw rgb(255 255 255 / 0.9), inset 0 -1.2cqw 2.4cqw rgb(31 128 64 / 0.25), inset 0 1cqw 1.6cqw rgb(255 255 255 / 0.9); }
 .vt-podium h1 { z-index: 1; position: absolute; left: 50%; bottom: 50%; transform: translateX(-50%); width: 62%; margin: 0;
   filter: drop-shadow(0 0.12cqw 0 #0c6030) drop-shadow(0 0.3cqw 0 #0a5128) drop-shadow(0 0.55cqw 0 #08431f) drop-shadow(0 1.6cqw 1.2cqw rgb(7 59 32 / 0.4)); }
 .vt-wordmark { display: block; width: 100%; height: auto; }
-.vt-podium-label { z-index: 1; position: absolute; bottom: 15%; font-family: var(--vt-display); font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; font-size: max(1.45cqw, 0.52rem); color: #1f8a45; text-shadow: 0 1px 0 #fff, 0 -1px 0 rgb(7 59 32 / 0.18); white-space: nowrap; }
+.vt-podium-label { z-index: 1; position: absolute; bottom: 15%; font-family: var(--vt-display); font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; font-size: max(1.45cqw, 0.52rem); color: #0f8a63; text-shadow: 0 1px 0 #fff, 0 -1px 0 rgb(7 59 32 / 0.18); white-space: nowrap; }
 .vt-orb { position: absolute; aspect-ratio: 1; border-radius: 50%; object-fit: cover; box-shadow: 0 2.2cqw 4cqw -0.8cqw rgb(7 59 32 / 0.55), 0 0 3cqw rgb(7 59 32 / 0.2); background: var(--vt-cream); animation: vt-float 7s ease-in-out infinite; }
 .vt-orb-a { width: 20%; left: 2%; top: 14%; }
 .vt-orb-b { width: 11%; left: 24%; top: 0; animation-delay: -2s; }
