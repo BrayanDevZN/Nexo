@@ -14,11 +14,13 @@ html.vt-home body {
   color: var(--vt-ink);
   overflow-x: clip;
 }
-html.vt-home {
-  /* A bright lime-to-green wash with a pale glow at the top, like the reference swatch. */
+html.vt-home { background: #86e2c0 !important; }
+/* The mint wash lives on its own fixed layer: the browser keeps it as a texture instead of repainting it on every scroll. */
+html.vt-home body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; transform: translateZ(0);
   background:
     radial-gradient(ellipse 75% 55% at 38% 8%, #eafff4 0%, rgb(234 255 244 / 0) 70%),
-    linear-gradient(180deg, #b4f0d2 0%, #86e2c0 50%, #5fcfb0 100%) fixed !important;
+    linear-gradient(180deg, #b4f0d2 0%, #86e2c0 50%, #5fcfb0 100%);
 }
 html.vt-home ::-webkit-scrollbar-thumb { background: var(--vt-deep); border-radius: 15px; }
 html.vt-home .nx-curtain { background: var(--vt-deep); }
@@ -35,6 +37,9 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 /* ---- header ---- */
 .vt-header { position: fixed; z-index: 50; inset: 0 0 auto 0; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.5rem clamp(1.25rem, 5vw, 6.25rem); pointer-events: none; }
 .vt-header > * { pointer-events: auto; }
+/* Solid mint at the top, fading out below the bar: page content passing under it stays out of the way. */
+.vt-header::before { content: ""; position: absolute; z-index: -1; inset: 0 0 -1.6rem 0; pointer-events: none;
+  background: linear-gradient(180deg, #b4f0d2 0%, #b4f0d2 66%, rgb(180 240 210 / 0.75) 82%, rgb(180 240 210 / 0) 100%); }
 .vt-logo { display: inline-flex; align-items: center; gap: 0.6rem; }
 .vt-chip { display: grid; place-items: center; width: 46px; height: 46px; transition: transform 0.3s ease; }
 .vt-chip img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 0 rgb(7 59 32 / 0.55)) drop-shadow(0 6px 10px rgb(7 59 32 / 0.35)); }
@@ -182,3 +187,19 @@ html[data-reduce-motion="true"] .vt-orb, html[data-reduce-motion="true"] .vt-mou
 
 .vt-copy h3 { hyphens: auto; }
 @media (max-width: 400px) { .vt-copy h3 { font-size: 1.95rem; } }
+
+/* ---- keeps the hero quiet when it is off screen ---- */
+.vt-hero.is-away .vt-orb, .vt-hero.is-away .vt-mouse span { animation-play-state: paused; }
+
+/* ---- weak phones (html[data-perf="lite"], set by MotionProvider): same page, cheaper painting ---- */
+html[data-perf="lite"] .vt-big, html[data-perf="lite"] .vt-copy h3, html[data-perf="lite"] .vt-lead,
+html[data-perf="lite"] .vt-summary, html[data-perf="lite"] .vt-number, html[data-perf="lite"] .vt-logo-text { text-shadow: none; }
+html[data-perf="lite"] .vt-chip img { filter: none; }
+html[data-perf="lite"] .vt-podium h1 { filter: drop-shadow(0 0.4cqw 0 #0a5128); }
+html[data-perf="lite"] .vt-podium::before { box-shadow: 0 1.5cqw 2.5cqw -1cqw rgb(7 59 32 / 0.45); }
+html[data-perf="lite"] .vt-photo, html[data-perf="lite"] .vt-steps li, html[data-perf="lite"] .vt-note,
+html[data-perf="lite"] .vt-pill, html[data-perf="lite"] .vt-round, html[data-perf="lite"] .vt-orb,
+html[data-perf="lite"] .vt-strip img { box-shadow: 0 6px 12px -6px rgb(7 59 32 / 0.45); }
+html[data-perf="lite"] .vt-photo img { transition: none; }
+/* Sections below the fold are not laid out or painted until they are close to the screen. */
+html[data-perf="lite"] .vt-service, html[data-perf="lite"] .vt-steps, html[data-perf="lite"] .vt-contact { content-visibility: auto; contain-intrinsic-size: auto 760px; }

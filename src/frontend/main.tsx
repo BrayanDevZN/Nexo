@@ -18,7 +18,6 @@ import "@fontsource/lato/700.css";
 import "./styles/globals.css";
 import "./styles/site.css";
 import "./styles/robin.css";
-import "./styles/admin.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));

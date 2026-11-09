@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
-import { contactUrl, heroLine, heroPhotos, intro, lead, navigation, services, steps, strip } from "@/lib/vet";
+import { contactUrl, heroLine, heroPhotos, intro, lead, navigation, ORB_WIDTHS, photoSrcSet, SERVICE_WIDTHS, services, steps, strip } from "@/lib/vet";
 import "./styles/vet.css";
 
 const orbs = [...heroPhotos.left, ...heroPhotos.right, ...heroPhotos.podium];
@@ -13,6 +13,15 @@ export default function App() {
   const revealRef = useScrollReveal();
   useSectionNavigation();
   useButtonFeedback();
+  const heroRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // The floating photos only animate while the hero is on screen: no wasted frames further down.
+    const hero = heroRef.current;
+    if (!hero || !("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(([entry]) => hero.classList.toggle("is-away", !entry.isIntersecting));
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     document.documentElement.classList.add("vt-home");
     document.title = "Nexo | Serviços para clínicas veterinárias";
@@ -54,14 +63,24 @@ export default function App() {
       </header>
 
       <main id="conteudo" ref={revealRef}>
-        <section id="inicio" className="vt-hero" aria-labelledby="vt-hero-title">
+        <section id="inicio" ref={heroRef} className="vt-hero" aria-labelledby="vt-hero-title">
           <div className="vt-stage">
             {orbs.map((orb) => (
-              <img key={orb.src} className={`vt-orb ${orb.cls}`} src={orb.src} alt={orb.alt} width="220" height="220" decoding="async" />
+              <img
+                key={orb.src}
+                className={`vt-orb ${orb.cls}`}
+                src={`${orb.src}-240.webp`}
+                srcSet={photoSrcSet(orb.src, ORB_WIDTHS)}
+                sizes="(max-width: 760px) 27vw, 260px"
+                alt={orb.alt}
+                width="240"
+                height="240"
+                decoding="async"
+              />
             ))}
             <div className="vt-podium">
               <h1 id="vt-hero-title">
-                <img className="vt-wordmark" src="/images/nexo-logo-green.png" alt="Nexo" width="520" height="163" />
+                <img className="vt-wordmark" src="/images/nexo-logo-green.png" alt="Nexo" width="520" height="163" fetchPriority="high" />
                 <span className="vt-sr">Serviços para clínicas veterinárias</span>
               </h1>
               <span className="vt-podium-label" aria-hidden="true">
@@ -94,7 +113,16 @@ export default function App() {
           {services.map((service, index) => (
             <section key={service.id} id={service.id} className={`vt-service${index % 2 ? " vt-flip" : ""}`} aria-labelledby={`${service.id}-titulo`}>
               <figure className="vt-photo nx-reveal">
-                <img src={service.image} alt={service.alt} loading="lazy" decoding="async" width="1200" height="900" />
+                <img
+                  src={`${service.image}-640.webp`}
+                  srcSet={photoSrcSet(service.image, SERVICE_WIDTHS)}
+                  sizes="(max-width: 900px) 92vw, 600px"
+                  alt={service.alt}
+                  loading="lazy"
+                  decoding="async"
+                  width="1200"
+                  height="900"
+                />
               </figure>
               <div className="vt-copy">
                 <p className="vt-number nx-reveal">{service.number}</p>
@@ -131,7 +159,7 @@ export default function App() {
         <section id="contato" className="vt-contact" aria-labelledby="vt-contact-title">
           <div className="vt-strip" aria-hidden="true">
             {strip.map((src) => (
-              <img key={src} src={src} alt="" loading="lazy" decoding="async" width="120" height="120" />
+              <img key={src} src={`${src}-240.webp`} alt="" loading="lazy" decoding="async" width="120" height="120" />
             ))}
           </div>
           <h2 id="vt-contact-title" className="vt-big vt-big-sm nx-reveal">

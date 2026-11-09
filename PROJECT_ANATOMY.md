@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
+Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -159,7 +159,7 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | src/backend/service/security.py | 38 | 368 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/admin/AdminApp.tsx | 288 | 6.4K | source |
+| src/frontend/admin/AdminApp.tsx | 289 | 6.4K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
 | src/frontend/admin/api.ts | 210 | 3.5K | source |
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
@@ -203,7 +203,7 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | src/frontend/admin/Videos.tsx | 289 | 4.6K | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
-| src/frontend/App.tsx | 161 | 1.7K | source |
+| src/frontend/App.tsx | 189 | 2.0K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -255,9 +255,9 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
-| src/frontend/lib/vet.ts | 167 | 1.7K | source |
+| src/frontend/lib/vet.ts | 172 | 1.7K | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 45 | 502 | source |
+| src/frontend/main.tsx | 44 | 495 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -309,7 +309,7 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
-| tests/integration/frontend/performance.spec.ts | 52 | 691 | test |
+| tests/integration/frontend/performance.spec.ts | 78 | 1.0K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
 | tests/integration/infra/test_embedded_video_server.py | 91 | 975 | test |
@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | src/frontend/styles/globals.css | 2780 | 16.0K | style |
 | src/frontend/styles/robin.css | 396 | 8.6K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 185 | 3.6K | style |
+| src/frontend/styles/vet.css | 206 | 4.1K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -420,11 +420,11 @@ Generated: 2026-11-09 | 414 files | ~486.6K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 261 files, ~302.9K tokens
+- source: 261 files, ~303.3K tokens
 - config: 13 files, ~3.6K tokens
-- test: 106 files, ~118.6K tokens
+- test: 106 files, ~119.0K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~38.5K tokens
+- style: 5 files, ~39.0K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

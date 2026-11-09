@@ -49,3 +49,29 @@ test("the home shows the veterinary services with real photos", async ({ page })
   const broken = await page.evaluate(() => [...document.images].filter(img => img.complete && img.naturalWidth === 0).map(img => img.src));
   expect(broken).toEqual([]);
 });
+
+test("the top bar has a gradient so content scrolling under it stays readable", async ({ page }) => {
+  await page.goto("/");
+  const image = await page.evaluate(() => getComputedStyle(document.querySelector(".vt-header")!, "::before").backgroundImage);
+  expect(image).toContain("linear-gradient");
+});
+
+test("photos are small WebP files with a smaller version for phones", async ({ page }) => {
+  await page.goto("/");
+  const sources = await page.evaluate(() => [...document.querySelectorAll<HTMLImageElement>(".vt-photo img, .vt-orb")].map(img => ({ src: img.getAttribute("src")!, srcset: img.getAttribute("srcset") })));
+  expect(sources.length).toBeGreaterThan(8);
+  for (const { src, srcset } of sources) {
+    expect(src).toMatch(/\.webp$/);
+    expect(srcset).toMatch(/ \d+w, .* \d+w$/);
+  }
+  const sizes = await Promise.all(["/images/vet/atendimento-640.webp", "/images/vet/estoque-640.webp", "/images/vet/hero-gato-240.webp"].map(async path => (await (await page.request.get(path)).body()).length));
+  for (const size of sizes) expect(size).toBeLessThan(80 * 1024);
+});
+
+test("the public page does not load the admin stylesheet", async ({ page }) => {
+  const requested: string[] = [];
+  page.on("request", request => requested.push(request.url()));
+  await page.goto("/");
+  await page.waitForTimeout(500);
+  expect(requested.some(url => /AdminApp[^/]*\.css/.test(url) || /admin\.css/.test(url))).toBe(false);
+});

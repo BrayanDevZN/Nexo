@@ -1,3 +1,4 @@
+import "../styles/admin.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, Bell, Clapperboard, Database, BellOff, MapPin, KeyRound, Megaphone, MessageCircle, FileText, Building2, ChartNoAxesColumn, Clock3, LogOut, ArrowRightLeft, ShieldCheck, UserRound, Users, Menu, Settings2, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Brand } from "@/components/Brand";

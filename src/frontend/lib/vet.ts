@@ -37,7 +37,7 @@ export const services: VetService[] = [
       "Quando o assunto é clínico ou precisa de alguém da equipe, a conversa é passada pro veterinário com todo o histórico",
       "Nenhum tutor fica sem resposta",
     ],
-    image: "/images/vet/atendimento.jpg",
+    image: "/images/vet/atendimento",
     alt: "Recepcionista sorrindo enquanto atende uma ligação",
   },
   {
@@ -50,7 +50,7 @@ export const services: VetService[] = [
       "Se a sua clínica já usa um sistema, a Nexo trabalha junto com ele",
       "Confirmação automática na véspera e remarcação pelo próprio WhatsApp, pra reduzir faltas",
     ],
-    image: "/images/vet/agendamento.jpg",
+    image: "/images/vet/agendamento",
     alt: "Agenda aberta em um calendário de setembro com as datas marcadas",
   },
   {
@@ -64,7 +64,7 @@ export const services: VetService[] = [
       "O tutor responde e já agenda na mesma conversa",
       "Se ele não responder, a Nexo lembra de novo",
     ],
-    image: "/images/vet/lembretes.jpg",
+    image: "/images/vet/lembretes",
     alt: "Corgi cercado de corações de papel",
   },
   {
@@ -79,7 +79,7 @@ export const services: VetService[] = [
       "Aviso quando o resultado de um exame fica pronto, com convite pra agendar o retorno com o veterinário",
     ],
     note: "A Nexo não dá diagnóstico nem orientação clínica: toda informação de saúde vem do veterinário.",
-    image: "/images/vet/acompanhamento.jpg",
+    image: "/images/vet/acompanhamento",
     alt: "Cachorro pug com colar elizabetano de recuperação",
   },
   {
@@ -92,7 +92,7 @@ export const services: VetService[] = [
       "Respostas às avaliações, positivas e negativas, de forma profissional e no tom da clínica",
       "Acompanhamento da nota e dos comentários",
     ],
-    image: "/images/vet/avaliacoes.jpg",
+    image: "/images/vet/avaliacoes",
     alt: "Cachorro beagle sorrindo para a câmera",
   },
   {
@@ -105,7 +105,7 @@ export const services: VetService[] = [
       "Lucro por serviço, mostrando o que sustenta a clínica e o que dá prejuízo",
       "Faturamento, ticket médio e evolução mês a mês",
     ],
-    image: "/images/vet/financeiro.jpg",
+    image: "/images/vet/financeiro",
     alt: "Cachorro de óculos lendo uma revista",
   },
   {
@@ -118,7 +118,7 @@ export const services: VetService[] = [
       "Alerta de itens perto do vencimento",
       "Aviso de estoque baixo pra reposição",
     ],
-    image: "/images/vet/estoque.jpg",
+    image: "/images/vet/estoque",
     alt: "Cartelas de medicamentos de várias cores",
   },
   {
@@ -133,7 +133,7 @@ export const services: VetService[] = [
       "Avaliações recebidas",
       "Lucro por serviço, faturamento e alertas de estoque",
     ],
-    image: "/images/vet/relatorios.jpg",
+    image: "/images/vet/relatorios",
     alt: "Um gato e um cachorro deitados juntos na grama",
   },
 ];
@@ -148,19 +148,24 @@ export const steps = [
 /** Round photos floating around the hero podium, and the strip before the contact button. */
 export const heroPhotos = {
   left: [
-    { src: "/images/vet/hero-gato.jpg", alt: "Gato de olhos verdes apoiado em uma madeira", cls: "vt-orb-a" },
-    { src: "/images/vet/hero-vacina.jpg", alt: "Ampolas de vacina", cls: "vt-orb-b" },
+    { src: "/images/vet/hero-gato", alt: "Gato de olhos verdes apoiado em uma madeira", cls: "vt-orb-a" },
+    { src: "/images/vet/hero-vacina", alt: "Ampolas de vacina", cls: "vt-orb-b" },
   ],
   right: [
-    { src: "/images/vet/hero-filhote.jpg", alt: "Filhote de golden retriever correndo", cls: "vt-orb-c" },
-    { src: "/images/vet/hero-gatinho.jpg", alt: "Gatinho levantando a pata", cls: "vt-orb-d" },
+    { src: "/images/vet/hero-filhote", alt: "Filhote de golden retriever correndo", cls: "vt-orb-c" },
+    { src: "/images/vet/hero-gatinho", alt: "Gatinho levantando a pata", cls: "vt-orb-d" },
   ],
   podium: [
-    { src: "/images/vet/hero-beagle.jpg", alt: "Beagle sorrindo", cls: "vt-orb-e" },
-    { src: "/images/vet/hero-pug.jpg", alt: "Pug com colar de recuperação", cls: "vt-orb-f" },
+    { src: "/images/vet/hero-beagle", alt: "Beagle sorrindo", cls: "vt-orb-e" },
+    { src: "/images/vet/hero-pug", alt: "Pug com colar de recuperação", cls: "vt-orb-f" },
   ],
 };
 
 export const strip = [
   "hero-beagle", "hero-gato", "hero-filhote", "hero-vacina", "hero-gatinho", "hero-pug", "hero-corgi",
-].map((name) => `/images/vet/${name}.jpg`);
+].map((name) => `/images/vet/${name}`);
+
+/** Photos ship as WebP in two widths; the browser downloads only the one the screen needs. */
+export const photoSrcSet = (base: string, widths: readonly number[]) => widths.map((width) => `${base}-${width}.webp ${width}w`).join(", ");
+export const SERVICE_WIDTHS = [640, 1200] as const;
+export const ORB_WIDTHS = [240, 480] as const;
