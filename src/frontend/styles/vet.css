@@ -156,7 +156,7 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 /* ---- contact ---- */
 .vt-contact { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.6rem; padding-bottom: clamp(5rem, 10vw, 8rem); }
 .vt-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
-.vt-strip img { width: clamp(76px, 11vw, 140px); aspect-ratio: 1; border-radius: 10px; object-fit: cover; box-shadow: 0 12px 24px -8px rgb(7 59 32 / 0.45); }
+.vt-strip img { width: clamp(76px, 11vw, 140px); aspect-ratio: 1; border-radius: 50%; object-fit: cover; box-shadow: 0 12px 24px -8px rgb(7 59 32 / 0.45); }
 .vt-strip img:nth-child(even) { transform: translateY(14px); }
 
 /* ---- footer ---- */
