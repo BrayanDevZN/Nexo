@@ -165,7 +165,7 @@ export default function App() {
           <h2 id="vt-contact-title" className="vt-big vt-big-sm nx-reveal">
             Vamos conversar?
           </h2>
-          <p className="vt-text nx-reveal">Uma conversa de 20 minutos pra entender a rotina da sua clínica. Depois, 30 dias de teste sem custo.</p>
+          <p className="vt-text nx-reveal">Uma conversa de 20 minutos pra entender a rotina da sua clínica, os serviços que você oferece e onde sua equipe perde mais tempo. Depois, 30 dias de teste sem custo, pra você ver o resultado antes de decidir.</p>
           <a className="vt-pill nx-reveal" href={contactUrl} target="_blank" rel="noopener noreferrer">
             Contato <ArrowUpRight aria-hidden="true" />
           </a>
