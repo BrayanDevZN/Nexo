@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useButtonFeedback } from "@/hooks/useButtonFeedback";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useSectionNavigation } from "@/hooks/useSectionNavigation";
@@ -66,17 +67,19 @@ export default function App() {
         <section id="inicio" ref={heroRef} className="vt-hero" aria-labelledby="vt-hero-title">
           <div className="vt-stage">
             {orbs.map((orb) => (
-              <img
-                key={orb.src}
-                className={`vt-orb ${orb.cls}`}
-                src={`${orb.src}-240.webp`}
-                srcSet={photoSrcSet(orb.src, ORB_WIDTHS)}
-                sizes="(max-width: 760px) 27vw, 260px"
-                alt={orb.alt}
-                width="240"
-                height="240"
-                decoding="async"
-              />
+              <picture key={orb.src} className="vt-orb-pic">
+                <source type="image/avif" srcSet={photoSrcSet(orb.src, ORB_WIDTHS, "avif")} sizes="(max-width: 760px) 27vw, 260px" />
+                <img
+                  className={`vt-orb ${orb.cls}`}
+                  src={`${orb.src}-240.webp`}
+                  srcSet={photoSrcSet(orb.src, ORB_WIDTHS)}
+                  sizes="(max-width: 760px) 27vw, 260px"
+                  alt={orb.alt}
+                  width="240"
+                  height="240"
+                  decoding="async"
+                />
+              </picture>
             ))}
             <div className="vt-podium">
               <h1 id="vt-hero-title">
@@ -113,16 +116,19 @@ export default function App() {
           {services.map((service, index) => (
             <section key={service.id} id={service.id} className={`vt-service${index % 2 ? " vt-flip" : ""}`} aria-labelledby={`${service.id}-titulo`}>
               <figure className="vt-photo nx-reveal">
-                <img
-                  src={`${service.image}-640.webp`}
-                  srcSet={photoSrcSet(service.image, SERVICE_WIDTHS)}
-                  sizes="(max-width: 900px) 92vw, 600px"
-                  alt={service.alt}
-                  loading="lazy"
-                  decoding="async"
-                  width="1200"
-                  height="900"
-                />
+                <picture>
+                  <source type="image/avif" srcSet={photoSrcSet(service.image, SERVICE_WIDTHS, "avif")} sizes="(max-width: 900px) 92vw, 600px" />
+                  <img
+                    src={`${service.image}-640.webp`}
+                    srcSet={photoSrcSet(service.image, SERVICE_WIDTHS)}
+                    sizes="(max-width: 900px) 92vw, 600px"
+                    alt={service.alt}
+                    loading="lazy"
+                    decoding="async"
+                    width="1200"
+                    height="900"
+                  />
+                </picture>
               </figure>
               <div className="vt-copy">
                 <p className="vt-number nx-reveal">{service.number}</p>
@@ -135,7 +141,11 @@ export default function App() {
                     <li key={point}>{point}</li>
                   ))}
                 </ul>
-                {service.note ? <p className="vt-note nx-reveal">{service.note}</p> : null}
+                {service.note ? (
+                  <Alert role="note" className="vt-note nx-reveal">
+                    <AlertDescription>{service.note}</AlertDescription>
+                  </Alert>
+                ) : null}
               </div>
             </section>
           ))}
@@ -159,7 +169,10 @@ export default function App() {
         <section id="contato" className="vt-contact" aria-labelledby="vt-contact-title">
           <div className="vt-strip" aria-hidden="true">
             {strip.map((src) => (
-              <img key={src} src={`${src}-240.webp`} alt="" loading="lazy" decoding="async" width="120" height="120" />
+              <picture key={src}>
+                <source type="image/avif" srcSet={`${src}-240.avif`} />
+                <img src={`${src}-240.webp`} alt="" loading="lazy" decoding="async" width="120" height="120" />
+              </picture>
             ))}
           </div>
           <h2 id="vt-contact-title" className="vt-big vt-big-sm nx-reveal">

@@ -173,6 +173,6 @@ export const strip = [
 ].map((name) => `/images/vet/${name}`);
 
 /** Photos ship as WebP in two widths; the browser downloads only the one the screen needs. */
-export const photoSrcSet = (base: string, widths: readonly number[]) => widths.map((width) => `${base}-${width}.webp ${width}w`).join(", ");
+export const photoSrcSet = (base: string, widths: readonly number[], ext: "webp" | "avif" = "webp") => widths.map((width) => `${base}-${width}.${ext} ${width}w`).join(", ");
 export const SERVICE_WIDTHS = [640, 1200] as const;
 export const ORB_WIDTHS = [240, 480] as const;

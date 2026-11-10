@@ -64,6 +64,8 @@ test("photos are small WebP files with a smaller version for phones", async ({ p
     expect(src).toMatch(/\.webp$/);
     expect(srcset).toMatch(/ \d+w, .* \d+w$/);
   }
+  const avif = await page.evaluate(() => document.querySelectorAll(".vt-photo source[type='image/avif'], .vt-orb-pic source[type='image/avif']").length);
+  expect(avif).toBeGreaterThan(8);
   const sizes = await Promise.all(["/images/vet/atendimento-640.webp", "/images/vet/estoque-640.webp", "/images/vet/hero-gato-240.webp"].map(async path => (await (await page.request.get(path)).body()).length));
   for (const size of sizes) expect(size).toBeLessThan(80 * 1024);
 });

@@ -9,7 +9,8 @@ html.vt-home body {
   --primary: #073b20;
   --primary-foreground: #f3ffef;
   --ring: #073b20;
-  --vt-display: "Barlow Semi Condensed", "Lato", system-ui, sans-serif;
+  --vt-display: "Barlow Semi Condensed", "Figtree Variable", system-ui, sans-serif;
+  --vt-body: "Figtree Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   background: transparent !important;
   color: var(--vt-ink);
   overflow-x: clip;
@@ -30,7 +31,10 @@ html.vt-home .nx-cursor[data-active="true"] { background: color-mix(in srgb, var
 html.vt-home .cookie-notice { background: var(--vt-cream); color: var(--vt-ink); border-color: var(--vt-deep); }
 html.vt-home .cookie-notice a { color: var(--vt-deep); }
 
-.vt { font-family: "Lato", system-ui, sans-serif; color: var(--vt-ink); min-height: 100vh; }
+.vt { font-family: var(--vt-body); font-optical-sizing: auto; font-kerning: normal; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; color: var(--vt-ink); min-height: 100vh; }
+.vt p, .vt li { text-wrap: pretty; hanging-punctuation: first; }
+.vt-orb-pic { display: contents; }
+.vt-photo picture { display: block; }
 .vt a { color: inherit; text-decoration: none; }
 .vt-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -117,10 +121,10 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-intro { text-align: center; padding-block: clamp(4rem, 10vw, 9rem); display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
 .vt-kicker { margin: 0; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.8rem; color: var(--vt-deep); }
 .vt-big { margin: 0; font-family: var(--vt-display); font-weight: 800; line-height: 0.92; letter-spacing: -0.01em; font-size: clamp(2.8rem, 8.5vw, 8rem); color: var(--vt-ink); text-wrap: balance; }
-.vt-big span { display: block; margin-top: 1.4rem; font-family: "Lato", sans-serif; font-weight: 400; letter-spacing: 0.02em; line-height: 1.4; font-size: clamp(0.9rem, 1.6vw, 1.25rem); color: var(--vt-deep); }
+.vt-big span { display: block; margin-top: 1.4rem; font-family: var(--vt-body); font-weight: 500; letter-spacing: 0.01em; line-height: 1.45; font-size: clamp(0.9rem, 1.6vw, 1.25rem); color: var(--vt-deep); }
 .vt-big-sm { font-size: clamp(2.6rem, 7vw, 6rem); }
 .vt-lead { margin: 0; max-width: 40rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.15; color: var(--vt-deep); }
-.vt-text { margin: 0; max-width: 40rem; font-size: 1.05rem; line-height: 1.85; }
+.vt-text { margin: 0; max-width: 40rem; font-size: clamp(1.05rem, 0.98rem + 0.3vw, 1.2rem); line-height: 1.75; font-weight: 450; }
 
 /* ---- services ---- */
 .vt-service { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); width: min(1300px, calc(100% - 2.5rem)); margin: 0 auto clamp(5rem, 11vw, 10rem); }
@@ -128,14 +132,16 @@ html.vt-home .cookie-notice a { color: var(--vt-deep); }
 .vt-photo { margin: 0; position: relative; }
 .vt-photo img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 28px; box-shadow: 0 30px 60px -20px rgb(7 59 32 / 0.55); transition: transform 0.6s cubic-bezier(.2,.7,.2,1); }
 @media (hover: hover) { .vt-service:hover .vt-photo img { transform: scale(1.03) rotate(-0.6deg); } }
-.vt-photo { overflow: hidden; border-radius: 28px; }
-.vt-number { margin: 0 0 0.4rem; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; color: var(--vt-deep); }
+.vt-photo { overflow: hidden; border-radius: 28px; background: var(--vt-cream); }
+.vt-photo img { background: var(--vt-cream); image-rendering: auto; }
+.vt-service { content-visibility: auto; contain-intrinsic-size: auto 640px; }
+.vt-number { font-variant-numeric: lining-nums tabular-nums; margin: 0 0 0.4rem; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; color: var(--vt-deep); }
 .vt-copy h3 { margin: 0; font-family: var(--vt-display); font-weight: 800; font-size: clamp(2.3rem, 5.2vw, 4.9rem); line-height: 0.92; color: var(--vt-ink); text-wrap: balance; }
 .vt-summary { margin: 1.4rem 0 1rem; font-family: var(--vt-display); font-weight: 600; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; color: var(--vt-deep); }
 .vt-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.7rem; }
-.vt-points li { position: relative; padding-left: 1.7rem; line-height: 1.65; font-size: 1rem; }
+.vt-points li { position: relative; padding-left: 1.7rem; line-height: 1.6; font-size: clamp(1rem, 0.95rem + 0.2vw, 1.1rem); font-weight: 450; }
 .vt-points li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--vt-deep); box-shadow: 0 0 0 3px var(--vt-cream); }
-.vt-note { margin: 1.4rem 0 0; padding: 1rem 1.2rem; border-radius: 16px; background: var(--vt-cream); font-size: 0.95rem; line-height: 1.6; font-weight: 700; }
+.vt-note { margin: 1.4rem 0 0; padding: 1rem 1.2rem; border-radius: 16px; border: 0; background: var(--vt-cream); color: var(--vt-ink); font-size: 0.95rem; line-height: 1.6; font-weight: 700; }
 
 /* ---- steps ---- */
 .vt-steps { padding-bottom: clamp(5rem, 10vw, 9rem); text-align: center; }

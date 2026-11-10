@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
+Generated: 2026-11-10 | 414 files | ~488.5K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -203,7 +203,7 @@ Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 | src/frontend/admin/Videos.tsx | 289 | 4.6K | source |
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
-| src/frontend/App.tsx | 189 | 2.0K | source |
+| src/frontend/App.tsx | 202 | 2.2K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -255,9 +255,9 @@ Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 | src/frontend/lib/siteEffects.ts | 261 | 2.3K | source |
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
-| src/frontend/lib/vet.ts | 172 | 1.7K | source |
+| src/frontend/lib/vet.ts | 179 | 2.1K | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 44 | 495 | source |
+| src/frontend/main.tsx | 45 | 505 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -274,7 +274,7 @@ Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 | n8n/package.json | 20 | 102 | config |
 | pyproject.toml | 42 | 279 | config |
 | src/frontend/components.json | 26 | 131 | config |
-| src/frontend/package.json | 48 | 326 | config |
+| src/frontend/package.json | 49 | 338 | config |
 | src/frontend/tsconfig.json | 42 | 187 | config |
 | src/frontend/vercel.json | 16 | 139 | config |
 | video-server/package.json | 19 | 102 | config |
@@ -399,7 +399,7 @@ Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 | src/frontend/styles/globals.css | 2780 | 16.0K | style |
 | src/frontend/styles/robin.css | 396 | 8.6K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
-| src/frontend/styles/vet.css | 206 | 4.1K | style |
+| src/frontend/styles/vet.css | 212 | 4.2K | style |
 | .dockerignore | 20 | 53 | other |
 | .env.example | 88 | 793 | other |
 | .gitignore | 31 | 53 | other |
@@ -420,11 +420,11 @@ Generated: 2026-11-09 | 414 files | ~487.7K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 261 files, ~303.3K tokens
+- source: 261 files, ~303.8K tokens
 - config: 13 files, ~3.6K tokens
 - test: 106 files, ~119.0K tokens
 - docs: 11 files, ~17.1K tokens
-- style: 5 files, ~39.0K tokens
+- style: 5 files, ~39.2K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

@@ -9,6 +9,7 @@ import { MotionProvider } from "./components/MotionProvider";
 import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
 import { startPageEntrance, startSiteEffects } from "./lib/siteEffects";
+import "@fontsource-variable/figtree";
 import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/barlow-semi-condensed/800.css";
 import "@fontsource/lato/300.css";
