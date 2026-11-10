@@ -4,7 +4,6 @@ const principles = [
   "Começamos pelo seu problema e só depois escolhemos a tecnologia.",
   "Nos adaptamos ao que você já usa, sem trocar tudo do zero.",
   "Você acompanha tudo e decide o que é feito sozinho e o que precisa de aprovação.",
-  "Falamos em português simples, sem termos técnicos, e explicamos cada decisão.",
 ];
 
 /** Where the 3D journey is, shared between the scroll code (Journey.tsx) and the scene (world.ts). */
@@ -40,11 +39,6 @@ export const stations: Station[] = [
     kicker: "Nexo | Inteligência artificial para empresas",
     title: "Mais capacidade. Esse é o nexo.",
     text: "Sua equipe gasta tempo demais em tarefas repetitivas. Nós usamos IA para resolver isso, para você atender mais clientes e entregar mais sem sobrecarregar ninguém.",
-    points: [
-      "Atendimento rápido, no WhatsApp e nos canais que seus clientes já usam.",
-      "Rotinas que andam sozinhas, com a sua equipe só no que exige uma pessoa.",
-      "Sistemas conectados, para a informação certa chegar sem digitar de novo.",
-    ],
     tags: "Atendimento | Rotinas automáticas | Sistemas conectados",
     side: "left",
     scene: "monogram",
@@ -66,7 +60,7 @@ export const stations: Station[] = [
     anchor: "processo",
     kicker: "Como funciona",
     title: "Primeiro o problema. Depois, a tecnologia.",
-    text: "Um caminho simples, em quatro passos, do primeiro papo até a solução funcionando na sua empresa. Você sabe o que vem a seguir em cada etapa e decide se segue em frente.",
+    text: "Um caminho simples, em quatro passos, do primeiro papo até a solução funcionando na sua empresa.",
     points: steps.map((step, index) => `${String(index + 1).padStart(2, "0")} ${step.title}: ${step.text}`),
     note: "No fim de cada passo você recebe algo concreto: " + steps.map((step) => step.delivery.toLowerCase()).join(", ") + ".",
     side: "left",
@@ -77,7 +71,7 @@ export const stations: Station[] = [
     anchor: "sobre",
     kicker: "A Nexo",
     title: "A conexão com o próximo passo.",
-    text: "Somos a Nexo. Primeiro entendemos como a sua empresa funciona, depois resolvemos o que está travando o seu crescimento. Trabalhamos lado a lado com a sua equipe, do diagnóstico ao acompanhamento.",
+    text: "Somos a Nexo. Primeiro entendemos como a sua empresa funciona, depois resolvemos o que está travando o seu crescimento.",
     points: principles,
     note: "Você vê o resultado em números simples: quanto foi feito, quanto tempo levou e o que ficou pendente.",
     side: "right",

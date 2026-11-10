@@ -23,13 +23,12 @@ export const solutions = [
     number: "01",
     title: "Atendente que não dorme",
     description:
-      "Um assistente que responde seus clientes na hora, com o que a sua empresa realmente sabe, e chama uma pessoa quando precisa. Ele funciona no WhatsApp e nos canais que você já usa, a qualquer hora do dia.",
+      "Um assistente que responde seus clientes na hora, com o que a sua empresa realmente sabe, e chama uma pessoa quando precisa.",
     tags: ["Atendimento", "Vendas", "Dúvidas do dia a dia"],
     includes: [
       "Responde perguntas com base nos seus próprios documentos e preços.",
       "Registra o pedido e passa para o responsável certo, sem ninguém copiar e colar.",
       "Você define até onde ele decide sozinho e vê tudo o que ele fez.",
-      "Fala com o jeito da sua marca e nunca inventa uma resposta: se não souber, chama alguém da equipe.",
     ],
     example:
       "O cliente pergunta às 22h. Ele responde, anota o pedido e deixa pronto para a equipe confirmar de manhã.",
@@ -39,13 +38,12 @@ export const solutions = [
     number: "02",
     title: "Fim do trabalho repetitivo",
     description:
-      "Tarefas que sua equipe faz todo dia, do mesmo jeito, passam a acontecer sozinhas. Sobra tempo para o que exige atenção de verdade e o trabalho deixa de depender de quem lembrou de fazer.",
+      "Tarefas que sua equipe faz todo dia, do mesmo jeito, passam a acontecer sozinhas.",
     tags: ["Documentos", "Planilhas", "Rotinas"],
     includes: [
       "Lê e organiza arquivos e mensagens que chegam por e-mail ou WhatsApp.",
       "Confere os dados e avisa só quando algo parece errado.",
       "Acaba com o vai e vem entre planilhas e sistemas.",
-      "Gera relatórios, lembretes e cobranças no dia certo, sem ninguém precisar lembrar.",
     ],
     example:
       "Os documentos chegam por e-mail e já aparecem organizados. Sua equipe só olha o que precisa de atenção.",
@@ -55,13 +53,12 @@ export const solutions = [
     number: "03",
     title: "Seus sistemas trabalhando juntos",
     description:
-      "Conectamos o que você já usa, como CRM, ERP e planilhas, para a informação certa chegar sem ninguém digitar de novo. Cada área vê os mesmos dados atualizados, e o time deixa de trabalhar com informação velha.",
+      "Conectamos o que você já usa, como CRM, ERP e planilhas, para a informação certa chegar sem ninguém digitar de novo.",
     tags: ["CRM", "ERP", "Menos digitação"],
     includes: [
       "Você continua com as ferramentas que já conhece.",
       "Encontrar uma informação passa a levar segundos, não horas.",
       "Se algo falhar, a equipe é avisada e nada se perde.",
-      "Cada ferramenta continua com a sua função, só que agora elas conversam entre si.",
     ],
     example:
       "Um cliente novo entra no CRM e o resumo dele já chega para o vendedor, com o próximo passo sugerido.",
@@ -71,13 +68,12 @@ export const solutions = [
     number: "04",
     title: "Um sistema feito para o seu jeito de trabalhar",
     description:
-      "Quando nenhuma ferramenta pronta resolve, criamos a solução sob medida para a sua operação. Ela cresce junto com a empresa, sem você ficar preso a um sistema que não foi feito para o seu caso.",
+      "Quando nenhuma ferramenta pronta resolve, criamos a solução sob medida para a sua operação.",
     tags: ["Feito para você", "Acompanhamento", "Evolui com a empresa"],
     includes: [
       "Desenhado a partir do que a sua empresa faz de verdade.",
       "Telas simples para a equipe usar sem treinamento longo.",
       "Entregamos funcionando e ficamos ao seu lado nos primeiros passos.",
-      "Você é dono do que foi criado e pode pedir ajustes quando o negócio mudar.",
     ],
     example:
       "Todos os pedidos num só lugar, com a IA ajudando e a equipe vendo cada etapa andar.",
