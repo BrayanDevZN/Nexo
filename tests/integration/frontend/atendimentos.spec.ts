@@ -69,7 +69,7 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
   await page.getByRole("button", { name: "Criar negócio" }).click();
   await expect(page.getByRole("navigation", { name: "Seções" })).toBeVisible();
-  await expect(page.getByText("Nenhum atendimento neste dia.")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Semana" })).toBeVisible();
 
   await page.getByRole("button", { name: "Serviços" }).click();
   await page.getByRole("button", { name: "Novo serviço" }).click();
@@ -85,10 +85,10 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByRole("option", { name: /Corte/ }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
   const item = page.getByRole("button", { name: /João/ });
-  await expect(item).toContainText("Marcado");
+  await expect(item).toHaveAttribute("aria-label", /Marcado/);
   await item.click();
   await page.getByRole("button", { name: "Concluído", exact: true }).click();
-  await expect(page.getByRole("button", { name: /João/ })).toContainText("Concluído");
+  await expect(page.getByRole("button", { name: /João/ })).toHaveAttribute("aria-label", /Concluído/);
   // No panel session, no storage besides the chosen business.
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   expect(await page.evaluate(() => sessionStorage.getItem("nexo:atendimentos:business"))).toBe("b1");
@@ -117,4 +117,30 @@ test("a large phone photo chosen for a new business is shrunk, previewed and sen
   await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
   await page.getByRole("button", { name: "Criar negócio" }).click();
   await expect(page.getByRole("navigation", { name: "Seções" })).toBeVisible();
+});
+
+test("the calendar books a free slot on click and remembers its customization", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  await page.addInitScript(() => sessionStorage.setItem("nexo:atendimentos:business", "b1"));
+  await page.route("**/api/atendimentos/businesses", route => route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ id: "b1", owner_id: "u1", name: "Barbearia", slug: "b", cnpj: null, description: null, phone: null, email: null, address: null, city: null, state: null, timezone: "America/Sao_Paulo", opening_hours: hours, has_photo: false, my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" }]) })
+    : route.fallback());
+  await page.route("**/api/atendimentos/businesses/b1", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "b1", owner_id: "u1", name: "Barbearia", slug: "b", cnpj: null, description: null, phone: null, email: null, address: null, city: null, state: null, timezone: "America/Sao_Paulo", opening_hours: hours, has_photo: false, my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" }) }));
+  await page.goto("/atendimentos");
+  await expect(page.getByRole("radio", { name: "Semana" })).toBeChecked();
+  // Clicking an empty spot of today's column opens the form with that time already filled in.
+  await page.locator(".bk-tg-col[data-today]").click({ position: { x: 20, y: 3 * 56 + 10 } });
+  await expect(page.getByRole("heading", { name: "Novo atendimento" })).toBeVisible();
+  await expect(page.getByLabel("Início")).toHaveValue(/T\d\d:(00|30)$/);
+  await page.getByRole("button", { name: "Cancelar" }).click();
+  // Month view and the customization are applied at once and kept for the next visit.
+  await page.getByRole("radio", { name: "Mês" }).click();
+  await expect(page.locator(".bk-month")).toBeVisible();
+  await page.getByRole("button", { name: "Personalizar agenda" }).click();
+  await page.getByLabel("Mostrar fins de semana").click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".bk-month-head")).toHaveCount(5);
+  await page.reload();
+  await page.getByRole("radio", { name: "Semana" }).click();
+  await expect(page.locator(".bk-tg-day")).toHaveCount(5);
 });

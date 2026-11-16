@@ -1,55 +1,70 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarPlus, ChevronLeft, ChevronRight, MessageCircle, Phone, Search } from "lucide-react";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { CalendarPlus, ChevronLeft, ChevronRight, MessageCircle, Phone, Search, SlidersHorizontal } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import {
-  can, dayBounds, dayKey, formatDate, formatMoney, formatTime, isoToLocal, localToIso, STATUS_LABELS,
+  can, dayKey, isoToLocal, localToIso, STATUS_LABELS,
   type Appointment, type AppointmentStatus, type BookingApi, type Business, type Member, type Overview, type Service,
 } from "./api";
+import { CalendarView, Customize, Legend } from "./Calendar";
+import {
+  loadPrefs, savePrefs, shiftAnchor, startOfDay, viewRange, viewTitle, visibleDays,
+  type CalendarPrefs, type CalendarView as View,
+} from "./calendarPrefs";
 
 const STATUSES: AppointmentStatus[] = ["scheduled", "confirmed", "done", "cancelled", "no_show"];
-const BADGE: Record<AppointmentStatus, "default" | "secondary" | "outline" | "destructive"> = { scheduled: "secondary", confirmed: "default", done: "outline", cancelled: "destructive", no_show: "destructive" };
+const VIEWS: { id: View; label: string }[] = [{ id: "day", label: "Dia" }, { id: "week", label: "Semana" }, { id: "month", label: "Mês" }, { id: "list", label: "Lista" }];
+const PAGE = 100;
 
-/** The day's appointments, the counts of the week and a plain form to book or change one. */
+/** A calendar like Google's: day, week, month and list views, click a free slot to book it, and a Personalizar panel. */
 export function Agenda({ api, business }: { api: BookingApi; business: Business }) {
-  const [day, setDay] = useState(() => dayKey(new Date()));
-  const [mode, setMode] = useState<"day" | "upcoming">("day");
+  const [prefs, setPrefs] = useState<CalendarPrefs>(() => loadPrefs(business.id));
+  const [view, setView] = useState<View>(prefs.view);
+  const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
   const [statusFilter, setStatusFilter] = useState<"" | AppointmentStatus>("");
   const [customer, setCustomer] = useState("");
   const [rows, setRows] = useState<Appointment[]>();
   const [overview, setOverview] = useState<Overview>();
   const [services, setServices] = useState<Service[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [editing, setEditing] = useState<Appointment | "new">();
+  const [editing, setEditing] = useState<{ appointment?: Appointment; start?: string }>();
+  const [customizing, setCustomizing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const writes = can.writeAppointments(business.my_role);
   const base = "/businesses/" + business.id;
+  const days = useMemo(() => visibleDays(view, anchor, prefs), [view, anchor, prefs]);
+  const range = useMemo(() => viewRange(view, anchor, prefs), [view, anchor, prefs]);
+  function changePrefs(next: CalendarPrefs) { setPrefs(next); savePrefs(business.id, next); }
   async function load() {
     try {
-      const query = new URLSearchParams({ limit: "100" });
-      if (mode === "day") { const bounds = dayBounds(day); query.set("starts_from", bounds.starts_from); query.set("starts_until", bounds.starts_until); }
-      else query.set("starts_from", new Date().toISOString());
-      if (statusFilter) query.set("status", statusFilter);
-      if (customer.trim()) query.set("customer", customer.trim());
-      const [list, counts] = await Promise.all([api.request<Appointment[]>(base + "/appointments?" + query), api.request<Overview>(base + "/overview")]);
-      setRows(list); setOverview(counts);
+      const all: Appointment[] = [];
+      // The server returns at most 100 per request; a busy month needs a few pages.
+      for (let offset = 0; offset < 600; offset += PAGE) {
+        const query = new URLSearchParams({ limit: String(PAGE), offset: String(offset), starts_from: range.from.toISOString() });
+        if (range.until) query.set("starts_until", range.until.toISOString());
+        if (statusFilter) query.set("status", statusFilter);
+        if (customer.trim()) query.set("customer", customer.trim());
+        const page = await api.request<Appointment[]>(base + "/appointments?" + query);
+        all.push(...page);
+        if (page.length < PAGE) break;
+      }
+      setRows(all); setOverview(await api.request<Overview>(base + "/overview")); setError("");
     } catch (e) { setError(message(e)); }
   }
-  useEffect(() => { setRows(undefined); void load(); }, [business.id, day, mode, statusFilter, customer]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The range is a pair of Dates; depend on its instants so the effect runs once per real change.
+  useEffect(() => { setRows(undefined); void load(); }, [business.id, range.from.getTime(), range.until?.getTime(), statusFilter, customer]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let active = true;
     void Promise.all([api.request<Service[]>(base + "/services?active=true"), api.request<Member[]>(base + "/members")])
       .then(([list, team]) => { if (active) { setServices(list); setMembers(team); } }).catch(() => undefined);
     return () => { active = false; };
   }, [api, base, editing]);
-  function shift(days: number) { const date = new Date(day + "T00:00:00"); date.setDate(date.getDate() + days); setDay(dayKey(date)); }
+  function pickView(next: View) { setView(next); if (next !== "list") setAnchor(a => next === "month" ? new Date(a.getFullYear(), a.getMonth(), 1) : a); }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !editing) return;
@@ -61,11 +76,11 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
       ends_at: values.ends_at ? localToIso(values.ends_at) : null, notes: values.notes || null,
       price: values.price ? values.price.replace(",", ".") : null,
     };
-    if (editing !== "new") body.status = values.status;
+    if (editing.appointment) body.status = values.status;
     setBusy(true); setError("");
     try {
-      if (editing === "new") await api.mutate(base + "/appointments", "POST", body);
-      else await api.mutate(base + "/appointments/" + editing.id, "PATCH", body);
+      if (!editing.appointment) await api.mutate(base + "/appointments", "POST", body);
+      else await api.mutate(base + "/appointments/" + editing.appointment.id, "PATCH", body);
       setEditing(undefined); await load();
     } catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
@@ -81,10 +96,15 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
     try { await api.mutate(base + "/appointments/" + appointment.id, "DELETE"); setEditing(undefined); await load(); }
     catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
-  const current = editing === "new" ? undefined : editing;
-  const defaultStart = current ? isoToLocal(current.starts_at) : day + "T09:00";
+  const current = editing?.appointment;
+  const defaultStart = current ? isoToLocal(current.starts_at) : editing?.start || dayKey(anchor) + "T09:00";
+  const handlers = {
+    onEvent: (row: Appointment) => { if (writes) setEditing({ appointment: row }); },
+    onSlot: (start: string) => { if (writes) setEditing({ start }); },
+    onDay: (day: Date) => { setAnchor(day); setView("day"); },
+  };
   return <section className="flex flex-col gap-4">
-    <div className="bk-row bk-row-between"><h1>Agenda</h1>{writes && !editing && <Button onClick={() => setEditing("new")}><CalendarPlus data-icon="inline-start" />Marcar atendimento</Button>}</div>
+    <div className="bk-row bk-row-between"><h1>Agenda</h1>{writes && <Button onClick={() => setEditing({})}><CalendarPlus data-icon="inline-start" />Marcar atendimento</Button>}</div>
     {overview && <div className="bk-stats">
       <div className="bk-stat"><strong>{overview.today}</strong><span>hoje</span></div>
       <div className="bk-stat"><strong>{overview.next_7_days}</strong><span>próximos 7 dias</span></div>
@@ -92,8 +112,42 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
       <div className="bk-stat"><strong>{overview.by_status.done}</strong><span>concluídos</span></div>
     </div>}
     <Feedback error={error} />
-    {editing && <Card><CardHeader><CardTitle>{current ? "Atendimento" : "Novo atendimento"}</CardTitle></CardHeader>
-      <CardContent><form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || "new"}>
+    <div className="bk-cal">
+      <div className="bk-cal-bar">
+        <div className="bk-cal-nav">
+          <Button variant="outline" onClick={() => setAnchor(startOfDay(new Date()))}>Hoje</Button>
+          {view !== "list" && <>
+            <Button variant="ghost" size="icon-lg" aria-label="Anterior" onClick={() => setAnchor(shiftAnchor(view, anchor, -1))}><ChevronLeft /></Button>
+            <Button variant="ghost" size="icon-lg" aria-label="Próximo" onClick={() => setAnchor(shiftAnchor(view, anchor, 1))}><ChevronRight /></Button>
+          </>}
+          <h2 className="bk-cal-title" aria-live="polite">{viewTitle(view, anchor, days)}</h2>
+        </div>
+        <div className="bk-cal-tools">
+          <ToggleGroup type="single" value={view} onValueChange={value => { if (value) pickView(value as View); }} aria-label="Visão">
+            {VIEWS.map(item => <ToggleGroupItem key={item.id} value={item.id}>{item.label}</ToggleGroupItem>)}
+          </ToggleGroup>
+          <Button variant="outline" size="icon-lg" aria-label="Personalizar agenda" onClick={() => setCustomizing(true)}><SlidersHorizontal /></Button>
+        </div>
+      </div>
+      <form className="bk-cal-filters" onSubmit={event => { event.preventDefault(); setCustomer((new FormData(event.currentTarget).get("customer") as string) || ""); }}>
+        <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline" size="icon-lg" aria-label="Buscar"><Search /></Button></div>
+        <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as "" | AppointmentStatus)}>
+          <NativeSelectOption value="">Todas as situações</NativeSelectOption>
+          {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}
+        </NativeSelect>
+      </form>
+      {!rows ? <div className="bk-cal-loading"><Busy /></div>
+        : <>
+          <CalendarView view={view} days={days} anchor={anchor} rows={rows} prefs={prefs} handlers={handlers} />
+          {view === "list" && rows.length === 0 && <p className="bk-muted bk-cal-empty">{customer || statusFilter ? "Nenhum atendimento futuro com esses filtros." : "Nenhum atendimento futuro."}</p>}
+        </>}
+      {rows && <Legend rows={rows} prefs={prefs} />}
+    </div>
+    <Customize open={customizing} onOpenChange={setCustomizing} prefs={prefs} onChange={changePrefs} />
+    <Dialog open={!!editing} onOpenChange={open => { if (!open && !busy) setEditing(undefined); }}>
+      <DialogContent className="bk-editor">
+        <DialogHeader><DialogTitle>{current ? "Atendimento" : "Novo atendimento"}</DialogTitle><DialogDescription>{current ? "Veja ou altere os dados." : "Preencha o cliente e o horário."}</DialogDescription></DialogHeader>
+        {editing && <form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || editing.start || "new"}>
         <FieldGroup>
           <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />
           <TextField label="Celular do cliente" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
@@ -132,31 +186,7 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
         {current && <div className="bk-status" aria-label="Mudar situação rapidamente">
           {STATUSES.filter(status => status !== current.status).map(status => <Button key={status} type="button" size="sm" variant="outline" disabled={busy} onClick={() => setStatus(current, status)}>{STATUS_LABELS[status]}</Button>)}
         </div>}
-      </form></CardContent></Card>}
-    <ToggleGroup type="single" value={mode} onValueChange={value => { if (value) setMode(value as "day" | "upcoming"); }} aria-label="Período">
-      <ToggleGroupItem value="day">Por dia</ToggleGroupItem>
-      <ToggleGroupItem value="upcoming">Próximos</ToggleGroupItem>
-    </ToggleGroup>
-    {mode === "day" && <div className="bk-day">
-      <Button variant="outline" size="icon-lg" aria-label="Dia anterior" onClick={() => shift(-1)}><ChevronLeft /></Button>
-      <input type="date" aria-label="Dia" value={day} onChange={e => e.target.value && setDay(e.target.value)} />
-      <Button variant="outline" size="icon-lg" aria-label="Próximo dia" onClick={() => shift(1)}><ChevronRight /></Button>
-      <Button variant="outline" onClick={() => setDay(dayKey(new Date()))}>Hoje</Button>
-    </div>}
-    <form className="bk-grid-2" onSubmit={event => { event.preventDefault(); setCustomer((new FormData(event.currentTarget).get("customer") as string) || ""); }}>
-      <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline" size="icon-lg" aria-label="Buscar"><Search /></Button></div>
-      <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as "" | AppointmentStatus)}>
-        <NativeSelectOption value="">Todas as situações</NativeSelectOption>
-        {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}
-      </NativeSelect>
-    </form>
-    {!rows ? <Busy /> : rows.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><CalendarPlus /></EmptyMedia><EmptyTitle>{mode === "day" ? "Nenhum atendimento neste dia" : "Nenhum atendimento futuro"}</EmptyTitle><EmptyDescription>{customer || statusFilter ? "Confira os filtros." : writes ? "Toque em Marcar atendimento para começar." : "Quando a equipe marcar, aparece aqui."}</EmptyDescription></EmptyHeader></Empty>
-      : <div className="bk-list">{rows.map(row => <button type="button" className="bk-item" data-status={row.status} key={row.id} disabled={!writes} onClick={() => setEditing(row)}>
-        <div className="bk-item-time">{mode === "upcoming" && <small>{formatDate(row.starts_at)}</small>}{formatTime(row.starts_at)}<small>{formatTime(row.ends_at)}</small></div>
-        <div className="bk-item-body"><strong>{row.customer_name}</strong>
-          <span>{row.service_name}{row.staff_name ? " · " + row.staff_name : ""}{row.price !== null ? " · " + formatMoney(row.price) : ""}</span>
-          {row.customer_phone && <span>{row.customer_phone}</span>}</div>
-        <Badge variant={BADGE[row.status]}>{STATUS_LABELS[row.status]}</Badge>
-      </button>)}</div>}
+      </form>}
+    </DialogContent></Dialog>
   </section>;
 }

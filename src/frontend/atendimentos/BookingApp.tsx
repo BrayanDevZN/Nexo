@@ -113,7 +113,7 @@ export default function BookingApp() {
     {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
     <Card><CardHeader><CardTitle>Minha conta</CardTitle><CardDescription>{user.email}</CardDescription></CardHeader><CardContent><Button variant="outline" size="sm" onClick={() => setAccountOnly(true)}><UserRound data-icon="inline-start" />Foto, dados e senha</Button></CardContent></Card>
   </main>;
-  return <main className="bk-page">
+  return <main className="bk-page" data-wide={page === "agenda" || undefined}>
     <div className="bk-top">
       <div className="bk-title">
         <Picture api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} className="size-11" version={business.updated_at.length} />

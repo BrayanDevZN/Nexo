@@ -125,3 +125,108 @@ html.booking-theme ::selection { background: color-mix(in srgb, var(--primary) 2
 .bk-hello { display: flex; align-items: center; gap: 0.9rem; }
 .bk-hello [data-slot="avatar"] { width: 3.4rem; height: 3.4rem; }
 .bk-hello [data-slot="avatar-fallback"] { font-size: 1.1rem; }
+
+/* ---- calendar (Google-Calendar-like agenda) ---- */
+.bk-page[data-wide] { max-width: 1240px; }
+.bk-cal { display: flex; flex-direction: column; gap: 0.75rem; background: var(--bk-card); border: 1px solid var(--bk-line); border-radius: 1.1rem; box-shadow: var(--bk-shadow); padding: 0.75rem; }
+.bk-cal-bar { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; }
+.bk-cal-nav, .bk-cal-tools { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.bk-cal-title { font-size: 1.25rem; font-weight: 600; margin-left: 0.4rem; min-width: 0; }
+.bk-cal-filters { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+@media (min-width: 700px) { .bk-cal-filters { grid-template-columns: 1fr 14rem; } .bk-cal { padding: 1rem; } }
+.bk-cal-loading { display: flex; justify-content: center; padding: 3rem 0; }
+.bk-cal-empty { text-align: center; padding: 1.5rem 0; }
+
+.bk-grid-scroll { overflow: auto; max-height: min(72vh, 46rem); border: 1px solid var(--bk-line); border-radius: 0.8rem; background: #fff; }
+.bk-tg { min-width: calc(3.2rem + var(--cols) * 5.8rem); }
+.bk-tg-head { position: sticky; top: 0; z-index: 4; display: grid; grid-template-columns: 3.2rem repeat(var(--cols), minmax(0, 1fr)); background: #fff; border-bottom: 1px solid var(--bk-line); }
+.bk-tg-day { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.4rem 0; border: 0; border-left: 1px solid var(--bk-line); background: #fff; font: inherit; cursor: pointer; color: var(--muted-foreground); }
+.bk-tg-day small { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; }
+.bk-tg-day b { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 999px; font-size: 1.2rem; font-weight: 500; color: var(--foreground); }
+.bk-tg-day[data-today] small { color: var(--primary); }
+.bk-tg-day[data-today] b { background: var(--primary); color: var(--primary-foreground); }
+.bk-tg-body { position: relative; display: grid; grid-template-columns: 3.2rem repeat(var(--cols), minmax(0, 1fr)); }
+.bk-tg-hours { position: relative; }
+.bk-tg-hours span { position: absolute; right: 0.4rem; transform: translateY(-50%); font-size: 0.68rem; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.bk-tg-col { position: relative; border-left: 1px solid var(--bk-line); cursor: cell;
+  background-image: linear-gradient(to bottom, var(--bk-line) 1px, transparent 1px); background-size: 100% var(--hh); }
+.bk-tg-col[data-today] { background-color: color-mix(in srgb, var(--primary) 4%, #fff); }
+.bk-now { position: absolute; left: 0; right: 0; height: 2px; background: #ea4335; z-index: 3; pointer-events: none; }
+.bk-now::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #ea4335; }
+.bk-event { position: absolute; z-index: 2; display: flex; flex-direction: column; gap: 0; align-items: flex-start; text-align: left; overflow: hidden; padding: 0.2rem 0.4rem; border: 0; border-left: 3px solid color-mix(in srgb, var(--ev) 60%, #000); border-radius: 0.45rem;
+  background: var(--ev); color: #fff; font: inherit; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgb(0 0 0 / 0.18); }
+.bk-event strong { font-size: 0.78rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-event span { font-size: 0.7rem; opacity: 0.92; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-event[data-compact] { flex-direction: row; gap: 0.35rem; align-items: center; }
+.bk-event[data-compact] span { display: none; }
+.bk-event[data-closed], .bk-chip[data-closed], .bk-sched-row[data-closed] { opacity: 0.6; }
+.bk-event[data-closed] strong, .bk-chip[data-closed] span, .bk-sched-row[data-closed] strong { text-decoration: line-through; }
+.bk-event:focus-visible, .bk-chip:focus-visible, .bk-sched-row:focus-visible, .bk-month-num:focus-visible, .bk-tg-day:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.bk-month { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); border: 1px solid var(--bk-line); border-radius: 0.8rem; overflow: hidden; background: #fff; }
+.bk-month-head { padding: 0.4rem 0; text-align: center; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--muted-foreground); border-bottom: 1px solid var(--bk-line); }
+.bk-month-cell { min-height: 5.2rem; padding: 0.2rem; display: flex; flex-direction: column; gap: 0.15rem; border-left: 1px solid var(--bk-line); border-top: 1px solid var(--bk-line); cursor: pointer; min-width: 0; }
+.bk-month-head + .bk-month-head, .bk-month-cell:nth-child(7n + 1) { border-left: 0; }
+.bk-month-cell[data-outside] { background: color-mix(in srgb, var(--primary) 3%, #f6f4fa); }
+.bk-month-cell[data-outside] .bk-month-num { color: var(--muted-foreground); }
+.bk-month-num { align-self: center; display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: 0.85rem; cursor: pointer; color: var(--foreground); }
+.bk-month-cell[data-today] .bk-month-num { background: var(--primary); color: var(--primary-foreground); font-weight: 700; }
+.bk-chips { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bk-chip { display: flex; align-items: center; gap: 0.3rem; width: 100%; min-width: 0; padding: 0 0.3rem; min-height: 1.3rem; border: 0; border-radius: 0.3rem; background: color-mix(in srgb, var(--ev) 14%, #fff); font: inherit; font-size: 0.72rem; text-align: left; cursor: pointer; color: var(--foreground); }
+.bk-chip i { flex: 0 0 auto; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--ev); }
+.bk-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-more { border: 0; background: transparent; font: inherit; font-size: 0.7rem; font-weight: 700; color: var(--muted-foreground); text-align: left; padding: 0 0.3rem; cursor: pointer; }
+@media (max-width: 699px) {
+  /* Seven narrow columns: show coloured dots, tap the day to read them. */
+  .bk-chips { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 3px; }
+  .bk-chip { width: auto; min-height: 0; padding: 0; background: transparent; }
+  .bk-chip span { display: none; }
+  .bk-more { font-size: 0.62rem; padding: 0; }
+  .bk-month-cell { min-height: 4.2rem; }
+}
+
+.bk-sched { display: flex; flex-direction: column; gap: 0.25rem; }
+.bk-sched-day { display: grid; grid-template-columns: 3.6rem 1fr; gap: 0.5rem; padding: 0.6rem 0; border-top: 1px solid var(--bk-line); }
+.bk-sched-day:first-child { border-top: 0; }
+.bk-sched-date { display: flex; flex-direction: column; align-items: center; align-self: start; gap: 0; border: 0; background: transparent; font: inherit; cursor: pointer; color: var(--muted-foreground); }
+.bk-sched-date b { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 999px; font-size: 1.3rem; font-weight: 500; color: var(--foreground); }
+.bk-sched-date small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; }
+.bk-sched-date[data-today] b { background: var(--primary); color: var(--primary-foreground); }
+.bk-sched-rows { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.bk-sched-row { display: grid; grid-template-columns: auto 9.5rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; border: 0; border-radius: 0.6rem; background: transparent; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.bk-sched-row:hover { background: color-mix(in srgb, var(--ev) 10%, #fff); }
+.bk-sched-row i { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--ev); }
+.bk-sched-row time { font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.bk-sched-row span { min-width: 0; overflow-wrap: anywhere; font-size: 0.9rem; }
+.bk-sched-row em { font-style: normal; font-size: 0.75rem; color: var(--muted-foreground); }
+@media (max-width: 699px) { .bk-sched-row { grid-template-columns: auto 1fr; } .bk-sched-row span, .bk-sched-row em { grid-column: 2; } }
+
+.bk-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; list-style: none; margin: 0; padding: 0; font-size: 0.8rem; color: var(--muted-foreground); }
+.bk-legend li { display: flex; align-items: center; gap: 0.4rem; }
+.bk-legend i { width: 0.75rem; height: 0.75rem; border-radius: 3px; display: inline-block; }
+
+.bk-customize, .bk-editor { max-height: 92dvh; overflow-y: auto; }
+.bk-set { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+@media (min-width: 560px) { .bk-set { grid-template-columns: 1fr 1fr; } }
+.bk-set label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; }
+.bk-switch { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; font-weight: 600; }
+.bk-colors { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; }
+.bk-colors label { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 600; }
+
+/* The site-wide glow on buttons is for real buttons; calendar cells and chips stay flat like Google's. */
+html.booking-theme .bk-month-num, html.booking-theme .bk-tg-day, html.booking-theme .bk-sched-date, html.booking-theme .bk-more,
+html.booking-theme .bk-chip, html.booking-theme .bk-sched-row { box-shadow: none !important; background-color: transparent; }
+html.booking-theme .bk-month-cell[data-today] .bk-month-num, html.booking-theme .bk-tg-day[data-today] b, html.booking-theme .bk-sched-date[data-today] b { background: var(--primary); }
+html.booking-theme .bk-chip { background-color: color-mix(in srgb, var(--ev) 14%, #fff); }
+html.booking-theme .bk-month-num:hover, html.booking-theme .bk-tg-day:hover b, html.booking-theme .bk-sched-date:hover b { background-color: color-mix(in srgb, var(--primary) 12%, #fff); }
+html.booking-theme .bk-month-cell[data-today] .bk-month-num:hover { background-color: var(--primary); }
+html.booking-theme .bk-event:not(:hover) { box-shadow: 0 1px 2px rgb(0 0 0 / 0.18); }
+.bk-swatch { position: relative; display: block; width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--bk-line); overflow: hidden; cursor: pointer; }
+html.booking-theme .bk-swatch input { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.bk-swatch:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (max-width: 699px) {
+  .bk-cal-tools { width: 100%; flex-wrap: nowrap; justify-content: space-between; }
+  .bk-cal-tools [data-slot="toggle-group"] { flex: 1; min-width: 0; justify-content: space-between; }
+  .bk-cal-tools [data-slot="toggle-group-item"] { flex: 1; padding-inline: 0.3rem; font-size: 0.82rem; }
+  .bk-cal-title { flex-basis: 100%; margin-left: 0.2rem; }
+}
