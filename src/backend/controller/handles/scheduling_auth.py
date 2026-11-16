@@ -8,6 +8,7 @@ from redis.exceptions import RedisError
 from backend.controller.cookies import clear_google_cookie, set_google_cookie
 from backend.controller.dependencies import booking_session_user as booking_user
 from backend.controller.schema.auth import LoginInput, RegistrationConfirmInput
+from backend.controller.schema.api_keys import PanelLinkInput
 from backend.controller.schema.passwords import (
     PasswordChangeInput,
     RecoveryConfirmInput,
@@ -22,6 +23,7 @@ from backend.domain.photos import PhotoTooLarge, PhotoValidationError
 from backend.infra.connections.email import EmailUnavailableError
 from backend.repository.redis.oauth import OAuthStateError
 from backend.service.access import AccessDenied, ResourceNotFound
+from backend.service.api_keys import ApiKeyAuthenticationError
 from backend.service.auth import RegistrationConflict
 from backend.service.passwords import PasswordRecoveryError
 from backend.service.registration import RegistrationCodeError, RegistrationCooldownError
@@ -221,3 +223,34 @@ def google_complete(data: BookingProfileInput, request: Request, response: Respo
     clear_google_cookie(response, settings, PROFILE_COOKIE)
     set_booking_cookie(response, settings, token)
     return user
+
+
+@router.get("/panel-link")
+def panel_link(request: Request, actor=Depends(booking_user)):
+    try:
+        return request.app.state.services.booking_auth.panel_link(actor)
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
+
+
+@router.put("/panel-link", status_code=204)
+def link_panel_key(data: PanelLinkInput, request: Request, actor=Depends(booking_user)):
+    """Connect a Nexo API key (the one n8n uses) to this account: pasting it proves the key's owner is the one signed in."""
+    services = request.app.state.services
+    try:
+        panel_user = services.api_keys.authenticate(data.api_key.get_secret_value().strip())
+        services.booking_auth.link_panel_user(actor, panel_user)
+    except ApiKeyAuthenticationError:
+        raise HTTPException(status_code=400, detail="Invalid API key") from None
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
+    return Response(status_code=204)
+
+
+@router.delete("/panel-link", status_code=204)
+def unlink_panel_key(request: Request, actor=Depends(booking_user)):
+    try:
+        request.app.state.services.booking_auth.unlink_panel_user(actor)
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
+    return Response(status_code=204)

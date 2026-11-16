@@ -51,12 +51,30 @@ class BookingAuthService:
         return user, self.sessions.issue(user)
 
     def for_panel_user(self, panel_user):
-        """The scheduling account of a panel API key's owner: the one registered with the same (verified) e-mail."""
+        """The scheduling account a panel API key acts as: the one linked to it, else the one with the same e-mail."""
         with self.repositories.read_transaction() as repos:
-            user = repos.booking_users.by_email(panel_user.email)
+            link = repos.booking_panel_links.by_panel_user(panel_user.id)
+            user = repos.booking_users.get(link.booking_user_id) if link else repos.booking_users.by_email(panel_user.email)
             if user is None:
-                raise AccessDenied("No Atendimentos account with this e-mail")
+                raise AccessDenied(f"No Atendimentos account for {panel_user.email}")
             return user
+
+    def panel_link(self, actor):
+        """Whether this scheduling account has a panel API key linked, and to which panel e-mail."""
+        with self.repositories.read_transaction() as repos:
+            user = authorize_booking(repos, actor)
+            link = repos.booking_panel_links.by_booking_user(user.id)
+            panel = repos.users.get(link.panel_user_id) if link else None
+            return {"linked": panel is not None, "panel_email": panel.email if panel else None}
+
+    def link_panel_user(self, actor, panel_user):
+        with self.repositories.transaction() as repos:
+            user = authorize_booking(repos, actor)
+            repos.booking_panel_links.link(user.id, panel_user.id)
+
+    def unlink_panel_user(self, actor):
+        with self.repositories.transaction() as repos:
+            repos.booking_panel_links.unlink(authorize_booking(repos, actor).id)
 
     def update_profile(self, actor, name, phone):
         with self.repositories.transaction() as repos:

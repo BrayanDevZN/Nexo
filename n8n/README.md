@@ -21,6 +21,9 @@ Os recursos **Atendimentos** usam a **mesma credencial Nexo API** (a mesma chave
 recursos. A chave age como a conta do **Atendimentos cadastrada com o mesmo e-mail** do dono da chave e vê os
 negócios de que essa conta faz parte, com o mesmo papel (dono, gerente, atendente ou leitura). Se não houver
 conta do Atendimentos com esse e-mail, a API responde 403: crie a conta em `/atendimentos` com o e-mail do painel.
+Se o e-mail do painel for diferente do e-mail do Atendimentos, abra **Atendimentos > Conta > Conectar ao n8n**,
+cole a mesma chave de API e pronto: ela passa a agir como essa conta (dá para desconectar depois). O node mostra
+o motivo quando a chave não está ligada a nenhuma conta, em vez do genérico "Forbidden".
 A chave não acessa os dados da conta (senha, perfil, sessão).
 
 ## Recursos e operações

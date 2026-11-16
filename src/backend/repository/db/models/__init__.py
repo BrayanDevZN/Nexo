@@ -12,6 +12,7 @@ from backend.repository.db.models.notification import Notification
 from backend.repository.db.models.paid_lead import PaidLead
 from backend.repository.db.models.scheduling import (
     Appointment,
+    BookingPanelLink,
     BookingUser,
     Business,
     BusinessInvitation,
@@ -21,6 +22,6 @@ from backend.repository.db.models.scheduling import (
 from backend.repository.db.models.user import User
 from backend.repository.db.models.video_job import VideoJob
 
-__all__ = ["ApiKey", "ApiKeyUsage", "Appointment", "Automation", "AutomationRequest", "Base", "BookingUser", "Business",
+__all__ = ["ApiKey", "ApiKeyUsage", "Appointment", "Automation", "AutomationRequest", "Base", "BookingPanelLink", "BookingUser", "Business",
            "BusinessInvitation", "BusinessMember", "BusinessService", "ChatMessage", "Client", "Document", "MapsCredential",
            "MapsJob", "Notification", "PaidLead", "User", "VideoJob"]

@@ -159,11 +159,36 @@ const listSearch = {
 	},
 };
 
+/** The reason the Nexo API gave (its `detail`), wherever n8n kept it on the error. */
+function apiDetail(error) {
+	let body = error?.cause?.response?.body ?? error?.cause?.response?.data ?? error?.response?.body ?? error?.context?.data ?? error?.cause?.body;
+	if (typeof body === 'string') { try { body = JSON.parse(body); } catch { return undefined; } }
+	return typeof body?.detail === 'string' ? body.detail : undefined;
+}
+/** n8n only says "Forbidden - perhaps check your credentials?"; say what is actually wrong and how to fix it. */
+function explain(error) {
+	if (error?.nexoExplained) return error;
+	const detail = apiDetail(error);
+	const status = Number(error?.httpCode || error?.cause?.response?.status || error?.cause?.statusCode || error?.statusCode || 0);
+	let text;
+	if (/No Atendimentos account/i.test(detail || '')) {
+		const email = (detail.match(/for (\S+@\S+?)(?:\s|\(|$)/) || [])[1];
+		text = `A chave da Nexo não está ligada a nenhuma conta do Atendimentos${email ? ` (e-mail ${email})` : ''}. Entre no Atendimentos, abra Conta > "Conectar ao n8n" e cole esta chave de API, ou crie lá uma conta com o mesmo e-mail da chave.`;
+	} else if (status === 403 && /cannot access this route/i.test(detail || '')) {
+		text = 'Esta chave de API não tem permissão para o Atendimentos.';
+	} else if (detail) text = detail;
+	if (!text) return error;
+	const explained = new Error(text);
+	explained.nexoExplained = true;
+	explained.cause = error;
+	return explained;
+}
+
 const loadOptions = {
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
-		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: 'atendimentos/businesses', json: true, timeout: 30000 });
+		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: 'atendimentos/businesses', json: true, timeout: 30000 }).catch((error) => { throw explain(error); });
 		return (Array.isArray(rows) ? rows : []).map((row) => ({ name: row.name, value: row.id, description: [row.city, row.state].filter(Boolean).join(' / ') || undefined }));
 	},
 };
@@ -171,7 +196,7 @@ const loadOptions = {
 /** Runs one input item of a booking operation and returns the JSON rows to emit. */
 async function executeBooking(ctx, resource, operation, index, state) {
 	const param = (name, fallback = '') => ctx.getNodeParameter(name, index, fallback, name === 'bookingClient' ? { extractValue: true } : undefined);
-	const call = (options) => ctx.helpers.httpRequestWithAuthentication.call(ctx, CREDENTIAL, { baseURL: `${state.baseUrl}/`, json: true, timeout: 30000, ...options });
+	const call = (options) => ctx.helpers.httpRequestWithAuthentication.call(ctx, CREDENTIAL, { baseURL: `${state.baseUrl}/`, json: true, timeout: 30000, ...options }).catch((error) => { throw explain(error); });
 	const businessId = () => {
 		const id = clean(param('bookingBusinessId'));
 		if (!id) throw new Error('Escolha o negócio.');
@@ -273,5 +298,5 @@ async function executeBooking(ctx, resource, operation, index, state) {
 
 module.exports = {
 	BOOKING_RESOURCES, CREDENTIAL, isBookingResource, bookingResourceOptions, bookingOperationOptions, bookingToolDescriptions,
-	bookingFields, loadOptions, listSearch, executeBooking, instant, calendarDay, money, DEFAULT_BASE_URL,
+	bookingFields, loadOptions, listSearch, executeBooking, explain, instant, calendarDay, money, DEFAULT_BASE_URL,
 };

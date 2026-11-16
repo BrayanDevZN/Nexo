@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
+Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -7,12 +7,12 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | maps-server/start.sh | 36 | 294 | source |
 | mcp_server.py | 589 | 4.9K | source |
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
-| n8n/nodes/Nexo/booking.js | 278 | 4.9K | source |
+| n8n/nodes/Nexo/booking.js | 303 | 5.3K | source |
 | n8n/nodes/Nexo/Nexo.node.js | 358 | 11.5K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
 | src/backend/controller/application.py | 110 | 1.4K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
-| src/backend/controller/dependencies.py | 106 | 980 | source |
+| src/backend/controller/dependencies.py | 106 | 991 | source |
 | src/backend/controller/handles/account_deletion.py | 43 | 532 | source |
 | src/backend/controller/handles/api_keys.py | 53 | 501 | source |
 | src/backend/controller/handles/approvals.py | 188 | 2.1K | source |
@@ -34,14 +34,14 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/backend/controller/handles/public_paid_leads.py | 24 | 238 | source |
 | src/backend/controller/handles/push.py | 25 | 246 | source |
 | src/backend/controller/handles/realtime.py | 131 | 1.6K | source |
-| src/backend/controller/handles/scheduling_auth.py | 224 | 2.6K | source |
+| src/backend/controller/handles/scheduling_auth.py | 257 | 3.0K | source |
 | src/backend/controller/handles/scheduling.py | 288 | 3.2K | source |
 | src/backend/controller/handles/videos.py | 59 | 674 | source |
 | src/backend/controller/handles/webhook_events.py | 37 | 352 | source |
 | src/backend/controller/middleware/csrf.py | 62 | 929 | source |
 | src/backend/controller/middleware/rate_limits.py | 42 | 482 | source |
 | src/backend/controller/schema/account_deletion.py | 16 | 104 | source |
-| src/backend/controller/schema/api_keys.py | 29 | 160 | source |
+| src/backend/controller/schema/api_keys.py | 34 | 199 | source |
 | src/backend/controller/schema/approvals.py | 55 | 401 | source |
 | src/backend/controller/schema/auth.py | 85 | 587 | source |
 | src/backend/controller/schema/automation_requests.py | 78 | 531 | source |
@@ -103,17 +103,17 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/backend/repository/db/control/chat.py | 70 | 816 | source |
 | src/backend/repository/db/control/clients.py | 148 | 2.0K | source |
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
-| src/backend/repository/db/control/manager.py | 92 | 1.2K | source |
+| src/backend/repository/db/control/manager.py | 94 | 1.2K | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
-| src/backend/repository/db/control/scheduling.py | 404 | 5.5K | source |
+| src/backend/repository/db/control/scheduling.py | 429 | 5.8K | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/control/video_jobs.py | 31 | 366 | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
 | src/backend/repository/db/migrations/owner_role.py | 92 | 1.1K | source |
-| src/backend/repository/db/models/__init__.py | 27 | 336 | source |
+| src/backend/repository/db/models/__init__.py | 28 | 346 | source |
 | src/backend/repository/db/models/api_key_usage.py | 20 | 199 | source |
 | src/backend/repository/db/models/api_key.py | 22 | 228 | source |
 | src/backend/repository/db/models/automation_request.py | 33 | 358 | source |
@@ -126,7 +126,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/backend/repository/db/models/maps_job.py | 30 | 435 | source |
 | src/backend/repository/db/models/notification.py | 32 | 388 | source |
 | src/backend/repository/db/models/paid_lead.py | 31 | 365 | source |
-| src/backend/repository/db/models/scheduling.py | 137 | 1.9K | source |
+| src/backend/repository/db/models/scheduling.py | 144 | 2.0K | source |
 | src/backend/repository/db/models/user.py | 28 | 377 | source |
 | src/backend/repository/db/models/video_job.py | 26 | 370 | source |
 | src/backend/repository/db/schema.py | 241 | 3.8K | source |
@@ -162,7 +162,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/backend/service/realtime.py | 39 | 409 | source |
 | src/backend/service/registration.py | 57 | 669 | source |
 | src/backend/service/runtime.py | 218 | 3.6K | source |
-| src/backend/service/scheduling_auth.py | 148 | 1.9K | source |
+| src/backend/service/scheduling_auth.py | 166 | 2.2K | source |
 | src/backend/service/scheduling.py | 394 | 6.0K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 42 | 449 | source |
@@ -213,7 +213,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 414 | source |
-| src/frontend/atendimentos/Account.tsx | 50 | 947 | source |
+| src/frontend/atendimentos/Account.tsx | 52 | 964 | source |
 | src/frontend/atendimentos/Agenda.tsx | 193 | 3.6K | source |
 | src/frontend/atendimentos/api.ts | 75 | 1.4K | source |
 | src/frontend/atendimentos/Auth.tsx | 120 | 2.3K | source |
@@ -221,6 +221,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/frontend/atendimentos/BusinessForm.tsx | 139 | 2.5K | source |
 | src/frontend/atendimentos/Calendar.tsx | 193 | 3.7K | source |
 | src/frontend/atendimentos/calendarPrefs.ts | 155 | 2.1K | source |
+| src/frontend/atendimentos/PanelLink.tsx | 48 | 778 | source |
 | src/frontend/atendimentos/Photo.tsx | 88 | 1.3K | source |
 | src/frontend/atendimentos/Services.tsx | 72 | 1.4K | source |
 | src/frontend/atendimentos/Team.tsx | 89 | 1.9K | source |
@@ -308,7 +309,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | src/frontend/tsconfig.json | 42 | 187 | config |
 | src/frontend/vercel.json | 18 | 172 | config |
 | video-server/package.json | 19 | 102 | config |
-| n8n/test/booking.test.js | 221 | 4.1K | test |
+| n8n/test/booking.test.js | 240 | 4.6K | test |
 | n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
 | tests/functional/controller/test_account_deletion.py | 47 | 633 | test |
@@ -330,7 +331,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
-| tests/functional/controller/test_scheduling.py | 432 | 7.3K | test |
+| tests/functional/controller/test_scheduling.py | 465 | 7.9K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -340,7 +341,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/atendimentos.spec.ts | 147 | 2.6K | test |
+| tests/integration/frontend/atendimentos.spec.ts | 162 | 2.9K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -422,7 +423,7 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | tests/unit/service/test_webhook_events.py | 182 | 1.6K | test |
 | docs/prompts/first-contact-whatsapp.md | 237 | 3.6K | docs |
 | maps-server/README.md | 35 | 351 | docs |
-| n8n/README.md | 189 | 3.1K | docs |
+| n8n/README.md | 192 | 3.2K | docs |
 | README.mcp.md | 83 | 883 | docs |
 | README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
@@ -456,9 +457,9 @@ Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 291 files, ~376.0K tokens
+- source: 292 files, ~378.4K tokens
 - config: 13 files, ~3.6K tokens
-- test: 112 files, ~134.8K tokens
+- test: 112 files, ~136.1K tokens
 - docs: 11 files, ~19.1K tokens
 - style: 5 files, ~40.8K tokens
 - other: 18 files, ~5.8K tokens

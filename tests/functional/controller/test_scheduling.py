@@ -429,3 +429,36 @@ def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zo
     # The relative periods answer too (they depend on today's date, so only the shape is checked).
     for period in ("today", "tomorrow", "next_7_days", "next_30_days", "upcoming"):
         assert isinstance(names(period=period), list)
+
+
+def test_a_nexo_api_key_can_be_connected_to_an_atendimentos_account_with_another_email(client):
+    register(client, ANA)
+    ana = login(client, ANA)
+    business = create_business(client, ana)
+    with client.app.state.services.repositories.transaction() as repos:
+        repos.users.create(name="Dev", email="dev@empresa.com", status="approved", role="dev",
+                           password_hash=client.app.state.services.passwords.hash(PANEL_PASSWORD))
+    client.cookies.clear()
+    assert client.post("/auth/login", headers=ORIGIN, json={"email": "dev@empresa.com", "password": PANEL_PASSWORD}).status_code == 200
+    csrf = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+    key = client.post("/auth/api-keys", headers=csrf, json={"name": "n8n"}).json()["key"]
+    bearer = {"Authorization": "Bearer " + key}
+    client.cookies.clear()
+    # No account with the key owner's e-mail: the answer says so and where to fix it.
+    refused = client.get("/atendimentos/businesses", headers=bearer)
+    assert refused.status_code == 403 and "dev@empresa.com" in refused.json()["detail"] and "Conta" in refused.json()["detail"]
+    # Ana, signed in, connects the key by pasting it; a wrong key is refused and nothing links without a session.
+    ana = login(client, ANA)
+    assert client.get("/atendimentos/auth/panel-link").json() == {"linked": False, "panel_email": None}
+    assert client.put("/atendimentos/auth/panel-link", headers=ana, json={"api_key": "nexo_live_wrongwrongwrong"}).status_code == 400
+    assert client.put("/atendimentos/auth/panel-link", headers=ana, json={"api_key": key}).status_code == 204
+    assert client.get("/atendimentos/auth/panel-link").json() == {"linked": True, "panel_email": "dev@empresa.com"}
+    client.cookies.clear()
+    assert client.put("/atendimentos/auth/panel-link", headers=ORIGIN, json={"api_key": key}).status_code == 401
+    assert [row["id"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == [business["id"]]
+    assert client.get("/atendimentos/auth/panel-link", headers=bearer).status_code == 401   # the link itself needs the session
+    # Disconnecting stops the key again.
+    ana = login(client, ANA)
+    assert client.delete("/atendimentos/auth/panel-link", headers=ana).status_code == 204
+    client.cookies.clear()
+    assert client.get("/atendimentos/businesses", headers=bearer).status_code == 403

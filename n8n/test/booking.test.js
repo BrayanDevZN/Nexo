@@ -218,3 +218,22 @@ test('appointments can no longer be filtered by customer name', async () => {
 	const { requests } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'all', bookingCustomerFilter: 'Ana' }, () => []);
 	assert.ok(!('customer' in requests[0].qs));
 });
+
+test('a 403 from the API is explained in Portuguese, with how to connect the key', async () => {
+	const forbidden = (detail) => Object.assign(new Error('Forbidden - perhaps check your credentials?'), { httpCode: '403', cause: { response: { body: { detail } } } });
+	const missing = forbidden('No Atendimentos account for dev@empresa.com (open /atendimentos > Conta and connect this Nexo API key, or sign up there with this e-mail)');
+	const loading = await new Nexo().methods.loadOptions.getBookingBusinesses.call({
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async () => { throw missing; } },
+	}).catch((error) => error);
+	assert.match(loading.message, /não está ligada a nenhuma conta do Atendimentos \(e-mail dev@empresa\.com\)/);
+	assert.match(loading.message, /Conta > "Conectar ao n8n"/);
+	const running = await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => { throw missing; }).catch((error) => error);
+	assert.match(running.message, /Conectar ao n8n/);
+	const route = await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => { throw forbidden('This API key cannot access this route'); }).catch((error) => error);
+	assert.equal(route.message, 'Esta chave de API não tem permissão para o Atendimentos.');
+	const other = await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => { throw Object.assign(new Error('x'), { cause: { response: { body: '{"detail":"Business not found"}' } } }); }).catch((error) => error);
+	assert.equal(other.message, 'Business not found');
+	const untouched = new Error('timeout');
+	assert.equal((await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => { throw untouched; }).catch((error) => error)), untouched);
+});

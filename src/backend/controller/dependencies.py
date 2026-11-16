@@ -42,8 +42,8 @@ def booking_user(request: Request):
         if key_owner is not None:
             try:
                 return request.app.state.services.booking_auth.for_panel_user(key_owner)
-            except AccessDenied:
-                raise HTTPException(status_code=403, detail="Create an Atendimentos account with the e-mail of this API key") from None
+            except AccessDenied as exc:
+                raise HTTPException(status_code=403, detail=f"{exc} (open /atendimentos > Conta and connect this Nexo API key, or sign up there with this e-mail)") from None
     return booking_session_user(request)
 
 
