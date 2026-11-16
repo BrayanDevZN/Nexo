@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 439 files | ~538.9K tokens if all read
+Generated: 2026-11-16 | 439 files | ~539.5K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -213,10 +213,10 @@ Generated: 2026-11-16 | 439 files | ~538.9K tokens if all read
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 414 | source |
 | src/frontend/atendimentos/Account.tsx | 48 | 887 | source |
-| src/frontend/atendimentos/Agenda.tsx | 137 | 2.5K | source |
+| src/frontend/atendimentos/Agenda.tsx | 160 | 3.1K | source |
 | src/frontend/atendimentos/api.ts | 75 | 1.4K | source |
 | src/frontend/atendimentos/Auth.tsx | 102 | 2.0K | source |
-| src/frontend/atendimentos/BookingApp.tsx | 123 | 2.1K | source |
+| src/frontend/atendimentos/BookingApp.tsx | 127 | 2.2K | source |
 | src/frontend/atendimentos/BusinessForm.tsx | 93 | 1.6K | source |
 | src/frontend/atendimentos/Services.tsx | 70 | 1.2K | source |
 | src/frontend/atendimentos/Team.tsx | 84 | 1.7K | source |
@@ -445,7 +445,7 @@ Generated: 2026-11-16 | 439 files | ~538.9K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 282 files, ~348.3K tokens
+- source: 282 files, ~348.9K tokens
 - config: 13 files, ~3.6K tokens
 - test: 110 files, ~127.0K tokens
 - docs: 11 files, ~18.3K tokens

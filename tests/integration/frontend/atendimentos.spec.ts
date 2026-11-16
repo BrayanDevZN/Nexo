@@ -77,11 +77,11 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByLabel("Serviço", { exact: true }).click();
   await page.getByRole("option", { name: /Corte/ }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("João")).toBeVisible();
-  await expect(page.getByText("Marcado")).toBeVisible();
-  await page.getByRole("button", { name: /João/ }).click();
+  const item = page.getByRole("button", { name: /João/ });
+  await expect(item).toContainText("Marcado");
+  await item.click();
   await page.getByRole("button", { name: "Concluído", exact: true }).click();
-  await expect(page.getByText("Concluído")).toBeVisible();
+  await expect(page.getByRole("button", { name: /João/ })).toContainText("Concluído");
   // No panel session, no storage besides the chosen business.
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   expect(await page.evaluate(() => sessionStorage.getItem("nexo:atendimentos:business"))).toBe("b1");

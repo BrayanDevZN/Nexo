@@ -6,7 +6,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import {
-  can, dayBounds, dayKey, formatMoney, formatTime, isoToLocal, localToIso, STATUS_LABELS,
+  can, dayBounds, dayKey, formatDate, formatMoney, formatTime, isoToLocal, localToIso, STATUS_LABELS,
   type Appointment, type AppointmentStatus, type BookingApi, type Business, type Member, type Overview, type Service,
 } from "./api";
 
@@ -16,6 +16,9 @@ const BADGE: Record<AppointmentStatus, "default" | "secondary" | "outline" | "de
 /** The day's appointments, the counts of the week and a plain form to book or change one. */
 export function Agenda({ api, business }: { api: BookingApi; business: Business }) {
   const [day, setDay] = useState(() => dayKey(new Date()));
+  const [mode, setMode] = useState<"day" | "upcoming">("day");
+  const [statusFilter, setStatusFilter] = useState<"" | AppointmentStatus>("");
+  const [customer, setCustomer] = useState("");
   const [rows, setRows] = useState<Appointment[]>();
   const [overview, setOverview] = useState<Overview>();
   const [services, setServices] = useState<Service[]>([]);
@@ -27,12 +30,16 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
   const base = "/businesses/" + business.id;
   async function load() {
     try {
-      const query = new URLSearchParams({ ...dayBounds(day), limit: "100" });
+      const query = new URLSearchParams({ limit: "100" });
+      if (mode === "day") { const bounds = dayBounds(day); query.set("starts_from", bounds.starts_from); query.set("starts_until", bounds.starts_until); }
+      else query.set("starts_from", new Date().toISOString());
+      if (statusFilter) query.set("status", statusFilter);
+      if (customer.trim()) query.set("customer", customer.trim());
       const [list, counts] = await Promise.all([api.request<Appointment[]>(base + "/appointments?" + query), api.request<Overview>(base + "/overview")]);
       setRows(list); setOverview(counts);
     } catch (e) { setError(message(e)); }
   }
-  useEffect(() => { setRows(undefined); void load(); }, [business.id, day]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setRows(undefined); void load(); }, [business.id, day, mode, statusFilter, customer]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let active = true;
     void Promise.all([api.request<Service[]>(base + "/services?active=true"), api.request<Member[]>(base + "/members")])
@@ -87,6 +94,11 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
         <FieldGroup>
           <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />
           <TextField label="Celular do cliente" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
+          {current?.customer_phone && <div className="bk-row">
+            <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + current.customer_phone}>Ligar</a></Button>
+            <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + current.customer_phone.replace(/\D/g, "")} target="_blank" rel="noopener">WhatsApp</a></Button>
+          </div>}
+          <TextField label="E-mail do cliente" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
           <Field><FieldLabel htmlFor="bk-service">Serviço</FieldLabel>
             <NativeSelect id="bk-service" name="service_id" defaultValue={current?.service_id || ""}>
               <NativeSelectOption value="">Outro (escrever abaixo)</NativeSelectOption>
@@ -118,15 +130,26 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
           {STATUSES.filter(status => status !== current.status).map(status => <Button key={status} type="button" size="sm" variant="outline" disabled={busy} onClick={() => setStatus(current, status)}>{STATUS_LABELS[status]}</Button>)}
         </div>}
       </form></CardContent></Card>}
-    <div className="bk-day">
+    <div className="bk-status" role="group" aria-label="Período">
+      <Button variant="outline" size="sm" aria-pressed={mode === "day"} onClick={() => setMode("day")}>Por dia</Button>
+      <Button variant="outline" size="sm" aria-pressed={mode === "upcoming"} onClick={() => setMode("upcoming")}>Próximos</Button>
+    </div>
+    {mode === "day" && <div className="bk-day">
       <Button variant="outline" size="icon-lg" aria-label="Dia anterior" onClick={() => shift(-1)}>‹</Button>
       <input type="date" aria-label="Dia" value={day} onChange={e => e.target.value && setDay(e.target.value)} />
       <Button variant="outline" size="icon-lg" aria-label="Próximo dia" onClick={() => shift(1)}>›</Button>
       <Button variant="outline" onClick={() => setDay(dayKey(new Date()))}>Hoje</Button>
-    </div>
-    {!rows ? <Busy /> : rows.length === 0 ? <p className="bk-empty">Nenhum atendimento neste dia.</p>
+    </div>}
+    <form className="bk-grid-2" onSubmit={event => { event.preventDefault(); setCustomer((new FormData(event.currentTarget).get("customer") as string) || ""); }}>
+      <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline">Buscar</Button></div>
+      <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as "" | AppointmentStatus)}>
+        <NativeSelectOption value="">Todas as situações</NativeSelectOption>
+        {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}
+      </NativeSelect>
+    </form>
+    {!rows ? <Busy /> : rows.length === 0 ? <p className="bk-empty">{mode === "day" ? "Nenhum atendimento neste dia." : "Nenhum atendimento futuro."}{customer || statusFilter ? " Confira os filtros." : ""}</p>
       : <div className="bk-list">{rows.map(row => <button type="button" className="bk-item" data-status={row.status} key={row.id} disabled={!writes} onClick={() => setEditing(row)}>
-        <div className="bk-item-time">{formatTime(row.starts_at)}<small>{formatTime(row.ends_at)}</small></div>
+        <div className="bk-item-time">{mode === "upcoming" && <small>{formatDate(row.starts_at)}</small>}{formatTime(row.starts_at)}<small>{formatTime(row.ends_at)}</small></div>
         <div className="bk-item-body"><strong>{row.customer_name}</strong>
           <span>{row.service_name}{row.staff_name ? " · " + row.staff_name : ""}{row.price !== null ? " · " + formatMoney(row.price) : ""}</span>
           {row.customer_phone && <span>{row.customer_phone}</span>}</div>

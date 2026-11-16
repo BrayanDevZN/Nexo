@@ -29,6 +29,7 @@ export default function BookingApp() {
   const [businesses, setBusinesses] = useState<Business[]>();
   const [business, setBusiness] = useState<Business>();
   const [creating, setCreating] = useState(false);
+  const [accountOnly, setAccountOnly] = useState(false);
   const [page, setPage] = useState<Page>("agenda");
   const [inviteToken] = useState(() => new URLSearchParams(window.location.search).get("invite") || "");
   const [invite, setInvite] = useState<InvitationInfo>();
@@ -73,7 +74,7 @@ export default function BookingApp() {
     return () => { active = false; };
   }, [user?.id, invite, inviteToken]); // eslint-disable-line react-hooks/exhaustive-deps
   function pick(next: Business | undefined) {
-    setBusiness(next); setPage("agenda"); setCreating(false);
+    setBusiness(next); setPage("agenda"); setCreating(false); setAccountOnly(false);
     try { if (next) sessionStorage.setItem(BUSINESS_KEY, next.id); else sessionStorage.removeItem(BUSINESS_KEY); } catch { /* sem armazenamento */ }
   }
   function onLogin(person: BookingUser) {
@@ -85,6 +86,10 @@ export default function BookingApp() {
   if (loading) return <main className="bk-page"><Busy /></main>;
   if (!user && error) return <main className="bk-page"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar de novo</Button></main>;
   if (!user) return <Auth api={api} complete={complete} invite={invite} onLogin={onLogin} />;
+  if (accountOnly) return <main className="bk-page">
+    <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="outline" size="sm" onClick={() => setAccountOnly(false)}>Voltar</Button></div>
+    <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
+  </main>;
   if (!business) return <main className="bk-page">
     <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="ghost" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}>Sair</Button></div>
     <div><h1>Olá, {user.name.split(" ")[0]}</h1><p className="bk-muted">Escolha um negócio ou crie o seu.</p></div>
@@ -99,19 +104,18 @@ export default function BookingApp() {
         <Button size="lg" onClick={() => setCreating(true)}>Criar negócio</Button>
       </>}
     {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
-    <Card><CardContent className="flex flex-col gap-2 pt-4"><strong>Minha conta</strong><span className="bk-muted">{user.email}</span><Button variant="link" className="self-start" onClick={() => { setBusiness({ id: "", my_role: "viewer" } as Business); setPage("account"); }}>Editar dados e senha</Button></CardContent></Card>
+    <Card><CardContent className="flex flex-col gap-2 pt-4"><strong>Minha conta</strong><span className="bk-muted">{user.email}</span><Button variant="link" className="self-start" onClick={() => setAccountOnly(true)}>Editar dados e senha</Button></CardContent></Card>
   </main>;
-  const accountOnly = !business.id;
   return <main className="bk-page">
     <div className="bk-top">
-      <div className="bk-title"><strong>{accountOnly ? "Minha conta" : business.name}</strong>{!accountOnly && <small>{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</small>}</div>
-      <Button variant="outline" size="sm" onClick={() => pick(undefined)}>{accountOnly ? "Voltar" : "Trocar negócio"}</Button>
+      <div className="bk-title"><strong>{business.name}</strong><small>{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</small></div>
+      <Button variant="outline" size="sm" onClick={() => pick(undefined)}>Trocar negócio</Button>
     </div>
     <Feedback error={error} />
-    {!accountOnly && <nav className="bk-nav" aria-label="Seções">
+    <nav className="bk-nav" aria-label="Seções">
       {PAGES.map(item => <button type="button" key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}>{item.label}</button>)}
-    </nav>}
-    {accountOnly || page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
+    </nav>
+    {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
       : page === "services" ? <Services api={api} business={business} />
       : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
       : page === "business" ? (can.editBusiness(business.my_role)
