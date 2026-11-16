@@ -57,7 +57,7 @@ export type PaidLead = {
   notes: string | null; contract_value: number | string | null; created_at: string; updated_at: string;
 };
 export const CLIENT_NICHES = [
-  "Contabilidade", "Saúde", "Beleza e estética", "Imobiliário", "Advocacia",
+  "Contabilidade", "Saúde", "Beleza e estética", "Barbearia", "Imobiliário", "Advocacia",
   "Educação", "Varejo", "Comércio", "Alimentação", "Tecnologia",
   "Construção civil", "Indústria", "Logística", "Serviços profissionais",
   "Marketing e publicidade", "Automotivo", "Outro",

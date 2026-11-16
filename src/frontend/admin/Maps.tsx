@@ -61,7 +61,8 @@ const CITIES: { name: string; lat: string; lon: string }[] = [
 const NICHE_SEARCH: Record<string, string[]> = {
   "Contabilidade": ["escritório de contabilidade", "contador"],
   "Saúde": ["clínica médica", "clínica odontológica", "consultório"],
-  "Beleza e estética": ["salão de beleza", "clínica de estética", "barbearia"],
+  "Beleza e estética": ["salão de beleza", "clínica de estética"],
+  "Barbearia": ["barbearia", "barbeiro"],
   "Imobiliário": ["imobiliária", "corretor de imóveis"],
   "Advocacia": ["escritório de advocacia", "advogado"],
   "Educação": ["escola", "curso", "escola de idiomas"],

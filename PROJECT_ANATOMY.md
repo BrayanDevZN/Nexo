@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
+Generated: 2026-11-16 | 450 files | ~580.1K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -8,7 +8,7 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 | mcp_server.py | 589 | 4.9K | source |
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
 | n8n/nodes/Nexo/booking.js | 278 | 4.9K | source |
-| n8n/nodes/Nexo/Nexo.node.js | 357 | 11.5K | source |
+| n8n/nodes/Nexo/Nexo.node.js | 358 | 11.5K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
 | src/backend/controller/application.py | 110 | 1.4K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
@@ -62,7 +62,7 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 | src/backend/controller/schema/videos.py | 32 | 275 | source |
 | src/backend/domain/chat.py | 34 | 323 | source |
 | src/backend/domain/client_channels.py | 13 | 164 | source |
-| src/backend/domain/client_niches.py | 30 | 183 | source |
+| src/backend/domain/client_niches.py | 31 | 187 | source |
 | src/backend/domain/csrf.py | 15 | 118 | source |
 | src/backend/domain/documents.py | 24 | 190 | source |
 | src/backend/domain/email_codes.py | 18 | 131 | source |
@@ -196,7 +196,7 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 | src/frontend/admin/Home.tsx | 43 | 1.8K | source |
 | src/frontend/admin/leadContact.ts | 97 | 1.1K | source |
 | src/frontend/admin/LoginN.tsx | 35 | 354 | source |
-| src/frontend/admin/Maps.tsx | 619 | 10.7K | source |
+| src/frontend/admin/Maps.tsx | 620 | 10.8K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
 | src/frontend/admin/MemberPhoto.tsx | 21 | 341 | source |
 | src/frontend/admin/Members.tsx | 103 | 3.3K | source |
@@ -386,6 +386,7 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 | tests/unit/controller/test_rate_middleware.py | 29 | 322 | test |
 | tests/unit/controller/test_role_access.py | 131 | 1.6K | test |
 | tests/unit/domain/test_chat.py | 31 | 329 | test |
+| tests/unit/domain/test_client_niches.py | 11 | 101 | test |
 | tests/unit/domain/test_documents.py | 23 | 238 | test |
 | tests/unit/domain/test_email_codes.py | 12 | 138 | test |
 | tests/unit/domain/test_google_identity.py | 34 | 351 | test |
@@ -457,7 +458,7 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 ## Summary
 - source: 291 files, ~376.0K tokens
 - config: 13 files, ~3.6K tokens
-- test: 111 files, ~134.7K tokens
+- test: 112 files, ~134.8K tokens
 - docs: 11 files, ~19.1K tokens
 - style: 5 files, ~40.8K tokens
 - other: 18 files, ~5.8K tokens
@@ -468,6 +469,6 @@ Generated: 2026-11-16 | 449 files | ~580.0K tokens if all read
 3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
-6. src/frontend/admin/Maps.tsx — 619 lines (~10.7K tokens)
+6. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
 7. mcp_server.py — 589 lines (~4.9K tokens)
 8. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)

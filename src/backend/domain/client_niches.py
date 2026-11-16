@@ -4,6 +4,7 @@ CLIENT_NICHES = (
     "Contabilidade",
     "Saúde",
     "Beleza e estética",
+    "Barbearia",
     "Imobiliário",
     "Advocacia",
     "Educação",
