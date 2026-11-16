@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
+Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -9,9 +9,9 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
 | n8n/nodes/Nexo/Nexo.node.js | 350 | 11.3K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
-| src/backend/controller/application.py | 108 | 1.4K | source |
+| src/backend/controller/application.py | 110 | 1.4K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
-| src/backend/controller/dependencies.py | 82 | 674 | source |
+| src/backend/controller/dependencies.py | 91 | 784 | source |
 | src/backend/controller/handles/account_deletion.py | 43 | 532 | source |
 | src/backend/controller/handles/api_keys.py | 53 | 501 | source |
 | src/backend/controller/handles/approvals.py | 188 | 2.1K | source |
@@ -23,7 +23,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/controller/handles/dashboard.py | 13 | 104 | source |
 | src/backend/controller/handles/databases.py | 36 | 346 | source |
 | src/backend/controller/handles/documents.py | 66 | 742 | source |
-| src/backend/controller/handles/google.py | 100 | 1.2K | source |
+| src/backend/controller/handles/google.py | 120 | 1.5K | source |
 | src/backend/controller/handles/health.py | 23 | 170 | source |
 | src/backend/controller/handles/maps.py | 131 | 1.2K | source |
 | src/backend/controller/handles/members.py | 68 | 759 | source |
@@ -33,9 +33,11 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/controller/handles/public_paid_leads.py | 24 | 238 | source |
 | src/backend/controller/handles/push.py | 25 | 246 | source |
 | src/backend/controller/handles/realtime.py | 131 | 1.6K | source |
+| src/backend/controller/handles/scheduling_auth.py | 181 | 2.1K | source |
+| src/backend/controller/handles/scheduling.py | 248 | 2.6K | source |
 | src/backend/controller/handles/videos.py | 59 | 674 | source |
 | src/backend/controller/handles/webhook_events.py | 37 | 352 | source |
-| src/backend/controller/middleware/csrf.py | 46 | 643 | source |
+| src/backend/controller/middleware/csrf.py | 61 | 861 | source |
 | src/backend/controller/middleware/rate_limits.py | 42 | 482 | source |
 | src/backend/controller/schema/account_deletion.py | 16 | 104 | source |
 | src/backend/controller/schema/api_keys.py | 29 | 160 | source |
@@ -44,7 +46,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/controller/schema/automation_requests.py | 78 | 531 | source |
 | src/backend/controller/schema/automations.py | 18 | 83 | source |
 | src/backend/controller/schema/chat.py | 28 | 154 | source |
-| src/backend/controller/schema/clients.py | 106 | 1.0K | source |
+| src/backend/controller/schema/clients.py | 104 | 996 | source |
 | src/backend/controller/schema/dashboard.py | 23 | 128 | source |
 | src/backend/controller/schema/databases.py | 7 | 46 | source |
 | src/backend/controller/schema/documents.py | 15 | 68 | source |
@@ -52,9 +54,10 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/controller/schema/invitations.py | 20 | 109 | source |
 | src/backend/controller/schema/maps.py | 78 | 809 | source |
 | src/backend/controller/schema/members.py | 43 | 340 | source |
-| src/backend/controller/schema/paid_leads.py | 98 | 815 | source |
+| src/backend/controller/schema/paid_leads.py | 105 | 819 | source |
 | src/backend/controller/schema/passwords.py | 37 | 227 | source |
 | src/backend/controller/schema/push.py | 19 | 118 | source |
+| src/backend/controller/schema/scheduling.py | 341 | 2.4K | source |
 | src/backend/controller/schema/videos.py | 32 | 275 | source |
 | src/backend/domain/chat.py | 34 | 323 | source |
 | src/backend/domain/client_channels.py | 13 | 164 | source |
@@ -70,10 +73,11 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/domain/photos.py | 42 | 453 | source |
 | src/backend/domain/pipeline_stages.py | 6 | 84 | source |
 | src/backend/domain/roles.py | 43 | 350 | source |
-| src/backend/domain/tokens.py | 61 | 638 | source |
+| src/backend/domain/scheduling.py | 88 | 1.0K | source |
+| src/backend/domain/tokens.py | 64 | 687 | source |
 | src/backend/domain/video_composition.py | 71 | 1.1K | source |
 | src/backend/domain/video_narration.py | 79 | 893 | source |
-| src/backend/infra/config/settings.py | 241 | 2.8K | source |
+| src/backend/infra/config/settings.py | 246 | 2.9K | source |
 | src/backend/infra/connections/database.py | 75 | 775 | source |
 | src/backend/infra/connections/documents.py | 39 | 260 | source |
 | src/backend/infra/connections/email.py | 228 | 2.5K | source |
@@ -98,16 +102,17 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/repository/db/control/chat.py | 70 | 816 | source |
 | src/backend/repository/db/control/clients.py | 148 | 2.0K | source |
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
-| src/backend/repository/db/control/manager.py | 71 | 920 | source |
+| src/backend/repository/db/control/manager.py | 92 | 1.2K | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
+| src/backend/repository/db/control/scheduling.py | 373 | 5.1K | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/control/video_jobs.py | 31 | 366 | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
 | src/backend/repository/db/migrations/owner_role.py | 92 | 1.1K | source |
-| src/backend/repository/db/models/__init__.py | 17 | 263 | source |
+| src/backend/repository/db/models/__init__.py | 27 | 336 | source |
 | src/backend/repository/db/models/api_key_usage.py | 20 | 199 | source |
 | src/backend/repository/db/models/api_key.py | 22 | 228 | source |
 | src/backend/repository/db/models/automation_request.py | 33 | 358 | source |
@@ -120,6 +125,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/repository/db/models/maps_job.py | 30 | 435 | source |
 | src/backend/repository/db/models/notification.py | 32 | 388 | source |
 | src/backend/repository/db/models/paid_lead.py | 31 | 365 | source |
+| src/backend/repository/db/models/scheduling.py | 127 | 1.7K | source |
 | src/backend/repository/db/models/user.py | 28 | 377 | source |
 | src/backend/repository/db/models/video_job.py | 26 | 370 | source |
 | src/backend/repository/db/schema.py | 229 | 3.6K | source |
@@ -141,22 +147,24 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/backend/service/dashboard.py | 55 | 680 | source |
 | src/backend/service/databases.py | 143 | 1.6K | source |
 | src/backend/service/documents.py | 115 | 1.3K | source |
-| src/backend/service/email_messages.py | 271 | 3.6K | source |
+| src/backend/service/email_messages.py | 320 | 4.2K | source |
 | src/backend/service/funnel_imports.py | 96 | 976 | source |
-| src/backend/service/google.py | 123 | 1.6K | source |
+| src/backend/service/google.py | 131 | 1.7K | source |
 | src/backend/service/invitations.py | 57 | 676 | source |
 | src/backend/service/maps.py | 357 | 4.7K | source |
 | src/backend/service/members.py | 158 | 1.8K | source |
 | src/backend/service/paid_leads.py | 49 | 526 | source |
-| src/backend/service/passwords.py | 81 | 1.0K | source |
+| src/backend/service/passwords.py | 88 | 1.1K | source |
 | src/backend/service/profiles.py | 67 | 694 | source |
 | src/backend/service/push.py | 51 | 509 | source |
-| src/backend/service/rate_limits.py | 44 | 588 | source |
+| src/backend/service/rate_limits.py | 47 | 676 | source |
 | src/backend/service/realtime.py | 39 | 409 | source |
-| src/backend/service/registration.py | 55 | 640 | source |
-| src/backend/service/runtime.py | 192 | 3.1K | source |
+| src/backend/service/registration.py | 57 | 669 | source |
+| src/backend/service/runtime.py | 218 | 3.6K | source |
+| src/backend/service/scheduling_auth.py | 113 | 1.5K | source |
+| src/backend/service/scheduling.py | 347 | 5.3K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
-| src/backend/service/security.py | 38 | 368 | source |
+| src/backend/service/security.py | 42 | 449 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
 | src/frontend/admin/AdminApp.tsx | 288 | 6.4K | source |
@@ -304,6 +312,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
+| tests/functional/controller/test_scheduling.py | 281 | 4.7K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -328,8 +337,9 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | tests/integration/repository/test_maps_job_migration.py | 24 | 335 | test |
 | tests/integration/repository/test_oauth_flows.py | 26 | 262 | test |
 | tests/integration/repository/test_rate_limits.py | 53 | 487 | test |
-| tests/integration/repository/test_repositories.py | 121 | 1.6K | test |
+| tests/integration/repository/test_repositories.py | 123 | 1.6K | test |
 | tests/integration/repository/test_role_migration.py | 39 | 559 | test |
+| tests/integration/repository/test_scheduling_cache.py | 46 | 690 | test |
 | tests/integration/service/test_account_deletion.py | 103 | 1.2K | test |
 | tests/integration/service/test_announcement_audiences.py | 77 | 943 | test |
 | tests/integration/service/test_approvals.py | 129 | 1.4K | test |
@@ -362,6 +372,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | tests/unit/domain/test_google_identity.py | 34 | 351 | test |
 | tests/unit/domain/test_passwords.py | 29 | 247 | test |
 | tests/unit/domain/test_photos.py | 37 | 328 | test |
+| tests/unit/domain/test_scheduling.py | 44 | 514 | test |
 | tests/unit/domain/test_tokens.py | 53 | 450 | test |
 | tests/unit/domain/test_video_composition.py | 39 | 331 | test |
 | tests/unit/domain/test_video_narration.py | 44 | 526 | test |
@@ -396,7 +407,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | README.md | 112 | 2.3K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
 | requirements.txt | 16 | 75 | docs |
-| src/backend/README.md | 295 | 5.3K | docs |
+| src/backend/README.md | 333 | 6.3K | docs |
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
@@ -405,7 +416,7 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
 | .dockerignore | 20 | 53 | other |
-| .env.example | 88 | 793 | other |
+| .env.example | 90 | 828 | other |
 | .gitignore | 31 | 53 | other |
 | Dockerfile | 89 | 1.1K | other |
 | Dockerfile.frontend | 79 | 619 | other |
@@ -424,10 +435,10 @@ Generated: 2026-11-09 | 418 files | ~490.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 266 files, ~310.2K tokens
+- source: 274 files, ~334.6K tokens
 - config: 13 files, ~3.6K tokens
-- test: 106 files, ~119.4K tokens
-- docs: 11 files, ~17.1K tokens
+- test: 109 files, ~125.4K tokens
+- docs: 11 files, ~18.1K tokens
 - style: 4 files, ~34.3K tokens
 - other: 18 files, ~5.8K tokens
 

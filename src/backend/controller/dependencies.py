@@ -23,6 +23,15 @@ def current_user(request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired session") from None
 
 
+def booking_user(request: Request):
+    """The scheduling product's session: its own cookie, its own token audience, its own account table."""
+    token = request.cookies.get(request.app.state.settings.booking_cookie_name, "")
+    try:
+        return request.app.state.services.booking_sessions.authenticate(token)
+    except AuthenticationError:
+        raise HTTPException(status_code=401, detail="Invalid or expired session") from None
+
+
 def _header_api_key(request: Request):
     header = request.headers.get("authorization", "")
     scheme, _, value = header.partition(" ")

@@ -36,22 +36,24 @@ from backend.service.automation_requests import AutomationRequestService
 from backend.service.automations import AutomationService
 from backend.service.chat import ChatService
 from backend.service.clients import ClientService
-from backend.service.paid_leads import PaidLeadService
 from backend.service.dashboard import DashboardService
 from backend.service.databases import DatabaseAdminService
 from backend.service.documents import DocumentService
-from backend.service.email_messages import AccountMessages
+from backend.service.email_messages import AccountMessages, BookingMessages
 from backend.service.funnel_imports import FunnelImportService
 from backend.service.google import GoogleAuthService
 from backend.service.invitations import InvitationService
 from backend.service.maps import MapsService
 from backend.service.members import MemberService
+from backend.service.paid_leads import PaidLeadService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
 from backend.service.push import PushService
 from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
 from backend.service.registration import RegistrationService
+from backend.service.scheduling import SchedulingService
+from backend.service.scheduling_auth import BookingAuthService, BookingGoogleAuth
 from backend.service.security import SessionSecurity
 from backend.service.videos import VideoService
 from backend.service.webhook_events import WebhookEventService
@@ -168,9 +170,33 @@ class RuntimeServices:
                                     ttl=settings.email_code_ttl_seconds,
                                     max_attempts=settings.email_code_max_attempts,
                                     cooldown=settings.email_code_resend_cooldown_seconds), self.email, messages=self.messages)
+            self._build_scheduling(settings, namespace, database_namespace)
         except BaseException:
             self._cleanup.close()
             raise
+
+    def _build_scheduling(self, settings: Settings, namespace: str, database_namespace: str) -> None:
+        """The /atendimentos product: same database, Redis, Google credentials and e-mail; its own accounts."""
+        secret = settings.jwt_secret_key.get_secret_value()
+        self.booking_tokens = JWTService(secret, expire_minutes=settings.jwt_expire_minutes, audience="nexo-atendimentos")
+        self.booking_sessions = SessionSecurity(self.booking_tokens, self.repositories, repository_name="booking_users")
+        self.booking_auth = BookingAuthService(self.repositories, self.passwords, self.booking_sessions)
+        self.booking_google = BookingGoogleAuth(settings, self.google.provider, self.google.flows, self.repositories,
+                                               self.booking_sessions, self.csrf)
+        booking_messages = BookingMessages(self.messages)
+
+        def codes(purpose):
+            return EmailCodeRepository(self.redis.client, namespace + ":booking-" + purpose + ":" + database_namespace,
+                                       ttl=settings.email_code_ttl_seconds, max_attempts=settings.email_code_max_attempts,
+                                       cooldown=settings.email_code_resend_cooldown_seconds)
+        self.booking_registration = RegistrationService(
+            self.booking_auth, EmailCodeService(secret, "booking-registration"), codes("registration"), self.email,
+            delivery_timeout=min(settings.email_timeout_seconds + 2, 12), messages=booking_messages,
+            repository_name="booking_users")
+        self.booking_passwords = PasswordService(
+            self.repositories, self.passwords, EmailCodeService(secret, "booking-password-recovery"),
+            codes("password"), self.email, messages=booking_messages, repository_name="booking_users")
+        self.scheduling = SchedulingService(self.repositories, self.cache, settings, self.messages)
 
     def initialize(self, settings: Settings) -> None:
         create_tables(self.database.engine, str(settings.email) if settings.email else None)

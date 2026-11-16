@@ -13,13 +13,28 @@ from backend.repository.db.control.maps_credentials import MapsCredentialReposit
 from backend.repository.db.control.maps_jobs import MapsJobRepository
 from backend.repository.db.control.notifications import NotificationRepository
 from backend.repository.db.control.paid_leads import PaidLeadRepository
+from backend.repository.db.control.scheduling import (
+    BUSINESS_SCOPED_TABLES,
+    SCHEDULING_TABLES,
+    AppointmentRepository,
+    BookingUserRepository,
+    BusinessRepository,
+    BusinessServiceRepository,
+)
 from backend.repository.db.control.users import UserRepository
 from backend.repository.db.control.video_jobs import VideoJobRepository
+
+CACHED_TABLES = frozenset({"users", "api_keys", "automation_requests", "automations", "clients", "notifications",
+                           "documents", "chat_messages", "paid_leads", *SCHEDULING_TABLES})
 
 
 class Repositories:
     def __init__(self, session, principal_email=None):
         self.users = UserRepository(session, principal_email=principal_email)
+        self.booking_users = BookingUserRepository(session)
+        self.businesses = BusinessRepository(session)
+        self.business_services = BusinessServiceRepository(session)
+        self.appointments = AppointmentRepository(session)
         self.api_keys = ApiKeyRepository(session)
         self.automation_requests = AutomationRequestRepository(session)
         self.automations = AutomationRepository(session)
@@ -46,8 +61,11 @@ class RepositoryManager:
         def track_changes(session, _context, _instances):
             for row in set(session.new) | set(session.dirty) | set(session.deleted):
                 table = getattr(row, "__tablename__", None)
-                if table in {"users", "api_keys", "automation_requests", "automations", "clients", "notifications", "documents", "chat_messages", "paid_leads"}:
+                if table in CACHED_TABLES:
                     changed.add(table)
+                    # Scheduling data is cached per business, so one business's change leaves the others' cache alive.
+                    if table in BUSINESS_SCOPED_TABLES and getattr(row, "business_id", None):
+                        changed.add(table + ":" + row.business_id)
             session.info["cache_dirty_tables"] = changed
         with self.database.session() as session:
             session.info["cache_dirty_tables"] = changed
@@ -59,6 +77,9 @@ class RepositoryManager:
             # invalidated together with any table it summarizes.
             if changed & {"users", "clients", "notifications", "documents", "automations"}:
                 invalidations.add("dashboard")
+            # "My businesses" joins memberships with businesses, so a membership change refreshes that list too.
+            if "business_members" in changed:
+                invalidations.add("businesses")
             self.cache.invalidate(invalidations)  # reached only after successful SQL commit
         if changed and self.on_change:
             self.on_change(changed)

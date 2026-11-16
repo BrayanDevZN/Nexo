@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
 from uuid import UUID
 
 from pydantic import (
@@ -19,7 +18,6 @@ from backend.domain.client_channels import SalesChannel
 from backend.domain.client_niches import validate_client_niche
 from backend.domain.lead_contacts import clean_instagram, clean_website
 from backend.domain.pipeline_stages import PipelineStage
-
 
 
 class ClientFields(BaseModel):

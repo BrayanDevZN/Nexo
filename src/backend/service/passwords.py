@@ -11,22 +11,27 @@ class PasswordRecoveryError(ValueError):
 
 
 class PasswordService:
-    def __init__(self, repositories, passwords, codes, code_repository, sender, messages=None):
+    def __init__(self, repositories, passwords, codes, code_repository, sender, messages=None,
+                 repository_name="users"):
         self.repositories, self.passwords = repositories, passwords
         self.codes, self.code_repository, self.sender = codes, code_repository, sender
         self.messages = messages
+        self.repository_name = repository_name
+
+    def _users(self, repos):
+        return getattr(repos, self.repository_name)
 
     def change(self, actor, current_password, new_password):
         with self.repositories.read_transaction() as repos:
-            user = repos.users.get(actor.id)
+            user = self._users(repos).get(actor.id)
             if (user is None or user.session_version != actor.session_version
-                    or user.status == "rejected"):
+                    or getattr(user, "status", "approved") == "rejected"):
                 raise AuthenticationError("Invalid or expired session")
         if not self.passwords.verify(current_password, user.password_hash):
             raise PasswordRecoveryError("Current password is incorrect")
         hashed = self.passwords.hash(new_password)
         with self.repositories.transaction() as repos:
-            if not repos.users.replace_password_if_current(user.id, user.session_version, hashed):
+            if not self._users(repos).replace_password_if_current(user.id, user.session_version, hashed):
                 raise AuthenticationError("Invalid or expired session")
 
     def request_code(self, email):
@@ -34,8 +39,9 @@ class PasswordService:
             raise EmailUnavailableError("Email recovery is unavailable")
         email = email.strip().lower()
         with self.repositories.read_transaction() as repos:
-            user = repos.users.by_email(email)
-        eligible = user is not None and user.password_hash is not None and user.status != "rejected"
+            user = self._users(repos).by_email(email)
+        eligible = (user is not None and user.password_hash is not None
+                    and getattr(user, "status", "approved") != "rejected")
         code = self.codes.create()
         digest = self.codes.digest(email, code)
         record = {"user_id": user.id if eligible else None,
@@ -73,8 +79,9 @@ class PasswordService:
             raise PasswordRecoveryError("Invalid or expired recovery code")
         hashed = self.passwords.hash(new_password)
         with self.repositories.transaction() as repos:
-            user = repos.users.get(record["user_id"])
+            users = self._users(repos)
+            user = users.get(record["user_id"])
             if (user is None or user.email != email or not user.password_hash
-                    or user.status == "rejected"
-                    or not repos.users.replace_password_if_current(user.id, record["version"], hashed)):
+                    or getattr(user, "status", "approved") == "rejected"
+                    or not users.replace_password_if_current(user.id, record["version"], hashed)):
                 raise PasswordRecoveryError("Invalid or expired recovery code")

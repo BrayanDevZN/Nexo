@@ -40,7 +40,8 @@ class GoogleAuthService:
                                         "invite_token": invite_token}, 300)
         return self.provider.authorization_url(state, nonce, verifier), browser
 
-    async def callback(self, state, browser, code):
+    async def identify(self, state, browser, code):
+        """Consume the flow and verify who Google says this is. The record tells which product started the flow."""
         record = await asyncio.to_thread(self.flows.consume_state, state, browser)
         if not code or len(code) > 4096:
             raise OAuthStateError("Invalid Google authorization code")
@@ -51,11 +52,18 @@ class GoogleAuthService:
         except GoogleIdentityError:
             logger.warning("Google identity verification failed")
             raise GoogleProviderError("Google authentication failed") from None
+        return record, identity
+
+    async def finish(self, record, identity):
         kind, grant = await asyncio.to_thread(self._resolve_identity, identity, record.get("invite_token"))
         invite_token = None
         if kind == "profile" and record.get("invite_token"):
             invite_token = record["invite_token"]
         return kind, grant, invite_token
+
+    async def callback(self, state, browser, code):
+        record, identity = await self.identify(state, browser, code)
+        return await self.finish(record, identity)
 
     def _resolve_identity(self, identity, invite_token=None):
         try:

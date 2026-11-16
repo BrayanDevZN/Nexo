@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_expire_minutes: int = Field(default=30, ge=1)
     auth_cookie_name: str = "nexo_access_token"
+    # Session of the scheduling product (/atendimentos): a separate cookie, so one browser can use both products.
+    booking_cookie_name: str = "nexo_atendimentos_token"
     cookie_secure: bool = False
     cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     cors_origins: list[str] = ["http://localhost:5173"]
@@ -146,12 +148,12 @@ class Settings(BaseSettings):
             raise ValueError("ADMIN_NAME must contain 1 to 120 characters")
         return value
 
-    @field_validator("auth_cookie_name")
+    @field_validator("auth_cookie_name", "booking_cookie_name")
     @classmethod
     def valid_cookie_name(cls, value: str):
         if (not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", value)
-                or value in {"nexo_google_flow", "nexo_google_profile"}):
-            raise ValueError("AUTH_COOKIE_NAME must be a valid, non-reserved cookie name")
+                or value in {"nexo_google_flow", "nexo_google_profile", "nexo_atendimentos_google_profile"}):
+            raise ValueError("Session cookie names must be valid and not reserved")
         return value
 
     @staticmethod
@@ -216,8 +218,11 @@ class Settings(BaseSettings):
                 raise ValueError("PASSWORD must contain at least 12 characters and at most 72 UTF-8 bytes")
         if bool(self.video_url) != bool(self.video_secret):
             raise ValueError("Configure both VIDEO_URL and VIDEO_SECRET")
-        if self.auth_cookie_name.startswith(("__Host-", "__Secure-")) and not self.cookie_secure:
+        if (self.auth_cookie_name.startswith(("__Host-", "__Secure-"))
+                or self.booking_cookie_name.startswith(("__Host-", "__Secure-"))) and not self.cookie_secure:
             raise ValueError("Prefixed auth cookies require COOKIE_SECURE=true")
+        if self.auth_cookie_name == self.booking_cookie_name:
+            raise ValueError("AUTH_COOKIE_NAME and BOOKING_COOKIE_NAME must differ")
         if self.cookie_samesite == "none" and not self.cookie_secure:
             raise ValueError("SameSite=None requires COOKIE_SECURE=true")
         if self.environment == "production":

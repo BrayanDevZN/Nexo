@@ -16,14 +16,16 @@ class RegistrationCooldownError(ValueError):
 
 
 class RegistrationService:
-    def __init__(self, auth, codes, repository, sender, *, delivery_timeout=12, messages=None):
+    def __init__(self, auth, codes, repository, sender, *, delivery_timeout=12, messages=None,
+                 repository_name="users"):
         self.auth, self.codes, self.repository, self.sender = auth, codes, repository, sender
         self.delivery_timeout, self.messages = delivery_timeout, messages
+        self.repository_name = repository_name
 
     def request(self, *, name, email, phone, password):
         email = email.strip().lower()
         with self.auth.repositories.read_transaction() as repos:
-            if repos.users.by_email(email):
+            if getattr(repos, self.repository_name).by_email(email):
                 raise RegistrationConflict("Email already registered")
         if not self.sender.configured:
             raise EmailUnavailableError("Registration email unavailable")

@@ -280,6 +280,44 @@ A exclusão usa a mesma transação de preservação de clientes e limpeza de
 notificações/foto da gestão de membros. Remove o usuário, revoga todas as sessões
 por ausência da conta no SQL e limpa o cookie HttpOnly após o commit.
 
+## Atendimentos (agendamento)
+
+Produto separado do painel, publicado em `/atendimentos` no site, com rotas da API sob o prefixo `/atendimentos`.
+Usa o mesmo backend, o mesmo SQLite, o mesmo Redis, as mesmas credenciais Google e o mesmo Resend, mas tem contas
+próprias: a tabela `booking_users` não tem aprovação nem cargo. A sessão fica no cookie `BOOKING_COOKIE_NAME`
+(padrão `nexo_atendimentos_token`), com JWT de audiência `nexo-atendimentos`; um cookie do painel nunca vale no
+atendimentos e vice-versa. O CSRF, o Origin, os limites de autenticação e o `no-store` valem como no painel.
+
+Tabelas: `booking_users`, `businesses`, `business_members`, `business_invitations`, `business_services` e
+`appointments`. Uma conta pode criar até 20 negócios e participar de outros por convite. Cada membro tem um papel
+no negócio: `owner` (quem criou; tudo, inclusive excluir), `manager` (edita o negócio, serviços, equipe e agenda),
+`staff` (cria e altera agendamentos, sem excluir) e `viewer` (só leitura). Só se convida, promove ou remove quem tem
+papel abaixo do seu; o dono não é alterado nem removido; qualquer membro pode sair.
+
+Cache-aside: as leituras passam pelo mesmo `CacheAside`, com geração por negócio (`appointments:<business_id>`,
+`business_services:<business_id>`, `business_members:<business_id>`, `business_invitations:<business_id>`), então
+uma escrita num negócio não derruba o cache dos outros. Mudanças de membro também invalidam `businesses`, porque a
+lista "meus negócios" junta as duas tabelas. Autorização e vínculo com o negócio sempre leem SQL.
+
+| Método / rota | Uso |
+| --- | --- |
+| POST /atendimentos/auth/register, /register/confirm | cadastro com código por e-mail; confirmar cria a conta e a sessão |
+| POST /atendimentos/auth/login, /logout; GET /me, /csrf | sessão por cookie HttpOnly, como no painel |
+| PUT /atendimentos/auth/profile | nome e celular (opcional) |
+| POST /atendimentos/auth/password/change, /recovery/request, /recovery/confirm | senha; revoga as sessões |
+| GET /atendimentos/auth/google/login, /google/profile; POST /google/complete | Google com o mesmo callback `/auth/google/callback`; o fluxo salvo no Redis diz de onde o login partiu e o retorno vai para `/atendimentos` ou `/atendimentos/completar-perfil` |
+| GET/POST /atendimentos/businesses; GET/PATCH/DELETE /atendimentos/businesses/{id} | negócios de quem chama, com `my_role`; `opening_hours` é `{"mon": [["09:00","18:00"]], ...}`; `timezone` IANA |
+| GET /atendimentos/businesses/{id}/overview | contagens de hoje, 7 dias, futuros, por status e os próximos 5 |
+| GET /atendimentos/businesses/{id}/members; PATCH/DELETE .../members/{user_id} | equipe com nome e e-mail; trocar papel (`manager`, `staff`, `viewer`); remover ou sair |
+| GET/POST /atendimentos/businesses/{id}/invitations; DELETE .../invitations/{id} | convites pendentes de 7 dias, com `url`; `email` opcional (se houver, só essa conta aceita e recebe o e-mail) |
+| GET /atendimentos/invitations/{token}; POST .../accept | ver o convite sem sessão; aceitar com sessão e CSRF |
+| GET/POST /atendimentos/businesses/{id}/services; PATCH/DELETE .../services/{id} | serviços com duração (5 min a 24 h), preço e `active`; excluir mantém o nome nos agendamentos |
+| GET/POST /atendimentos/businesses/{id}/appointments; GET/PATCH/DELETE .../appointments/{id} | agenda: `service_id` preenche nome, fim e preço, ou `service_name` + `ends_at`; filtros `starts_from`, `starts_until`, `status`, `staff_user_id`, `customer`, paginação; `staff_user_id` precisa ser membro e não pode ter outro agendamento ativo no mesmo período (409) |
+
+Horários são gravados em UTC sem fuso; entradas com fuso são convertidas e entradas sem fuso são lidas como UTC.
+Status: `scheduled`, `confirmed`, `done`, `cancelled`, `no_show`; só os dois primeiros ocupam a agenda. A página pública
+por negócio (o cliente final marcando sozinho) ainda não existe; o `slug` já fica reservado para ela.
+
 ## Chat e notificações em tempo real
 
 `POST /realtime/ticket` exige o cookie JWT HttpOnly e CSRF. Retorna um ticket de uso único com TTL de 30 segundos no Redis, vinculado à origem e à sessão. O navegador abre `/realtime` com os subprotocolos `nexo.v1` e o ticket. O servidor seleciona somente `nexo.v1`, verifica a origem em `CORS_ORIGINS`, revalida o usuário no SQL a cada comando/evento e no heartbeat de 15 segundos. Expiração, rejeição, exclusão, logout ou alteração de senha/cargo encerram a conexão; o JWT nunca é enviado ao JavaScript.

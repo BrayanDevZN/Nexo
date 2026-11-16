@@ -105,6 +105,19 @@ def _render_email(*, preheader: str, heading: str, paragraphs: list[str],
     )
 
 
+class BookingMessages:
+    """The code e-mails of the scheduling product, with the interface RegistrationService and PasswordService use."""
+
+    def __init__(self, messages):
+        self.messages = messages
+
+    def registration_code(self, recipient, code, expires_in):
+        return self.messages.booking_registration_code(recipient, code, expires_in)
+
+    def recovery_code(self, recipient, code, expires_in):
+        return self.messages.booking_recovery_code(recipient, code, expires_in)
+
+
 class AccountMessages:
     def __init__(self, sender):
         self.sender = sender
@@ -251,6 +264,42 @@ class AccountMessages:
 
     def maps_url(self, job_id: str) -> str:
         return self.frontend_url.rstrip("/") + "/admin?" + urlencode({"maps": job_id})
+
+    def booking_registration_code(self, recipient, code, expires_in):
+        return self._send(
+            recipient, "Código para confirmar seu cadastro no Nexo Atendimentos",
+            "Confirme seu endereço de e-mail para concluir o cadastro.",
+            "Confirme seu cadastro",
+            ["Use o código abaixo para confirmar seu endereço de e-mail e criar sua conta no Nexo Atendimentos."],
+            code=code, expires_in=expires_in, eyebrow="NEXO ATENDIMENTOS",
+        )
+
+    def booking_recovery_code(self, recipient, code, expires_in):
+        return self._send(
+            recipient, "Código para atualizar sua senha no Nexo Atendimentos",
+            "Use seu código para criar uma nova senha.",
+            "Redefina sua senha",
+            ["Use o código abaixo para confirmar a troca de senha da sua conta no Nexo Atendimentos."],
+            code=code, expires_in=expires_in, eyebrow="NEXO ATENDIMENTOS",
+        )
+
+    def booking_invitation(self, recipient, *, business_name: str, role_label: str, inviter_name: str, url: str):
+        if not self.sender.configured:
+            return False
+        try:
+            self._send(
+                recipient, "Convite para a equipe de " + business_name + " no Nexo Atendimentos",
+                inviter_name + " convidou você para " + business_name + ".",
+                "Você foi convidado para " + business_name,
+                [inviter_name + " convidou você para acompanhar os atendimentos de " + business_name
+                 + " como " + role_label + ".",
+                 "Abra o link para entrar com sua conta, ou crie uma, e aceitar o convite. O link vale por 7 dias."],
+                action_label="Aceitar convite", action_url=url, eyebrow="NEXO ATENDIMENTOS",
+            )
+        except (EmailUnavailableError, EmailQueueFullError):
+            logger.warning("Business invitation email could not be queued")
+            return False
+        return True
 
     def automation_invitation(self, user, invite_url: str, message: str):
         if not self.sender.configured:

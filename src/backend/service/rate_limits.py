@@ -6,6 +6,9 @@ SENSITIVE_ROUTES = {
     "/auth/login", "/auth/register", "/auth/register/confirm", "/auth/logout", "/auth/password/change",
     "/auth/password/recovery/request", "/auth/password/recovery/confirm", "/auth/account/deletion/request", "/auth/account/deletion/confirm",
     "/auth/invitations/{token}/register",
+    "/atendimentos/auth/login", "/atendimentos/auth/register", "/atendimentos/auth/register/confirm",
+    "/atendimentos/auth/logout", "/atendimentos/auth/password/change", "/atendimentos/auth/password/recovery/request",
+    "/atendimentos/auth/password/recovery/confirm", "/atendimentos/invitations/{token}/accept",
 }
 
 
@@ -29,7 +32,7 @@ class RateLimitService:
             RateBudget(f"{self.namespace}:route:{identity}:{operation}:{config.rate_limit_window_seconds}",
                        config.rate_limit * BULK_ROUTES.get(route, 1), config.rate_limit_window_seconds),
         ]
-        if route in SENSITIVE_ROUTES or route.startswith("/auth/google/"):
+        if route in SENSITIVE_ROUTES or route.startswith(("/auth/google/", "/atendimentos/auth/google/")):
             budgets.append(RateBudget(
                 f"{self.namespace}:auth:{identity}:{config.auth_rate_limit_window_seconds}",
                 config.auth_rate_limit, config.auth_rate_limit_window_seconds))

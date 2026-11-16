@@ -7,11 +7,14 @@ class AuthenticationError(ValueError):
 
 
 class SessionSecurity:
-    def __init__(self, tokens: JWTService, repositories: RepositoryManager):
+    """Sessions of one account table: the panel's ``users`` or the scheduling product's ``booking_users``."""
+
+    def __init__(self, tokens: JWTService, repositories: RepositoryManager, repository_name: str = "users"):
         self.tokens, self.repositories = tokens, repositories
+        self.repository_name = repository_name
 
     def issue(self, user) -> str:
-        if user.status == "rejected":
+        if getattr(user, "status", "approved") == "rejected":
             raise AuthenticationError("Session is not authorized")
         return self.tokens.create(user.id, user.session_version)
 
@@ -22,16 +25,17 @@ class SessionSecurity:
             raise AuthenticationError("Invalid or expired session") from None
         # Authoritative SQL read: cached snapshots cannot authorize a session.
         with self.repositories.read_transaction() as repos:
-            user = repos.users.get(claims.user_id)
+            user = getattr(repos, self.repository_name).get(claims.user_id)
             if (user is None or user.session_version != claims.session_version
-                    or user.status not in {"pending", "approved"}):
+                    or getattr(user, "status", "approved") not in {"pending", "approved"}):
                 raise AuthenticationError("Invalid or expired session")
             return user
 
     def revoke_all(self, user_id: str) -> bool:
         with self.repositories.transaction() as repos:
-            user = repos.users.get(user_id)
+            repository = getattr(repos, self.repository_name)
+            user = repository.get(user_id)
             if user is None:
                 return False
-            repos.users.revoke_sessions(user)
+            repository.revoke_sessions(user)
             return True

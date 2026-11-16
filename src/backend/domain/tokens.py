@@ -21,11 +21,14 @@ class JWTService:
     issuer = "nexo-backend"
     audience = "nexo-admin"
 
-    def __init__(self, secret: str, *, expire_minutes: int = 30, clock=None):
+    def __init__(self, secret: str, *, expire_minutes: int = 30, clock=None, audience: str | None = None):
         if len(secret) < 32 or expire_minutes < 1:
             raise ValueError("Strong JWT secret and positive expiration are required")
         self._secret, self._ttl = secret, expire_minutes * 60
         self._clock = clock or (lambda: datetime.now(UTC))
+        # Each product has its own audience, so a panel session can never be replayed on the scheduling API.
+        if audience:
+            self.audience = audience
 
     def create(self, user_id: str, session_version: int) -> str:
         if not isinstance(user_id, str) or not user_id:
