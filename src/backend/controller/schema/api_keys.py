@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiKeyCreateInput(BaseModel):
@@ -26,8 +26,3 @@ class ApiKeyOutput(BaseModel):
 
 class ApiKeyCreatedOutput(ApiKeyOutput):
     key: str
-
-
-class PanelLinkInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    api_key: SecretStr = Field(min_length=10, max_length=160)

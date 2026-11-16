@@ -8,7 +8,6 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
   const businesses: Record<string, unknown>[] = [];
   const services: Record<string, unknown>[] = [];
   const appointments: Record<string, unknown>[] = [];
-  let panelLink = false;
   await page.route("**/api/atendimentos/**", async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -27,9 +26,6 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
       const row = { ...request.postDataJSON(), id: "b1", owner_id: user.id, slug: "barbearia", timezone: "America/Sao_Paulo", my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" };
       businesses.push(row); body = row; status = 201;
     }
-    else if (path === "/auth/panel-link" && method === "GET") body = panelLink ? { linked: true, panel_email: "dev@empresa.com" } : { linked: false, panel_email: null };
-    else if (path === "/auth/panel-link" && method === "PUT") { csrf(); expect(request.postDataJSON().api_key).toBe("nexo_live_abc1234567"); panelLink = true; status = 204; }
-    else if (path === "/auth/panel-link" && method === "DELETE") { csrf(); panelLink = false; status = 204; }
     else if (path === "/businesses/b1/photo" && method === "PUT") {
       csrf();
       const upload = request.postDataBuffer() || Buffer.alloc(0);
@@ -147,15 +143,4 @@ test("the calendar books a free slot on click and remembers its customization", 
   await page.reload();
   await page.getByRole("radio", { name: "Semana" }).click();
   await expect(page.locator(".bk-tg-day")).toHaveCount(5);
-});
-
-test("the Nexo API key used in n8n can be connected to the account and disconnected", async ({ page }) => {
-  await mock(page, { signedIn: true });
-  await page.goto("/atendimentos");
-  await page.getByRole("button", { name: "Foto, dados e senha" }).click();
-  await page.getByLabel("Chave de API da Nexo").fill("nexo_live_abc1234567");
-  await page.getByRole("button", { name: "Conectar chave" }).click();
-  await expect(page.getByTestId("panel-linked")).toContainText("dev@empresa.com");
-  await page.getByRole("button", { name: "Desconectar" }).click();
-  await expect(page.getByLabel("Chave de API da Nexo")).toBeVisible();
 });

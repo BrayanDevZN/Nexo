@@ -171,11 +171,10 @@ function explain(error) {
 	const detail = apiDetail(error);
 	const status = Number(error?.httpCode || error?.cause?.response?.status || error?.cause?.statusCode || error?.statusCode || 0);
 	let text;
-	if (/No Atendimentos account/i.test(detail || '')) {
-		const email = (detail.match(/for (\S+@\S+?)(?:\s|\(|$)/) || [])[1];
-		text = `A chave da Nexo não está ligada a nenhuma conta do Atendimentos${email ? ` (e-mail ${email})` : ''}. Entre no Atendimentos, abra Conta > "Conectar ao n8n" e cole esta chave de API, ou crie lá uma conta com o mesmo e-mail da chave.`;
-	} else if (status === 403 && /cannot access this route/i.test(detail || '')) {
-		text = 'Esta chave de API não tem permissão para o Atendimentos.';
+	if (status === 403 && /cannot access this route/i.test(detail || '')) {
+		text = 'Esta chave de API não tem permissão para o Atendimentos: use uma chave de dono, administrador ou dev da Nexo.';
+	} else if (status === 403 && /needs an Atendimentos account/i.test(detail || '')) {
+		text = 'Esta ação precisa de uma conta do Atendimentos (criar negócio, convites): faça pelo app do Atendimentos.';
 	} else if (detail) text = detail;
 	if (!text) return error;
 	const explained = new Error(text);

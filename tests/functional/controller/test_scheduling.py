@@ -355,47 +355,6 @@ def test_google_links_to_a_local_atendimentos_account_by_verified_email(client):
         assert user.google_sub == "google-user-123" and user.password_hash is not None
 
 
-def test_the_panel_api_key_acts_as_the_atendimentos_account_with_the_same_email(client):
-    register(client, ANA)
-    ana_headers = login(client, ANA)
-    business = create_business(client, ana_headers)
-    # A panel member with the same e-mail makes a regular panel API key (the one used on the rest of Nexo).
-    with client.app.state.services.repositories.transaction() as repos:
-        for name, email, role in (("Ana", "ana@example.com", "commercial"), ("Bia", "bia@example.com", "dev"), ("Cris", "cris@example.com", "commercial")):
-            repos.users.create(name=name, email=email, status="approved", role=role,
-                               password_hash=client.app.state.services.passwords.hash(PANEL_PASSWORD))
-
-    def panel_key(email):
-        client.cookies.clear()
-        assert client.post("/auth/login", headers=ORIGIN, json={"email": email, "password": PANEL_PASSWORD}).status_code == 200
-        csrf = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
-        key = client.post("/auth/api-keys", headers=csrf, json={"name": "n8n"}).json()["key"]
-        client.cookies.clear()
-        return {"Authorization": "Bearer " + key}
-
-    bearer = panel_key("ana@example.com")
-    # No cookie, Origin or CSRF token: the key lists, creates and edits like Ana does in the browser.
-    assert [row["id"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == [business["id"]]
-    made = client.post("/atendimentos/businesses", headers=bearer, json={"name": "Via chave"})
-    assert made.status_code == 201 and made.json()["my_role"] == "owner"
-    path = "/atendimentos/businesses/" + business["id"]
-    service = client.post(path + "/services", headers=bearer, json={"name": "Corte", "duration_minutes": 30}).json()
-    booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "starts_at": "2026-11-16T12:00:00Z"})
-    assert booked.status_code == 201
-    assert client.patch(path + "/appointments/" + booked.json()["id"], headers=bearer, json={"status": "confirmed"}).json()["status"] == "confirmed"
-    assert client.get(path + "/appointments", headers=bearer, params={"period": "day", "date": "2026-11-16"}).json()[0]["status"] == "confirmed"
-    # The account routes (profile, password, session) still need the browser session: a key never reaches them.
-    assert client.get("/atendimentos/auth/me", headers=bearer).status_code == 401
-    # A panel member with no Atendimentos account, a wrong key and no credentials are refused.
-    assert client.get("/atendimentos/businesses", headers=panel_key("cris@example.com")).status_code == 403
-    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_live_wrong"}).status_code == 401
-    assert client.get("/atendimentos/businesses").status_code == 401
-    # Another account's key only sees its own businesses: Bia has an account but belongs to none of Ana's.
-    register(client, BIA)
-    assert client.get("/atendimentos/businesses", headers=panel_key("bia@example.com")).json() == []
-    assert client.get(path, headers=panel_key("bia@example.com")).status_code == 404
-
-
 def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zone(client):
     register(client, ANA)
     headers = login(client, ANA)
@@ -431,47 +390,15 @@ def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zo
         assert isinstance(names(period=period), list)
 
 
-def test_a_nexo_api_key_can_be_connected_to_an_atendimentos_account_with_another_email(client):
-    register(client, ANA)
-    ana = login(client, ANA)
-    business = create_business(client, ana)
-    with client.app.state.services.repositories.transaction() as repos:
-        repos.users.create(name="Dev", email="dev@empresa.com", status="approved", role="dev",
-                           password_hash=client.app.state.services.passwords.hash(PANEL_PASSWORD))
-    client.cookies.clear()
-    assert client.post("/auth/login", headers=ORIGIN, json={"email": "dev@empresa.com", "password": PANEL_PASSWORD}).status_code == 200
-    csrf = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
-    key = client.post("/auth/api-keys", headers=csrf, json={"name": "n8n"}).json()["key"]
-    bearer = {"Authorization": "Bearer " + key}
-    client.cookies.clear()
-    # No account with the key owner's e-mail: the answer says so and where to fix it.
-    refused = client.get("/atendimentos/businesses", headers=bearer)
-    assert refused.status_code == 403 and "dev@empresa.com" in refused.json()["detail"] and "Conta" in refused.json()["detail"]
-    # Ana, signed in, connects the key by pasting it; a wrong key is refused and nothing links without a session.
-    ana = login(client, ANA)
-    assert client.get("/atendimentos/auth/panel-link").json() == {"linked": False, "panel_email": None}
-    assert client.put("/atendimentos/auth/panel-link", headers=ana, json={"api_key": "nexo_live_wrongwrongwrong"}).status_code == 400
-    assert client.put("/atendimentos/auth/panel-link", headers=ana, json={"api_key": key}).status_code == 204
-    assert client.get("/atendimentos/auth/panel-link").json() == {"linked": True, "panel_email": "dev@empresa.com"}
-    client.cookies.clear()
-    assert client.put("/atendimentos/auth/panel-link", headers=ORIGIN, json={"api_key": key}).status_code == 401
-    assert [row["id"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == [business["id"]]
-    assert client.get("/atendimentos/auth/panel-link", headers=bearer).status_code == 401   # the link itself needs the session
-    # Disconnecting stops the key again.
-    ana = login(client, ANA)
-    assert client.delete("/atendimentos/auth/panel-link", headers=ana).status_code == 204
-    client.cookies.clear()
-    assert client.get("/atendimentos/businesses", headers=bearer).status_code == 403
-
-
-def test_the_owner_and_administrator_keys_list_every_business_without_any_setup(client):
+def test_the_nexo_team_api_key_manages_every_business_without_any_atendimentos_account(client):
     register(client, ANA)
     register(client, BIA)
     mine = create_business(client, login(client, ANA), "Barbearia da Ana")
     theirs = create_business(client, login(client, BIA), "Salão da Bia")
     services = client.app.state.services
+    roles = (("Dono", "dono@empresa.com", "owner"), ("Admin", "admin@empresa.com", "admin"), ("Dev", "dev@empresa.com", "dev"), ("Comercial", "comercial@empresa.com", "commercial"))
     with services.repositories.transaction() as repos:
-        for name, email, role in (("Dono", "dono@empresa.com", "owner"), ("Admin", "admin@empresa.com", "admin"), ("Dev", "dev@empresa.com", "dev")):
+        for name, email, role in roles:
             repos.users.create(name=name, email=email, status="approved", role=role, password_hash=services.passwords.hash(PANEL_PASSWORD))
 
     def key(email):
@@ -482,28 +409,41 @@ def test_the_owner_and_administrator_keys_list_every_business_without_any_setup(
         client.cookies.clear()
         return {"Authorization": "Bearer " + secret}
 
-    for email in ("dono@empresa.com", "admin@empresa.com"):
-        bearer = key(email)   # neither has an Atendimentos account, and nothing was connected
+    for email in ("dono@empresa.com", "admin@empresa.com", "dev@empresa.com"):
+        bearer = key(email)   # no Atendimentos account for any of them, and nothing was connected
         listed = client.get("/atendimentos/businesses", headers=bearer)
         assert listed.status_code == 200, listed.text
         assert {row["name"] for row in listed.json()} == {"Barbearia da Ana", "Salão da Bia"}
         assert {row["my_role"] for row in listed.json()} == {"owner"}
         path = "/atendimentos/businesses/" + theirs["id"]
         assert client.get(path, headers=bearer).json()["name"] == "Salão da Bia"
+        assert client.get(path + "/members", headers=bearer).status_code == 200
+        assert client.get(path + "/overview", headers=bearer).status_code == 200
         service = client.post(path + "/services", headers=bearer, json={"name": "Corte", "duration_minutes": 30}).json()
         booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "starts_at": "2026-11-16T12:00:00Z"})
         assert booked.status_code == 201, booked.text
+        assert booked.json()["created_by_id"] is None
+        assert client.patch(path + "/appointments/" + booked.json()["id"], headers=bearer, json={"status": "confirmed"}).json()["status"] == "confirmed"
         assert client.get(path + "/appointments", headers=bearer, params={"period": "day", "date": "2026-11-16"}).json()[0]["customer_name"] == "João"
         assert client.get("/atendimentos/businesses/00000000-0000-4000-8000-000000000000", headers=bearer).status_code == 404
-        # The key still cannot reach the account routes of anyone.
+        # What belongs to a person still needs an account: no business owned by a key, no invitations from or to one.
+        assert client.post("/atendimentos/businesses", headers=bearer, json={"name": "Via chave"}).status_code == 403
+        assert client.post(path + "/invitations", headers=bearer, json={"role": "staff"}).status_code == 403
+        assert client.post("/atendimentos/invitations/nope/accept", headers=bearer).status_code == 403
+        assert client.delete(path + "/appointments/" + booked.json()["id"], headers=bearer).status_code == 204
+        # The account routes are the app's own: a key never reaches them.
         assert client.get("/atendimentos/auth/me", headers=bearer).status_code == 401
-    # Another panel role gets no such reach: a developer's key is limited to its own account, as before.
-    refused = client.get("/atendimentos/businesses", headers=key("dev@empresa.com"))
-    assert refused.status_code == 403
-    # A new business shows up in the staff list at once (the cached list is refreshed), and the Atendimentos
-    # users themselves still only see their own.
+    with services.repositories.read_transaction() as repos:
+        assert repos.booking_users.by_email("dono@empresa.com") is None and repos.booking_users.by_email("dev@empresa.com") is None
+    # A commercial key reaches only clients and videos; a wrong key and no credentials are refused.
+    assert client.get("/atendimentos/businesses", headers=key("comercial@empresa.com")).status_code == 403
+    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_live_wrong"}).status_code == 401
+    assert client.get("/atendimentos/businesses").status_code == 401
+    # New businesses show up in the key's list at once, and the app's own users still only see their own.
     third = create_business(client, login(client, ANA), "Segunda da Ana")
     assert third["id"] in [row["id"] for row in client.get("/atendimentos/businesses", headers=key("dono@empresa.com")).json()]
-    client.cookies.clear()
     login(client, BIA)
     assert [row["name"] for row in client.get("/atendimentos/businesses").json()] == ["Salão da Bia"]
+    # The app itself needs the account: a Nexo panel session is not an Atendimentos session.
+    client.cookies.clear()
+    assert client.get("/atendimentos/businesses").status_code == 401

@@ -15,8 +15,26 @@ from backend.service.security import AuthenticationError
 BOOKING_APP = "atendimentos"
 
 
+class PlatformActor:
+    """What an API key of the Nexo team (owner, administrator, developer) acts as in Atendimentos.
+
+    It has no Atendimentos account and needs none: it reaches every business with the dono's permissions, the same
+    way those keys reach the rest of the API. The app's own screens still need a real account and its session.
+    """
+    platform_staff = True
+    id = None
+    session_version = 0
+    email = None
+
+    def __init__(self, panel_user):
+        self.name = panel_user.name
+        self.panel_user_id = panel_user.id
+
+
 def authorize_booking(repos, actor):
     """Authoritative SQL check of a scheduling session; cached rows never authorize anything."""
+    if isinstance(actor, PlatformActor):
+        return actor   # authenticated by the API key dependency; there is no account row to check
     current = repos.booking_users.get(actor.id)
     if current is None or current.session_version != actor.session_version:
         raise AccessDenied("Access denied")
@@ -49,45 +67,6 @@ class BookingAuthService:
         if not valid or user is None or not user.password_hash:
             raise AuthenticationError("Invalid email or password")
         return user, self.sessions.issue(user)
-
-    def for_panel_user(self, panel_user, *, provision=False):
-        """The scheduling account a panel API key acts as: the one linked to it, else the one with the same e-mail.
-
-        `provision` (for the Nexo owner and administrators) creates that account, with no usable password, when
-        it does not exist yet: the panel e-mail is already verified, and password recovery or Google sign-in can
-        claim it later.
-        """
-        with self.repositories.read_transaction() as repos:
-            link = repos.booking_panel_links.by_panel_user(panel_user.id)
-            user = repos.booking_users.get(link.booking_user_id) if link else repos.booking_users.by_email(panel_user.email)
-        if user is None and provision:
-            try:
-                with self.repositories.transaction() as repos:
-                    user = repos.booking_users.create(name=panel_user.name, email=panel_user.email,
-                                                      password_hash=self.passwords.hash(secrets.token_urlsafe(32)))
-            except IntegrityError:
-                with self.repositories.read_transaction() as repos:   # created by a request that ran at the same time
-                    user = repos.booking_users.by_email(panel_user.email)
-        if user is None:
-            raise AccessDenied(f"No Atendimentos account for {panel_user.email}")
-        return user
-
-    def panel_link(self, actor):
-        """Whether this scheduling account has a panel API key linked, and to which panel e-mail."""
-        with self.repositories.read_transaction() as repos:
-            user = authorize_booking(repos, actor)
-            link = repos.booking_panel_links.by_booking_user(user.id)
-            panel = repos.users.get(link.panel_user_id) if link else None
-            return {"linked": panel is not None, "panel_email": panel.email if panel else None}
-
-    def link_panel_user(self, actor, panel_user):
-        with self.repositories.transaction() as repos:
-            user = authorize_booking(repos, actor)
-            repos.booking_panel_links.link(user.id, panel_user.id)
-
-    def unlink_panel_user(self, actor):
-        with self.repositories.transaction() as repos:
-            repos.booking_panel_links.unlink(authorize_booking(repos, actor).id)
 
     def update_profile(self, actor, name, phone):
         with self.repositories.transaction() as repos:

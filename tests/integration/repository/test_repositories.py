@@ -22,7 +22,7 @@ def test_tables_are_idempotent_and_defaults_persist(repositories):
         identifier = user.id
     create_tables(db.engine)
     assert set(inspect(db.engine).get_table_names()) == {"users", "clients", "notifications", "documents", "chat_messages", "api_keys", "api_key_usage", "automations", "automation_requests", "maps_credentials", "maps_jobs", "paid_leads", "video_jobs",
-                                                          "booking_users", "booking_panel_links", "businesses", "business_members", "business_invitations",
+                                                          "booking_users", "businesses", "business_members", "business_invitations",
                                                           "business_services", "appointments"}
     with manager.transaction() as repos:
         user = repos.users.by_email("user@example.com")

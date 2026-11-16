@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "@/admin/shared";
 import type { BookingApi, BookingUser } from "./api";
-import { PanelLink } from "./PanelLink";
 import { PhotoField } from "./Photo";
 
 export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi; user: BookingUser; onUpdate: (user: BookingUser) => void; onLoggedOut: () => void }) {
@@ -45,7 +44,6 @@ export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi;
         <TextField label="Nova senha" name="new_password" type="password" autoComplete="new-password" minLength={12} required help="Pelo menos 12 caracteres." />
         <TextField label="Repita a nova senha" name="confirm" type="password" autoComplete="new-password" minLength={12} required />
       </FieldGroup><Button type="submit" variant="outline" disabled={busy}>Atualizar senha</Button></form></CardContent></Card>
-    <PanelLink api={api} />
     <Button variant="outline" disabled={busy} onClick={() => void act(async () => { await api.mutate("/auth/logout", "POST"); onLoggedOut(); }, "")}>Sair</Button>
   </section>;
 }

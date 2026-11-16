@@ -40,13 +40,6 @@ class BookingUser(IdentityTimestampMixin, Base):
     session_version: Mapped[int] = mapped_column(default=0)
 
 
-class BookingPanelLink(IdentityTimestampMixin, Base):
-    """Which panel account's API key acts as which scheduling account, when their e-mails differ."""
-    __tablename__ = "booking_panel_links"
-    booking_user_id: Mapped[str] = mapped_column(ForeignKey("booking_users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    panel_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-
-
 class Business(IdentityTimestampMixin, Base):
     __tablename__ = "businesses"
     __table_args__ = (

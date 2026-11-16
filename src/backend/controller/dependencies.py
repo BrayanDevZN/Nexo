@@ -8,8 +8,8 @@ from backend.domain.roles import (
     has_role,
     key_allows,
 )
-from backend.service.access import REQUEST_AUTHENTICATED, AccessDenied
-from backend.service.scheduling import PLATFORM_STAFF
+from backend.service.access import REQUEST_AUTHENTICATED
+from backend.service.scheduling_auth import PlatformActor
 from backend.service.api_keys import ApiKeyAuthenticationError
 from backend.service.security import AuthenticationError
 
@@ -34,21 +34,17 @@ def booking_session_user(request: Request):
 
 
 def booking_user(request: Request):
-    """A scheduling account: a Bearer API key (the same `nexo_live_` key as the rest of Nexo) or the browser session.
+    """Atendimentos: a Bearer API key of the Nexo team (the same `nexo_live_` key as the rest) or the browser session.
 
-    A key acts as the Atendimentos account registered with its owner's e-mail, with that account's roles in each business.
+    The key needs no Atendimentos account: it reaches every business as a platform actor. The browser session is
+    the Atendimentos account's own.
     """
     if request.headers.get("authorization", "").lower().startswith("bearer "):
         key_owner = _header_api_key(request)
         if key_owner is not None:
-            staff = has_role(key_owner, ADMINISTRATORS)
-            try:
-                account = request.app.state.services.booking_auth.for_panel_user(key_owner, provision=staff)
-                # The Nexo owner and administrators see and manage every business, not only their own.
-                setattr(account, PLATFORM_STAFF, staff)
-                return account
-            except AccessDenied as exc:
-                raise HTTPException(status_code=403, detail=f"{exc} (open /atendimentos > Conta and connect this Nexo API key, or sign up there with this e-mail)") from None
+            if not has_role(key_owner, DEVELOPERS):
+                raise HTTPException(status_code=403, detail="This API key cannot access this route")
+            return PlatformActor(key_owner)
     return booking_session_user(request)
 
 

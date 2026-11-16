@@ -21,7 +21,6 @@ from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import (
     Appointment,
     BookingUser,
-    BookingPanelLink,
     Business,
     BusinessInvitation,
     BusinessMember,
@@ -78,30 +77,6 @@ def _mark_dirty(session, table: str, business_id: str | None = None) -> None:
     dirty.add(table)
     if business_id and table in BUSINESS_SCOPED_TABLES:
         dirty.add(table + ":" + business_id)
-
-
-class BookingPanelLinkRepository(Repository[BookingPanelLink]):
-    model = BookingPanelLink
-
-    def by_panel_user(self, panel_user_id: str) -> BookingPanelLink | None:
-        return self.session.scalar(select(BookingPanelLink).where(BookingPanelLink.panel_user_id == panel_user_id))
-
-    def by_booking_user(self, booking_user_id: str) -> BookingPanelLink | None:
-        return self.session.scalar(select(BookingPanelLink).where(BookingPanelLink.booking_user_id == booking_user_id))
-
-    def link(self, booking_user_id: str, panel_user_id: str) -> BookingPanelLink:
-        """One panel account per scheduling account and the other way round: a new link replaces the old ones."""
-        for existing in (self.by_booking_user(booking_user_id), self.by_panel_user(panel_user_id)):
-            if existing is not None:
-                self.session.delete(existing)
-        self.session.flush()
-        return self.add(BookingPanelLink(booking_user_id=booking_user_id, panel_user_id=panel_user_id))
-
-    def unlink(self, booking_user_id: str) -> None:
-        existing = self.by_booking_user(booking_user_id)
-        if existing is not None:
-            self.session.delete(existing)
-            self.session.flush()
 
 
 class BookingUserRepository(Repository[BookingUser]):

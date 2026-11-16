@@ -26,8 +26,7 @@ from backend.service.scheduling_auth import authorize_booking
 
 logger = logging.getLogger(__name__)
 
-# Set on the account a Nexo owner's or administrator's API key acts as (see controller.dependencies.booking_user).
-PLATFORM_STAFF = "platform_staff"
+PLATFORM_STAFF = "platform_staff"   # PlatformActor: an API key of the Nexo team, with no Atendimentos account
 
 ROLE_LABELS = {"owner": "dono", "manager": "gerente", "staff": "atendente", "viewer": "leitura"}
 MAX_BUSINESSES_PER_USER = 20
@@ -39,6 +38,12 @@ class SchedulingService:
         self.repositories, self.cache, self.settings, self.messages = repositories, cache, settings, messages
 
     # Authorization ----------------------------------------------------------------------------------------
+
+    @staticmethod
+    def _needs_account(user):
+        """Some actions belong to a person (the owner of a new business, who invites, who joins): keys have none."""
+        if getattr(user, PLATFORM_STAFF, False):
+            raise AccessDenied("This action needs an Atendimentos account: do it in the Atendimentos app")
 
     @staticmethod
     def _member(repos, actor, business_id, permission=None):
@@ -90,6 +95,7 @@ class SchedulingService:
     def create_business(self, actor, *, name, opening_hours, **fields):
         with self.repositories.transaction() as repos:
             user = authorize_booking(repos, actor)
+            self._needs_account(user)
             if len(repos.businesses.list_for_user(user.id)) >= MAX_BUSINESSES_PER_USER:
                 raise ResourceConflict("Business limit reached for this account")
             self._ensure_unique(repos, name, fields.get("cnpj"))
@@ -197,6 +203,7 @@ class SchedulingService:
         token = secrets.token_urlsafe(32)
         with self.repositories.transaction() as repos:
             user, membership = self._member(repos, actor, business_id, "members.manage")
+            self._needs_account(user)
             if role not in INVITABLE_ROLES or not outranks(membership.role, role):
                 raise AccessDenied("You can only invite roles below your own")
             business = repos.businesses.get(business_id)
@@ -239,6 +246,7 @@ class SchedulingService:
         try:
             with self.repositories.transaction() as repos:
                 user = authorize_booking(repos, actor)
+                self._needs_account(user)
                 invitation = repos.businesses.invitation_by_token(token)
                 if invitation is None or invitation.accepted_at is not None or invitation.expires_at <= utc_now():
                     raise ResourceNotFound("Invitation not found or expired")
