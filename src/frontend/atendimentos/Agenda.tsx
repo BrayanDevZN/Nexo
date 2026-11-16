@@ -11,6 +11,7 @@ import {
   type Appointment, type AppointmentStatus, type BookingApi, type Business, type Member, type Overview, type Service,
 } from "./api";
 import { CalendarView, Customize, Legend } from "./Calendar";
+import { CustomerField, type Customer } from "./CustomerPicker";
 import {
   loadPrefs, savePrefs, shiftAnchor, startOfDay, viewRange, viewTitle, visibleDays,
   type CalendarPrefs, type CalendarView as View,
@@ -33,6 +34,8 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
   const [members, setMembers] = useState<Member[]>([]);
   const [editing, setEditing] = useState<{ appointment?: Appointment; start?: string }>();
   const [customizing, setCustomizing] = useState(false);
+  const [chosen, setChosen] = useState<Customer | null>(null);
+  const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const writes = can.writeAppointments(business.my_role);
@@ -64,13 +67,21 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
       .then(([list, team]) => { if (active) { setServices(list); setMembers(team); } }).catch(() => undefined);
     return () => { active = false; };
   }, [api, base, editing]);
+  // The customer is chosen in a picker, so it lives here and is reset each time the form opens.
+  useEffect(() => {
+    const open = editing?.appointment;
+    setChosen(open ? { name: open.customer_name, phone: open.customer_phone, email: open.customer_email } : null);
+    setFormError("");
+  }, [editing]);
   function pickView(next: View) { setView(next); if (next !== "list") setAnchor(a => next === "month" ? new Date(a.getFullYear(), a.getMonth(), 1) : a); }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !editing) return;
     const values = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
+    if (!chosen) { setFormError("Escolha o cliente."); return; }
+    setFormError("");
     const body: Record<string, unknown> = {
-      customer_name: values.customer_name, customer_phone: values.customer_phone || null, customer_email: values.customer_email || null,
+      customer_name: chosen.name, customer_phone: chosen.phone, customer_email: chosen.email,
       service_id: values.service_id || null, service_name: values.service_id ? null : values.service_name || null,
       staff_user_id: values.staff_user_id || null, starts_at: localToIso(values.starts_at),
       ends_at: values.ends_at ? localToIso(values.ends_at) : null, notes: values.notes || null,
@@ -148,14 +159,13 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
       <DialogContent className="bk-editor">
         <DialogHeader><DialogTitle>{current ? "Atendimento" : "Novo atendimento"}</DialogTitle><DialogDescription>{current ? "Veja ou altere os dados." : "Preencha o cliente e o horário."}</DialogDescription></DialogHeader>
         {editing && <form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || editing.start || "new"}>
+        <Feedback error={formError} />
         <FieldGroup>
-          <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />
-          <TextField label="Celular do cliente" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
-          {current?.customer_phone && <div className="bk-row">
-            <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + current.customer_phone}><Phone data-icon="inline-start" />Ligar</a></Button>
-            <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + current.customer_phone.replace(/\D/g, "")} target="_blank" rel="noopener"><MessageCircle data-icon="inline-start" />WhatsApp</a></Button>
+          <CustomerField api={api} base={base} value={chosen} onChange={setChosen} disabled={busy} />
+          {chosen?.phone && <div className="bk-row">
+            <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + chosen.phone}><Phone data-icon="inline-start" />Ligar</a></Button>
+            <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + chosen.phone.replace(/\D/g, "")} target="_blank" rel="noopener"><MessageCircle data-icon="inline-start" />WhatsApp</a></Button>
           </div>}
-          <TextField label="E-mail do cliente" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
           <Field><FieldLabel htmlFor="bk-service">Serviço</FieldLabel>
             <NativeSelect id="bk-service" name="service_id" defaultValue={current?.service_id || ""}>
               <NativeSelectOption value="">Outro (escrever abaixo)</NativeSelectOption>

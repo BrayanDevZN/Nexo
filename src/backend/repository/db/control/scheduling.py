@@ -353,6 +353,22 @@ class AppointmentRepository(Repository[Appointment]):
             query = query.where(Appointment.customer_name.icontains(customer, autoescape=True))
         return list(self.session.scalars(query.order_by(Appointment.starts_at, Appointment.id).limit(limit).offset(offset)))
 
+    def customers(self, business_id: str, *, search: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
+        """The people already booked at this business, one row each (same name and phone), newest visit first."""
+        name_key = func.lower(func.trim(Appointment.customer_name))
+        query = (select(func.max(Appointment.customer_name), func.max(Appointment.customer_phone),
+                        func.max(Appointment.customer_email), func.count(Appointment.id), func.max(Appointment.starts_at))
+                 .where(Appointment.business_id == business_id)
+                 .group_by(name_key, func.coalesce(Appointment.customer_phone, ""))
+                 .order_by(func.max(Appointment.starts_at).desc(), name_key).limit(limit).offset(offset))
+        if search and search.strip():
+            term = search.strip()
+            query = query.where(or_(Appointment.customer_name.icontains(term, autoescape=True),
+                                    Appointment.customer_phone.icontains(term, autoescape=True),
+                                    Appointment.customer_email.icontains(term, autoescape=True)))
+        return [{"name": name, "phone": phone, "email": email, "appointments": count, "last_appointment_at": last}
+                for name, phone, email, count, last in self.session.execute(query).all()]
+
     def staff_conflict(self, business_id: str, staff_user_id: str, starts_at: datetime, ends_at: datetime,
                        exclude_id: str | None = None) -> Appointment | None:
         """An active appointment of the same professional that overlaps the period."""

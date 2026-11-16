@@ -14,6 +14,7 @@ from backend.controller.schema.scheduling import (
     BusinessCreate,
     BusinessOutput,
     BusinessPatch,
+    CustomerOutput,
     InvitationCreate,
     InvitationInfo,
     InvitationOutput,
@@ -256,6 +257,17 @@ def list_appointments(business_id: str, request: Request, starts_from: datetime 
 def create_appointment(business_id: str, data: AppointmentCreate, request: Request, actor=Depends(booking_user)):
     try:
         return service(request).create_appointment(actor, business_id, **data.model_dump())
+    except ERRORS as exc:
+        raise fail(exc) from None
+
+
+@router.get("/businesses/{business_id}/customers", response_model=list[CustomerOutput])
+def list_customers(business_id: str, request: Request, search: str | None = Query(default=None, max_length=160),
+                   limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
+                   actor=Depends(booking_user)):
+    """The customers already booked at this business, for the picker of the appointment form."""
+    try:
+        return service(request).list_customers(actor, business_id, search=search, limit=limit, offset=offset)
     except ERRORS as exc:
         raise fail(exc) from None
 

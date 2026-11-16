@@ -308,6 +308,15 @@ class SchedulingService:
                     business_id, starts_from=starts_from, starts_until=starts_until, status=status,
                     staff_user_id=staff_user_id, customer=customer, limit=limit, offset=offset)]))
 
+    def list_customers(self, actor, business_id, *, search=None, limit=50, offset=0):
+        with self.repositories.read_transaction() as repos:
+            self._member(repos, actor, business_id)
+            query = {"operation": "customers", "search": (search or "").strip().lower(), "limit": limit, "offset": offset}
+            rows = self.cache.read(self._scoped("appointments", business_id), query, lambda: [
+                {**row, "last_appointment_at": row["last_appointment_at"].isoformat() if row["last_appointment_at"] else None}
+                for row in repos.appointments.customers(business_id, search=search, limit=limit, offset=offset)])
+            return rows
+
     def get_appointment(self, actor, business_id, appointment_id):
         with self.repositories.read_transaction() as repos:
             self._member(repos, actor, business_id)

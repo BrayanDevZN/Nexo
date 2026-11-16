@@ -429,3 +429,33 @@ def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zo
     # The relative periods answer too (they depend on today's date, so only the shape is checked).
     for period in ("today", "tomorrow", "next_7_days", "next_30_days", "upcoming"):
         assert isinstance(names(period=period), list)
+
+
+def test_customers_of_a_business_are_the_people_already_booked_there(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    business = create_business(client, headers)
+    path = "/atendimentos/businesses/" + business["id"]
+
+    def book(name, phone, start, email=None):
+        body = {"customer_name": name, "customer_phone": phone, "service_name": "Corte", "starts_at": start,
+                "ends_at": start.replace("12:00", "12:30")}
+        if email:
+            body["customer_email"] = email
+        assert client.post(path + "/appointments", headers=headers, json=body).status_code == 201
+
+    book("João Silva", "11999990001", "2026-11-10T12:00:00Z", "joao@example.com")
+    book("joão silva ", "11999990001", "2026-11-16T12:00:00Z", "joao@example.com")   # same person, typed differently
+    book("Maria Souza", "11999990002", "2026-11-12T12:00:00Z")
+    rows = client.get(path + "/customers").json()
+    assert [(row["name"].strip().lower(), row["appointments"]) for row in rows] == [("joão silva", 2), ("maria souza", 1)]   # newest visit first
+    assert rows[0]["phone"] == "+11999990001" and rows[0]["email"] == "joao@example.com"
+    assert [row["name"] for row in client.get(path + "/customers", params={"search": "souza"}).json()] == ["Maria Souza"]
+    assert [row["name"] for row in client.get(path + "/customers", params={"search": "0001"}).json()][0].lower().startswith("joão")
+    assert client.get(path + "/customers", params={"search": "zzz"}).json() == []
+    # Customers are private to the business: another account cannot read them, and a new booking refreshes the list.
+    book("Zélia", "11999990003", "2026-11-20T12:00:00Z")
+    assert len(client.get(path + "/customers").json()) == 3
+    register(client, BIA)
+    login(client, BIA)
+    assert client.get(path + "/customers").status_code == 404
