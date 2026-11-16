@@ -43,14 +43,14 @@ test('every Atendimentos field can be filled by the AI model: none blocks expres
 });
 
 test('searching appointments by week sends the period like the calendar and uses the regular Nexo API credential', async () => {
-	const { output, requests, credentials } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'week', bookingDate: '2026-11-18T10:00:00.000-03:00', bookingWeekStarts: 'monday', bookingStatusFilter: 'confirmed', bookingCustomerFilter: ' Ana ' },
+	const { output, requests, credentials } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'week', bookingDate: '2026-11-18T10:00:00.000-03:00', bookingWeekStarts: 'monday', bookingStatusFilter: 'confirmed' },
 		() => [{ id: 'a1', customer_name: 'Ana' }, { id: 'a2', customer_name: 'Ana Maria' }]);
 	assert.deepEqual(credentials, ['nexoApi']);
 	assert.equal(requests.length, 1);
 	assert.equal(requests[0].credential, 'nexoApi');
 	assert.equal(requests[0].baseURL, 'https://nexo.test/');
 	assert.equal(requests[0].url, 'atendimentos/businesses/b1/appointments');
-	assert.deepEqual(requests[0].qs, { period: 'week', date: '2026-11-18', week_starts: 'monday', status: 'confirmed', customer: 'Ana', limit: 50, offset: 0 });
+	assert.deepEqual(requests[0].qs, { period: 'week', date: '2026-11-18', week_starts: 'monday', status: 'confirmed', limit: 50, offset: 0 });
 	assert.deepEqual(output[0].map((item) => item.json.id), ['a1', 'a2']);
 });
 
@@ -211,4 +211,10 @@ test('a client chosen from the list fills the customer of the appointment, and w
 	const plain = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStatus: 'done' }, answer);
 	assert.equal(plain.requests.length, 1);
 	assert.deepEqual(plain.requests[0].body, { status: 'done' });
+});
+
+test('appointments can no longer be filtered by customer name', async () => {
+	assert.ok(!new Nexo().description.properties.some((field) => field.name === 'bookingCustomerFilter'));
+	const { requests } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'all', bookingCustomerFilter: 'Ana' }, () => []);
+	assert.ok(!('customer' in requests[0].qs));
 });

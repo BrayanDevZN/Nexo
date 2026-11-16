@@ -27,7 +27,7 @@ const bookingToolDescriptions = {
 	},
 	bookingServices: { getMany: 'Listar os serviços de um negócio, com ID, duração e preço.' },
 	bookingAppointments: {
-		getMany: 'Buscar agendamentos de um negócio por período, como no calendário: hoje, amanhã, um dia, uma semana, um mês, próximos 7 ou 30 dias, todos os futuros ou um intervalo de datas. Filtra por situação e cliente.',
+		getMany: 'Buscar agendamentos de um negócio por período, como no calendário: hoje, amanhã, um dia, uma semana, um mês, próximos 7 ou 30 dias, todos os futuros ou um intervalo de datas. Filtra por situação.',
 		get: 'Consultar um agendamento pelo ID.',
 		create: 'Marcar um atendimento: informe o cliente, o início e o serviço (ID) ou o nome do serviço com o fim.',
 		update: 'Alterar um agendamento: remarcar, trocar serviço, dados do cliente ou a situação (confirmar, concluir, cancelar, faltou).',
@@ -68,7 +68,6 @@ add('A semana começa no', 'bookingWeekStarts', 'options', 'sunday', 'bookingApp
 add('De', 'bookingFrom', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, required: true, description: 'Início do intervalo. Sem fuso, vale o horário do negócio.' });
 add('Até', 'bookingUntil', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, description: 'Fim do intervalo (não inclui este instante). Vazio = sem fim.' });
 add('Situação', 'bookingStatusFilter', 'options', '', 'bookingAppointments', ['getMany'], { options: [{ name: 'Todas as situações', value: '' }, ...STATUS_OPTIONS] });
-add('Nome do cliente contém', 'bookingCustomerFilter', 'string', '', 'bookingAppointments', ['getMany']);
 add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments', ['getMany'], { description: `Busca todas as páginas (até ${MAX_ROWS} agendamentos).` });
 add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 } });
 // Appointments: identify, create, update
@@ -224,7 +223,7 @@ async function executeBooking(ctx, resource, operation, index, state) {
 				if (period === 'week') qs.week_starts = String(param('bookingWeekStarts', 'sunday'));
 			}
 		}
-		for (const [field, apiField] of [['bookingStatusFilter', 'status'], ['bookingCustomerFilter', 'customer']]) {
+		for (const [field, apiField] of [['bookingStatusFilter', 'status']]) {
 			const value = clean(param(field));
 			if (value) qs[apiField] = value;
 		}

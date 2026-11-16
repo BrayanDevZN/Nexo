@@ -48,8 +48,7 @@ Em **Atendimentos: agendamentos > Get Many**, o campo **Período** funciona como
 Semana, Mês, Dia específico, Hoje, Amanhã, Próximos 7 dias, Próximos 30 dias, Todos os futuros, Intervalo
 de datas (De/Até) ou Sem período. Semana, Mês e Dia usam o **Dia de referência** (vazio = hoje) e, na semana,
 o primeiro dia (domingo ou segunda). Os limites do dia são os do **fuso horário do negócio**, e horários
-sem fuso informados em De/Até/Início/Fim valem nesse mesmo fuso. Dá para filtrar por situação, nome do
-cliente, e **Devolver todos** percorre as páginas (até 2000 agendamentos).
+sem fuso informados em De/Até/Início/Fim valem nesse mesmo fuso. Dá para filtrar por situação, e **Devolver todos** percorre as páginas (até 2000 agendamentos).
 
 ### Escolher o cliente do agendamento
 
