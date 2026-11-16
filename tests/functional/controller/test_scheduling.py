@@ -83,6 +83,34 @@ def test_account_lifecycle_and_session_isolation_from_the_panel(client):
     assert client.get("/atendimentos/businesses").status_code == 401
 
 
+def test_businesses_cannot_be_duplicated_by_name_or_cnpj_and_cnpj_is_optional(client):
+    register(client, ANA)
+    register(client, BIA)
+    ana = login(client, ANA)
+    business = create_business(client, ana)
+    assert business["cnpj"] is None
+    url = "/atendimentos/businesses"
+    # Same name, however it is typed, and even from another account.
+    for name in ("barbearia do ze", "  BARBEARIA   DO ZÉ! "):
+        response = client.post(url, headers=ana, json={"name": name})
+        assert response.status_code == 409 and "nome" in response.json()["detail"]
+    bia = login(client, BIA)
+    assert client.post(url, headers=bia, json={"name": "Barbearia do Zé"}).status_code == 409
+    # CNPJ: validated, stored as digits, unique.
+    assert client.post(url, headers=bia, json={"name": "Salão A", "cnpj": "11.222.333/0001-80"}).status_code == 422
+    created = client.post(url, headers=bia, json={"name": "Salão A", "cnpj": "11.222.333/0001-81"})
+    assert created.status_code == 201 and created.json()["cnpj"] == "11222333000181"
+    ana = login(client, ANA)
+    assert client.post(url, headers=ana, json={"name": "Salão B", "cnpj": "11222333000181"}).status_code == 409
+    bia = login(client, BIA)
+    assert client.post(url, headers=bia, json={"name": "Salão C", "cnpj": ""}).json()["cnpj"] is None
+    # Editing: keeping its own name is fine, taking another business's is not.
+    path = url + "/" + created.json()["id"]
+    assert client.patch(path, headers=bia, json={"name": "SALÃO A", "city": "Rio"}).status_code == 200
+    assert client.patch(path, headers=bia, json={"name": "Salão C"}).status_code == 409
+    assert client.patch(path, headers=bia, json={"cnpj": None}).json()["cnpj"] is None
+
+
 def test_business_services_and_appointments_with_cache_invalidation(client):
     register(client, ANA)
     headers = login(client, ANA)
@@ -90,8 +118,8 @@ def test_business_services_and_appointments_with_cache_invalidation(client):
     business = create_business(client, headers)
     assert business["my_role"] == "owner" and business["slug"] == "barbearia-do-ze" and business["state"] == "SP"
     assert business["opening_hours"]["mon"] == HOURS["mon"] and business["opening_hours"]["tue"] == []
-    other = create_business(client, headers, "Barbearia do Zé")
-    assert other["slug"].startswith("barbearia-do-ze-") and other["id"] != business["id"]
+    other = create_business(client, headers, "Barbearia do Zé Centro")
+    assert other["id"] != business["id"]
     # The list was cached before the second business; the commit must have refreshed it.
     assert [row["id"] for row in client.get("/atendimentos/businesses").json()] == [business["id"], other["id"]]
     path = "/atendimentos/businesses/" + business["id"]

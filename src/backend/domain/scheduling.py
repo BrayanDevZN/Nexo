@@ -35,6 +35,28 @@ def outranks(role: str, other: str) -> bool:
     return _RANK.get(role, -1) > _RANK.get(other, -1)
 
 
+def business_name_key(name: str) -> str:
+    """What makes two business names the same: no case, accents, spaces or punctuation ("Zé  Barbearia" == "ze barbearia")."""
+    plain = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]", "", plain.lower())
+
+
+def clean_cnpj(value: str | None) -> str | None:
+    """Digits of a CNPJ, validated with its two check digits; blank means no CNPJ (it is optional)."""
+    if value is None or not value.strip():
+        return None
+    digits = re.sub(r"\D", "", value)
+    if len(digits) != 14 or len(set(digits)) == 1:
+        raise ValueError("CNPJ inválido")
+    for size in (12, 13):
+        weights = ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] if size == 12 else [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+        total = sum(int(d) * w for d, w in zip(digits[:size], weights, strict=True))
+        check = 11 - total % 11
+        if int(digits[size]) != (0 if check >= 10 else check):
+            raise ValueError("CNPJ inválido")
+    return digits
+
+
 APPOINTMENT_STATUSES: tuple[str, ...] = ("scheduled", "confirmed", "done", "cancelled", "no_show")
 AppointmentStatus = Literal["scheduled", "confirmed", "done", "cancelled", "no_show"]
 # Statuses that still occupy the agenda; the others free their slot.

@@ -188,7 +188,8 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         "chat_messages": [("media_data", "BLOB")],
         # Photos of the scheduling product, added after its tables already existed on the volume.
         "booking_users": [("profile_photo", "VARCHAR(255)"), ("profile_photo_data", "BLOB")],
-        "businesses": [("photo", "VARCHAR(255)"), ("photo_data", "BLOB")],
+        "businesses": [("photo", "VARCHAR(255)"), ("photo_data", "BLOB"), ("name_key", "VARCHAR(160)"),
+                       ("cnpj", "VARCHAR(14)")],
     }
     with engine.begin() as connection:
         inspector = inspect(connection)
@@ -200,6 +201,13 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         document_columns = {item["name"] for item in inspector.get_columns("documents")}
         if "client_id" not in document_columns:
             connection.execute(text("ALTER TABLE documents ADD COLUMN client_id VARCHAR(36)"))
+    with engine.begin() as connection:
+        from backend.domain.scheduling import business_name_key
+        for business_id, name in connection.execute(text("SELECT id, name FROM businesses WHERE name_key IS NULL")).all():
+            connection.execute(text("UPDATE businesses SET name_key = :key WHERE id = :id"),
+                               {"key": business_name_key(name), "id": business_id})
+        connection.execute(text("CREATE INDEX IF NOT EXISTS business_name_key ON businesses (name_key)"))
+        connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS business_cnpj_unique ON businesses (cnpj)"))
     missing = {name: definition for name, definition in additions.items() if name not in columns}
     if missing:
         with engine.begin() as connection:

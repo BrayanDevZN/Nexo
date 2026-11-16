@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Camera, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +8,41 @@ import { WEEKDAYS, WEEKDAY_LABELS, type BookingApi, type Business, type OpeningH
 import { PhotoField } from "./Photo";
 
 const EMPTY_HOURS = (): OpeningHours => ({ mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] });
+
+const formatCnpj = (value: string | null) => (value || "").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+
+/** The photo of a business that does not exist yet: it is chosen here and sent right after the business is created. */
+function NewPhoto({ file, onChange, disabled }: { file?: File; onChange: (file?: File) => void; disabled?: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState("");
+  useEffect(() => {
+    if (!file) { setPreview(""); return; }
+    const url = URL.createObjectURL(file); setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  function pick(picked?: File) {
+    if (!picked) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(picked.type) || picked.size > 2 * 1024 * 1024) {
+      setError("Escolha uma imagem JPEG, PNG ou WebP de até 2 MB."); return;
+    }
+    setError(""); onChange(picked);
+  }
+  return <Field data-invalid={!!error || undefined}>
+    <FieldLabel>Logo ou foto do negócio <span className="font-normal text-muted-foreground">(opcional)</span></FieldLabel>
+    <div className="bk-photo">
+      {preview
+        ? <img src={preview} alt="Prévia da foto do negócio" className="size-16 rounded-full object-cover" />
+        : <span className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden="true"><Camera /></span>}
+      <div className="bk-photo-actions">
+        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => input.current?.click()}><Camera data-icon="inline-start" />{file ? "Trocar foto" : "Escolher foto"}</Button>
+        {file && <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => { onChange(undefined); if (input.current) input.current.value = ""; }}><Trash2 data-icon="inline-start" />Remover</Button>}
+      </div>
+    </div>
+    <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" disabled={disabled} onChange={event => pick(event.target.files?.[0])} />
+    <p className="bk-muted">{error || "JPEG, PNG ou WebP até 2 MB. A foto é redimensionada."}</p>
+  </Field>;
+}
 
 /** Creates a business or edits its profile and opening hours. Hours are plain time inputs, one line per interval. */
 export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
@@ -17,6 +53,7 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [newPhoto, setNewPhoto] = useState<File>();
   function setSlot(day: Weekday, index: number, position: 0 | 1, value: string) {
     setHours(current => ({ ...current, [day]: current[day].map((slot, i) => i === index ? (position === 0 ? [value, slot[1]] : [slot[0], value]) as [string, string] : slot) }));
   }
@@ -27,14 +64,19 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
     if (busy) return;
     const values = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
     const body = {
-      name: values.name, description: values.description || null, phone: values.phone || null, email: values.email || null,
+      name: values.name, cnpj: values.cnpj?.trim() || null, description: values.description || null, phone: values.phone || null, email: values.email || null,
       address: values.address || null, city: values.city || null, state: values.state || null, opening_hours: hours,
     };
     setBusy(true); setError(""); setSuccess("");
     try {
-      const saved = business
+      let saved = business
         ? await api.mutate<Business>("/businesses/" + business.id, "PATCH", body)
         : await api.mutate<Business>("/businesses", "POST", body);
+      if (!business && newPhoto) {
+        // The business exists now; a failed photo must not undo it, it can be added again from the business data.
+        const data = new FormData(); data.set("file", newPhoto);
+        try { saved = await api.mutate<Business>("/businesses/" + saved.id + "/photo", "PUT", data); } catch { /* keep the business */ }
+      }
       onSaved(saved);
       if (business) setSuccess("Dados salvos.");
     } catch (e) { setError(message(e)); } finally { setBusy(false); }
@@ -51,10 +93,11 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
     <CardContent className="flex flex-col gap-4">
       <Feedback error={error} success={success} />
       {business && <PhotoField api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} disabled={busy} onChanged={hasPhoto => onSaved({ ...business, has_photo: hasPhoto })} label="Logo ou foto do negócio" />}
-      {!business && <p className="bk-muted">Depois de criar, dá para colocar o logo ou uma foto do negócio.</p>}
+      {!business && <NewPhoto file={newPhoto} onChange={setNewPhoto} disabled={busy} />}
       <form onSubmit={submit} className="flex flex-col gap-4">
         <FieldGroup>
           <TextField label="Nome do negócio" name="name" required maxLength={160} defaultValue={business?.name || ""} />
+          <TextField label="CNPJ (opcional)" name="cnpj" inputMode="numeric" maxLength={18} placeholder="00.000.000/0000-00" defaultValue={formatCnpj(business?.cnpj ?? null)} help="Deixe em branco se o negócio não tiver CNPJ." />
           <TextField label="Telefone ou WhatsApp" name="phone" type="tel" maxLength={30} defaultValue={business?.phone || ""} />
           <TextField label="E-mail" name="email" type="email" defaultValue={business?.email || ""} />
           <TextField label="Endereço" name="address" maxLength={300} defaultValue={business?.address || ""} />

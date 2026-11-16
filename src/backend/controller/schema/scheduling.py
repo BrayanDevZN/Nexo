@@ -17,6 +17,7 @@ from backend.domain.scheduling import (
     AppointmentStatus,
     BusinessRole,
     InvitableRole,
+    clean_cnpj,
     validate_opening_hours,
 )
 
@@ -75,6 +76,7 @@ class BookingUserOutput(BaseModel):
 class BusinessFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=160)
+    cnpj: str | None = Field(default=None, max_length=18)
     description: str | None = Field(default=None, max_length=2000)
     phone: str | None = Field(default=None, max_length=30)
     email: EmailStr | None = None
@@ -95,6 +97,11 @@ class BusinessFields(BaseModel):
     @classmethod
     def clean_phone(cls, value):
         return _phone(value)
+
+    @field_validator("cnpj")
+    @classmethod
+    def valid_cnpj(cls, value):
+        return clean_cnpj(value)
 
     @field_validator("state")
     @classmethod
@@ -162,6 +169,7 @@ class BusinessOutput(BaseModel):
     owner_id: str
     name: str
     slug: str
+    cnpj: str | None = None
     description: str | None
     phone: str | None
     email: str | None

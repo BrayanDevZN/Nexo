@@ -66,11 +66,20 @@ class SchedulingService:
                 raise ResourceNotFound("Business not found")
             return {**row, "my_role": membership.role}
 
+    @staticmethod
+    def _ensure_unique(repos, name, cnpj, except_id=None):
+        """No two businesses are the same: not by name (ignoring case, accents and spacing) and not by CNPJ."""
+        if name and repos.businesses.name_taken(name, except_id=except_id):
+            raise ResourceConflict("Já existe um negócio com esse nome")
+        if cnpj and repos.businesses.cnpj_taken(cnpj, except_id=except_id):
+            raise ResourceConflict("Já existe um negócio com esse CNPJ")
+
     def create_business(self, actor, *, name, opening_hours, **fields):
         with self.repositories.transaction() as repos:
             user = authorize_booking(repos, actor)
             if len(repos.businesses.list_for_user(user.id)) >= MAX_BUSINESSES_PER_USER:
                 raise ResourceConflict("Business limit reached for this account")
+            self._ensure_unique(repos, name, fields.get("cnpj"))
             base = slugify(name)
             slug = base
             while repos.businesses.slug_taken(slug):
@@ -81,6 +90,7 @@ class SchedulingService:
     def update_business(self, actor, business_id, **changes):
         with self.repositories.transaction() as repos:
             _, membership = self._member(repos, actor, business_id, "business.write")
+            self._ensure_unique(repos, changes.get("name"), changes.get("cnpj"), except_id=business_id)
             row = repos.businesses.update(repos.businesses.get(business_id), **changes)
             return {**snapshot("businesses", row), "my_role": membership.role}
 

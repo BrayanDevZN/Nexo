@@ -45,10 +45,15 @@ class Business(IdentityTimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("length(trim(name)) > 0", name="business_name_nonempty"),
         Index("business_owner_created_at", "owner_id", "created_at"),
+        Index("business_name_key", "name_key"),
     )
     owner_id: Mapped[str] = mapped_column(ForeignKey("booking_users.id", ondelete="RESTRICT"), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    # Normalized name (domain.scheduling.business_name_key): two businesses cannot share it.
+    name_key: Mapped[str | None] = mapped_column(String(160))
+    # Optional; 14 digits. Unique among businesses that have one.
+    cnpj: Mapped[str | None] = mapped_column(String(14), unique=True)
     description: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(String(32))
     email: Mapped[str | None] = mapped_column(String(254))

@@ -14,6 +14,7 @@ from backend.domain.scheduling import (
     ACTIVE_STATUSES,
     APPOINTMENT_STATUSES,
     BUSINESS_ROLES,
+    business_name_key,
     INVITABLE_ROLES,
 )
 from backend.repository.db.control.base import Repository, pagination
@@ -33,7 +34,7 @@ SCHEDULING_TABLES = frozenset({"booking_users", "businesses", *BUSINESS_SCOPED_T
 
 FIELDS = {
     "booking_users": ("id", "name", "email", "phone", "created_at", "updated_at"),
-    "businesses": ("id", "owner_id", "name", "slug", "description", "phone", "email", "address", "city", "state",
+    "businesses": ("id", "owner_id", "name", "slug", "cnpj", "description", "phone", "email", "address", "city", "state",
                    "timezone", "opening_hours", "created_at", "updated_at"),
     "business_members": ("id", "business_id", "user_id", "role", "created_at", "updated_at"),
     "business_invitations": ("id", "business_id", "email", "role", "created_by_id", "expires_at", "accepted_at",
@@ -160,7 +161,7 @@ class BusinessRepository(Repository[Business]):
     def create(self, *, owner_id: str, name: str, slug: str, opening_hours: dict, **fields) -> Business:
         if not name.strip():
             raise ValueError("Name is required")
-        row = self.add(Business(owner_id=owner_id, name=name.strip(), slug=slug,
+        row = self.add(Business(owner_id=owner_id, name=name.strip(), name_key=business_name_key(name), slug=slug,
                                 opening_hours=json.dumps(opening_hours, separators=(",", ":")), **fields))
         # The creator is the first member; every permission check reads this table.
         self.session.add(BusinessMember(business_id=row.id, user_id=owner_id, role="owner"))
@@ -172,11 +173,23 @@ class BusinessRepository(Repository[Business]):
         business.photo_data = data
         self.session.flush()
 
+    def name_taken(self, name: str, *, except_id: str | None = None) -> bool:
+        query = select(func.count()).select_from(Business).where(Business.name_key == business_name_key(name))
+        if except_id:
+            query = query.where(Business.id != except_id)
+        return self.session.scalar(query) > 0
+
+    def cnpj_taken(self, cnpj: str, *, except_id: str | None = None) -> bool:
+        query = select(func.count()).select_from(Business).where(Business.cnpj == cnpj)
+        if except_id:
+            query = query.where(Business.id != except_id)
+        return self.session.scalar(query) > 0
+
     def slug_taken(self, slug: str) -> bool:
         return self.session.scalar(select(func.count()).select_from(Business).where(Business.slug == slug)) > 0
 
     def update(self, business: Business, **changes) -> Business:
-        allowed = {"name", "description", "phone", "email", "address", "city", "state", "timezone", "opening_hours"}
+        allowed = {"name", "cnpj", "description", "phone", "email", "address", "city", "state", "timezone", "opening_hours"}
         if set(changes) - allowed:
             raise ValueError("Unsupported business fields")
         for field, value in changes.items():
@@ -184,6 +197,7 @@ class BusinessRepository(Repository[Business]):
                 if not isinstance(value, str) or not value.strip():
                     raise ValueError("Name is required")
                 value = value.strip()
+                business.name_key = business_name_key(value)
             elif field == "opening_hours":
                 value = json.dumps(value, separators=(",", ":"))
             setattr(business, field, value)

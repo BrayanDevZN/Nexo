@@ -82,10 +82,6 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
       <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Feedback error={error} success={success} />
-        {!complete && (mode === "login" || mode === "register") && <>
-          <Button variant="outline" size="lg" className="bk-google" asChild><a href={api.googleLogin}><GoogleLogo />Continuar com Google</a></Button>
-          <div className="bk-or">ou com e-mail</div>
-        </>}
         <form onSubmit={submit} key={complete ? "google" : mode} className="flex flex-col gap-4">
           <FieldGroup>
             {(complete || mode === "register") && <>
@@ -101,6 +97,10 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
             {busy ? <><Spinner data-icon="inline-start" />Enviando…</> : <>{action}<ArrowRight data-icon="inline-end" /></>}
           </Button>
         </form>
+        {!complete && (mode === "login" || mode === "register") && <>
+          <div className="bk-or">ou</div>
+          <Button variant="outline" size="lg" className="bk-google" asChild><a href={api.googleLogin}><GoogleLogo />Continuar com Google</a></Button>
+        </>}
         {!complete && mode === "login" && <Button variant="link" disabled={busy} onClick={() => switchMode("recovery")}>Esqueci minha senha</Button>}
         {!complete && mode === "verify" && <Button variant="link" disabled={busy} onClick={async () => {
           if (!registration) return;

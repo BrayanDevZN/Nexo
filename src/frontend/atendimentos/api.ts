@@ -20,7 +20,7 @@ export type Weekday = typeof WEEKDAYS[number];
 export const WEEKDAY_LABELS: Record<Weekday, string> = { mon: "Segunda", tue: "Terça", wed: "Quarta", thu: "Quinta", fri: "Sexta", sat: "Sábado", sun: "Domingo" };
 export type OpeningHours = Record<Weekday, [string, string][]>;
 export type Business = {
-  id: string; owner_id: string; name: string; slug: string; description: string | null; phone: string | null;
+  id: string; owner_id: string; name: string; slug: string; cnpj: string | null; description: string | null; phone: string | null;
   email: string | null; address: string | null; city: string | null; state: string | null; timezone: string;
   opening_hours: OpeningHours; has_photo: boolean; my_role: BusinessRole; created_at: string; updated_at: string;
 };
