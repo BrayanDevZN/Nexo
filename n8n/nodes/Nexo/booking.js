@@ -23,14 +23,14 @@ const bookingToolDescriptions = {
 		getMany: 'Listar os negócios do Atendimentos de que a conta faz parte, com o ID de cada um.',
 		get: 'Consultar um negócio do Atendimentos (horário de funcionamento, fuso, contato).',
 		overview: 'Resumo da agenda de um negócio: atendimentos de hoje, dos próximos 7 dias, futuros e concluídos, e os próximos marcados.',
-		members: 'Listar a equipe de um negócio, com o ID de cada pessoa (usado em "Quem atende").',
+		members: 'Listar a equipe de um negócio.',
 	},
 	bookingServices: { getMany: 'Listar os serviços de um negócio, com ID, duração e preço.' },
 	bookingAppointments: {
-		getMany: 'Buscar agendamentos de um negócio por período, como no calendário: hoje, amanhã, um dia, uma semana, um mês, próximos 7 ou 30 dias, todos os futuros ou um intervalo de datas. Filtra por situação, cliente e quem atende.',
+		getMany: 'Buscar agendamentos de um negócio por período, como no calendário: hoje, amanhã, um dia, uma semana, um mês, próximos 7 ou 30 dias, todos os futuros ou um intervalo de datas. Filtra por situação e cliente.',
 		get: 'Consultar um agendamento pelo ID.',
 		create: 'Marcar um atendimento: informe o cliente, o início e o serviço (ID) ou o nome do serviço com o fim.',
-		update: 'Alterar um agendamento: remarcar, trocar serviço, quem atende, dados do cliente ou a situação (confirmar, concluir, cancelar, faltou).',
+		update: 'Alterar um agendamento: remarcar, trocar serviço, dados do cliente ou a situação (confirmar, concluir, cancelar, faltou).',
 		delete: 'Apagar um agendamento.',
 	},
 };
@@ -69,7 +69,6 @@ add('De', 'bookingFrom', 'dateTime', '', 'bookingAppointments', ['getMany'], { d
 add('Até', 'bookingUntil', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, description: 'Fim do intervalo (não inclui este instante). Vazio = sem fim.' });
 add('Situação', 'bookingStatusFilter', 'options', '', 'bookingAppointments', ['getMany'], { options: [{ name: 'Todas as situações', value: '' }, ...STATUS_OPTIONS] });
 add('Nome do cliente contém', 'bookingCustomerFilter', 'string', '', 'bookingAppointments', ['getMany']);
-add('Quem atende', 'bookingStaffFilter', 'options', '', 'bookingAppointments', ['getMany'], { typeOptions: { loadOptionsMethod: 'getBookingMembers', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Só os atendimentos dessa pessoa da equipe do negócio.' });
 add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments', ['getMany'], { description: `Busca todas as páginas (até ${MAX_ROWS} agendamentos).` });
 add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 } });
 // Appointments: identify, create, update
@@ -93,7 +92,6 @@ add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['updat
 add('Fim', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa a duração do serviço (ou não altera, ao atualizar).' });
 add('ID do serviço', 'bookingServiceId', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Veja os IDs em Serviços > Get Many. Vazio: use o nome do serviço abaixo.' });
 add('Nome do serviço', 'bookingServiceName', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Só quando não houver ID de serviço; neste caso informe também o Fim.' });
-add('Quem atende', 'bookingStaffId', 'options', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingMembers', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Pessoa da equipe do negócio. Sem escolher: qualquer uma (ou não altera, ao atualizar).' });
 add('Preço (R$)', 'bookingPrice', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa o preço do serviço. Ex.: 45,00.' });
 add('Observações', 'bookingNotes', 'string', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { rows: 3 } });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS] });
@@ -163,17 +161,6 @@ const listSearch = {
 };
 
 const loadOptions = {
-	/** The team of the chosen business, so "Quem atende" is a list of people instead of an ID to type. */
-	async getBookingMembers() {
-		const operation = this.getCurrentNodeParameter('operation');
-		const none = operation === 'update' ? 'Não alterar' : operation === 'getMany' ? 'Todas as pessoas' : 'Qualquer pessoa';
-		const business = clean(this.getCurrentNodeParameter('bookingBusinessId', { extractValue: true }));
-		if (!business) return [{ name: 'Escolha o negócio primeiro', value: '' }];
-		const credentials = await this.getCredentials(CREDENTIAL);
-		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
-		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: `atendimentos/businesses/${encodeURIComponent(business)}/members`, json: true, timeout: 30000 });
-		return [{ name: none, value: '' }, ...(Array.isArray(rows) ? rows : []).map((row) => ({ name: row.name || row.email || 'Sem nome', value: row.user_id, description: row.name && row.email ? row.email : undefined }))];
-	},
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -237,7 +224,7 @@ async function executeBooking(ctx, resource, operation, index, state) {
 				if (period === 'week') qs.week_starts = String(param('bookingWeekStarts', 'sunday'));
 			}
 		}
-		for (const [field, apiField] of [['bookingStatusFilter', 'status'], ['bookingCustomerFilter', 'customer'], ['bookingStaffFilter', 'staff_user_id']]) {
+		for (const [field, apiField] of [['bookingStatusFilter', 'status'], ['bookingCustomerFilter', 'customer']]) {
 			const value = clean(param(field));
 			if (value) qs[apiField] = value;
 		}
@@ -264,7 +251,7 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	const email = clean(param('bookingCustomerEmail')) ?? clean(known?.email);
 	if (phone) body.customer_phone = phone;
 	if (email) body.customer_email = email;
-	for (const [field, apiField] of [['bookingServiceId', 'service_id'], ['bookingServiceName', 'service_name'], ['bookingStaffId', 'staff_user_id'], ['bookingNotes', 'notes']]) {
+	for (const [field, apiField] of [['bookingServiceId', 'service_id'], ['bookingServiceName', 'service_name'], ['bookingNotes', 'notes']]) {
 		const value = clean(param(field));
 		if (value !== undefined) body[apiField] = value;
 	}
