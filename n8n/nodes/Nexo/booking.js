@@ -69,7 +69,7 @@ add('De', 'bookingFrom', 'dateTime', '', 'bookingAppointments', ['getMany'], { d
 add('Até', 'bookingUntil', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, description: 'Fim do intervalo (não inclui este instante). Vazio = sem fim.' });
 add('Situação', 'bookingStatusFilter', 'options', '', 'bookingAppointments', ['getMany'], { options: [{ name: 'Todas as situações', value: '' }, ...STATUS_OPTIONS] });
 add('Nome do cliente contém', 'bookingCustomerFilter', 'string', '', 'bookingAppointments', ['getMany']);
-add('ID de quem atende', 'bookingStaffFilter', 'string', '', 'bookingAppointments', ['getMany'], { description: 'Só os atendimentos dessa pessoa da equipe. Veja os IDs em "Listar equipe".' });
+add('Quem atende', 'bookingStaffFilter', 'options', '', 'bookingAppointments', ['getMany'], { typeOptions: { loadOptionsMethod: 'getBookingMembers', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Só os atendimentos dessa pessoa da equipe do negócio.' });
 add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments', ['getMany'], { description: `Busca todas as páginas (até ${MAX_ROWS} agendamentos).` });
 add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 } });
 // Appointments: identify, create, update
@@ -93,7 +93,7 @@ add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['updat
 add('Fim', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa a duração do serviço (ou não altera, ao atualizar).' });
 add('ID do serviço', 'bookingServiceId', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Veja os IDs em Serviços > Get Many. Vazio: use o nome do serviço abaixo.' });
 add('Nome do serviço', 'bookingServiceName', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Só quando não houver ID de serviço; neste caso informe também o Fim.' });
-add('ID de quem atende', 'bookingStaffId', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Pessoa da equipe. Vazio: qualquer uma.' });
+add('Quem atende', 'bookingStaffId', 'options', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingMembers', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Pessoa da equipe do negócio. Sem escolher: qualquer uma (ou não altera, ao atualizar).' });
 add('Preço (R$)', 'bookingPrice', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa o preço do serviço. Ex.: 45,00.' });
 add('Observações', 'bookingNotes', 'string', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { rows: 3 } });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS] });
@@ -163,6 +163,17 @@ const listSearch = {
 };
 
 const loadOptions = {
+	/** The team of the chosen business, so "Quem atende" is a list of people instead of an ID to type. */
+	async getBookingMembers() {
+		const operation = this.getCurrentNodeParameter('operation');
+		const none = operation === 'update' ? 'Não alterar' : operation === 'getMany' ? 'Todas as pessoas' : 'Qualquer pessoa';
+		const business = clean(this.getCurrentNodeParameter('bookingBusinessId', { extractValue: true }));
+		if (!business) return [{ name: 'Escolha o negócio primeiro', value: '' }];
+		const credentials = await this.getCredentials(CREDENTIAL);
+		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: `atendimentos/businesses/${encodeURIComponent(business)}/members`, json: true, timeout: 30000 });
+		return [{ name: none, value: '' }, ...(Array.isArray(rows) ? rows : []).map((row) => ({ name: row.name || row.email || 'Sem nome', value: row.user_id, description: row.name && row.email ? row.email : undefined }))];
+	},
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');

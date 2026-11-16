@@ -140,6 +140,25 @@ test('the business picker lists the account businesses with the regular Nexo API
 	assert.deepEqual(options, [{ name: 'Barbearia', value: 'b1', description: 'São Paulo / SP' }]);
 });
 
+test('"Quem atende" lists the team of the chosen business instead of asking for an ID', async () => {
+	const node = new Nexo();
+	for (const [name, operation] of [['bookingStaffFilter', 'getMany'], ['bookingStaffId', 'create'], ['bookingStaffId', 'update']]) {
+		const field = node.description.properties.find((item) => item.name === name && item.displayOptions.show.operation.includes(operation));
+		assert.equal(field.type, 'options');
+		assert.equal(field.typeOptions.loadOptionsMethod, 'getBookingMembers');
+		assert.deepEqual(field.typeOptions.loadOptionsDependsOn, ['bookingBusinessId']);
+	}
+	const load = (operation, business) => node.methods.loadOptions.getBookingMembers.call({
+		getCurrentNodeParameter: (name) => (name === 'operation' ? operation : business),
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async (credential, request) => { assert.equal(credential, 'nexoApi'); assert.equal(request.url, 'atendimentos/businesses/b1/members'); return [{ user_id: 'u1', name: 'Ana', email: 'ana@x.com' }, { user_id: 'u2', name: null, email: 'bia@x.com' }]; } },
+	});
+	assert.deepEqual(await load('create', 'b1'), [{ name: 'Qualquer pessoa', value: '' }, { name: 'Ana', value: 'u1', description: 'ana@x.com' }, { name: 'bia@x.com', value: 'u2', description: undefined }]);
+	assert.equal((await load('update', 'b1'))[0].name, 'Não alterar');
+	assert.equal((await load('getMany', 'b1'))[0].name, 'Todas as pessoas');
+	assert.deepEqual(await load('create', ''), [{ name: 'Escolha o negócio primeiro', value: '' }]);
+});
+
 test('time helpers: local time of the business, explicit offsets, days and prices', () => {
 	assert.equal(instant('2026-11-16T09:00:00', 'America/Sao_Paulo', 'x'), '2026-11-16T12:00:00.000Z');
 	assert.equal(instant('2026-11-16 09:00', 'America/New_York', 'x'), '2026-11-16T14:00:00.000Z');
