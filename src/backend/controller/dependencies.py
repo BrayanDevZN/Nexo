@@ -9,6 +9,7 @@ from backend.domain.roles import (
     key_allows,
 )
 from backend.service.access import REQUEST_AUTHENTICATED, AccessDenied
+from backend.service.scheduling import PLATFORM_STAFF
 from backend.service.api_keys import ApiKeyAuthenticationError
 from backend.service.security import AuthenticationError
 
@@ -40,8 +41,12 @@ def booking_user(request: Request):
     if request.headers.get("authorization", "").lower().startswith("bearer "):
         key_owner = _header_api_key(request)
         if key_owner is not None:
+            staff = has_role(key_owner, ADMINISTRATORS)
             try:
-                return request.app.state.services.booking_auth.for_panel_user(key_owner)
+                account = request.app.state.services.booking_auth.for_panel_user(key_owner, provision=staff)
+                # The Nexo owner and administrators see and manage every business, not only their own.
+                setattr(account, PLATFORM_STAFF, staff)
+                return account
             except AccessDenied as exc:
                 raise HTTPException(status_code=403, detail=f"{exc} (open /atendimentos > Conta and connect this Nexo API key, or sign up there with this e-mail)") from None
     return booking_session_user(request)

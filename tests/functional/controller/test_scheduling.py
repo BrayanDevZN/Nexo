@@ -462,3 +462,48 @@ def test_a_nexo_api_key_can_be_connected_to_an_atendimentos_account_with_another
     assert client.delete("/atendimentos/auth/panel-link", headers=ana).status_code == 204
     client.cookies.clear()
     assert client.get("/atendimentos/businesses", headers=bearer).status_code == 403
+
+
+def test_the_owner_and_administrator_keys_list_every_business_without_any_setup(client):
+    register(client, ANA)
+    register(client, BIA)
+    mine = create_business(client, login(client, ANA), "Barbearia da Ana")
+    theirs = create_business(client, login(client, BIA), "Salão da Bia")
+    services = client.app.state.services
+    with services.repositories.transaction() as repos:
+        for name, email, role in (("Dono", "dono@empresa.com", "owner"), ("Admin", "admin@empresa.com", "admin"), ("Dev", "dev@empresa.com", "dev")):
+            repos.users.create(name=name, email=email, status="approved", role=role, password_hash=services.passwords.hash(PANEL_PASSWORD))
+
+    def key(email):
+        client.cookies.clear()
+        assert client.post("/auth/login", headers=ORIGIN, json={"email": email, "password": PANEL_PASSWORD}).status_code == 200
+        csrf = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+        secret = client.post("/auth/api-keys", headers=csrf, json={"name": "n8n"}).json()["key"]
+        client.cookies.clear()
+        return {"Authorization": "Bearer " + secret}
+
+    for email in ("dono@empresa.com", "admin@empresa.com"):
+        bearer = key(email)   # neither has an Atendimentos account, and nothing was connected
+        listed = client.get("/atendimentos/businesses", headers=bearer)
+        assert listed.status_code == 200, listed.text
+        assert {row["name"] for row in listed.json()} == {"Barbearia da Ana", "Salão da Bia"}
+        assert {row["my_role"] for row in listed.json()} == {"owner"}
+        path = "/atendimentos/businesses/" + theirs["id"]
+        assert client.get(path, headers=bearer).json()["name"] == "Salão da Bia"
+        service = client.post(path + "/services", headers=bearer, json={"name": "Corte", "duration_minutes": 30}).json()
+        booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "starts_at": "2026-11-16T12:00:00Z"})
+        assert booked.status_code == 201, booked.text
+        assert client.get(path + "/appointments", headers=bearer, params={"period": "day", "date": "2026-11-16"}).json()[0]["customer_name"] == "João"
+        assert client.get("/atendimentos/businesses/00000000-0000-4000-8000-000000000000", headers=bearer).status_code == 404
+        # The key still cannot reach the account routes of anyone.
+        assert client.get("/atendimentos/auth/me", headers=bearer).status_code == 401
+    # Another panel role gets no such reach: a developer's key is limited to its own account, as before.
+    refused = client.get("/atendimentos/businesses", headers=key("dev@empresa.com"))
+    assert refused.status_code == 403
+    # A new business shows up in the staff list at once (the cached list is refreshed), and the Atendimentos
+    # users themselves still only see their own.
+    third = create_business(client, login(client, ANA), "Segunda da Ana")
+    assert third["id"] in [row["id"] for row in client.get("/atendimentos/businesses", headers=key("dono@empresa.com")).json()]
+    client.cookies.clear()
+    login(client, BIA)
+    assert [row["name"] for row in client.get("/atendimentos/businesses").json()] == ["Salão da Bia"]

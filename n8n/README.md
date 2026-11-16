@@ -18,13 +18,16 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 ## Atendimentos com a mesma chave
 
 Os recursos **Atendimentos** usam a **mesma credencial Nexo API** (a mesma chave do painel) dos demais
-recursos. A chave age como a conta do **Atendimentos cadastrada com o mesmo e-mail** do dono da chave e vê os
-negócios de que essa conta faz parte, com o mesmo papel (dono, gerente, atendente ou leitura). Se não houver
-conta do Atendimentos com esse e-mail, a API responde 403: crie a conta em `/atendimentos` com o e-mail do painel.
-Se o e-mail do painel for diferente do e-mail do Atendimentos, abra **Atendimentos > Conta > Conectar ao n8n**,
-cole a mesma chave de API e pronto: ela passa a agir como essa conta (dá para desconectar depois). O node mostra
-o motivo quando a chave não está ligada a nenhuma conta, em vez do genérico "Forbidden".
-A chave não acessa os dados da conta (senha, perfil, sessão).
+recursos. O campo **Negócio** lista os negócios e você escolhe qual agenda mexer.
+
+- **Dono e administradores da Nexo:** a chave enxerga **todos os negócios** do Atendimentos e age neles como
+  dono. Não precisa de conta no Atendimentos nem de conectar nada.
+- **Demais papéis:** a chave age como a conta do Atendimentos cadastrada com o **mesmo e-mail**, vendo os
+  negócios dessa conta com o mesmo papel (dono, gerente, atendente ou leitura). Se o e-mail for diferente, abra
+  **Atendimentos > Conta > Conectar ao n8n** e cole a chave para ligá-la à conta (dá para desconectar depois).
+  Sem conta ligada, o node mostra o motivo em vez do genérico "Forbidden".
+
+A chave nunca acessa os dados da conta (senha, perfil, sessão).
 
 ## Recursos e operações
 

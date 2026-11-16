@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
+Generated: 2026-11-16 | 451 files | ~585.2K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -12,7 +12,7 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
 | src/backend/controller/application.py | 110 | 1.4K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
-| src/backend/controller/dependencies.py | 106 | 991 | source |
+| src/backend/controller/dependencies.py | 111 | 1.1K | source |
 | src/backend/controller/handles/account_deletion.py | 43 | 532 | source |
 | src/backend/controller/handles/api_keys.py | 53 | 501 | source |
 | src/backend/controller/handles/approvals.py | 188 | 2.1K | source |
@@ -108,7 +108,7 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
-| src/backend/repository/db/control/scheduling.py | 429 | 5.8K | source |
+| src/backend/repository/db/control/scheduling.py | 433 | 5.8K | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/control/video_jobs.py | 31 | 366 | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
@@ -162,8 +162,8 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | src/backend/service/realtime.py | 39 | 409 | source |
 | src/backend/service/registration.py | 57 | 669 | source |
 | src/backend/service/runtime.py | 218 | 3.6K | source |
-| src/backend/service/scheduling_auth.py | 166 | 2.2K | source |
-| src/backend/service/scheduling.py | 394 | 6.0K | source |
+| src/backend/service/scheduling_auth.py | 179 | 2.4K | source |
+| src/backend/service/scheduling.py | 405 | 6.2K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 42 | 449 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
@@ -331,7 +331,7 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
-| tests/functional/controller/test_scheduling.py | 465 | 7.9K | test |
+| tests/functional/controller/test_scheduling.py | 510 | 8.7K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -423,7 +423,7 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | tests/unit/service/test_webhook_events.py | 182 | 1.6K | test |
 | docs/prompts/first-contact-whatsapp.md | 237 | 3.6K | docs |
 | maps-server/README.md | 35 | 351 | docs |
-| n8n/README.md | 192 | 3.2K | docs |
+| n8n/README.md | 195 | 3.2K | docs |
 | README.mcp.md | 83 | 883 | docs |
 | README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
@@ -457,9 +457,9 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 292 files, ~378.4K tokens
+- source: 292 files, ~378.9K tokens
 - config: 13 files, ~3.6K tokens
-- test: 112 files, ~136.1K tokens
+- test: 112 files, ~136.9K tokens
 - docs: 11 files, ~19.1K tokens
 - style: 5 files, ~40.8K tokens
 - other: 18 files, ~5.8K tokens
@@ -473,3 +473,4 @@ Generated: 2026-11-16 | 451 files | ~583.9K tokens if all read
 6. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
 7. mcp_server.py — 589 lines (~4.9K tokens)
 8. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
+9. tests/functional/controller/test_scheduling.py — 510 lines (~8.7K tokens)

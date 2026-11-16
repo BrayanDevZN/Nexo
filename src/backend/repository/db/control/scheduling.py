@@ -236,6 +236,10 @@ class BusinessRepository(Repository[Business]):
         self.session.delete(business)
         self.session.flush()
 
+    def list_all(self) -> list[Business]:
+        """Every business of the platform, for the Nexo owner's and administrators' API keys."""
+        return list(self.session.scalars(select(Business).order_by(Business.created_at, Business.id)))
+
     def list_for_user(self, user_id: str) -> list[tuple[Business, str]]:
         """Every business the account belongs to, with the role it holds there."""
         rows = self.session.execute(

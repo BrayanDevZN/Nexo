@@ -50,14 +50,27 @@ class BookingAuthService:
             raise AuthenticationError("Invalid email or password")
         return user, self.sessions.issue(user)
 
-    def for_panel_user(self, panel_user):
-        """The scheduling account a panel API key acts as: the one linked to it, else the one with the same e-mail."""
+    def for_panel_user(self, panel_user, *, provision=False):
+        """The scheduling account a panel API key acts as: the one linked to it, else the one with the same e-mail.
+
+        `provision` (for the Nexo owner and administrators) creates that account, with no usable password, when
+        it does not exist yet: the panel e-mail is already verified, and password recovery or Google sign-in can
+        claim it later.
+        """
         with self.repositories.read_transaction() as repos:
             link = repos.booking_panel_links.by_panel_user(panel_user.id)
             user = repos.booking_users.get(link.booking_user_id) if link else repos.booking_users.by_email(panel_user.email)
-            if user is None:
-                raise AccessDenied(f"No Atendimentos account for {panel_user.email}")
-            return user
+        if user is None and provision:
+            try:
+                with self.repositories.transaction() as repos:
+                    user = repos.booking_users.create(name=panel_user.name, email=panel_user.email,
+                                                      password_hash=self.passwords.hash(secrets.token_urlsafe(32)))
+            except IntegrityError:
+                with self.repositories.read_transaction() as repos:   # created by a request that ran at the same time
+                    user = repos.booking_users.by_email(panel_user.email)
+        if user is None:
+            raise AccessDenied(f"No Atendimentos account for {panel_user.email}")
+        return user
 
     def panel_link(self, actor):
         """Whether this scheduling account has a panel API key linked, and to which panel e-mail."""

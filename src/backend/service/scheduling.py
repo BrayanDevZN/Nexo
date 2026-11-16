@@ -1,6 +1,7 @@
 """Businesses, their teams, services and appointments. Reads go through the cache; writes invalidate it per business."""
 import logging
 import secrets
+from types import SimpleNamespace
 from datetime import timedelta
 from urllib.parse import urlencode
 
@@ -25,6 +26,9 @@ from backend.service.scheduling_auth import authorize_booking
 
 logger = logging.getLogger(__name__)
 
+# Set on the account a Nexo owner's or administrator's API key acts as (see controller.dependencies.booking_user).
+PLATFORM_STAFF = "platform_staff"
+
 ROLE_LABELS = {"owner": "dono", "manager": "gerente", "staff": "atendente", "viewer": "leitura"}
 MAX_BUSINESSES_PER_USER = 20
 INVITATION_TTL = timedelta(days=7)
@@ -41,6 +45,9 @@ class SchedulingService:
         """The actor's membership in the business, read from SQL. A non-member sees 404, never that it exists."""
         user = authorize_booking(repos, actor)
         membership = repos.businesses.membership(business_id, user.id)
+        if membership is None and getattr(actor, PLATFORM_STAFF, False) and repos.businesses.get(business_id) is not None:
+            # The Nexo owner's and administrators' API keys reach every business, with the dono's permissions.
+            membership = SimpleNamespace(role=BUSINESS_OWNER)
         if membership is None:
             raise ResourceNotFound("Business not found")
         if permission and not allowed(membership.role, permission):
@@ -55,6 +62,10 @@ class SchedulingService:
     def list_businesses(self, actor):
         with self.repositories.read_transaction() as repos:
             user = authorize_booking(repos, actor)
+            if getattr(actor, PLATFORM_STAFF, False):
+                return self.cache.read("businesses", {"operation": "list_all"},
+                                       lambda: [{**snapshot("businesses", business), "my_role": BUSINESS_OWNER}
+                                                for business in repos.businesses.list_all()])
             return self.cache.read("businesses", {"operation": "list_for_user", "user_id": user.id},
                                    lambda: [{**snapshot("businesses", business), "my_role": role}
                                             for business, role in repos.businesses.list_for_user(user.id)])
