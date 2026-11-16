@@ -68,6 +68,15 @@ com FRONTEND_URL/CORS_ORIGINS correspondentes ao site. Consulte
 [instruções do painel](src/frontend/admin/README.md).
 Consulte [instruções do backend](src/backend/README.md).
 
+### Nexo Atendimentos
+
+Produto de agendamento em `/atendimentos`, com contas próprias (separadas do painel), negócios, equipe com
+permissões, serviços e agenda. As telas ficam em `src/frontend/atendimentos` e são propositalmente leves: sem fundo
+animado, sem partículas, sem desfoque nem animações, botões grandes e navegação fixa no rodapé do celular, para
+funcionar em aparelhos fracos. Usam a mesma API em `/api/atendimentos` (rotas e regras em
+[`src/backend/README.md`](src/backend/README.md#atendimentos-agendamento)). O login com Google é o mesmo do painel
+e volta para `/atendimentos`; convites chegam como `/atendimentos?invite=<token>`.
+
 ### Documentos e identificação de criadores
 
 Membros aprovados podem enviar e baixar documentos em `/documents`. A API grava os arquivos em `UPLOAD_DIR/documents` com nomes internos aleatórios; o SQLite guarda os metadados. Configure `DOCUMENT_MAX_BYTES` (padrão: 10485760, 10 MiB). São aceitos PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT, CSV, ODT/ODS e RTF. Downloads exigem autenticação e são enviados como anexos. Exclusão de documentos de outras pessoas exige Owner; o criador pode excluir os próprios documentos. O volume `/data` no Railway deve preservar tanto o banco quanto uploads. A tabela é criada pelo comando de criação de tabelas já usado na inicialização.

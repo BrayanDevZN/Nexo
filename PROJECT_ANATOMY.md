@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
+Generated: 2026-11-16 | 439 files | ~538.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -212,6 +212,14 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 414 | source |
+| src/frontend/atendimentos/Account.tsx | 48 | 887 | source |
+| src/frontend/atendimentos/Agenda.tsx | 137 | 2.5K | source |
+| src/frontend/atendimentos/api.ts | 75 | 1.4K | source |
+| src/frontend/atendimentos/Auth.tsx | 102 | 2.0K | source |
+| src/frontend/atendimentos/BookingApp.tsx | 123 | 2.1K | source |
+| src/frontend/atendimentos/BusinessForm.tsx | 93 | 1.6K | source |
+| src/frontend/atendimentos/Services.tsx | 70 | 1.2K | source |
+| src/frontend/atendimentos/Team.tsx | 84 | 1.7K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -270,7 +278,7 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 44 | 480 | source |
+| src/frontend/main.tsx | 50 | 625 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -289,7 +297,7 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | src/frontend/components.json | 26 | 131 | config |
 | src/frontend/package.json | 48 | 326 | config |
 | src/frontend/tsconfig.json | 42 | 187 | config |
-| src/frontend/vercel.json | 16 | 139 | config |
+| src/frontend/vercel.json | 18 | 172 | config |
 | video-server/package.json | 19 | 102 | config |
 | n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
@@ -322,6 +330,7 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
+| tests/integration/frontend/atendimentos.spec.ts | 97 | 1.6K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -404,7 +413,7 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | maps-server/README.md | 35 | 351 | docs |
 | n8n/README.md | 150 | 2.4K | docs |
 | README.mcp.md | 83 | 883 | docs |
-| README.md | 112 | 2.3K | docs |
+| README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
 | requirements.txt | 16 | 75 | docs |
 | src/backend/README.md | 333 | 6.3K | docs |
@@ -412,6 +421,7 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
+| src/frontend/styles/atendimentos.css | 74 | 1.6K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
@@ -435,11 +445,11 @@ Generated: 2026-11-16 | 429 files | ~521.8K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 274 files, ~334.6K tokens
+- source: 282 files, ~348.3K tokens
 - config: 13 files, ~3.6K tokens
-- test: 109 files, ~125.4K tokens
-- docs: 11 files, ~18.1K tokens
-- style: 4 files, ~34.3K tokens
+- test: 110 files, ~127.0K tokens
+- docs: 11 files, ~18.3K tokens
+- style: 5 files, ~35.9K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

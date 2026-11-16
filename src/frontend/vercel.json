@@ -3,6 +3,8 @@
     {"source": "/api/:path*", "destination": "https://nexo-production-60a0.up.railway.app/:path*"},
     {"source": "/privacidade", "destination": "/index.html"},
     {"source": "/privacidade/", "destination": "/index.html"},
+    {"source": "/atendimentos", "destination": "/index.html"},
+    {"source": "/atendimentos/:path*", "destination": "/index.html"},
     {"source": "/admin", "destination": "/index.html"},
     {"source": "/admin/:path*", "destination": "/index.html"}
   ],

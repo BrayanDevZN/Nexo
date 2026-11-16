@@ -18,20 +18,26 @@ import "./styles/globals.css";
 import "./styles/site.css";
 import "./styles/robin.css";
 import "./styles/admin.css";
+import "./styles/atendimentos.css";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
+const BookingApp = lazy(() => import("./atendimentos/BookingApp"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const adminRoute = /^\/admin(?:\/|$)/.test(window.location.pathname);
+const bookingRoute = /^\/atendimentos(?:\/|$)/.test(window.location.pathname);
 const privacyRoute = /^\/privacidade\/?$/.test(window.location.pathname);
 
 if (adminRoute) { setNoIndex(); applyAdminTheme(readAdminTheme()); document.documentElement.classList.add("admin-theme"); }
+else if (bookingRoute) { setNoIndex(); document.documentElement.classList.add("booking-theme"); document.title = "Nexo Atendimentos"; }
 else {
   setCanonical(window.location.pathname);
   startSiteEffects(startPageEntrance());
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+// The scheduling screens skip the backdrop, the particles and the motion probe: they must run on a weak phone.
+createRoot(document.getElementById("root")!).render(bookingRoute
+  ? <StrictMode><Suspense fallback={<main className="bk-page" role="status">Carregando…</main>}><BookingApp /></Suspense></StrictMode>
+  : <StrictMode>
     <MotionProvider>
       <Backdrop />
       {adminRoute ? <Particles /> : null}
