@@ -26,11 +26,6 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
       const row = { ...request.postDataJSON(), id: "b1", owner_id: user.id, slug: "barbearia", timezone: "America/Sao_Paulo", my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" };
       businesses.push(row); body = row; status = 201;
     }
-    else if (path === "/businesses/b1/customers" && method === "GET") {
-      const term = (url.searchParams.get("search") || "").toLowerCase();
-      body = [{ name: "Maria Souza", phone: "+5511988887777", email: null, appointments: 3, last_appointment_at: "2026-11-10T12:00:00" }, { name: "Carlos Lima", phone: null, email: "carlos@example.com", appointments: 1, last_appointment_at: "2026-10-01T12:00:00" }]
-        .filter(row => row.name.toLowerCase().includes(term));
-    }
     else if (path === "/businesses/b1/photo" && method === "PUT") {
       csrf();
       const upload = request.postDataBuffer() || Buffer.alloc(0);
@@ -85,18 +80,7 @@ test("signs in, creates a business, a service and an appointment, then marks it 
 
   await page.getByRole("button", { name: "Agenda" }).click();
   await page.getByRole("button", { name: "Marcar atendimento" }).click();
-  // The customer is one button: it opens the list of known customers, or a form for a new one.
-  await page.getByRole("button", { name: /Escolher cliente/ }).click();
-  await expect(page.getByRole("option", { name: /Maria Souza/ })).toBeVisible();
-  const picker = page.getByRole("dialog", { name: "Escolher cliente" });
-  await picker.getByLabel("Buscar cliente").fill("carlos");
-  await expect(page.getByRole("option")).toHaveCount(1);
-  await page.getByRole("option", { name: /Carlos Lima/ }).click();
-  await expect(page.getByRole("button", { name: /Carlos Lima/ })).toBeVisible();
-  await page.getByRole("button", { name: /Carlos Lima/ }).click();
-  await page.getByRole("button", { name: /Novo cliente/ }).click();
-  await page.getByLabel("Nome", { exact: true }).fill("João");
-  await page.getByRole("button", { name: "Usar este cliente" }).click();
+  await page.getByLabel("Nome do cliente").fill("João");
   await page.getByLabel("Serviço", { exact: true }).click();
   await page.getByRole("option", { name: /Corte/ }).click();
   await page.getByRole("button", { name: "Salvar" }).click();

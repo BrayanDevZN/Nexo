@@ -278,14 +278,6 @@ class ServiceOutput(BaseModel):
     updated_at: datetime
 
 
-class CustomerOutput(BaseModel):
-    name: str
-    phone: str | None
-    email: str | None
-    appointments: int
-    last_appointment_at: datetime | None
-
-
 class AppointmentFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
     service_id: str | None = Field(default=None, max_length=36)
