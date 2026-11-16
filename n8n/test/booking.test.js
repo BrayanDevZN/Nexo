@@ -53,40 +53,6 @@ test('Return all pages through the results and stops at the end; the limit caps 
 	assert.equal(limited.output[0].length, 120);
 });
 
-test('create books an appointment with a service id, converting the local time of the business', async () => {
-	const { requests, output } = await run({ ...BASE, operation: 'create', bookingCustomerName: ' João ', bookingCustomerPhone: '11999999999', bookingStartsAt: '2026-11-16T09:00:00', bookingServiceId: 's1', bookingPrice: 'R$ 1.045,50' },
-		(options) => (options.method === 'GET' ? business : { id: 'a1', customer_name: 'João' }));
-	const post = requests.find((request) => request.method === 'POST');
-	assert.equal(post.url, 'atendimentos/businesses/b1/appointments');
-	assert.deepEqual(post.body, { customer_name: 'João', customer_phone: '11999999999', service_id: 's1', price: '1045.50', starts_at: '2026-11-16T12:00:00.000Z' });
-	assert.equal(output[0][0].json.id, 'a1');
-});
-
-test('create needs a customer, a start and a service (or a service name with an end)', async () => {
-	const fails = async (parameters, pattern) => assert.match((await run({ ...BASE, operation: 'create', ...parameters }, () => business).catch((error) => error)).message, pattern);
-	await fails({ bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, /Escolha o cliente/);
-	await fails({ bookingCustomerName: 'João', bookingServiceId: 's1' }, /início/);
-	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z' }, /serviço/);
-	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceName: 'Corte' }, /serviço/);
-	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T08:00:00Z', bookingServiceName: 'Corte' }, /depois do início/);
-	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1', bookingPrice: 'caro' }, /Preço inválido/);
-	const ok = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T09:30:00Z', bookingServiceName: 'Corte' }, () => ({ id: 'a1' }));
-	assert.deepEqual(ok.requests[0].body, { customer_name: 'João', service_name: 'Corte', starts_at: '2026-11-16T09:00:00.000Z', ends_at: '2026-11-16T09:30:00.000Z' });
-});
-
-test('update sends only what was filled in, and delete confirms what it removed', async () => {
-	const { requests } = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStatus: 'confirmed', bookingNotes: 'Trazer foto' }, () => ({ id: 'a1', status: 'confirmed' }));
-	assert.equal(requests[0].method, 'PATCH');
-	assert.equal(requests[0].url, 'atendimentos/businesses/b1/appointments/a1');
-	assert.deepEqual(requests[0].body, { notes: 'Trazer foto', status: 'confirmed' });
-	const empty = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1' }, () => ({})).catch((error) => error);
-	assert.match(empty.message, /pelo menos um campo/);
-	const removed = await run({ ...BASE, operation: 'delete', bookingAppointmentId: 'a/1' }, () => undefined);
-	assert.equal(removed.requests[0].method, 'DELETE');
-	assert.equal(removed.requests[0].url, 'atendimentos/businesses/b1/appointments/a%2F1');
-	assert.deepEqual(removed.output[0].map((item) => item.json), [{ id: 'a/1', deleted: true }]);
-});
-
 test('businesses, team and services read from the Atendimentos routes', async () => {
 	const list = await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => [business]);
 	assert.equal(list.requests[0].url, 'atendimentos/businesses');
@@ -133,54 +99,6 @@ test('time helpers: local time of the business, explicit offsets and prices', ()
 	assert.equal(money('45.5'), '45.5');
 	assert.equal(money(''), undefined);
 	assert.throws(() => money('1,234,567'), /Preço inválido/);
-});
-
-test('the Cliente field is a searchable list of the clients registered in Nexo, or an ID', () => {
-	const node = new Nexo();
-	for (const operation of ['create', 'update']) {
-		const field = node.description.properties.find((item) => item.name === 'bookingClient' && item.displayOptions.show.operation.includes(operation));
-		assert.equal(field.type, 'resourceLocator');
-		assert.deepEqual(field.modes.map((mode) => mode.name), ['list', 'id']);
-		assert.equal(field.modes[0].typeOptions.searchListMethod, 'searchClients');
-		assert.equal(field.modes[0].typeOptions.searchable, true);
-		assert.ok(!field.noDataExpression && !field.required);
-	}
-	assert.equal(typeof node.methods.listSearch.searchClients, 'function');
-});
-
-test('searching the client list filters by name, pages with a token and shows the contact', async () => {
-	const requests = [];
-	const context = {
-		getCredentials: async (name) => { requests.push(name); return { baseUrl: 'https://nexo.test' }; },
-		helpers: { httpRequestWithAuthentication: async (credential, request) => { requests.push([credential, request.url, request.qs]); return request.qs.offset === 0 ? Array.from({ length: 100 }, (_, index) => ({ id: 'c' + index, name: 'Maria ' + index, phone: index ? null : '+5511999990000', email: null })) : [{ id: 'z', name: 'Zélia', phone: null, email: 'z@x.com' }]; } },
-	};
-	const search = new Nexo().methods.listSearch.searchClients;
-	const first = await search.call(context, ' maria ');
-	assert.deepEqual(requests.slice(0, 2), ['nexoApi', ['nexoApi', 'clients', { limit: 100, offset: 0, name: 'maria' }]]);
-	assert.equal(first.results.length, 100);
-	assert.deepEqual(first.results[0], { name: 'Maria 0', value: 'c0', description: '+5511999990000' });
-	assert.equal(first.results[1].description, undefined);
-	assert.equal(first.paginationToken, '100');
-	const second = await search.call(context, undefined, '100');
-	assert.deepEqual(second.results, [{ name: 'Zélia', value: 'z', description: 'z@x.com' }]);
-	assert.equal(second.paginationToken, undefined);
-});
-
-test('a client chosen from the list fills the customer of the appointment, and what is typed wins', async () => {
-	const answer = (options) => (options.url.startsWith('clients/') ? { id: 'c1', name: 'Maria Souza', phone: '+5511988887777', email: 'maria@example.com' } : { id: 'a1' });
-	const chosen = await run({ ...BASE, operation: 'create', bookingClient: 'c1', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, answer);
-	assert.equal(chosen.requests[0].url, 'clients/c1');
-	assert.equal(chosen.requests[0].credential, 'nexoApi');
-	assert.deepEqual(chosen.requests[1].body, { customer_name: 'Maria Souza', customer_phone: '+5511988887777', customer_email: 'maria@example.com', service_id: 's1', starts_at: '2026-11-16T09:00:00.000Z' });
-	const typed = await run({ ...BASE, operation: 'create', bookingClient: 'c1', bookingCustomerPhone: '11977776666', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, answer);
-	assert.equal(typed.requests[1].body.customer_name, 'Maria Souza');
-	assert.equal(typed.requests[1].body.customer_phone, '11977776666');
-	// Updating with a client changes the customer; without one, nothing about the customer is sent.
-	const update = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingClient: 'c1' }, answer);
-	assert.deepEqual(update.requests[1].body, { customer_name: 'Maria Souza', customer_phone: '+5511988887777', customer_email: 'maria@example.com' });
-	const plain = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStatus: 'done' }, answer);
-	assert.equal(plain.requests.length, 1);
-	assert.deepEqual(plain.requests[0].body, { status: 'done' });
 });
 
 test('appointments can no longer be filtered by customer name', async () => {
@@ -255,4 +173,72 @@ test('the node is tool-ready: every Atendimentos field has a description for the
 	assert.match(node.description.description, /Start\/End/);
 	const fields = node.description.properties.filter((field) => field.name.startsWith('booking'));
 	for (const field of fields) assert.ok(field.description && field.description.length > 10, field.name);
+});
+
+const SERVICES = [{ id: 's1', name: 'Corte', price: 45, duration_minutes: 30 }, { id: 's2', name: 'Barba', price: 30.5, duration_minutes: 20 }, { id: 's3', name: 'Sobrancelha', price: null, duration_minutes: 10 }];
+const answer = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SERVICES : { id: 'a1' });
+const CREATE = { ...BASE, operation: 'create', bookingCustomerName: ' João ', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00' };
+
+test('creating asks only for the customer name, Start, End and the services, with no phone, e-mail, ID, price or client picker', () => {
+	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
+	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen']);
+	const properties = new Nexo().description.properties;
+	assert.ok(!properties.some((field) => ['bookingClient', 'bookingCustomerPhone', 'bookingCustomerEmail', 'bookingServiceId', 'bookingServiceName', 'bookingPrice', 'bookingNotes', 'bookingStaffId'].includes(field.name)));
+	assert.equal(new Nexo().methods.listSearch, undefined);
+	const services = properties.find((field) => field.name === 'bookingServicesChosen');
+	assert.equal(services.type, 'multiOptions');
+	assert.equal(services.typeOptions.loadOptionsMethod, 'getBookingServices');
+	assert.deepEqual(services.typeOptions.loadOptionsDependsOn, ['bookingBusinessId']);
+	for (const name of ['bookingCustomerName', 'bookingStartsAt', 'bookingEndsAt']) assert.equal(properties.find((field) => field.name === name && field.displayOptions.show.operation.includes('create')).required, true);
+});
+
+test('create converts the local time of the business and sends one service by its ID', async () => {
+	const { requests, output } = await run({ ...CREATE, bookingServicesChosen: ['s1'] }, answer);
+	const post = requests.find((request) => request.method === 'POST');
+	assert.equal(post.url, 'atendimentos/businesses/b1/appointments');
+	assert.deepEqual(post.body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_id: 's1' });
+	assert.equal(output[0][0].json.id, 'a1');
+});
+
+test('several services become one appointment named after all of them, priced with their sum', async () => {
+	const { requests } = await run({ ...CREATE, bookingServicesChosen: ['s1', 's2'] }, answer);
+	assert.deepEqual(requests.find((request) => request.method === 'POST').body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_name: 'Corte + Barba', price: '75.50' });
+	const noPrice = await run({ ...CREATE, bookingServicesChosen: ['s1', 's3'] }, answer);
+	const body = noPrice.requests.find((request) => request.method === 'POST').body;
+	assert.equal(body.service_name, 'Corte + Sobrancelha');
+	assert.ok(!('price' in body));
+	const none = await run({ ...CREATE }, answer);
+	assert.equal(none.requests.find((request) => request.method === 'POST').body.service_name, 'Atendimento');
+	const foreign = await run({ ...CREATE, bookingServicesChosen: ['s1', 'other-business'] }, answer).catch((error) => error);
+	assert.match(foreign.message, /não é deste negócio/);
+});
+
+test('create needs the name, Start and End, in order', async () => {
+	const fails = async (parameters, pattern) => assert.match((await run({ ...BASE, operation: 'create', ...parameters }, answer).catch((error) => error)).message, pattern);
+	await fails({ bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z' }, /nome do cliente/);
+	await fails({ bookingCustomerName: 'João', bookingEndsAt: '2026-11-16T10:00:00Z' }, /Start/);
+	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z' }, /End/);
+	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T08:00:00Z' }, /depois do Start/);
+});
+
+test('"Serviços" lists the active services of the chosen business, with duration and price', async () => {
+	const load = (business) => new Nexo().methods.loadOptions.getBookingServices.call({
+		getCurrentNodeParameter: () => business,
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async (credential, request) => { assert.equal(credential, 'nexoApi'); assert.equal(request.url, 'atendimentos/businesses/b1/services'); assert.deepEqual(request.qs, { active: true }); return SERVICES; } },
+	});
+	assert.deepEqual(await load('b1'), [{ name: 'Corte', value: 's1', description: '30 min · R$ 45,00' }, { name: 'Barba', value: 's2', description: '20 min · R$ 30,50' }, { name: 'Sobrancelha', value: 's3', description: '10 min' }]);
+	assert.deepEqual(await load(''), []);
+});
+
+test('update changes only what was filled in, including the services, and delete confirms what it removed', async () => {
+	const { requests } = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStatus: 'confirmed', bookingServicesChosen: ['s2'] }, answer);
+	const patch = requests.find((request) => request.method === 'PATCH');
+	assert.equal(patch.url, 'atendimentos/businesses/b1/appointments/a1');
+	assert.deepEqual(patch.body, { service_id: 's2', status: 'confirmed' });
+	const empty = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1' }, answer).catch((error) => error);
+	assert.match(empty.message, /pelo menos um campo/);
+	const removed = await run({ ...BASE, operation: 'delete', bookingAppointmentId: 'a/1' }, () => undefined);
+	assert.equal(removed.requests[0].url, 'atendimentos/businesses/b1/appointments/a%2F1');
+	assert.deepEqual(removed.output[0].map((item) => item.json), [{ id: 'a/1', deleted: true }]);
 });

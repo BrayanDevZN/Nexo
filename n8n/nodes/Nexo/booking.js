@@ -29,8 +29,8 @@ const bookingToolDescriptions = {
 	bookingAppointments: {
 		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show).',
 		get: 'Consultar um agendamento pelo ID.',
-		create: 'Marcar um atendimento: informe o cliente, o início e o serviço (ID) ou o nome do serviço com o fim.',
-		update: 'Alterar um agendamento: remarcar, trocar serviço, dados do cliente ou a situação (confirmar, concluir, cancelar, faltou).',
+		create: 'Marcar um atendimento: informe o nome do cliente, o Start, o End e, se quiser, um ou mais serviços do negócio.',
+		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, ou mudar a situação (confirmar, concluir, cancelar, faltou).',
 		delete: 'Apagar um agendamento.',
 	},
 };
@@ -60,27 +60,14 @@ add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments
 add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 }, description: 'Quantos agendamentos devolver, no máximo (1 a 500).' });
 // Appointments: identify, create, update
 add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointments', ['get', 'update', 'delete'], { required: true, description: 'ID do agendamento (campo id de Agendamentos > Get Many).' });
-// "Cliente": a searchable list of the clients registered in Nexo (like the spreadsheet picker of Google Sheets), or an ID.
-for (const operations of [['create'], ['update']]) {
-	add('Cliente', 'bookingClient', 'resourceLocator', { mode: 'list', value: '' }, 'bookingAppointments', operations, {
-		description: 'Escolha entre os clientes cadastrados na Nexo: o nome, o celular e o e-mail dele vão para o agendamento. Ou preencha os dados abaixo.',
-		modes: [
-			{ displayName: 'Da lista', name: 'list', type: 'list', placeholder: 'Escolher cliente...', typeOptions: { searchListMethod: 'searchClients', searchable: true } },
-			{ displayName: 'Por ID', name: 'id', type: 'string', placeholder: 'ID do cliente' },
-		],
-	});
-}
-add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { description: 'Só se o cliente não estiver na lista acima.' });
-add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera (ou usa o cliente escolhido acima).' });
-add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Celular com DDD, ex.: 11999999999. Vazio: usa o do cliente escolhido.' });
-add('E-mail do cliente', 'bookingCustomerEmail', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'E-mail do cliente. Vazio: usa o do cliente escolhido.' });
-add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: 'Sem fuso horário, vale o horário do negócio.' });
-add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: 'Para remarcar. Vazio: não altera. Sem fuso horário, vale o horário do negócio.' });
-add('Fim', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa a duração do serviço (ou não altera, ao atualizar).' });
-add('ID do serviço', 'bookingServiceId', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Veja os IDs em Serviços > Get Many. Vazio: use o nome do serviço abaixo.' });
-add('Nome do serviço', 'bookingServiceName', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Só quando não houver ID de serviço; neste caso informe também o Fim.' });
-add('Preço (R$)', 'bookingPrice', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa o preço do serviço. Ex.: 45,00.' });
-add('Observações', 'bookingNotes', 'string', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { rows: 3 }, description: 'Anotações do atendimento (texto livre).' });
+// Creating an appointment needs only the customer's name, a Start, an End and (optionally) the services of the business.
+add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { required: true, description: 'Nome de quem vai ser atendido.' });
+add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera.' });
+add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento começa. ${WINDOW}` });
+add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Para remarcar. Vazio: não altera. ${WINDOW}` });
+add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento termina (depois do Start). ${WINDOW}` });
+add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Vazio: não altera. ${WINDOW}` });
+add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes e a soma dos preços. Ao atualizar, vazio não altera. Com a IA, informe os IDs dos serviços (veja em Atendimentos: serviços > Get Many).' });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS], description: 'Nova situação: scheduled, confirmed, done, cancelled ou no_show. Vazio: não altera.' });
 
 // Time ----------------------------------------------------------------------------------------------------
@@ -119,23 +106,6 @@ function money(value) {
 	return normalized;
 }
 
-const listSearch = {
-	/** Clients registered in Nexo, filtered by name as the person types; the list keeps paging with the token. */
-	async searchClients(filter, paginationToken) {
-		const credentials = await this.getCredentials(CREDENTIAL);
-		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
-		const offset = Number(paginationToken) || 0;
-		const qs = { limit: PAGE, offset };
-		if (clean(filter)) qs.name = clean(filter);
-		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: 'clients', qs, json: true, timeout: 30000 });
-		const clients = Array.isArray(rows) ? rows : rows?.items || [];
-		return {
-			results: clients.map((client) => ({ name: client.name, value: client.id, description: [client.phone, client.email].filter(Boolean).join(' · ') || undefined })),
-			paginationToken: clients.length === PAGE ? String(offset + PAGE) : undefined,
-		};
-	},
-};
-
 /** The reason the Nexo API gave (its `detail`), wherever n8n kept it on the error. */
 function apiDetail(error) {
 	let body = error?.cause?.response?.body ?? error?.cause?.response?.data ?? error?.response?.body ?? error?.context?.data ?? error?.cause?.body;
@@ -161,6 +131,15 @@ function explain(error) {
 }
 
 const loadOptions = {
+	/** The services of the chosen business, for "Serviços". */
+	async getBookingServices() {
+		const business = clean(this.getCurrentNodeParameter('bookingBusinessId', { extractValue: true }));
+		if (!business) return [];
+		const credentials = await this.getCredentials(CREDENTIAL);
+		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: `atendimentos/businesses/${encodeURIComponent(business)}/services`, qs: { active: true }, json: true, timeout: 30000 }).catch((error) => { throw explain(error); });
+		return (Array.isArray(rows) ? rows : []).map((row) => ({ name: row.name, value: row.id, description: `${row.duration_minutes} min${row.price !== null && row.price !== undefined ? ` · R$ ${Number(row.price).toFixed(2).replace('.', ',')}` : ''}` }));
+	},
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -171,7 +150,7 @@ const loadOptions = {
 
 /** Runs one input item of a booking operation and returns the JSON rows to emit. */
 async function executeBooking(ctx, resource, operation, index, state) {
-	const param = (name, fallback = '') => ctx.getNodeParameter(name, index, fallback, name === 'bookingClient' ? { extractValue: true } : undefined);
+	const param = (name, fallback = '') => ctx.getNodeParameter(name, index, fallback);
 	const call = (options) => ctx.helpers.httpRequestWithAuthentication.call(ctx, CREDENTIAL, { baseURL: `${state.baseUrl}/`, json: true, timeout: 30000, ...options }).catch((error) => { throw explain(error); });
 	const businessId = () => {
 		const id = clean(param('bookingBusinessId'));
@@ -234,27 +213,25 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	// create / update
 	const update = operation === 'update';
 	const body = {};
-	// A client picked from the list fills the customer; anything typed below wins over it.
-	const clientId = clean(param('bookingClient'));
-	const known = clientId ? await call({ method: 'GET', url: `clients/${encodeURIComponent(clientId)}` }) : undefined;
-	const name = clean(param('bookingCustomerName')) ?? clean(known?.name);
-	if (name) body.customer_name = name; else if (!update) throw new Error('Escolha o cliente ou informe o nome dele.');
-	const phone = clean(param('bookingCustomerPhone')) ?? clean(known?.phone);
-	const email = clean(param('bookingCustomerEmail')) ?? clean(known?.email);
-	if (phone) body.customer_phone = phone;
-	if (email) body.customer_email = email;
-	for (const [field, apiField] of [['bookingServiceId', 'service_id'], ['bookingServiceName', 'service_name'], ['bookingNotes', 'notes']]) {
-		const value = clean(param(field));
-		if (value !== undefined) body[apiField] = value;
-	}
-	const price = money(param('bookingPrice'));
-	if (price !== undefined) body.price = price;
+	const name = clean(param('bookingCustomerName'));
+	if (name) body.customer_name = name; else if (!update) throw new Error('Informe o nome do cliente.');
 	const starts = clean(param('bookingStartsAt'));
-	if (starts) body.starts_at = await when(starts, 'o início'); else if (!update) throw new Error('Informe o início do atendimento.');
+	if (starts) body.starts_at = await when(starts, 'o Start'); else if (!update) throw new Error('Informe o Start do atendimento.');
 	const ends = clean(param('bookingEndsAt'));
-	if (ends) body.ends_at = await when(ends, 'o fim');
-	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O fim precisa ser depois do início.');
-	if (!update && !body.service_id && !(body.service_name && body.ends_at)) throw new Error('Informe o ID do serviço, ou o nome do serviço junto com o fim.');
+	if (ends) body.ends_at = await when(ends, 'o End'); else if (!update) throw new Error('Informe o End do atendimento.');
+	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
+	// Services of this business: one keeps its link (and its price); several become one appointment named after all of
+	// them, priced with their sum. Nothing chosen: a plain "Atendimento".
+	const chosen = [].concat(param('bookingServicesChosen', [])).map((id) => String(id).trim()).filter(Boolean);
+	if (chosen.length) {
+		const known = rows(await call({ method: 'GET', url: base('/services') }));
+		const picked = chosen.map((id) => known.find((service) => service.id === id) || (() => { throw new Error('Um dos serviços escolhidos não é deste negócio.'); })());
+		if (picked.length === 1) body.service_id = picked[0].id;
+		else {
+			body.service_name = picked.map((service) => service.name).join(' + ').slice(0, 160);
+			if (picked.every((service) => service.price !== null && service.price !== undefined)) body.price = picked.reduce((sum, service) => sum + Number(service.price), 0).toFixed(2);
+		}
+	} else if (!update) body.service_name = 'Atendimento';
 	if (!update) return rows(await call({ method: 'POST', url: base('/appointments'), body }));
 	const status = clean(param('bookingStatus'));
 	if (status) body.status = status;
@@ -266,5 +243,5 @@ async function executeBooking(ctx, resource, operation, index, state) {
 
 module.exports = {
 	BOOKING_RESOURCES, CREDENTIAL, isBookingResource, bookingResourceOptions, bookingOperationOptions, bookingToolDescriptions,
-	bookingFields, loadOptions, listSearch, executeBooking, explain, instant, money, DEFAULT_BASE_URL,
+	bookingFields, loadOptions, executeBooking, explain, instant, money, DEFAULT_BASE_URL,
 };
