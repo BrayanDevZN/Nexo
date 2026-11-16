@@ -8,9 +8,8 @@ from backend.domain.roles import (
     has_role,
     key_allows,
 )
-from backend.service.access import REQUEST_AUTHENTICATED
+from backend.service.access import REQUEST_AUTHENTICATED, AccessDenied
 from backend.service.api_keys import ApiKeyAuthenticationError
-from backend.service.scheduling_auth import BookingApiKeyError
 from backend.service.security import AuthenticationError
 
 
@@ -34,14 +33,17 @@ def booking_session_user(request: Request):
 
 
 def booking_user(request: Request):
-    """A scheduling account: a Bearer `nexo_book_` key (n8n, scripts) or, failing that, the browser session."""
-    header = request.headers.get("authorization", "")
-    scheme, _, value = header.partition(" ")
-    if scheme.lower() == "bearer" and value.strip():
-        try:
-            return request.app.state.services.booking_api_keys.authenticate(value.strip())
-        except BookingApiKeyError:
-            raise HTTPException(status_code=401, detail="Invalid API key") from None
+    """A scheduling account: a Bearer API key (the same `nexo_live_` key as the rest of Nexo) or the browser session.
+
+    A key acts as the Atendimentos account registered with its owner's e-mail, with that account's roles in each business.
+    """
+    if request.headers.get("authorization", "").lower().startswith("bearer "):
+        key_owner = _header_api_key(request)
+        if key_owner is not None:
+            try:
+                return request.app.state.services.booking_auth.for_panel_user(key_owner)
+            except AccessDenied:
+                raise HTTPException(status_code=403, detail="Create an Atendimentos account with the e-mail of this API key") from None
     return booking_session_user(request)
 
 

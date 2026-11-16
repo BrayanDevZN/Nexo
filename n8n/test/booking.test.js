@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { Nexo } = require('../nodes/Nexo/Nexo.node');
-const { NexoBookingApi } = require('../credentials/NexoBookingApi.credentials');
 const { instant, calendarDay, money } = require('../nodes/Nexo/booking');
 
 /** Runs the node for one item; `answer(options)` plays the API and every request is recorded. */
@@ -12,7 +11,7 @@ async function run(parameters, answer) {
 	const context = {
 		getInputData: () => [{ json: {} }],
 		getNodeParameter: (name, _index, fallback) => parameters[name] ?? fallback,
-		getCredentials: async (name) => { credentials.push(name); return { baseUrl: 'https://nexo.test', apiKey: 'nexo_book_test' }; },
+		getCredentials: async (name) => { credentials.push(name); return { baseUrl: 'https://nexo.test', apiKey: 'nexo_live_test' }; },
 		helpers: { httpRequestWithAuthentication: async function (credential, options) { requests.push({ credential, ...options }); return answer(options); } },
 	};
 	return { output: await Nexo.prototype.execute.call(context), requests, credentials };
@@ -20,7 +19,7 @@ async function run(parameters, answer) {
 const business = { id: 'b1', name: 'Barbearia', timezone: 'America/Sao_Paulo' };
 const BASE = { resource: 'bookingAppointments', bookingBusinessId: 'b1' };
 
-test('Atendimentos resources expose operations, descriptions and a dedicated credential', () => {
+test('Atendimentos resources expose operations and descriptions, and use the regular Nexo API credential', () => {
 	const node = new Nexo();
 	assert.equal(node.description.usableAsTool, true);
 	const resources = node.description.properties.find((field) => field.name === 'resource').options.map((option) => option.value);
@@ -31,11 +30,7 @@ test('Atendimentos resources expose operations, descriptions and a dedicated cre
 	}
 	const appointments = node.methods.loadOptions.getOperations.call({ getCurrentNodeParameter: () => 'bookingAppointments' }).map((operation) => operation.value);
 	assert.deepEqual(appointments, ['getMany', 'get', 'create', 'update', 'delete']);
-	const [panel, booking] = node.description.credentials;
-	assert.equal(panel.name, 'nexoApi');
-	assert.deepEqual(panel.displayOptions.hide.resource, ['bookingBusinesses', 'bookingServices', 'bookingAppointments']);
-	assert.equal(booking.name, 'nexoBookingApi');
-	assert.deepEqual(booking.displayOptions.show.resource, panel.displayOptions.hide.resource);
+	assert.deepEqual(node.description.credentials.map((credential) => credential.name), ['nexoApi']);
 	assert.equal(typeof node.methods.loadOptions.getBookingBusinesses, 'function');
 });
 
@@ -47,20 +42,12 @@ test('every Atendimentos field can be filled by the AI model: none blocks expres
 	assert.ok(fields.every((field) => field.displayOptions.show.resource[0].startsWith('booking')));
 });
 
-test('the Atendimentos credential sends the key as a Bearer token and tests against the businesses route', () => {
-	const credential = new NexoBookingApi();
-	assert.equal(credential.name, 'nexoBookingApi');
-	assert.equal(credential.authenticate.properties.headers.Authorization, '=Bearer {{$credentials.apiKey}}');
-	assert.equal(credential.test.request.url, '/atendimentos/businesses');
-	assert.ok(credential.properties.some((field) => field.name === 'apiKey' && field.typeOptions.password));
-});
-
-test('searching appointments by week sends the period like the calendar and uses the Atendimentos credential', async () => {
+test('searching appointments by week sends the period like the calendar and uses the regular Nexo API credential', async () => {
 	const { output, requests, credentials } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'week', bookingDate: '2026-11-18T10:00:00.000-03:00', bookingWeekStarts: 'monday', bookingStatusFilter: 'confirmed', bookingCustomerFilter: ' Ana ' },
 		() => [{ id: 'a1', customer_name: 'Ana' }, { id: 'a2', customer_name: 'Ana Maria' }]);
-	assert.deepEqual(credentials, ['nexoBookingApi']);
+	assert.deepEqual(credentials, ['nexoApi']);
 	assert.equal(requests.length, 1);
-	assert.equal(requests[0].credential, 'nexoBookingApi');
+	assert.equal(requests[0].credential, 'nexoApi');
 	assert.equal(requests[0].baseURL, 'https://nexo.test/');
 	assert.equal(requests[0].url, 'atendimentos/businesses/b1/appointments');
 	assert.deepEqual(requests[0].qs, { period: 'week', date: '2026-11-18', week_starts: 'monday', status: 'confirmed', customer: 'Ana', limit: 50, offset: 0 });
@@ -143,13 +130,13 @@ test('businesses, team and services read from the Atendimentos routes', async ()
 	assert.match(missing.message, /Escolha o negócio/);
 });
 
-test('the business picker lists the account businesses with the Atendimentos credential', async () => {
+test('the business picker lists the account businesses with the regular Nexo API credential', async () => {
 	let used;
 	const options = await new Nexo().methods.loadOptions.getBookingBusinesses.call({
 		getCredentials: async (name) => { used = name; return { baseUrl: 'https://nexo.test/' }; },
 		helpers: { httpRequestWithAuthentication: async (_credential, request) => { assert.equal(request.url, 'atendimentos/businesses'); return [{ id: 'b1', name: 'Barbearia', city: 'São Paulo', state: 'SP' }]; } },
 	});
-	assert.equal(used, 'nexoBookingApi');
+	assert.equal(used, 'nexoApi');
 	assert.deepEqual(options, [{ name: 'Barbearia', value: 'b1', description: 'São Paulo / SP' }]);
 });
 

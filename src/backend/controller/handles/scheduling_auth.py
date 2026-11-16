@@ -8,7 +8,6 @@ from redis.exceptions import RedisError
 from backend.controller.cookies import clear_google_cookie, set_google_cookie
 from backend.controller.dependencies import booking_session_user as booking_user
 from backend.controller.schema.auth import LoginInput, RegistrationConfirmInput
-from backend.controller.schema.api_keys import ApiKeyCreatedOutput, ApiKeyCreateInput, ApiKeyOutput
 from backend.controller.schema.passwords import (
     PasswordChangeInput,
     RecoveryConfirmInput,
@@ -222,31 +221,3 @@ def google_complete(data: BookingProfileInput, request: Request, response: Respo
     clear_google_cookie(response, settings, PROFILE_COOKIE)
     set_booking_cookie(response, settings, token)
     return user
-
-
-@router.get("/api-keys", response_model=list[ApiKeyOutput])
-def list_api_keys(request: Request, actor=Depends(booking_user)):
-    try:
-        return request.app.state.services.booking_api_keys.list(actor)
-    except AccessDenied as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from None
-
-
-@router.post("/api-keys", response_model=ApiKeyCreatedOutput, status_code=201)
-def create_api_key(data: ApiKeyCreateInput, request: Request, actor=Depends(booking_user)):
-    try:
-        metadata, secret = request.app.state.services.booking_api_keys.create(actor, data.name)
-    except (AccessDenied, ValueError) as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from None
-    return {**metadata, "key": secret}
-
-
-@router.delete("/api-keys/{identifier}", status_code=204)
-def revoke_api_key(identifier: str, request: Request, actor=Depends(booking_user)):
-    try:
-        request.app.state.services.booking_api_keys.revoke(actor, identifier)
-    except ResourceNotFound:
-        raise HTTPException(status_code=404, detail="API key not found") from None
-    except AccessDenied as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from None
-    return Response(status_code=204)

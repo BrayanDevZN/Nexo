@@ -1,6 +1,6 @@
-// Nexo Atendimentos (scheduling) for the Nexo node: businesses, services and appointments through an
-// Atendimentos API key (nexo_book_...). Kept apart from Nexo.node.js, which holds the panel's resources.
-const CREDENTIAL = 'nexoBookingApi';
+// Nexo Atendimentos (scheduling) for the Nexo node: businesses, services and appointments through the regular
+// Nexo API key, which acts as the Atendimentos account with the same e-mail. Kept apart from Nexo.node.js, which holds the panel's resources.
+const CREDENTIAL = 'nexoApi'; // the same Nexo API key as every other resource
 const DEFAULT_BASE_URL = 'https://nexo-production-60a0.up.railway.app';
 const MAX_ROWS = 2000;
 const PAGE = 100;
@@ -57,7 +57,7 @@ function add(displayName, name, type, defaultValue, resource, operations, extra 
 
 const NEEDS_BUSINESS = { bookingBusinesses: ['get', 'overview', 'members'], bookingServices: ['getMany'], bookingAppointments: ['getMany', 'get', 'create', 'update', 'delete'] };
 for (const [resource, operations] of Object.entries(NEEDS_BUSINESS)) {
-	add('Negócio', 'bookingBusinessId', 'options', '', resource, operations, { required: true, typeOptions: { loadOptionsMethod: 'getBookingBusinesses' }, description: 'Negócio do Atendimentos. Use Get Many de negócios para ver os IDs.' });
+	add('Negócio', 'bookingBusinessId', 'options', '', resource, operations, { required: true, typeOptions: { loadOptionsMethod: 'getBookingBusinesses' }, description: 'Lista todos os negócios da sua conta do Atendimentos: escolha qual agenda mexer. Com a IA, informe o ID (veja em Negócios > Get Many).' });
 }
 // Services
 add('Só serviços ativos', 'bookingActiveOnly', 'boolean', false, 'bookingServices', ['getMany'], { description: 'Esconde os serviços desativados.' });

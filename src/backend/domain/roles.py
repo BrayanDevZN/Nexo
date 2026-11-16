@@ -19,7 +19,8 @@ def has_role(user, allowed: frozenset[str]) -> bool:
 # clients API, the videos API and the key check the maps server uses, so it works for Maps, clients and videos
 # and nothing else.
 API_KEY_HOLDERS = ALL_ROLES
-COMMERCIAL_KEY_PATHS = ("/clients", "/videos", "/auth/api-keys/validate")
+# /atendimentos: a key acts as the scheduling account of the same e-mail, limited by that account's own roles.
+COMMERCIAL_KEY_PATHS = ("/clients", "/videos", "/atendimentos", "/auth/api-keys/validate")
 
 
 def key_allows(user, path: str) -> bool:

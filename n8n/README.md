@@ -15,14 +15,13 @@ No n8n, crie uma credencial **Nexo API** com:
 A chave é armazenada pelo n8n na credencial. O node envia `Authorization: Bearer <chave>`
 e usa a Base URL configurada; ela não está hardcoded no workflow.
 
-## Credencial do Atendimentos
+## Atendimentos com a mesma chave
 
-Os recursos **Atendimentos** usam outra credencial, **Nexo Atendimentos API**, com a mesma
-Base URL e uma chave própria que começa com `nexo_book_`. Crie a chave em
-**Atendimentos > Conta > Chave de API**: ela age como a sua conta e enxerga os negócios de que você
-faz parte (com o mesmo papel: dono, gerente, atendente ou leitura). A chave aparece uma única vez, pode ser
-revogada a qualquer momento e não acessa dados da conta (senha, perfil, outras chaves). A chave do painel
-(`nexo_live_`) não funciona nesses recursos, e a do Atendimentos não funciona nos recursos do painel.
+Os recursos **Atendimentos** usam a **mesma credencial Nexo API** (a mesma chave do painel) dos demais
+recursos. A chave age como a conta do **Atendimentos cadastrada com o mesmo e-mail** do dono da chave e vê os
+negócios de que essa conta faz parte, com o mesmo papel (dono, gerente, atendente ou leitura). Se não houver
+conta do Atendimentos com esse e-mail, a API responde 403: crie a conta em `/atendimentos` com o e-mail do painel.
+A chave não acessa os dados da conta (senha, perfil, sessão).
 
 ## Recursos e operações
 
@@ -40,6 +39,10 @@ revogada a qualquer momento e não acessa dados da conta (senha, perfil, outras 
 | Maps | Criar busca; Get Many; Get (status); baixar resultados; excluir busca |
 
 ### Buscar agendamentos por período
+
+Em todos os recursos de Atendimentos, o campo **Negócio** é uma lista com todos os negócios da conta
+(carregada pela própria chave): escolha qual agenda mexer, ou deixe a IA decidir pelo ID
+(use **Atendimentos: negócios > Get Many** para consultar os IDs).
 
 Em **Atendimentos: agendamentos > Get Many**, o campo **Período** funciona como as visões do calendário:
 Semana, Mês, Dia específico, Hoje, Amanhã, Próximos 7 dias, Próximos 30 dias, Todos os futuros, Intervalo

@@ -13,6 +13,7 @@ from backend.domain.passwords import PasswordHasher
 ORIGIN = {"Origin": "http://localhost:5173"}
 ANA = {"name": "Ana", "phone": "11999999999", "email": "ana@example.com", "password": "strong-password-123"}
 BIA = {"name": "Bia", "phone": "11988888888", "email": "bia@example.com", "password": "another-password-123"}
+PANEL_PASSWORD = "another-strong-password"
 HOURS = {"mon": [["09:00", "12:00"], ["13:00", "18:00"]], "sat": [["09:00", "13:00"]]}
 
 
@@ -354,44 +355,45 @@ def test_google_links_to_a_local_atendimentos_account_by_verified_email(client):
         assert user.google_sub == "google-user-123" and user.password_hash is not None
 
 
-def test_scheduling_api_keys_act_as_the_account_without_a_browser_session(client):
+def test_the_panel_api_key_acts_as_the_atendimentos_account_with_the_same_email(client):
     register(client, ANA)
-    headers = login(client, ANA)
-    created = client.post("/atendimentos/auth/api-keys", headers=headers, json={"name": "n8n"})
-    assert created.status_code == 201
-    key = created.json()["key"]
-    assert key.startswith("nexo_book_") and created.json()["key_prefix"] == key[:18] and "key_hash" not in created.json()
-    assert [row["name"] for row in client.get("/atendimentos/auth/api-keys").json()] == ["n8n"]
-    assert "key" not in client.get("/atendimentos/auth/api-keys").json()[0]
+    ana_headers = login(client, ANA)
+    business = create_business(client, ana_headers)
+    # A panel member with the same e-mail makes a regular panel API key (the one used on the rest of Nexo).
+    with client.app.state.services.repositories.transaction() as repos:
+        for name, email, role in (("Ana", "ana@example.com", "commercial"), ("Bia", "bia@example.com", "dev"), ("Cris", "cris@example.com", "commercial")):
+            repos.users.create(name=name, email=email, status="approved", role=role,
+                               password_hash=client.app.state.services.passwords.hash(PANEL_PASSWORD))
 
-    client.cookies.clear()
-    bearer = {"Authorization": "Bearer " + key}
-    # A key reads and writes the resource routes with no cookie, Origin or CSRF token.
-    assert client.get("/atendimentos/businesses", headers=bearer).json() == []
+    def panel_key(email):
+        client.cookies.clear()
+        assert client.post("/auth/login", headers=ORIGIN, json={"email": email, "password": PANEL_PASSWORD}).status_code == 200
+        csrf = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+        key = client.post("/auth/api-keys", headers=csrf, json={"name": "n8n"}).json()["key"]
+        client.cookies.clear()
+        return {"Authorization": "Bearer " + key}
+
+    bearer = panel_key("ana@example.com")
+    # No cookie, Origin or CSRF token: the key lists, creates and edits like Ana does in the browser.
+    assert [row["id"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == [business["id"]]
     made = client.post("/atendimentos/businesses", headers=bearer, json={"name": "Via chave"})
     assert made.status_code == 201 and made.json()["my_role"] == "owner"
-    assert [row["name"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == ["Via chave"]
-    # ...but not the account routes: keys cannot mint keys, read the profile or change the password.
-    assert client.get("/atendimentos/auth/api-keys", headers=bearer).status_code == 401
-    assert client.post("/atendimentos/auth/api-keys", headers=bearer, json={"name": "x"}).status_code in {401, 403}
+    path = "/atendimentos/businesses/" + business["id"]
+    service = client.post(path + "/services", headers=bearer, json={"name": "Corte", "duration_minutes": 30}).json()
+    booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "starts_at": "2026-11-16T12:00:00Z"})
+    assert booked.status_code == 201
+    assert client.patch(path + "/appointments/" + booked.json()["id"], headers=bearer, json={"status": "confirmed"}).json()["status"] == "confirmed"
+    assert client.get(path + "/appointments", headers=bearer, params={"period": "day", "date": "2026-11-16"}).json()[0]["status"] == "confirmed"
+    # The account routes (profile, password, session) still need the browser session: a key never reaches them.
     assert client.get("/atendimentos/auth/me", headers=bearer).status_code == 401
-    # A wrong key, a panel-style key and no key at all are all refused; a bad key never falls back to a cookie.
-    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_book_wrong"}).status_code == 401
-    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_live_abc"}).status_code == 401
+    # A panel member with no Atendimentos account, a wrong key and no credentials are refused.
+    assert client.get("/atendimentos/businesses", headers=panel_key("cris@example.com")).status_code == 403
+    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_live_wrong"}).status_code == 401
     assert client.get("/atendimentos/businesses").status_code == 401
-    # Another account never sees this account's business through its own key.
+    # Another account's key only sees its own businesses: Bia has an account but belongs to none of Ana's.
     register(client, BIA)
-    other = login(client, BIA)
-    other_key = client.post("/atendimentos/auth/api-keys", headers=other, json={"name": "bia"}).json()["key"]
-    client.cookies.clear()
-    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer " + other_key}).json() == []
-    # Revoking stops the key at once.
-    login(client, ANA)
-    key_id = client.get("/atendimentos/auth/api-keys").json()[0]["id"]
-    headers = {**ORIGIN, "X-CSRF-Token": client.get("/atendimentos/auth/csrf").json()["csrf_token"]}
-    assert client.delete("/atendimentos/auth/api-keys/" + key_id, headers=headers).status_code == 204
-    client.cookies.clear()
-    assert client.get("/atendimentos/businesses", headers=bearer).status_code == 401
+    assert client.get("/atendimentos/businesses", headers=panel_key("bia@example.com")).json() == []
+    assert client.get(path, headers=panel_key("bia@example.com")).status_code == 404
 
 
 def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zone(client):

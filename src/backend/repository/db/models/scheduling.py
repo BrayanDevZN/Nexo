@@ -40,18 +40,6 @@ class BookingUser(IdentityTimestampMixin, Base):
     session_version: Mapped[int] = mapped_column(default=0)
 
 
-class BookingApiKey(IdentityTimestampMixin, Base):
-    """A key for server-to-server use (n8n, scripts) of one scheduling account. Only the key's hash is stored."""
-    __tablename__ = "booking_api_keys"
-    __table_args__ = (Index("booking_api_key_user_created", "user_id", "created_at"),)
-    user_id: Mapped[str] = mapped_column(ForeignKey("booking_users.id", ondelete="CASCADE"), nullable=False)
-    name: Mapped[str] = mapped_column(String(80), nullable=False)
-    key_prefix: Mapped[str] = mapped_column(String(32), nullable=False)
-    key_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-
 class Business(IdentityTimestampMixin, Base):
     __tablename__ = "businesses"
     __table_args__ = (

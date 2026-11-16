@@ -28,3 +28,4 @@ data/
 playwright-report/
 test-results/
 reports/
+dump.rdb

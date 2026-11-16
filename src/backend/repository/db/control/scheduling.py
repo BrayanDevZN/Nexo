@@ -21,7 +21,6 @@ from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import (
     Appointment,
     BookingUser,
-    BookingApiKey,
     Business,
     BusinessInvitation,
     BusinessMember,
@@ -78,34 +77,6 @@ def _mark_dirty(session, table: str, business_id: str | None = None) -> None:
     dirty.add(table)
     if business_id and table in BUSINESS_SCOPED_TABLES:
         dirty.add(table + ":" + business_id)
-
-
-class BookingApiKeyRepository(Repository[BookingApiKey]):
-    model = BookingApiKey
-
-    def create(self, *, user_id: str, name: str, key_prefix: str, key_hash: str) -> BookingApiKey:
-        if not name.strip():
-            raise ValueError("API key name is required")
-        return self.add(BookingApiKey(user_id=user_id, name=name.strip()[:80], key_prefix=key_prefix, key_hash=key_hash))
-
-    def list_for_user(self, user_id: str) -> list[BookingApiKey]:
-        return list(self.session.scalars(select(BookingApiKey).where(
-            BookingApiKey.user_id == user_id, BookingApiKey.revoked_at.is_(None))
-            .order_by(BookingApiKey.created_at.desc(), BookingApiKey.id).limit(100)))
-
-    def active_by_hash(self, key_hash: str) -> BookingApiKey | None:
-        return self.session.scalar(select(BookingApiKey).where(
-            BookingApiKey.key_hash == key_hash, BookingApiKey.revoked_at.is_(None)))
-
-    def touch(self, key_id: str, used_at: datetime) -> None:
-        self.session.execute(update(BookingApiKey).where(BookingApiKey.id == key_id, BookingApiKey.revoked_at.is_(None))
-                             .values(last_used_at=used_at), execution_options={"synchronize_session": False})
-
-    def revoke(self, user_id: str, identifier: str, revoked_at: datetime) -> bool:
-        result = self.session.execute(update(BookingApiKey).where(
-            BookingApiKey.id == identifier, BookingApiKey.user_id == user_id, BookingApiKey.revoked_at.is_(None),
-        ).values(revoked_at=revoked_at), execution_options={"synchronize_session": False})
-        return result.rowcount > 0
 
 
 class BookingUserRepository(Repository[BookingUser]):

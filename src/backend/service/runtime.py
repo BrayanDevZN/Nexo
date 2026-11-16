@@ -53,7 +53,7 @@ from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
 from backend.service.registration import RegistrationService
 from backend.service.scheduling import SchedulingService
-from backend.service.scheduling_auth import BookingApiKeyService, BookingAuthService, BookingGoogleAuth
+from backend.service.scheduling_auth import BookingAuthService, BookingGoogleAuth
 from backend.service.security import SessionSecurity
 from backend.service.videos import VideoService
 from backend.service.webhook_events import WebhookEventService
@@ -181,7 +181,6 @@ class RuntimeServices:
         self.booking_tokens = JWTService(secret, expire_minutes=settings.jwt_expire_minutes, audience="nexo-atendimentos")
         self.booking_sessions = SessionSecurity(self.booking_tokens, self.repositories, repository_name="booking_users")
         self.booking_auth = BookingAuthService(self.repositories, self.passwords, self.booking_sessions)
-        self.booking_api_keys = BookingApiKeyService(self.repositories)
         self.booking_google = BookingGoogleAuth(settings, self.google.provider, self.google.flows, self.repositories,
                                                self.booking_sessions, self.csrf)
         booking_messages = BookingMessages(self.messages)

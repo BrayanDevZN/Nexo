@@ -34,12 +34,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         response = None
         # Server-to-server API-key requests are authenticated by the dependency
         # layer and do not have a browser session/CSRF token.
-        authorization = request.headers.get("authorization", "")
-        bearer = authorization.lower().startswith("bearer ")
+        bearer = request.headers.get("authorization", "").lower().startswith("bearer ")
         path = request.url.path
         # Scheduling keys work on the resource routes only; accounts, passwords and key management need the session.
-        booking_key_request = (bearer and path.startswith("/atendimentos/") and not path.startswith("/atendimentos/auth/")
-                               and authorization[7:].strip().startswith("nexo_book_"))
+        booking_key_request = bearer and path.startswith("/atendimentos/") and not path.startswith("/atendimentos/auth/")
         api_key_request = (bearer and not path.startswith(("/auth/", "/atendimentos/"))) or booking_key_request
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             if api_key_request:
