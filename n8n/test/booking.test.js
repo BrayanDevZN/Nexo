@@ -92,7 +92,7 @@ test('create books an appointment with a service id, converting the local time o
 
 test('create needs a customer, a start and a service (or a service name with an end)', async () => {
 	const fails = async (parameters, pattern) => assert.match((await run({ ...BASE, operation: 'create', ...parameters }, () => business).catch((error) => error)).message, pattern);
-	await fails({ bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, /nome do cliente/);
+	await fails({ bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, /Escolha o cliente/);
 	await fails({ bookingCustomerName: 'João', bookingServiceId: 's1' }, /início/);
 	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z' }, /serviço/);
 	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceName: 'Corte' }, /serviço/);
@@ -155,4 +155,52 @@ test('time helpers: local time of the business, explicit offsets, days and price
 	assert.equal(money('45.5'), '45.5');
 	assert.equal(money(''), undefined);
 	assert.throws(() => money('1,234,567'), /Preço inválido/);
+});
+
+test('the Cliente field is a searchable list of the clients registered in Nexo, or an ID', () => {
+	const node = new Nexo();
+	for (const operation of ['create', 'update']) {
+		const field = node.description.properties.find((item) => item.name === 'bookingClient' && item.displayOptions.show.operation.includes(operation));
+		assert.equal(field.type, 'resourceLocator');
+		assert.deepEqual(field.modes.map((mode) => mode.name), ['list', 'id']);
+		assert.equal(field.modes[0].typeOptions.searchListMethod, 'searchClients');
+		assert.equal(field.modes[0].typeOptions.searchable, true);
+		assert.ok(!field.noDataExpression && !field.required);
+	}
+	assert.equal(typeof node.methods.listSearch.searchClients, 'function');
+});
+
+test('searching the client list filters by name, pages with a token and shows the contact', async () => {
+	const requests = [];
+	const context = {
+		getCredentials: async (name) => { requests.push(name); return { baseUrl: 'https://nexo.test' }; },
+		helpers: { httpRequestWithAuthentication: async (credential, request) => { requests.push([credential, request.url, request.qs]); return request.qs.offset === 0 ? Array.from({ length: 100 }, (_, index) => ({ id: 'c' + index, name: 'Maria ' + index, phone: index ? null : '+5511999990000', email: null })) : [{ id: 'z', name: 'Zélia', phone: null, email: 'z@x.com' }]; } },
+	};
+	const search = new Nexo().methods.listSearch.searchClients;
+	const first = await search.call(context, ' maria ');
+	assert.deepEqual(requests.slice(0, 2), ['nexoApi', ['nexoApi', 'clients', { limit: 100, offset: 0, name: 'maria' }]]);
+	assert.equal(first.results.length, 100);
+	assert.deepEqual(first.results[0], { name: 'Maria 0', value: 'c0', description: '+5511999990000' });
+	assert.equal(first.results[1].description, undefined);
+	assert.equal(first.paginationToken, '100');
+	const second = await search.call(context, undefined, '100');
+	assert.deepEqual(second.results, [{ name: 'Zélia', value: 'z', description: 'z@x.com' }]);
+	assert.equal(second.paginationToken, undefined);
+});
+
+test('a client chosen from the list fills the customer of the appointment, and what is typed wins', async () => {
+	const answer = (options) => (options.url.startsWith('clients/') ? { id: 'c1', name: 'Maria Souza', phone: '+5511988887777', email: 'maria@example.com' } : { id: 'a1' });
+	const chosen = await run({ ...BASE, operation: 'create', bookingClient: 'c1', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, answer);
+	assert.equal(chosen.requests[0].url, 'clients/c1');
+	assert.equal(chosen.requests[0].credential, 'nexoApi');
+	assert.deepEqual(chosen.requests[1].body, { customer_name: 'Maria Souza', customer_phone: '+5511988887777', customer_email: 'maria@example.com', service_id: 's1', starts_at: '2026-11-16T09:00:00.000Z' });
+	const typed = await run({ ...BASE, operation: 'create', bookingClient: 'c1', bookingCustomerPhone: '11977776666', bookingStartsAt: '2026-11-16T09:00:00Z', bookingServiceId: 's1' }, answer);
+	assert.equal(typed.requests[1].body.customer_name, 'Maria Souza');
+	assert.equal(typed.requests[1].body.customer_phone, '11977776666');
+	// Updating with a client changes the customer; without one, nothing about the customer is sent.
+	const update = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingClient: 'c1' }, answer);
+	assert.deepEqual(update.requests[1].body, { customer_name: 'Maria Souza', customer_phone: '+5511988887777', customer_email: 'maria@example.com' });
+	const plain = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStatus: 'done' }, answer);
+	assert.equal(plain.requests.length, 1);
+	assert.deepEqual(plain.requests[0].body, { status: 'done' });
 });

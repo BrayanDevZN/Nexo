@@ -218,7 +218,7 @@ fields.push(...booking.bookingFields);
 
 class Nexo {
 	constructor() { this.description = { displayName: 'Nexo', name: 'nexo', icon: 'file:nexo-mark.svg', group: ['transform'], version: 1, subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}', description: 'Node de ações da Nexo. Conecte à porta Tool do AI Agent e configure o recurso e a operação que o agente deve executar.', defaults: { name: 'Nexo', color: '#6D4AFF' }, usableAsTool: true, inputs: ['main'], outputs: ['main'], credentials: [{ name: 'nexoApi', required: true }], properties: fields }; }
-	methods = { loadOptions: { ...booking.loadOptions, getOperations() { const resource = this.getCurrentNodeParameter('resource'); return (operationOptions[resource] || []).map((operation) => ({ ...operation, action: operation.name, description: toolOperationDescriptions[resource]?.[operation.value] || operation.name })); } } };
+	methods = { listSearch: booking.listSearch, loadOptions: { ...booking.loadOptions, getOperations() { const resource = this.getCurrentNodeParameter('resource'); return (operationOptions[resource] || []).map((operation) => ({ ...operation, action: operation.name, description: toolOperationDescriptions[resource]?.[operation.value] || operation.name })); } } };
 	async execute() {
 		const items = this.getInputData(); const returnData = []; const resource = this.getNodeParameter('resource', 0); const operation = this.getNodeParameter('operation', 0); const bookingResource = booking.isBookingResource(resource); const credentials = await this.getCredentials('nexoApi'); const bookingState = { zones: new Map() }; const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 		for (let i = 0; i < items.length; i++) {

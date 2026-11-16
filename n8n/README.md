@@ -51,6 +51,13 @@ o primeiro dia (domingo ou segunda). Os limites do dia são os do **fuso horári
 sem fuso informados em De/Até/Início/Fim valem nesse mesmo fuso. Dá para filtrar por situação, nome do
 cliente e quem atende, e **Devolver todos** percorre as páginas (até 2000 agendamentos).
 
+### Escolher o cliente do agendamento
+
+Em **Criar** e **Atualizar** agendamento, o campo **Cliente** abre uma lista pesquisável dos clientes
+cadastrados na Nexo (como o seletor de planilhas do Google Sheets), ou aceita o ID do cliente. O nome, o
+celular e o e-mail dele vão para o agendamento; o que for digitado nos campos abaixo prevalece. A lista usa
+a mesma chave da credencial e mostra os clientes que essa chave pode ver.
+
 ### Deixar a IA decidir (✨)
 
 O node **Nexo** tem `usableAsTool` e a imagem do n8n liga `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE`.

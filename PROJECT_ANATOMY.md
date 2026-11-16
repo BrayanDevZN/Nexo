@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-16 | 449 files | ~578.3K tokens if all read
+Generated: 2026-11-16 | 449 files | ~579.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -7,7 +7,7 @@ Generated: 2026-11-16 | 449 files | ~578.3K tokens if all read
 | maps-server/start.sh | 36 | 294 | source |
 | mcp_server.py | 589 | 4.9K | source |
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
-| n8n/nodes/Nexo/booking.js | 247 | 4.5K | source |
+| n8n/nodes/Nexo/booking.js | 281 | 5.1K | source |
 | n8n/nodes/Nexo/Nexo.node.js | 357 | 11.5K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
 | src/backend/controller/application.py | 110 | 1.4K | source |
@@ -308,7 +308,7 @@ Generated: 2026-11-16 | 449 files | ~578.3K tokens if all read
 | src/frontend/tsconfig.json | 42 | 187 | config |
 | src/frontend/vercel.json | 18 | 172 | config |
 | video-server/package.json | 19 | 102 | config |
-| n8n/test/booking.test.js | 159 | 3.0K | test |
+| n8n/test/booking.test.js | 207 | 3.9K | test |
 | n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
 | tests/functional/controller/test_account_deletion.py | 47 | 633 | test |
@@ -421,7 +421,7 @@ Generated: 2026-11-16 | 449 files | ~578.3K tokens if all read
 | tests/unit/service/test_webhook_events.py | 182 | 1.6K | test |
 | docs/prompts/first-contact-whatsapp.md | 237 | 3.6K | docs |
 | maps-server/README.md | 35 | 351 | docs |
-| n8n/README.md | 183 | 3.0K | docs |
+| n8n/README.md | 190 | 3.1K | docs |
 | README.mcp.md | 83 | 883 | docs |
 | README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
@@ -455,10 +455,10 @@ Generated: 2026-11-16 | 449 files | ~578.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 291 files, ~375.6K tokens
+- source: 291 files, ~376.2K tokens
 - config: 13 files, ~3.6K tokens
-- test: 111 files, ~133.5K tokens
-- docs: 11 files, ~19.0K tokens
+- test: 111 files, ~134.5K tokens
+- docs: 11 files, ~19.1K tokens
 - style: 5 files, ~40.8K tokens
 - other: 18 files, ~5.8K tokens
 

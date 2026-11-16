@@ -74,8 +74,18 @@ add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments
 add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 } });
 // Appointments: identify, create, update
 add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointments', ['get', 'update', 'delete'], { required: true });
-add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { required: true });
-add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera.' });
+// "Cliente": a searchable list of the clients registered in Nexo (like the spreadsheet picker of Google Sheets), or an ID.
+for (const operations of [['create'], ['update']]) {
+	add('Cliente', 'bookingClient', 'resourceLocator', { mode: 'list', value: '' }, 'bookingAppointments', operations, {
+		description: 'Escolha entre os clientes cadastrados na Nexo: o nome, o celular e o e-mail dele vão para o agendamento. Ou preencha os dados abaixo.',
+		modes: [
+			{ displayName: 'Da lista', name: 'list', type: 'list', placeholder: 'Escolher cliente...', typeOptions: { searchListMethod: 'searchClients', searchable: true } },
+			{ displayName: 'Por ID', name: 'id', type: 'string', placeholder: 'ID do cliente' },
+		],
+	});
+}
+add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { description: 'Só se o cliente não estiver na lista acima.' });
+add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera (ou usa o cliente escolhido acima).' });
 add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update']);
 add('E-mail do cliente', 'bookingCustomerEmail', 'string', '', 'bookingAppointments', ['create', 'update']);
 add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: 'Sem fuso horário, vale o horário do negócio.' });
@@ -135,6 +145,23 @@ function money(value) {
 	return normalized;
 }
 
+const listSearch = {
+	/** Clients registered in Nexo, filtered by name as the person types; the list keeps paging with the token. */
+	async searchClients(filter, paginationToken) {
+		const credentials = await this.getCredentials(CREDENTIAL);
+		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+		const offset = Number(paginationToken) || 0;
+		const qs = { limit: PAGE, offset };
+		if (clean(filter)) qs.name = clean(filter);
+		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: 'clients', qs, json: true, timeout: 30000 });
+		const clients = Array.isArray(rows) ? rows : rows?.items || [];
+		return {
+			results: clients.map((client) => ({ name: client.name, value: client.id, description: [client.phone, client.email].filter(Boolean).join(' · ') || undefined })),
+			paginationToken: clients.length === PAGE ? String(offset + PAGE) : undefined,
+		};
+	},
+};
+
 const loadOptions = {
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
@@ -146,7 +173,7 @@ const loadOptions = {
 
 /** Runs one input item of a booking operation and returns the JSON rows to emit. */
 async function executeBooking(ctx, resource, operation, index, state) {
-	const param = (name, fallback = '') => ctx.getNodeParameter(name, index, fallback);
+	const param = (name, fallback = '') => ctx.getNodeParameter(name, index, fallback, name === 'bookingClient' ? { extractValue: true } : undefined);
 	const call = (options) => ctx.helpers.httpRequestWithAuthentication.call(ctx, CREDENTIAL, { baseURL: `${state.baseUrl}/`, json: true, timeout: 30000, ...options });
 	const businessId = () => {
 		const id = clean(param('bookingBusinessId'));
@@ -217,9 +244,16 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	// create / update
 	const update = operation === 'update';
 	const body = {};
-	const name = clean(param('bookingCustomerName'));
-	if (name) body.customer_name = name; else if (!update) throw new Error('Informe o nome do cliente.');
-	for (const [field, apiField] of [['bookingCustomerPhone', 'customer_phone'], ['bookingCustomerEmail', 'customer_email'], ['bookingServiceId', 'service_id'], ['bookingServiceName', 'service_name'], ['bookingStaffId', 'staff_user_id'], ['bookingNotes', 'notes']]) {
+	// A client picked from the list fills the customer; anything typed below wins over it.
+	const clientId = clean(param('bookingClient'));
+	const known = clientId ? await call({ method: 'GET', url: `clients/${encodeURIComponent(clientId)}` }) : undefined;
+	const name = clean(param('bookingCustomerName')) ?? clean(known?.name);
+	if (name) body.customer_name = name; else if (!update) throw new Error('Escolha o cliente ou informe o nome dele.');
+	const phone = clean(param('bookingCustomerPhone')) ?? clean(known?.phone);
+	const email = clean(param('bookingCustomerEmail')) ?? clean(known?.email);
+	if (phone) body.customer_phone = phone;
+	if (email) body.customer_email = email;
+	for (const [field, apiField] of [['bookingServiceId', 'service_id'], ['bookingServiceName', 'service_name'], ['bookingStaffId', 'staff_user_id'], ['bookingNotes', 'notes']]) {
 		const value = clean(param(field));
 		if (value !== undefined) body[apiField] = value;
 	}
@@ -242,5 +276,5 @@ async function executeBooking(ctx, resource, operation, index, state) {
 
 module.exports = {
 	BOOKING_RESOURCES, CREDENTIAL, isBookingResource, bookingResourceOptions, bookingOperationOptions, bookingToolDescriptions,
-	bookingFields, loadOptions, executeBooking, instant, calendarDay, money, DEFAULT_BASE_URL,
+	bookingFields, loadOptions, listSearch, executeBooking, instant, calendarDay, money, DEFAULT_BASE_URL,
 };
