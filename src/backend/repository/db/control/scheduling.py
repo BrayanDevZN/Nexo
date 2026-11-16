@@ -5,6 +5,7 @@ import hashlib
 import json
 from datetime import datetime, timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import load_only
@@ -50,6 +51,10 @@ def snapshot(table: str, row) -> dict | None:
     if row is None:
         return None
     result = {}
+    if table == "booking_users":
+        result["has_photo"] = bool(row.profile_photo)
+    elif table == "businesses":
+        result["has_photo"] = bool(row.photo)
     for field in FIELDS[table]:
         value = getattr(row, field)
         if isinstance(value, datetime):
@@ -98,8 +103,15 @@ class BookingUserRepository(Repository[BookingUser]):
         values = sorted({str(identifier) for identifier in identifiers if identifier})
         if not values:
             return {}
-        return {user_id: {"name": name, "email": email} for user_id, name, email in self.session.execute(
-            select(BookingUser.id, BookingUser.name, BookingUser.email).where(BookingUser.id.in_(values))).all()}
+        return {user_id: {"name": name, "email": email, "has_photo": bool(photo)} for user_id, name, email, photo
+                in self.session.execute(select(BookingUser.id, BookingUser.name, BookingUser.email, BookingUser.profile_photo)
+                                        .where(BookingUser.id.in_(values))).all()}
+
+    def set_photo(self, user: BookingUser, data: bytes | None) -> None:
+        """The photo lives in the row (max 512 px JPEG); the marker says whether there is one."""
+        user.profile_photo = uuid4().hex + ".jpg" if data is not None else None
+        user.profile_photo_data = data
+        self.session.flush()
 
     def revoke_sessions(self, user: BookingUser) -> None:
         self.session.flush()
@@ -154,6 +166,11 @@ class BusinessRepository(Repository[Business]):
         self.session.add(BusinessMember(business_id=row.id, user_id=owner_id, role="owner"))
         self.session.flush()
         return row
+
+    def set_photo(self, business: Business, data: bytes | None) -> None:
+        business.photo = uuid4().hex + ".jpg" if data is not None else None
+        business.photo_data = data
+        self.session.flush()
 
     def slug_taken(self, slug: str) -> bool:
         return self.session.scalar(select(func.count()).select_from(Business).where(Business.slug == slug)) > 0

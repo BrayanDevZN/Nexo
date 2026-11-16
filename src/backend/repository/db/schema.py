@@ -183,16 +183,20 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE video_jobs ADD COLUMN audio BOOLEAN NOT NULL DEFAULT 0"))
     blob_columns = {
-        "users": ("profile_photo_data", "BLOB"),
-        "documents": ("content", "BLOB"),
-        "chat_messages": ("media_data", "BLOB"),
+        "users": [("profile_photo_data", "BLOB")],
+        "documents": [("content", "BLOB")],
+        "chat_messages": [("media_data", "BLOB")],
+        # Photos of the scheduling product, added after its tables already existed on the volume.
+        "booking_users": [("profile_photo", "VARCHAR(255)"), ("profile_photo_data", "BLOB")],
+        "businesses": [("photo", "VARCHAR(255)"), ("photo_data", "BLOB")],
     }
     with engine.begin() as connection:
         inspector = inspect(connection)
-        for table, (column, definition) in blob_columns.items():
+        for table, additions_for_table in blob_columns.items():
             columns_for_table = {item["name"] for item in inspector.get_columns(table)}
-            if column not in columns_for_table:
-                connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+            for column, definition in additions_for_table:
+                if column not in columns_for_table:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
         document_columns = {item["name"] for item in inspector.get_columns("documents")}
         if "client_id" not in document_columns:
             connection.execute(text("ALTER TABLE documents ADD COLUMN client_id VARCHAR(36)"))

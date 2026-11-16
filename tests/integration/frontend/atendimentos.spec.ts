@@ -57,7 +57,7 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByLabel("E-mail", { exact: true }).fill(user.email);
   await page.getByLabel("Senha", { exact: true }).fill("test-password-123");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page.getByText("Você ainda não tem nenhum negócio.")).toBeVisible();
+  await expect(page.getByText("Você ainda não tem nenhum negócio")).toBeVisible();
   await page.getByRole("button", { name: "Criar negócio" }).click();
   await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
   await page.getByRole("button", { name: "Criar negócio" }).click();

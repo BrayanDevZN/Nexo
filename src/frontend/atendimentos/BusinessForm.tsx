@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import { WEEKDAYS, WEEKDAY_LABELS, type BookingApi, type Business, type OpeningHours, type Weekday } from "./api";
+import { PhotoField } from "./Photo";
 
 const EMPTY_HOURS = (): OpeningHours => ({ mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] });
 
@@ -49,6 +50,8 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
       <CardDescription>{business ? "O que a equipe e os clientes veem." : "Comece pelo nome. O resto pode ser preenchido depois."}</CardDescription></CardHeader>
     <CardContent className="flex flex-col gap-4">
       <Feedback error={error} success={success} />
+      {business && <PhotoField api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} disabled={busy} onChanged={hasPhoto => onSaved({ ...business, has_photo: hasPhoto })} label="Logo ou foto do negócio" />}
+      {!business && <p className="bk-muted">Depois de criar, dá para colocar o logo ou uma foto do negócio.</p>}
       <form onSubmit={submit} className="flex flex-col gap-4">
         <FieldGroup>
           <TextField label="Nome do negócio" name="name" required maxLength={160} defaultValue={business?.name || ""} />

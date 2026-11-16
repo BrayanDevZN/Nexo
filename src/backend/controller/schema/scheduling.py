@@ -61,6 +61,15 @@ class BookingUserOutput(BaseModel):
     name: str
     email: str
     phone: str | None
+    has_photo: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def photo_flag(cls, value):
+        if not isinstance(value, dict) and hasattr(value, "profile_photo"):
+            return {"id": value.id, "name": value.name, "email": value.email, "phone": value.phone,
+                    "has_photo": bool(value.profile_photo)}
+        return value
 
 
 class BusinessFields(BaseModel):
@@ -161,6 +170,7 @@ class BusinessOutput(BaseModel):
     state: str | None
     timezone: str
     opening_hours: dict
+    has_photo: bool = False
     my_role: BusinessRole
     created_at: datetime
     updated_at: datetime
@@ -173,6 +183,7 @@ class MemberOutput(BaseModel):
     role: BusinessRole
     name: str | None = None
     email: str | None = None
+    has_photo: bool = False
     created_at: datetime
 
 

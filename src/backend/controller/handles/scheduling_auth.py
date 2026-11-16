@@ -1,5 +1,7 @@
 """Accounts of /atendimentos: register with an e-mail code, password or Google sign-in, profile and password."""
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+import asyncio
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import RedirectResponse
 from redis.exceptions import RedisError
 
@@ -16,9 +18,10 @@ from backend.controller.schema.scheduling import (
     BookingRegistrationInput,
     BookingUserOutput,
 )
+from backend.domain.photos import PhotoTooLarge, PhotoValidationError
 from backend.infra.connections.email import EmailUnavailableError
 from backend.repository.redis.oauth import OAuthStateError
-from backend.service.access import AccessDenied
+from backend.service.access import AccessDenied, ResourceNotFound
 from backend.service.auth import RegistrationConflict
 from backend.service.passwords import PasswordRecoveryError
 from backend.service.registration import RegistrationCodeError, RegistrationCooldownError
@@ -107,6 +110,46 @@ def update_profile(data: BookingProfileInput, request: Request, actor=Depends(bo
         return request.app.state.services.booking_auth.update_profile(actor, data.name, data.phone)
     except AccessDenied as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
+
+
+def photo_error(exc):
+    if isinstance(exc, PhotoTooLarge):
+        return HTTPException(status_code=413, detail=str(exc))
+    if isinstance(exc, PhotoValidationError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, AccessDenied):
+        return HTTPException(status_code=403, detail=str(exc))
+    return HTTPException(status_code=404, detail=str(exc))
+
+
+@router.put("/profile/photo", response_model=BookingUserOutput)
+async def upload_photo(request: Request, file: UploadFile = File(), actor=Depends(booking_user)):
+    settings = request.app.state.settings
+    try:
+        data = await file.read(settings.profile_photo_max_bytes + 1)
+        return await asyncio.to_thread(request.app.state.services.booking_auth.upload_photo, actor, data, settings)
+    except (AccessDenied, PhotoValidationError) as exc:
+        raise photo_error(exc) from None
+    finally:
+        await file.close()
+
+
+@router.get("/profile/photo", responses={200: {"content": {"image/jpeg": {}}}})
+def read_photo(request: Request, user_id: str | None = Query(default=None, max_length=36), actor=Depends(booking_user)):
+    try:
+        data = request.app.state.services.booking_auth.read_photo(actor, user_id)
+    except (AccessDenied, ResourceNotFound) as exc:
+        raise photo_error(exc) from None
+    return Response(content=data, media_type="image/jpeg", headers={"X-Content-Type-Options": "nosniff"})
+
+
+@router.delete("/profile/photo", status_code=204)
+def delete_photo(request: Request, actor=Depends(booking_user)):
+    try:
+        request.app.state.services.booking_auth.delete_photo(actor)
+    except AccessDenied as exc:
+        raise photo_error(exc) from None
+    return Response(status_code=204)
 
 
 @router.post("/password/change", status_code=204)

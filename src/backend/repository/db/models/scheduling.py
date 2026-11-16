@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -34,6 +35,8 @@ class BookingUser(IdentityTimestampMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(32))
     password_hash: Mapped[str | None] = mapped_column(String(255))
     google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
+    profile_photo: Mapped[str | None] = mapped_column(String(255))
+    profile_photo_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     session_version: Mapped[int] = mapped_column(default=0)
 
 
@@ -53,6 +56,8 @@ class Business(IdentityTimestampMixin, Base):
     city: Mapped[str | None] = mapped_column(String(120))
     state: Mapped[str | None] = mapped_column(String(2))
     timezone: Mapped[str] = mapped_column(String(64), default="America/Sao_Paulo", nullable=False)
+    photo: Mapped[str | None] = mapped_column(String(255))
+    photo_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     # JSON text: {"mon": [["09:00", "18:00"]], ...}; validated by domain.scheduling.validate_opening_hours.
     opening_hours: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
 

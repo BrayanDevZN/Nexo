@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
+import { Plus, Scissors } from "lucide-react";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { can, formatMoney, type BookingApi, type Business, type Service } from "./api";
 
 /** The services the business offers: name, how long each takes and the price. */
@@ -39,7 +41,7 @@ export function Services({ api, business }: { api: BookingApi; business: Busines
   }
   const current = editing === "new" ? undefined : editing;
   return <section className="flex flex-col gap-4">
-    <div className="bk-row bk-row-between"><h1>Serviços</h1>{editable && !editing && <Button onClick={() => setEditing("new")}>Novo serviço</Button>}</div>
+    <div className="bk-row bk-row-between"><h1>Serviços</h1>{editable && !editing && <Button onClick={() => setEditing("new")}><Plus data-icon="inline-start" />Novo serviço</Button>}</div>
     <Feedback error={error} />
     {editing && <Card><CardHeader><CardTitle>{current ? "Editar serviço" : "Novo serviço"}</CardTitle></CardHeader>
       <CardContent><form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || "new"}>
@@ -58,7 +60,7 @@ export function Services({ api, business }: { api: BookingApi; business: Busines
           {current && <Button type="button" variant="destructive" disabled={busy} onClick={() => remove(current)}>Excluir</Button>}
         </div>
       </form></CardContent></Card>}
-    {!rows ? <Busy /> : rows.length === 0 ? <p className="bk-empty">Nenhum serviço ainda. {editable ? "Cadastre o primeiro para começar a marcar." : ""}</p>
+    {!rows ? <Busy /> : rows.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><Scissors /></EmptyMedia><EmptyTitle>Nenhum serviço ainda</EmptyTitle><EmptyDescription>{editable ? "Cadastre o que você oferece, com duração e preço, para marcar mais rápido." : "O dono ou um gerente cadastra os serviços."}</EmptyDescription></EmptyHeader>{editable && !editing && <EmptyContent><Button onClick={() => setEditing("new")}><Plus data-icon="inline-start" />Cadastrar serviço</Button></EmptyContent>}</Empty>
       : <div className="bk-list">{rows.map(service => <button type="button" className="bk-item" key={service.id} disabled={!editable} onClick={() => setEditing(service)}>
         <div className="bk-item-body"><strong>{service.name}</strong>
           <span>{service.duration_minutes} min{service.price !== null ? " · " + formatMoney(service.price) : ""}</span>

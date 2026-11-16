@@ -4,7 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
+import { Copy, Share2, UserPlus } from "lucide-react";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { can, outranks, ROLE_HELP, ROLE_LABELS, type BookingApi, type BookingUser, type Business, type InvitableRole, type Invitation, type Member } from "./api";
+import { Picture } from "./Photo";
 
 const INVITABLE: InvitableRole[] = ["manager", "staff", "viewer"];
 
@@ -43,13 +46,14 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
     <h1>Equipe</h1>
     <Feedback error={error} success={success} />
     {created?.url && <div className="bk-link-box" aria-live="polite">{created.url}<div className="bk-row" style={{ marginTop: "0.5rem" }}>
-      <Button size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(created.url!).then(() => setSuccess("Link copiado."), () => undefined)}>Copiar link</Button>
-      {typeof navigator.share === "function" && <Button size="sm" variant="outline" onClick={() => void navigator.share({ title: "Convite " + business.name, url: created.url! }).catch(() => undefined)}>Compartilhar</Button>}
+      <Button size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(created.url!).then(() => setSuccess("Link copiado."), () => undefined)}><Copy data-icon="inline-start" />Copiar link</Button>
+      {typeof navigator.share === "function" && <Button size="sm" variant="outline" onClick={() => void navigator.share({ title: "Convite " + business.name, url: created.url! }).catch(() => undefined)}><Share2 data-icon="inline-start" />Compartilhar</Button>}
     </div></div>}
     {!members ? <Busy /> : <div className="bk-list">{members.map(member => {
       const mine = member.user_id === me.id;
       const editable = manages && member.role !== "owner" && !mine && outranks(business.my_role, member.role);
       return <div className="bk-item" key={member.id} style={{ cursor: "default" }}>
+        <Picture api={api} path={"/auth/profile/photo?user_id=" + member.user_id} name={member.name || "?"} hasPhoto={member.has_photo} className="size-11" />
         <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span>
           {editable && <div className="bk-row" style={{ marginTop: "0.4rem" }}>
             <NativeSelect aria-label={"Papel de " + member.name} value={member.role} disabled={busy} onChange={e => void act(async () => {
@@ -63,6 +67,7 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
         <Badge variant={member.role === "owner" ? "default" : "secondary"}>{ROLE_LABELS[member.role]}</Badge>
       </div>;
     })}</div>}
+    {members && members.length === 1 && manages && <Empty><EmptyHeader><EmptyMedia variant="icon"><UserPlus /></EmptyMedia><EmptyTitle>Só você por enquanto</EmptyTitle><EmptyDescription>Convide quem trabalha com você. Cada pessoa entra com a própria conta e vê só o que o papel permite.</EmptyDescription></EmptyHeader></Empty>}
     {manages && roles.length > 0 && <Card><CardHeader><CardTitle>Convidar alguém</CardTitle><CardDescription>Quem receber o link entra com a própria conta Nexo Atendimentos, ou cria uma. O link vale por 7 dias.</CardDescription></CardHeader>
       <CardContent><form onSubmit={invite} className="flex flex-col gap-4">
         <FieldGroup>

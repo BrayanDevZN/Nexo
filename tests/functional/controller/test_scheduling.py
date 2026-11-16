@@ -230,6 +230,52 @@ def test_invitations_roles_and_permissions(client):
     assert client.get("/atendimentos/invitations/" + parse_qs(urlsplit(manager_link["url"]).query)["invite"][0]).status_code == 404
 
 
+def photo():
+    from io import BytesIO
+
+    from PIL import Image
+    output = BytesIO()
+    Image.new("RGB", (40, 80), "blue").save(output, "PNG")
+    return {"file": ("foto.png", output.getvalue(), "image/png")}
+
+
+def test_user_and_business_photos_are_optional_private_and_normalized(client):
+    register(client, ANA)
+    register(client, BIA)
+    owner = login(client, ANA)
+    assert client.get("/atendimentos/auth/me").json()["has_photo"] is False
+    assert client.get("/atendimentos/auth/profile/photo").status_code == 404
+    assert client.put("/atendimentos/auth/profile/photo", headers=ORIGIN, files=photo()).status_code == 403
+    assert client.put("/atendimentos/auth/profile/photo", headers=owner,
+                      files={"file": ("x.png", b"<svg/>", "image/png")}).status_code == 400
+    assert client.put("/atendimentos/auth/profile/photo", headers=owner, files=photo()).json()["has_photo"] is True
+    picture = client.get("/atendimentos/auth/profile/photo")
+    assert picture.status_code == 200 and picture.headers["content-type"] == "image/jpeg"
+    assert client.get("/atendimentos/auth/me").json()["has_photo"] is True
+    ana_id = client.get("/atendimentos/auth/me").json()["id"]
+    business = create_business(client, owner)
+    path = "/atendimentos/businesses/" + business["id"]
+    assert business["has_photo"] is False and client.get(path + "/photo").status_code == 404
+    assert client.put(path + "/photo", headers=owner, files=photo()).json()["has_photo"] is True
+    assert client.get(path + "/photo").headers["content-type"] == "image/jpeg"
+    assert client.get("/atendimentos/businesses").json()[0]["has_photo"] is True
+    invite = client.post(path + "/invitations", headers=owner, json={"role": "viewer"}).json()
+    token = parse_qs(urlsplit(invite["url"]).query)["invite"][0]
+    # Bia is not a teammate yet: Ana's photo and the business photo stay private.
+    viewer = login(client, BIA)
+    assert client.get("/atendimentos/auth/profile/photo", params={"user_id": ana_id}).status_code == 404
+    assert client.get(path + "/photo").status_code == 401 or client.get(path + "/photo").status_code == 404
+    assert client.post("/atendimentos/invitations/" + token + "/accept", headers=viewer).status_code == 200
+    assert client.get("/atendimentos/auth/profile/photo", params={"user_id": ana_id}).status_code == 200
+    assert client.get(path + "/photo").status_code == 200
+    assert client.get(path + "/members").json()[0]["has_photo"] is True
+    assert client.put(path + "/photo", headers=viewer, files=photo()).status_code == 403
+    owner = login(client, ANA)
+    assert client.delete(path + "/photo", headers=owner).json()["has_photo"] is False
+    assert client.delete("/atendimentos/auth/profile/photo", headers=owner).status_code == 204
+    assert client.get("/atendimentos/auth/me").json()["has_photo"] is False
+
+
 def start_google(client):
     response = client.get("/atendimentos/auth/google/login", follow_redirects=False)
     assert response.status_code == 302 and "nexo_google_flow" in response.headers["set-cookie"]

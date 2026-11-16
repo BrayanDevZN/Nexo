@@ -6,8 +6,9 @@ from dataclasses import asdict
 from sqlalchemy.exc import IntegrityError
 
 from backend.domain.google import GoogleIdentity
+from backend.domain.photos import normalize_photo
 from backend.repository.redis.oauth import OAuthStateError
-from backend.service.access import AccessDenied
+from backend.service.access import AccessDenied, ResourceNotFound
 from backend.service.auth import RegistrationConflict
 from backend.service.security import AuthenticationError
 
@@ -55,6 +56,32 @@ class BookingAuthService:
             if not repos.booking_users.set_profile_fields(user, name=name, phone=phone):
                 raise AccessDenied("Access denied")
             return user
+
+    def upload_photo(self, actor, data, settings):
+        normalized = normalize_photo(data, max_bytes=settings.profile_photo_max_bytes,
+                                     max_pixels=settings.profile_photo_max_pixels)
+        with self.repositories.transaction() as repos:
+            user = authorize_booking(repos, actor)
+            repos.booking_users.set_photo(user, normalized)
+            return user
+
+    def delete_photo(self, actor):
+        with self.repositories.transaction() as repos:
+            repos.booking_users.set_photo(authorize_booking(repos, actor), None)
+
+    def read_photo(self, actor, user_id=None):
+        """Own photo, or a teammate's: both must share at least one business."""
+        with self.repositories.read_transaction() as repos:
+            user = authorize_booking(repos, actor)
+            if user_id and user_id != user.id:
+                mine = {business.id for business, _ in repos.businesses.list_for_user(user.id)}
+                theirs = {business.id for business, _ in repos.businesses.list_for_user(user_id)}
+                if not mine & theirs:
+                    raise ResourceNotFound("Photo not found")
+                user = repos.booking_users.get(user_id)
+            if user is None or user.profile_photo_data is None:
+                raise ResourceNotFound("Photo not found")
+            return user.profile_photo_data
 
 
 class BookingGoogleAuth:

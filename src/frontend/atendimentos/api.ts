@@ -6,7 +6,7 @@ export function createBookingApi() {
 }
 export type BookingApi = ReturnType<typeof createBookingApi>;
 
-export type BookingUser = { id: string; name: string; email: string; phone: string | null };
+export type BookingUser = { id: string; name: string; email: string; phone: string | null; has_photo: boolean };
 export type BusinessRole = "owner" | "manager" | "staff" | "viewer";
 export type InvitableRole = Exclude<BusinessRole, "owner">;
 export const ROLE_LABELS: Record<BusinessRole, string> = { owner: "Dono", manager: "Gerente", staff: "Atendente", viewer: "Só leitura" };
@@ -22,9 +22,9 @@ export type OpeningHours = Record<Weekday, [string, string][]>;
 export type Business = {
   id: string; owner_id: string; name: string; slug: string; description: string | null; phone: string | null;
   email: string | null; address: string | null; city: string | null; state: string | null; timezone: string;
-  opening_hours: OpeningHours; my_role: BusinessRole; created_at: string; updated_at: string;
+  opening_hours: OpeningHours; has_photo: boolean; my_role: BusinessRole; created_at: string; updated_at: string;
 };
-export type Member = { id: string; business_id: string; user_id: string; role: BusinessRole; name: string | null; email: string | null; created_at: string };
+export type Member = { id: string; business_id: string; user_id: string; role: BusinessRole; name: string | null; email: string | null; has_photo: boolean; created_at: string };
 export type Invitation = { id: string; business_id: string; email: string | null; role: InvitableRole; created_by_id: string; expires_at: string; created_at: string; url?: string | null };
 export type InvitationInfo = { business_name: string; role: InvitableRole; email: string | null; expires_at: string };
 export type Service = { id: string; business_id: string; name: string; description: string | null; duration_minutes: number; price: number | null; active: boolean; created_at: string; updated_at: string };

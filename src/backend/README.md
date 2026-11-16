@@ -304,6 +304,8 @@ lista "meus negócios" junta as duas tabelas. Autorização e vínculo com o neg
 | POST /atendimentos/auth/register, /register/confirm | cadastro com código por e-mail; confirmar cria a conta e a sessão |
 | POST /atendimentos/auth/login, /logout; GET /me, /csrf | sessão por cookie HttpOnly, como no painel |
 | PUT /atendimentos/auth/profile | nome e celular (opcional) |
+| PUT/GET/DELETE /atendimentos/auth/profile/photo | foto opcional da conta (JPEG/PNG/WebP, regravada em JPEG até 512 px, guardada no banco); `GET ?user_id=` mostra a foto de alguém que divide um negócio com você |
+| PUT/GET/DELETE /atendimentos/businesses/{id}/photo | logo ou foto opcional do negócio; enviar e remover exigem dono ou gerente, ver exige ser membro |
 | POST /atendimentos/auth/password/change, /recovery/request, /recovery/confirm | senha; revoga as sessões |
 | GET /atendimentos/auth/google/login, /google/profile; POST /google/complete | Google com o mesmo callback `/auth/google/callback`; o fluxo salvo no Redis diz de onde o login partiu e o retorno vai para `/atendimentos` ou `/atendimentos/completar-perfil` |
 | GET/POST /atendimentos/businesses; GET/PATCH/DELETE /atendimentos/businesses/{id} | negócios de quem chama, com `my_role`; `opening_hours` é `{"mon": [["09:00","18:00"]], ...}`; `timezone` IANA |

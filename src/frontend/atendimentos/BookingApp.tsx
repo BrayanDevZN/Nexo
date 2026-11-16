@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { ArrowLeftRight, Building2, CalendarDays, LogOut, Plus, Scissors, Settings2, UserRound, Users } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Picture } from "./Photo";
 import { ApiError } from "@/admin/api";
 import { Busy, Feedback, message } from "@/admin/shared";
 import { Account } from "./Account";
@@ -15,9 +18,9 @@ import { can, createBookingApi, ROLE_LABELS, type BookingUser, type Business, ty
 
 const api = createBookingApi();
 type Page = "agenda" | "services" | "team" | "business" | "account";
-const PAGES: { id: Page; label: string }[] = [
-  { id: "agenda", label: "Agenda" }, { id: "services", label: "Serviços" }, { id: "team", label: "Equipe" },
-  { id: "business", label: "Negócio" }, { id: "account", label: "Conta" },
+const PAGES: { id: Page; label: string; icon: typeof CalendarDays }[] = [
+  { id: "agenda", label: "Agenda", icon: CalendarDays }, { id: "services", label: "Serviços", icon: Scissors }, { id: "team", label: "Equipe", icon: Users },
+  { id: "business", label: "Negócio", icon: Settings2 }, { id: "account", label: "Conta", icon: UserRound },
 ];
 const BUSINESS_KEY = "nexo:atendimentos:business";
 
@@ -91,29 +94,36 @@ export default function BookingApp() {
     <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
   </main>;
   if (!business) return <main className="bk-page">
-    <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="ghost" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}>Sair</Button></div>
-    <div><h1>Olá, {user.name.split(" ")[0]}</h1><p className="bk-muted">Escolha um negócio ou crie o seu.</p></div>
+    <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="ghost" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}><LogOut data-icon="inline-start" />Sair</Button></div>
+    <div className="bk-hello">
+      <Picture api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} />
+      <div><h1>Olá, {user.name.split(" ")[0]}</h1><p className="bk-muted">Escolha um negócio ou crie o seu.</p></div>
+    </div>
     <Feedback error={error || inviteError} />
     {creating ? <BusinessForm api={api} onSaved={saved => { void loadBusinesses(); pick(saved); }} />
       : !businesses ? <Busy /> : <>
-        {businesses.length === 0 && <p className="bk-empty">Você ainda não tem nenhum negócio.</p>}
-        <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item bk-business" key={row.id} onClick={() => pick(row)}>
+        {businesses.length === 0 && <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Você ainda não tem nenhum negócio</EmptyTitle><EmptyDescription>Crie o seu em um minuto: só o nome é obrigatório. Se alguém te convidou, abra o link do convite.</EmptyDescription></EmptyHeader></Empty>}
+        <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item" key={row.id} onClick={() => pick(row)}>
+          <Picture api={api} path={"/businesses/" + row.id + "/photo"} name={row.name} hasPhoto={row.has_photo} className="size-12" />
           <div className="bk-item-body"><strong>{row.name}</strong><span>{[row.city, row.state].filter(Boolean).join(" / ") || row.phone || "Sem endereço"}</span></div>
           <Badge variant={row.my_role === "owner" ? "default" : "secondary"}>{ROLE_LABELS[row.my_role]}</Badge>
         </button>)}</div>
-        <Button size="lg" onClick={() => setCreating(true)}>Criar negócio</Button>
+        <Button size="lg" onClick={() => setCreating(true)}><Plus data-icon="inline-start" />Criar negócio</Button>
       </>}
     {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
-    <Card><CardContent className="flex flex-col gap-2 pt-4"><strong>Minha conta</strong><span className="bk-muted">{user.email}</span><Button variant="link" className="self-start" onClick={() => setAccountOnly(true)}>Editar dados e senha</Button></CardContent></Card>
+    <Card><CardHeader><CardTitle>Minha conta</CardTitle><CardDescription>{user.email}</CardDescription></CardHeader><CardContent><Button variant="outline" size="sm" onClick={() => setAccountOnly(true)}><UserRound data-icon="inline-start" />Foto, dados e senha</Button></CardContent></Card>
   </main>;
   return <main className="bk-page">
     <div className="bk-top">
-      <div className="bk-title"><strong>{business.name}</strong><small>{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</small></div>
-      <Button variant="outline" size="sm" onClick={() => pick(undefined)}>Trocar negócio</Button>
+      <div className="bk-title">
+        <Picture api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} className="size-11" version={business.updated_at.length} />
+        <div><strong>{business.name}</strong><small>{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</small></div>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => pick(undefined)}><ArrowLeftRight data-icon="inline-start" />Trocar</Button>
     </div>
     <Feedback error={error} />
     <nav className="bk-nav" aria-label="Seções">
-      {PAGES.map(item => <button type="button" key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}>{item.label}</button>)}
+      {PAGES.map(item => <button type="button" key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}><item.icon aria-hidden="true" />{item.label}</button>)}
     </nav>
     {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
       : page === "services" ? <Services api={api} business={business} />

@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { CalendarPlus, ChevronLeft, ChevronRight, MessageCircle, Phone, Search } from "lucide-react";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import {
   can, dayBounds, dayKey, formatDate, formatMoney, formatTime, isoToLocal, localToIso, STATUS_LABELS,
@@ -81,7 +84,7 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
   const current = editing === "new" ? undefined : editing;
   const defaultStart = current ? isoToLocal(current.starts_at) : day + "T09:00";
   return <section className="flex flex-col gap-4">
-    <div className="bk-row bk-row-between"><h1>Agenda</h1>{writes && !editing && <Button onClick={() => setEditing("new")}>Marcar atendimento</Button>}</div>
+    <div className="bk-row bk-row-between"><h1>Agenda</h1>{writes && !editing && <Button onClick={() => setEditing("new")}><CalendarPlus data-icon="inline-start" />Marcar atendimento</Button>}</div>
     {overview && <div className="bk-stats">
       <div className="bk-stat"><strong>{overview.today}</strong><span>hoje</span></div>
       <div className="bk-stat"><strong>{overview.next_7_days}</strong><span>próximos 7 dias</span></div>
@@ -95,8 +98,8 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
           <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />
           <TextField label="Celular do cliente" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
           {current?.customer_phone && <div className="bk-row">
-            <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + current.customer_phone}>Ligar</a></Button>
-            <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + current.customer_phone.replace(/\D/g, "")} target="_blank" rel="noopener">WhatsApp</a></Button>
+            <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + current.customer_phone}><Phone data-icon="inline-start" />Ligar</a></Button>
+            <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + current.customer_phone.replace(/\D/g, "")} target="_blank" rel="noopener"><MessageCircle data-icon="inline-start" />WhatsApp</a></Button>
           </div>}
           <TextField label="E-mail do cliente" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
           <Field><FieldLabel htmlFor="bk-service">Serviço</FieldLabel>
@@ -130,24 +133,24 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
           {STATUSES.filter(status => status !== current.status).map(status => <Button key={status} type="button" size="sm" variant="outline" disabled={busy} onClick={() => setStatus(current, status)}>{STATUS_LABELS[status]}</Button>)}
         </div>}
       </form></CardContent></Card>}
-    <div className="bk-status" role="group" aria-label="Período">
-      <Button variant="outline" size="sm" aria-pressed={mode === "day"} onClick={() => setMode("day")}>Por dia</Button>
-      <Button variant="outline" size="sm" aria-pressed={mode === "upcoming"} onClick={() => setMode("upcoming")}>Próximos</Button>
-    </div>
+    <ToggleGroup type="single" value={mode} onValueChange={value => { if (value) setMode(value as "day" | "upcoming"); }} aria-label="Período">
+      <ToggleGroupItem value="day">Por dia</ToggleGroupItem>
+      <ToggleGroupItem value="upcoming">Próximos</ToggleGroupItem>
+    </ToggleGroup>
     {mode === "day" && <div className="bk-day">
-      <Button variant="outline" size="icon-lg" aria-label="Dia anterior" onClick={() => shift(-1)}>‹</Button>
+      <Button variant="outline" size="icon-lg" aria-label="Dia anterior" onClick={() => shift(-1)}><ChevronLeft /></Button>
       <input type="date" aria-label="Dia" value={day} onChange={e => e.target.value && setDay(e.target.value)} />
-      <Button variant="outline" size="icon-lg" aria-label="Próximo dia" onClick={() => shift(1)}>›</Button>
+      <Button variant="outline" size="icon-lg" aria-label="Próximo dia" onClick={() => shift(1)}><ChevronRight /></Button>
       <Button variant="outline" onClick={() => setDay(dayKey(new Date()))}>Hoje</Button>
     </div>}
     <form className="bk-grid-2" onSubmit={event => { event.preventDefault(); setCustomer((new FormData(event.currentTarget).get("customer") as string) || ""); }}>
-      <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline">Buscar</Button></div>
+      <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline" size="icon-lg" aria-label="Buscar"><Search /></Button></div>
       <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as "" | AppointmentStatus)}>
         <NativeSelectOption value="">Todas as situações</NativeSelectOption>
         {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}
       </NativeSelect>
     </form>
-    {!rows ? <Busy /> : rows.length === 0 ? <p className="bk-empty">{mode === "day" ? "Nenhum atendimento neste dia." : "Nenhum atendimento futuro."}{customer || statusFilter ? " Confira os filtros." : ""}</p>
+    {!rows ? <Busy /> : rows.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><CalendarPlus /></EmptyMedia><EmptyTitle>{mode === "day" ? "Nenhum atendimento neste dia" : "Nenhum atendimento futuro"}</EmptyTitle><EmptyDescription>{customer || statusFilter ? "Confira os filtros." : writes ? "Toque em Marcar atendimento para começar." : "Quando a equipe marcar, aparece aqui."}</EmptyDescription></EmptyHeader></Empty>
       : <div className="bk-list">{rows.map(row => <button type="button" className="bk-item" data-status={row.status} key={row.id} disabled={!writes} onClick={() => setEditing(row)}>
         <div className="bk-item-time">{mode === "upcoming" && <small>{formatDate(row.starts_at)}</small>}{formatTime(row.starts_at)}<small>{formatTime(row.ends_at)}</small></div>
         <div className="bk-item-body"><strong>{row.customer_name}</strong>

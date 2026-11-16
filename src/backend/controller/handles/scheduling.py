@@ -1,7 +1,8 @@
 """Businesses, teams, services and appointments of /atendimentos. Every route needs the scheduling session."""
+import asyncio
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 
 from backend.controller.dependencies import booking_user
 from backend.controller.schema.scheduling import (
@@ -21,6 +22,7 @@ from backend.controller.schema.scheduling import (
     ServiceOutput,
     ServicePatch,
 )
+from backend.domain.photos import PhotoTooLarge, PhotoValidationError
 from backend.domain.scheduling import AppointmentStatus
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
@@ -80,6 +82,38 @@ def delete_business(business_id: str, request: Request, actor=Depends(booking_us
     except ERRORS as exc:
         raise fail(exc) from None
     return Response(status_code=204)
+
+
+@router.put("/businesses/{business_id}/photo", response_model=BusinessOutput)
+async def upload_business_photo(business_id: str, request: Request, file: UploadFile = File(), actor=Depends(booking_user)):
+    try:
+        data = await file.read(request.app.state.settings.profile_photo_max_bytes + 1)
+        return await asyncio.to_thread(service(request).upload_business_photo, actor, business_id, data)
+    except PhotoTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from None
+    except PhotoValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except ERRORS as exc:
+        raise fail(exc) from None
+    finally:
+        await file.close()
+
+
+@router.get("/businesses/{business_id}/photo", responses={200: {"content": {"image/jpeg": {}}}})
+def read_business_photo(business_id: str, request: Request, actor=Depends(booking_user)):
+    try:
+        data = service(request).read_business_photo(actor, business_id)
+    except ERRORS as exc:
+        raise fail(exc) from None
+    return Response(content=data, media_type="image/jpeg", headers={"X-Content-Type-Options": "nosniff"})
+
+
+@router.delete("/businesses/{business_id}/photo", response_model=BusinessOutput)
+def delete_business_photo(business_id: str, request: Request, actor=Depends(booking_user)):
+    try:
+        return service(request).delete_business_photo(actor, business_id)
+    except ERRORS as exc:
+        raise fail(exc) from None
 
 
 @router.get("/businesses/{business_id}/overview", response_model=OverviewOutput)

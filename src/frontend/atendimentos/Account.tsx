@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "@/admin/shared";
 import type { BookingApi, BookingUser } from "./api";
+import { PhotoField } from "./Photo";
 
 export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi; user: BookingUser; onUpdate: (user: BookingUser) => void; onLoggedOut: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -33,6 +34,7 @@ export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi;
     <Feedback error={error} success={success} />
     <Card><CardHeader><CardTitle>Seus dados</CardTitle><CardDescription>{user.email}</CardDescription></CardHeader>
       <CardContent><form onSubmit={save} className="flex flex-col gap-4"><FieldGroup>
+        <PhotoField api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} disabled={busy} onChanged={hasPhoto => onUpdate({ ...user, has_photo: hasPhoto })} label="Sua foto" />
         <TextField label="Nome" name="name" autoComplete="name" defaultValue={user.name} maxLength={120} required />
         <TextField label="Celular" name="phone" type="tel" autoComplete="tel" defaultValue={user.phone || ""} maxLength={30} />
       </FieldGroup><Button type="submit" disabled={busy}>{busy ? <Busy /> : "Salvar"}</Button></form></CardContent></Card>

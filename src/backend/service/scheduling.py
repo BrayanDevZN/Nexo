@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 
 from sqlalchemy.exc import IntegrityError
 
+from backend.domain.photos import normalize_photo
 from backend.domain.scheduling import (
     ACTIVE_STATUSES,
     BUSINESS_OWNER,
@@ -83,6 +84,30 @@ class SchedulingService:
             row = repos.businesses.update(repos.businesses.get(business_id), **changes)
             return {**snapshot("businesses", row), "my_role": membership.role}
 
+    def upload_business_photo(self, actor, business_id, data):
+        normalized = normalize_photo(data, max_bytes=self.settings.profile_photo_max_bytes,
+                                     max_pixels=self.settings.profile_photo_max_pixels)
+        with self.repositories.transaction() as repos:
+            _, membership = self._member(repos, actor, business_id, "business.write")
+            business = repos.businesses.get(business_id)
+            repos.businesses.set_photo(business, normalized)
+            return {**snapshot("businesses", business), "my_role": membership.role}
+
+    def delete_business_photo(self, actor, business_id):
+        with self.repositories.transaction() as repos:
+            _, membership = self._member(repos, actor, business_id, "business.write")
+            business = repos.businesses.get(business_id)
+            repos.businesses.set_photo(business, None)
+            return {**snapshot("businesses", business), "my_role": membership.role}
+
+    def read_business_photo(self, actor, business_id):
+        with self.repositories.read_transaction() as repos:
+            self._member(repos, actor, business_id)
+            business = repos.businesses.get(business_id)
+            if business is None or business.photo_data is None:
+                raise ResourceNotFound("Photo not found")
+            return business.photo_data
+
     def delete_business(self, actor, business_id):
         with self.repositories.transaction() as repos:
             self._member(repos, actor, business_id, "business.delete")
@@ -111,7 +136,8 @@ class SchedulingService:
                 rows = [snapshot("business_members", row) for row in repos.businesses.members(business_id)]
                 people = repos.booking_users.summaries_by_ids(row["user_id"] for row in rows)
                 return [{**row, "name": people.get(row["user_id"], {}).get("name", "Conta removida"),
-                         "email": people.get(row["user_id"], {}).get("email")} for row in rows]
+                         "email": people.get(row["user_id"], {}).get("email"),
+                         "has_photo": people.get(row["user_id"], {}).get("has_photo", False)} for row in rows]
             return self.cache.read(self._scoped("business_members", business_id), {"operation": "list"}, load)
 
     def set_member_role(self, actor, business_id, user_id, role):
