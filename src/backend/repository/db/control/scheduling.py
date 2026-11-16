@@ -342,9 +342,11 @@ class AppointmentRepository(Repository[Appointment]):
 
     def list(self, business_id: str, *, starts_from: datetime | None = None, starts_until: datetime | None = None,
              status: str | None = None, staff_user_id: str | None = None, customer: str | None = None,
-             limit: int = 50, offset: int = 0) -> list[Appointment]:
+             limit: int = 50, offset: int = 0, ends_after: datetime | None = None) -> list[Appointment]:
         pagination(limit, offset)
         query = select(Appointment).where(Appointment.business_id == business_id)
+        if ends_after is not None:
+            query = query.where(Appointment.ends_at > ends_after)   # still running after that instant
         if starts_from is not None:
             query = query.where(Appointment.starts_at >= starts_from)
         if starts_until is not None:

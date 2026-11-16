@@ -27,7 +27,7 @@ const bookingToolDescriptions = {
 	},
 	bookingServices: { getMany: 'Listar os serviços de um negócio, com ID, duração e preço.' },
 	bookingAppointments: {
-		getMany: 'Buscar agendamentos de um negócio por período, como no calendário: hoje, amanhã, um dia, uma semana, um mês, próximos 7 ou 30 dias, todos os futuros ou um intervalo de datas. Filtra por situação.',
+		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show).',
 		get: 'Consultar um agendamento pelo ID.',
 		create: 'Marcar um atendimento: informe o cliente, o início e o serviço (ID) ou o nome do serviço com o fim.',
 		update: 'Alterar um agendamento: remarcar, trocar serviço, dados do cliente ou a situação (confirmar, concluir, cancelar, faltou).',
@@ -36,16 +36,6 @@ const bookingToolDescriptions = {
 };
 
 const STATUS_OPTIONS = [{ name: 'Marcado', value: 'scheduled' }, { name: 'Confirmado', value: 'confirmed' }, { name: 'Concluído', value: 'done' }, { name: 'Cancelado', value: 'cancelled' }, { name: 'Não veio', value: 'no_show' }];
-const PERIOD_OPTIONS = [
-	{ name: 'Semana', value: 'week', description: 'Semana inteira do dia de referência (hoje, se não informar).' },
-	{ name: 'Mês', value: 'month', description: 'Mês inteiro do dia de referência.' },
-	{ name: 'Dia específico', value: 'day', description: 'O dia de referência (hoje, se não informar).' },
-	{ name: 'Hoje', value: 'today' }, { name: 'Amanhã', value: 'tomorrow' },
-	{ name: 'Próximos 7 dias', value: 'next_7_days' }, { name: 'Próximos 30 dias', value: 'next_30_days' },
-	{ name: 'Todos os futuros', value: 'upcoming' },
-	{ name: 'Intervalo de datas', value: 'custom', description: 'Do início ao fim informados.' },
-	{ name: 'Sem período (todos)', value: 'all', description: 'Todos os agendamentos, dos mais antigos aos mais novos.' },
-];
 
 const bookingFields = [];
 function add(displayName, name, type, defaultValue, resource, operations, extra = {}) {
@@ -61,17 +51,15 @@ for (const [resource, operations] of Object.entries(NEEDS_BUSINESS)) {
 }
 // Services
 add('Só serviços ativos', 'bookingActiveOnly', 'boolean', false, 'bookingServices', ['getMany'], { description: 'Esconde os serviços desativados.' });
-// Appointments: search by period, like the calendar
-add('Período', 'bookingPeriod', 'options', 'week', 'bookingAppointments', ['getMany'], { options: PERIOD_OPTIONS, description: 'Como no calendário: o período é calculado no fuso horário do negócio.' });
-add('Dia de referência', 'bookingDate', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['day', 'week', 'month'] } }, description: 'Qualquer dia da semana ou do mês que você quer ver. Vazio = hoje.' });
-add('A semana começa no', 'bookingWeekStarts', 'options', 'sunday', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['week'] } }, options: [{ name: 'Domingo', value: 'sunday' }, { name: 'Segunda-feira', value: 'monday' }] });
-add('De', 'bookingFrom', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, required: true, description: 'Início do intervalo. Sem fuso, vale o horário do negócio.' });
-add('Até', 'bookingUntil', 'dateTime', '', 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingPeriod: ['custom'] } }, description: 'Fim do intervalo (não inclui este instante). Vazio = sem fim.' });
-add('Situação', 'bookingStatusFilter', 'options', '', 'bookingAppointments', ['getMany'], { options: [{ name: 'Todas as situações', value: '' }, ...STATUS_OPTIONS] });
+// Appointments: search between a Start and an End, like Google Calendar's timeMin / timeMax.
+const WINDOW = 'Formato ISO 8601, ex.: 2026-11-16T09:00:00-03:00. Sem fuso, vale o horário do negócio.';
+add('Start', 'bookingStart', 'dateTime', '', 'bookingAppointments', ['getMany'], { description: `Início da janela, como no Google Calendar: traz os agendamentos que ainda não tinham terminado nesse instante (os que terminam exatamente nele ficam de fora). Vazio: sem limite inicial. ${WINDOW}` });
+add('End', 'bookingEnd', 'dateTime', '', 'bookingAppointments', ['getMany'], { description: `Fim da janela: traz os agendamentos que começam antes desse instante (os que começam exatamente nele ficam de fora). Vazio: sem limite final. Para ver um dia inteiro, Start = 00:00 do dia e End = 00:00 do dia seguinte. ${WINDOW}` });
+add('Situação', 'bookingStatusFilter', 'options', '', 'bookingAppointments', ['getMany'], { options: [{ name: 'Todas as situações', value: '' }, ...STATUS_OPTIONS], description: 'Só os agendamentos nessa situação: scheduled (marcado), confirmed, done (concluído), cancelled ou no_show (não veio). Vazio: todas.' });
 add('Devolver todos', 'bookingReturnAll', 'boolean', false, 'bookingAppointments', ['getMany'], { description: `Busca todas as páginas (até ${MAX_ROWS} agendamentos).` });
-add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 } });
+add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], { displayOptions: { show: { bookingReturnAll: [false] } }, typeOptions: { minValue: 1, maxValue: 500 }, description: 'Quantos agendamentos devolver, no máximo (1 a 500).' });
 // Appointments: identify, create, update
-add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointments', ['get', 'update', 'delete'], { required: true });
+add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointments', ['get', 'update', 'delete'], { required: true, description: 'ID do agendamento (campo id de Agendamentos > Get Many).' });
 // "Cliente": a searchable list of the clients registered in Nexo (like the spreadsheet picker of Google Sheets), or an ID.
 for (const operations of [['create'], ['update']]) {
 	add('Cliente', 'bookingClient', 'resourceLocator', { mode: 'list', value: '' }, 'bookingAppointments', operations, {
@@ -84,16 +72,16 @@ for (const operations of [['create'], ['update']]) {
 }
 add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { description: 'Só se o cliente não estiver na lista acima.' });
 add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera (ou usa o cliente escolhido acima).' });
-add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update']);
-add('E-mail do cliente', 'bookingCustomerEmail', 'string', '', 'bookingAppointments', ['create', 'update']);
+add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Celular com DDD, ex.: 11999999999. Vazio: usa o do cliente escolhido.' });
+add('E-mail do cliente', 'bookingCustomerEmail', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'E-mail do cliente. Vazio: usa o do cliente escolhido.' });
 add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: 'Sem fuso horário, vale o horário do negócio.' });
 add('Início', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: 'Para remarcar. Vazio: não altera. Sem fuso horário, vale o horário do negócio.' });
 add('Fim', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa a duração do serviço (ou não altera, ao atualizar).' });
 add('ID do serviço', 'bookingServiceId', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Veja os IDs em Serviços > Get Many. Vazio: use o nome do serviço abaixo.' });
 add('Nome do serviço', 'bookingServiceName', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Só quando não houver ID de serviço; neste caso informe também o Fim.' });
 add('Preço (R$)', 'bookingPrice', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Vazio: usa o preço do serviço. Ex.: 45,00.' });
-add('Observações', 'bookingNotes', 'string', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { rows: 3 } });
-add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS] });
+add('Observações', 'bookingNotes', 'string', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { rows: 3 }, description: 'Anotações do atendimento (texto livre).' });
+add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS], description: 'Nova situação: scheduled, confirmed, done, cancelled ou no_show. Vazio: não altera.' });
 
 // Time ----------------------------------------------------------------------------------------------------
 
@@ -119,17 +107,6 @@ function instant(value, timeZone, label) {
 	utc = wall - offsetMs(utc, timeZone); // second pass across a daylight-saving change
 	return new Date(utc).toISOString();
 }
-/** YYYY-MM-DD of a picked day, as written: the calendar day the person meant. */
-function calendarDay(value) {
-	const text = String(value ?? '').trim();
-	if (!text) return '';
-	const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
-	if (match) return match[1];
-	const date = new Date(text);
-	if (Number.isNaN(date.getTime())) throw new Error('Dia de referência inválido.');
-	return date.toISOString().slice(0, 10);
-}
-
 // Requests ------------------------------------------------------------------------------------------------
 
 function clean(text) { const value = String(text ?? '').trim(); return value === '' ? undefined : value; }
@@ -233,20 +210,12 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	}
 	if (operation === 'getMany') {
 		const qs = {};
-		const period = String(param('bookingPeriod', 'week'));
-		if (period === 'custom') {
-			qs.starts_from = await when(param('bookingFrom'), 'o início do intervalo (De)');
-			const until = clean(param('bookingUntil'));
-			if (until) qs.starts_until = await when(until, 'o fim do intervalo (Até)');
-			if (qs.starts_until && qs.starts_until <= qs.starts_from) throw new Error('"Até" precisa ser depois de "De".');
-		} else if (period !== 'all') {
-			qs.period = period;
-			if (['day', 'week', 'month'].includes(period)) {
-				const day = calendarDay(param('bookingDate'));
-				if (day) qs.date = day;
-				if (period === 'week') qs.week_starts = String(param('bookingWeekStarts', 'sunday'));
-			}
-		}
+		// Google Calendar's window: an appointment is in it when it ends after Start and begins before End.
+		const start = clean(param('bookingStart'));
+		const end = clean(param('bookingEnd'));
+		if (start) qs.ends_after = await when(start, 'o Start');
+		if (end) qs.starts_until = await when(end, 'o End');
+		if (qs.ends_after && qs.starts_until && qs.starts_until <= qs.ends_after) throw new Error('O End precisa ser depois do Start.');
 		for (const [field, apiField] of [['bookingStatusFilter', 'status']]) {
 			const value = clean(param(field));
 			if (value) qs[apiField] = value;
@@ -297,5 +266,5 @@ async function executeBooking(ctx, resource, operation, index, state) {
 
 module.exports = {
 	BOOKING_RESOURCES, CREDENTIAL, isBookingResource, bookingResourceOptions, bookingOperationOptions, bookingToolDescriptions,
-	bookingFields, loadOptions, listSearch, executeBooking, explain, instant, calendarDay, money, DEFAULT_BASE_URL,
+	bookingFields, loadOptions, listSearch, executeBooking, explain, instant, money, DEFAULT_BASE_URL,
 };

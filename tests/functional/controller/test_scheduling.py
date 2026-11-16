@@ -447,3 +447,26 @@ def test_the_nexo_team_api_key_manages_every_business_without_any_atendimentos_a
     # The app itself needs the account: a Nexo panel session is not an Atendimentos session.
     client.cookies.clear()
     assert client.get("/atendimentos/businesses").status_code == 401
+
+
+def test_appointments_can_be_searched_with_a_start_and_an_end_like_google_calendar(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    business = create_business(client, headers)
+    path = "/atendimentos/businesses/" + business["id"]
+    for name, start, end in (("Antes", "2026-11-16T10:00:00Z", "2026-11-16T10:30:00Z"), ("Atravessa o início", "2026-11-16T11:30:00Z", "2026-11-16T12:30:00Z"),
+                             ("Dentro", "2026-11-16T13:00:00Z", "2026-11-16T14:00:00Z"), ("Começa no fim", "2026-11-16T15:00:00Z", "2026-11-16T16:00:00Z"),
+                             ("Depois", "2026-11-16T17:00:00Z", "2026-11-16T18:00:00Z")):
+        assert client.post(path + "/appointments", headers=headers, json={"customer_name": name, "service_name": "Corte", "starts_at": start, "ends_at": end}).status_code == 201
+
+    def names(**params):
+        response = client.get(path + "/appointments", params={"limit": 100, **params})
+        assert response.status_code == 200, response.text
+        return [row["customer_name"] for row in response.json()]
+
+    # Start/End as in Google Calendar: it is in the window when it ends after Start and begins before End.
+    assert names(ends_after="2026-11-16T12:00:00Z", starts_until="2026-11-16T15:00:00Z") == ["Atravessa o início", "Dentro"]
+    assert names(ends_after="2026-11-16T12:30:00Z", starts_until="2026-11-16T15:00:01Z") == ["Dentro", "Começa no fim"]   # ends exactly at Start: out
+    assert names(ends_after="2026-11-16T17:30:00Z") == ["Depois"]          # only a start: from then on
+    assert names(starts_until="2026-11-16T11:00:00Z") == ["Antes"]         # only an end: until then
+    assert names(ends_after="2026-11-16T12:00:00Z", starts_from="2026-11-16T13:00:00Z", starts_until="2026-11-16T15:00:00Z") == ["Dentro"]

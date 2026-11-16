@@ -306,13 +306,14 @@ class SchedulingService:
 
     def list_appointments(self, actor, business_id, *, starts_from=None, starts_until=None, status=None,
                           staff_user_id=None, customer=None, limit=50, offset=0, period=None, date=None,
-                          week_starts="sunday"):
+                          week_starts="sunday", ends_after=None):
         if period and (starts_from or starts_until):
             raise ValueError("Use either a period or starts_from/starts_until, not both")
         if date and period not in ANCHORED_PERIODS:
             raise ValueError("date only applies to the day, week and month periods")
         starts_from = to_utc(starts_from) if starts_from else None
         starts_until = to_utc(starts_until) if starts_until else None
+        ends_after = to_utc(ends_after) if ends_after else None
         with self.repositories.read_transaction() as repos:
             self._member(repos, actor, business_id)
             if period:
@@ -321,11 +322,13 @@ class SchedulingService:
                                                          week_starts=week_starts)
             query = {"operation": "list", "from": starts_from.isoformat() if starts_from else None,
                      "until": starts_until.isoformat() if starts_until else None, "status": status,
-                     "staff_user_id": staff_user_id, "customer": customer, "limit": limit, "offset": offset}
+                     "staff_user_id": staff_user_id, "customer": customer, "limit": limit, "offset": offset,
+                     "ends_after": ends_after.isoformat() if ends_after else None}
             return self.cache.read(self._scoped("appointments", business_id), query, lambda: self._with_people(
                 repos, [snapshot("appointments", row) for row in repos.appointments.list(
                     business_id, starts_from=starts_from, starts_until=starts_until, status=status,
-                    staff_user_id=staff_user_id, customer=customer, limit=limit, offset=offset)]))
+                    staff_user_id=staff_user_id, customer=customer, limit=limit, offset=offset,
+                    ends_after=ends_after)]))
 
     def get_appointment(self, actor, business_id, appointment_id):
         with self.repositories.read_transaction() as repos:

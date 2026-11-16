@@ -242,12 +242,13 @@ def list_appointments(business_id: str, request: Request, starts_from: datetime 
                       period: Period | None = Query(default=None, description="today, tomorrow, day, week, month, next_7_days, next_30_days or upcoming, in the business's time zone"),
                       date: Date | None = Query(default=None, description="Anchor of day, week and month (default: today)"),
                       week_starts: Literal["sunday", "monday"] = "sunday",
+                      ends_after: datetime | None = Query(default=None, description="Only appointments that end after this instant (with starts_until, the overlap window of Google Calendar)"),
                       actor=Depends(booking_user)):
     try:
         return service(request).list_appointments(actor, business_id, starts_from=starts_from, starts_until=starts_until,
                                                   status=status, staff_user_id=staff_user_id, customer=customer,
                                                   limit=limit, offset=offset, period=period, date=date,
-                                                  week_starts=week_starts)
+                                                  week_starts=week_starts, ends_after=ends_after)
     except ERRORS as exc:
         raise fail(exc) from None
 

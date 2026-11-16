@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { Nexo } = require('../nodes/Nexo/Nexo.node');
-const { instant, calendarDay, money } = require('../nodes/Nexo/booking');
+const { instant, money } = require('../nodes/Nexo/booking');
 
 /** Runs the node for one item; `answer(options)` plays the API and every request is recorded. */
 async function run(parameters, answer) {
@@ -40,34 +40,6 @@ test('every Atendimentos field can be filled by the AI model: none blocks expres
 	assert.ok(fields.length > 15);
 	assert.ok(fields.every((field) => !field.noDataExpression && !['collection', 'fixedCollection'].includes(field.type)));
 	assert.ok(fields.every((field) => field.displayOptions.show.resource[0].startsWith('booking')));
-});
-
-test('searching appointments by week sends the period like the calendar and uses the regular Nexo API credential', async () => {
-	const { output, requests, credentials } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'week', bookingDate: '2026-11-18T10:00:00.000-03:00', bookingWeekStarts: 'monday', bookingStatusFilter: 'confirmed' },
-		() => [{ id: 'a1', customer_name: 'Ana' }, { id: 'a2', customer_name: 'Ana Maria' }]);
-	assert.deepEqual(credentials, ['nexoApi']);
-	assert.equal(requests.length, 1);
-	assert.equal(requests[0].credential, 'nexoApi');
-	assert.equal(requests[0].baseURL, 'https://nexo.test/');
-	assert.equal(requests[0].url, 'atendimentos/businesses/b1/appointments');
-	assert.deepEqual(requests[0].qs, { period: 'week', date: '2026-11-18', week_starts: 'monday', status: 'confirmed', limit: 50, offset: 0 });
-	assert.deepEqual(output[0].map((item) => item.json.id), ['a1', 'a2']);
-});
-
-test('the other periods map to the API, and "no period" sends none', async () => {
-	for (const [period, expected] of [['today', { period: 'today' }], ['tomorrow', { period: 'tomorrow' }], ['month', { period: 'month' }], ['day', { period: 'day' }], ['next_7_days', { period: 'next_7_days' }], ['upcoming', { period: 'upcoming' }], ['all', {}]]) {
-		const { requests } = await run({ ...BASE, operation: 'getMany', bookingPeriod: period }, () => []);
-		assert.deepEqual(requests[0].qs, { ...expected, limit: 50, offset: 0 }, period);
-	}
-});
-
-test('a custom range without a time zone is read in the business time zone', async () => {
-	const { requests } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'custom', bookingFrom: '2026-11-16T00:00:00', bookingUntil: '2026-11-17 00:00' },
-		(options) => (options.url.endsWith('/b1') ? business : []));
-	assert.equal(requests[0].url, 'atendimentos/businesses/b1');
-	assert.deepEqual(requests[1].qs, { starts_from: '2026-11-16T03:00:00.000Z', starts_until: '2026-11-17T03:00:00.000Z', limit: 50, offset: 0 });
-	const bad = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'custom', bookingFrom: '2026-11-17T00:00:00Z', bookingUntil: '2026-11-16T00:00:00Z' }, () => business).catch((error) => error);
-	assert.match(bad.message, /depois de "De"/);
 });
 
 test('Return all pages through the results and stops at the end; the limit caps one request', async () => {
@@ -148,7 +120,7 @@ test('there is no "Quem atende" option: the node never asks for or sends who att
 	assert.ok(!('staff_user_id' in requests[0].qs));
 });
 
-test('time helpers: local time of the business, explicit offsets, days and prices', () => {
+test('time helpers: local time of the business, explicit offsets and prices', () => {
 	assert.equal(instant('2026-11-16T09:00:00', 'America/Sao_Paulo', 'x'), '2026-11-16T12:00:00.000Z');
 	assert.equal(instant('2026-11-16 09:00', 'America/New_York', 'x'), '2026-11-16T14:00:00.000Z');
 	assert.equal(instant('2026-11-16T09:00:00-05:00', 'America/Sao_Paulo', 'x'), '2026-11-16T14:00:00.000Z');
@@ -156,8 +128,6 @@ test('time helpers: local time of the business, explicit offsets, days and price
 	assert.equal(instant('2026-07-01', 'Europe/Lisbon', 'x'), '2026-06-30T23:00:00.000Z');
 	assert.throws(() => instant('amanhã', 'America/Sao_Paulo', 'o início'), /inválidas/);
 	assert.throws(() => instant('', 'America/Sao_Paulo', 'o início'), /Informe o início/);
-	assert.equal(calendarDay('2026-11-18T23:30:00-03:00'), '2026-11-18');
-	assert.equal(calendarDay(''), '');
 	assert.equal(money('45,00'), '45.00');
 	assert.equal(money('1.234,5'), '1234.5');
 	assert.equal(money('45.5'), '45.5');
@@ -235,4 +205,54 @@ test('a 403 from the API is explained in Portuguese instead of "Forbidden"', asy
 	assert.equal(other.message, 'Business not found');
 	const untouched = new Error('timeout');
 	assert.equal((await run({ resource: 'bookingBusinesses', operation: 'getMany' }, () => { throw untouched; }).catch((error) => error)), untouched);
+});
+
+test('appointments are searched between a Start and an End, like Google Calendar', async () => {
+	const { output, requests, credentials } = await run({ ...BASE, operation: 'getMany', bookingStart: '2026-11-16T00:00:00-03:00', bookingEnd: '2026-11-17T00:00:00-03:00', bookingStatusFilter: 'confirmed' },
+		() => [{ id: 'a1', customer_name: 'Ana' }, { id: 'a2', customer_name: 'Bia' }]);
+	assert.deepEqual(credentials, ['nexoApi']);
+	assert.equal(requests.length, 1);   // an explicit offset needs no look-up of the business time zone
+	assert.equal(requests[0].credential, 'nexoApi');
+	assert.equal(requests[0].url, 'atendimentos/businesses/b1/appointments');
+	assert.deepEqual(requests[0].qs, { ends_after: '2026-11-16T03:00:00.000Z', starts_until: '2026-11-17T03:00:00.000Z', status: 'confirmed', limit: 50, offset: 0 });
+	assert.deepEqual(output[0].map((item) => item.json.id), ['a1', 'a2']);
+});
+
+test('Start and End are optional, either alone works, and no window means everything', async () => {
+	const only = async (parameters) => (await run({ ...BASE, operation: 'getMany', ...parameters }, () => [])).requests[0].qs;
+	assert.deepEqual(await only({}), { limit: 50, offset: 0 });
+	assert.deepEqual(await only({ bookingStart: '2026-11-16T09:00:00Z' }), { ends_after: '2026-11-16T09:00:00.000Z', limit: 50, offset: 0 });
+	assert.deepEqual(await only({ bookingEnd: '2026-11-16T09:00:00Z' }), { starts_until: '2026-11-16T09:00:00.000Z', limit: 50, offset: 0 });
+});
+
+test('Start and End without a time zone are read in the business time zone', async () => {
+	const { requests } = await run({ ...BASE, operation: 'getMany', bookingStart: '2026-11-16T00:00:00', bookingEnd: '2026-11-17 00:00' }, (options) => (options.url.endsWith('/b1') ? business : []));
+	assert.equal(requests[0].url, 'atendimentos/businesses/b1');
+	assert.deepEqual(requests[1].qs, { ends_after: '2026-11-16T03:00:00.000Z', starts_until: '2026-11-17T03:00:00.000Z', limit: 50, offset: 0 });
+	const bad = await run({ ...BASE, operation: 'getMany', bookingStart: '2026-11-17T00:00:00Z', bookingEnd: '2026-11-16T00:00:00Z' }, () => []).catch((error) => error);
+	assert.match(bad.message, /End precisa ser depois do Start/);
+	const invalid = await run({ ...BASE, operation: 'getMany', bookingStart: 'amanhã' }, () => business).catch((error) => error);
+	assert.match(invalid.message, /inválidas/);
+});
+
+test('there are no period presets any more: only Start and End, both plain fields the AI can fill', () => {
+	const properties = new Nexo().description.properties;
+	assert.ok(!properties.some((field) => ['bookingPeriod', 'bookingDate', 'bookingWeekStarts', 'bookingFrom', 'bookingUntil'].includes(field.name)));
+	for (const name of ['bookingStart', 'bookingEnd']) {
+		const field = properties.find((candidate) => candidate.name === name);
+		assert.equal(field.type, 'dateTime');
+		assert.deepEqual(Object.keys(field.displayOptions.show).sort(), ['operation', 'resource']);   // never hidden behind another field
+		assert.ok(!field.noDataExpression && !field.required);
+		assert.match(field.description, /ISO 8601/);
+	}
+});
+
+test('the node is tool-ready: every Atendimentos field has a description for the model and the tool description says what it does', () => {
+	const node = new Nexo();
+	assert.equal(node.description.usableAsTool, true);
+	assert.deepEqual(node.description.inputs, ['main']);
+	assert.match(node.description.description, /Atendimentos/);
+	assert.match(node.description.description, /Start\/End/);
+	const fields = node.description.properties.filter((field) => field.name.startsWith('booking'));
+	for (const field of fields) assert.ok(field.description && field.description.length > 10, field.name);
 });
