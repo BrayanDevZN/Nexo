@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import { WEEKDAYS, WEEKDAY_LABELS, type BookingApi, type Business, type OpeningHours, type Weekday } from "./api";
-import { PhotoField } from "./Photo";
+import { PhotoField, preparePhoto } from "./Photo";
 
 const EMPTY_HOURS = (): OpeningHours => ({ mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] });
 
@@ -21,12 +21,12 @@ function NewPhoto({ file, onChange, disabled }: { file?: File; onChange: (file?:
     const url = URL.createObjectURL(file); setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
-  function pick(picked?: File) {
+  async function pick(picked?: File) {
     if (!picked) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(picked.type) || picked.size > 2 * 1024 * 1024) {
-      setError("Escolha uma imagem JPEG, PNG ou WebP de até 2 MB."); return;
-    }
-    setError(""); onChange(picked);
+    setError("");
+    try { onChange(await preparePhoto(picked)); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível usar essa foto."); }
+    finally { if (input.current) input.current.value = ""; }
   }
   return <Field data-invalid={!!error || undefined}>
     <FieldLabel>Logo ou foto do negócio <span className="font-normal text-muted-foreground">(opcional)</span></FieldLabel>
@@ -36,11 +36,11 @@ function NewPhoto({ file, onChange, disabled }: { file?: File; onChange: (file?:
         : <span className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden="true"><Camera /></span>}
       <div className="bk-photo-actions">
         <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => input.current?.click()}><Camera data-icon="inline-start" />{file ? "Trocar foto" : "Escolher foto"}</Button>
-        {file && <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => { onChange(undefined); if (input.current) input.current.value = ""; }}><Trash2 data-icon="inline-start" />Remover</Button>}
+        {file && <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => onChange(undefined)}><Trash2 data-icon="inline-start" />Remover</Button>}
       </div>
     </div>
-    <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" disabled={disabled} onChange={event => pick(event.target.files?.[0])} />
-    <p className="bk-muted">{error || "JPEG, PNG ou WebP até 2 MB. A foto é redimensionada."}</p>
+    <input ref={input} type="file" className="sr-only" accept="image/*" disabled={disabled} onChange={event => void pick(event.target.files?.[0])} />
+    <p className={error ? "text-sm text-destructive" : "bk-muted"} role={error ? "alert" : undefined}>{error || "Qualquer foto do celular serve; ela é redimensionada."}</p>
   </Field>;
 }
 

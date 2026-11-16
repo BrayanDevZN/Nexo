@@ -26,6 +26,13 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
       const row = { ...request.postDataJSON(), id: "b1", owner_id: user.id, slug: "barbearia", timezone: "America/Sao_Paulo", my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" };
       businesses.push(row); body = row; status = 201;
     }
+    else if (path === "/businesses/b1/photo" && method === "PUT") {
+      csrf();
+      const upload = request.postDataBuffer() || Buffer.alloc(0);
+      expect(upload.length).toBeLessThan(2 * 1024 * 1024); expect(upload.includes(Buffer.from("image/jpeg"))).toBe(true);
+      Object.assign(businesses[0], { has_photo: true }); body = businesses[0];
+    }
+    else if (path === "/businesses/b1/photo" && method === "GET") { await route.fulfill({ status: 404 }); return; }
     else if (path === "/businesses/b1/overview") body = { today: appointments.length, next_7_days: appointments.length, upcoming: appointments.length, finished: 0, by_status: { scheduled: appointments.length, confirmed: 0, done: 0, cancelled: 0, no_show: 0 }, next: appointments };
     else if (path === "/businesses/b1/members") body = [{ id: "m1", business_id: "b1", user_id: user.id, role: "owner", name: user.name, email: user.email, created_at: "2026-11-16" }];
     else if (path === "/businesses/b1/invitations" && method === "GET") body = [];
@@ -93,4 +100,21 @@ test("the invitation link is read before signing in", async ({ page }) => {
   await page.goto("/atendimentos?invite=tok");
   await expect(page.getByText("Você foi convidado para Barbearia do Zé como atendente.")).toBeVisible();
   await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue("bia@example.com");
+});
+
+test("a large phone photo chosen for a new business is shrunk, previewed and sent after creating it", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  await page.goto("/atendimentos");
+  await page.getByRole("button", { name: "Criar negócio" }).click();
+  // 2500x1700 BMP (~12 MB): far over 2 MB and not a type the server accepts, like many phone photos.
+  const width = 2500, height = 1700, rowSize = width * 3, pixels = rowSize * height;
+  const bmp = Buffer.alloc(54 + pixels);
+  bmp.write("BM"); bmp.writeUInt32LE(bmp.length, 2); bmp.writeUInt32LE(54, 10); bmp.writeUInt32LE(40, 14);
+  bmp.writeInt32LE(width, 18); bmp.writeInt32LE(height, 22); bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28);
+  for (let i = 54; i < bmp.length; i++) bmp[i] = (i * 7) % 256;
+  await page.locator('input[type="file"]').setInputFiles({ name: "foto.bmp", mimeType: "image/bmp", buffer: bmp });
+  await expect(page.getByAltText("Prévia da foto do negócio")).toBeVisible();
+  await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
+  await page.getByRole("button", { name: "Criar negócio" }).click();
+  await expect(page.getByRole("navigation", { name: "Seções" })).toBeVisible();
 });
