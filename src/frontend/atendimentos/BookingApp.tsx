@@ -4,6 +4,12 @@ import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Picture } from "./Photo";
 import { ApiError } from "@/admin/api";
@@ -18,9 +24,9 @@ import { can, createBookingApi, ROLE_LABELS, type BookingUser, type Business, ty
 
 const api = createBookingApi();
 type Page = "agenda" | "services" | "team" | "business" | "account";
-const PAGES: { id: Page; label: string; icon: typeof CalendarDays }[] = [
-  { id: "agenda", label: "Agenda", icon: CalendarDays }, { id: "services", label: "Serviços", icon: Scissors }, { id: "team", label: "Equipe", icon: Users },
-  { id: "business", label: "Negócio", icon: Settings2 }, { id: "account", label: "Conta", icon: UserRound },
+const PAGES: { id: Page; label: string; icon: typeof CalendarDays; group: "work" | "settings" }[] = [
+  { id: "agenda", label: "Agenda", icon: CalendarDays, group: "work" }, { id: "services", label: "Serviços", icon: Scissors, group: "work" }, { id: "team", label: "Equipe", icon: Users, group: "work" },
+  { id: "business", label: "Negócio", icon: Settings2, group: "settings" }, { id: "account", label: "Conta", icon: UserRound, group: "settings" },
 ];
 const BUSINESS_KEY = "nexo:atendimentos:business";
 
@@ -113,24 +119,75 @@ export default function BookingApp() {
     {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
     <Card><CardHeader><CardTitle>Minha conta</CardTitle><CardDescription>{user.email}</CardDescription></CardHeader><CardContent><Button variant="outline" size="sm" onClick={() => setAccountOnly(true)}><UserRound data-icon="inline-start" />Foto, dados e senha</Button></CardContent></Card>
   </main>;
-  return <main className="bk-page" data-wide={page === "agenda" || undefined}>
-    <div className="bk-top">
-      <div className="bk-title">
-        <Picture api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} className="size-11" version={business.updated_at.length} />
-        <div><strong>{business.name}</strong><small>{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</small></div>
+  const current = PAGES.find(item => item.id === page) || PAGES[0];
+  return <TooltipProvider delayDuration={200}><SidebarProvider className="bk-shell">
+    <Sidebar collapsible="icon" className="bk-sidebar" aria-label="Menu do Atendimentos">
+      <SidebarHeader>
+        <a className="bk-brand" href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" decoding="async" /><span>Nexo <b>Atendimentos</b></span></a>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" className="bk-switcher" tooltip="Trocar de negócio" onClick={() => pick(undefined)}>
+              <Picture api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} className="size-8 rounded-lg" version={business.updated_at.length} />
+              <div className="grid flex-1 text-left leading-tight"><span className="truncate font-semibold">{business.name}</span><span className="truncate text-xs text-muted-foreground">{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</span></div>
+              <ArrowLeftRight className="ml-auto" aria-hidden="true" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <nav aria-label="Seções" className="flex flex-col gap-2">
+          <SidebarGroup>
+            <SidebarGroupLabel>Atendimento</SidebarGroupLabel>
+            <SidebarGroupContent><SidebarMenu>
+              {PAGES.filter(item => item.group === "work").map(item => <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton isActive={page === item.id} tooltip={item.label} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}><item.icon aria-hidden="true" /><span>{item.label}</span></SidebarMenuButton>
+              </SidebarMenuItem>)}
+            </SidebarMenu></SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Configurações</SidebarGroupLabel>
+            <SidebarGroupContent><SidebarMenu>
+              {PAGES.filter(item => item.group === "settings").map(item => <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton isActive={page === item.id} tooltip={item.label} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}><item.icon aria-hidden="true" /><span>{item.label}</span></SidebarMenuButton>
+              </SidebarMenuItem>)}
+            </SidebarMenu></SidebarGroupContent>
+          </SidebarGroup>
+        </nav>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" tooltip="Minha conta" onClick={() => setPage("account")}>
+              <Picture api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} className="size-8 rounded-lg" />
+              <div className="grid flex-1 text-left leading-tight"><span className="truncate font-semibold">{user.name}</span><span className="truncate text-xs text-muted-foreground">{user.email}</span></div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Sair" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}><LogOut aria-hidden="true" /><span>Sair</span></SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+    <SidebarInset className="bk-inset">
+      <header className="bk-header">
+        <SidebarTrigger aria-label="Abrir ou fechar o menu" />
+        <Breadcrumb><BreadcrumbList>
+          <BreadcrumbItem className="hidden sm:block">{business.name}</BreadcrumbItem>
+          <BreadcrumbSeparator className="hidden sm:block" />
+          <BreadcrumbItem><BreadcrumbPage>{current.label}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList></Breadcrumb>
+      </header>
+      <div className="bk-content" data-wide={page === "agenda" || undefined}>
+        <Feedback error={error} />
+        {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
+          : page === "services" ? <Services api={api} business={business} />
+          : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
+          : page === "business" ? (can.editBusiness(business.my_role)
+            ? <BusinessForm api={api} business={business} canDelete={can.deleteBusiness(business.my_role)} onSaved={saved => { setBusiness(saved); void loadBusinesses(); }} onDeleted={() => { pick(undefined); void loadBusinesses(); }} />
+            : <Card><CardContent className="flex flex-col gap-1 pt-4"><strong>{business.name}</strong>{business.address && <span>{business.address}</span>}{business.phone && <span>{business.phone}</span>}<span className="bk-muted">Só o dono ou um gerente altera estes dados.</span></CardContent></Card>)
+          : <Agenda api={api} business={business} />}
       </div>
-      <Button variant="outline" size="sm" onClick={() => pick(undefined)}><ArrowLeftRight data-icon="inline-start" />Trocar</Button>
-    </div>
-    <Feedback error={error} />
-    <nav className="bk-nav" aria-label="Seções">
-      {PAGES.map(item => <button type="button" key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}><item.icon aria-hidden="true" />{item.label}</button>)}
-    </nav>
-    {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
-      : page === "services" ? <Services api={api} business={business} />
-      : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
-      : page === "business" ? (can.editBusiness(business.my_role)
-        ? <BusinessForm api={api} business={business} canDelete={can.deleteBusiness(business.my_role)} onSaved={saved => { setBusiness(saved); void loadBusinesses(); }} onDeleted={() => { pick(undefined); void loadBusinesses(); }} />
-        : <Card><CardContent className="flex flex-col gap-1 pt-4"><strong>{business.name}</strong>{business.address && <span>{business.address}</span>}{business.phone && <span>{business.phone}</span>}<span className="bk-muted">Só o dono ou um gerente altera estes dados.</span></CardContent></Card>)
-      : <Agenda api={api} business={business} />}
-  </main>;
+    </SidebarInset>
+  </SidebarProvider></TooltipProvider>;
 }
