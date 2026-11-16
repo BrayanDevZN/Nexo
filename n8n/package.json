@@ -13,7 +13,8 @@
       "nodes/Nexo/NexoTrigger.node.js"
     ],
     "credentials": [
-      "credentials/NexoApi.credentials.js"
+      "credentials/NexoApi.credentials.js",
+      "credentials/NexoBookingApi.credentials.js"
     ]
   }
 }

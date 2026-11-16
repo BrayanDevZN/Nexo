@@ -7,6 +7,8 @@ USER root
 # Keep custom node code outside the Railway data volume. The volume remains
 # attached to the existing n8n data path and is not modified by this image.
 ENV N8N_CUSTOM_EXTENSIONS=/opt/n8n-custom
+# Lets the Nexo node be used as an AI Agent tool, with the "let the model define this parameter" sparkle on each field.
+ENV N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
 
 RUN mkdir -p /opt/n8n-custom/nodes /opt/n8n-custom/credentials \
     && chown -R node:node /opt/n8n-custom

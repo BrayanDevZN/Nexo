@@ -352,3 +352,78 @@ def test_google_links_to_a_local_atendimentos_account_by_verified_email(client):
     with client.app.state.services.repositories.read_transaction() as repos:
         user = repos.booking_users.by_email("ana@example.com")
         assert user.google_sub == "google-user-123" and user.password_hash is not None
+
+
+def test_scheduling_api_keys_act_as_the_account_without_a_browser_session(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    created = client.post("/atendimentos/auth/api-keys", headers=headers, json={"name": "n8n"})
+    assert created.status_code == 201
+    key = created.json()["key"]
+    assert key.startswith("nexo_book_") and created.json()["key_prefix"] == key[:18] and "key_hash" not in created.json()
+    assert [row["name"] for row in client.get("/atendimentos/auth/api-keys").json()] == ["n8n"]
+    assert "key" not in client.get("/atendimentos/auth/api-keys").json()[0]
+
+    client.cookies.clear()
+    bearer = {"Authorization": "Bearer " + key}
+    # A key reads and writes the resource routes with no cookie, Origin or CSRF token.
+    assert client.get("/atendimentos/businesses", headers=bearer).json() == []
+    made = client.post("/atendimentos/businesses", headers=bearer, json={"name": "Via chave"})
+    assert made.status_code == 201 and made.json()["my_role"] == "owner"
+    assert [row["name"] for row in client.get("/atendimentos/businesses", headers=bearer).json()] == ["Via chave"]
+    # ...but not the account routes: keys cannot mint keys, read the profile or change the password.
+    assert client.get("/atendimentos/auth/api-keys", headers=bearer).status_code == 401
+    assert client.post("/atendimentos/auth/api-keys", headers=bearer, json={"name": "x"}).status_code in {401, 403}
+    assert client.get("/atendimentos/auth/me", headers=bearer).status_code == 401
+    # A wrong key, a panel-style key and no key at all are all refused; a bad key never falls back to a cookie.
+    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_book_wrong"}).status_code == 401
+    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer nexo_live_abc"}).status_code == 401
+    assert client.get("/atendimentos/businesses").status_code == 401
+    # Another account never sees this account's business through its own key.
+    register(client, BIA)
+    other = login(client, BIA)
+    other_key = client.post("/atendimentos/auth/api-keys", headers=other, json={"name": "bia"}).json()["key"]
+    client.cookies.clear()
+    assert client.get("/atendimentos/businesses", headers={"Authorization": "Bearer " + other_key}).json() == []
+    # Revoking stops the key at once.
+    login(client, ANA)
+    key_id = client.get("/atendimentos/auth/api-keys").json()[0]["id"]
+    headers = {**ORIGIN, "X-CSRF-Token": client.get("/atendimentos/auth/csrf").json()["csrf_token"]}
+    assert client.delete("/atendimentos/auth/api-keys/" + key_id, headers=headers).status_code == 204
+    client.cookies.clear()
+    assert client.get("/atendimentos/businesses", headers=bearer).status_code == 401
+
+
+def test_appointments_can_be_searched_by_calendar_period_in_the_business_time_zone(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    business = create_business(client, headers)
+    path = "/atendimentos/businesses/" + business["id"]
+    # São Paulo is UTC-3: 23:30 on Nov 16 there is 02:30 UTC on Nov 17, still the 16th for the business.
+    for name, start in (("Cedo", "2026-11-16T12:00:00Z"), ("Noite", "2026-11-17T02:30:00Z"), ("Terça", "2026-11-17T13:00:00Z"),
+                        ("Domingo", "2026-11-22T13:00:00Z"), ("Segunda", "2026-11-23T13:00:00Z"), ("Dezembro", "2026-12-02T13:00:00Z")):
+        response = client.post(path + "/appointments", headers=headers,
+                               json={"customer_name": name, "service_name": "Corte", "starts_at": start, "ends_at": start.replace(":00Z", ":30Z") if name != "Noite" else "2026-11-17T03:00:00Z"})
+        assert response.status_code == 201, response.text
+
+    def names(**params):
+        response = client.get(path + "/appointments", params={"limit": 100, **params})
+        assert response.status_code == 200, response.text
+        return [row["customer_name"] for row in response.json()]
+
+    assert names(period="day", date="2026-11-16") == ["Cedo", "Noite"]
+    assert names(period="day", date="2026-11-17") == ["Terça"]
+    # 2026-11-18 is a Wednesday. Weeks starting on Sunday run 15..21, on Monday 16..22 (the Sunday the 22nd).
+    assert names(period="week", date="2026-11-18") == ["Cedo", "Noite", "Terça"]
+    assert names(period="week", date="2026-11-18", week_starts="monday") == ["Cedo", "Noite", "Terça", "Domingo"]
+    assert names(period="week", date="2026-11-23") == ["Domingo", "Segunda"]
+    assert names(period="week", date="2026-11-23", week_starts="monday") == ["Segunda"]
+    assert names(period="month", date="2026-11-30") == ["Cedo", "Noite", "Terça", "Domingo", "Segunda"]
+    assert names(period="month", date="2026-12-15") == ["Dezembro"]
+    # Combining a period with an explicit range, or a date with a period that has no anchor, is refused.
+    assert client.get(path + "/appointments", params={"period": "day", "starts_from": "2026-11-16T00:00:00Z"}).status_code == 422
+    assert client.get(path + "/appointments", params={"period": "today", "date": "2026-11-16"}).status_code == 422
+    assert client.get(path + "/appointments", params={"period": "fortnight"}).status_code == 422
+    # The relative periods answer too (they depend on today's date, so only the shape is checked).
+    for period in ("today", "tomorrow", "next_7_days", "next_30_days", "upcoming"):
+        assert isinstance(names(period=period), list)

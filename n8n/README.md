@@ -15,6 +15,15 @@ No n8n, crie uma credencial **Nexo API** com:
 A chave é armazenada pelo n8n na credencial. O node envia `Authorization: Bearer <chave>`
 e usa a Base URL configurada; ela não está hardcoded no workflow.
 
+## Credencial do Atendimentos
+
+Os recursos **Atendimentos** usam outra credencial, **Nexo Atendimentos API**, com a mesma
+Base URL e uma chave própria que começa com `nexo_book_`. Crie a chave em
+**Atendimentos > Conta > Chave de API**: ela age como a sua conta e enxerga os negócios de que você
+faz parte (com o mesmo papel: dono, gerente, atendente ou leitura). A chave aparece uma única vez, pode ser
+revogada a qualquer momento e não acessa dados da conta (senha, perfil, outras chaves). A chave do painel
+(`nexo_live_`) não funciona nesses recursos, e a do Atendimentos não funciona nos recursos do painel.
+
 ## Recursos e operações
 
 | Recurso | Operações |
@@ -25,7 +34,28 @@ e usa a Base URL configurada; ela não está hardcoded no workflow.
 | Notificações | Get Many; Get por ID; contar não lidas, marcar notificação como lida e marcar chat como lido |
 | Dashboard | Obter resumo |
 | Avisos administrativos | Criar aviso |
+| Atendimentos: negócios | Get Many; Get; resumo da agenda; listar equipe |
+| Atendimentos: serviços | Get Many (opcionalmente só os ativos) |
+| Atendimentos: agendamentos | Get Many por período; Get; criar; atualizar (remarcar, mudar a situação); excluir |
 | Maps | Criar busca; Get Many; Get (status); baixar resultados; excluir busca |
+
+### Buscar agendamentos por período
+
+Em **Atendimentos: agendamentos > Get Many**, o campo **Período** funciona como as visões do calendário:
+Semana, Mês, Dia específico, Hoje, Amanhã, Próximos 7 dias, Próximos 30 dias, Todos os futuros, Intervalo
+de datas (De/Até) ou Sem período. Semana, Mês e Dia usam o **Dia de referência** (vazio = hoje) e, na semana,
+o primeiro dia (domingo ou segunda). Os limites do dia são os do **fuso horário do negócio**, e horários
+sem fuso informados em De/Até/Início/Fim valem nesse mesmo fuso. Dá para filtrar por situação, nome do
+cliente e quem atende, e **Devolver todos** percorre as páginas (até 2000 agendamentos).
+
+### Deixar a IA decidir (✨)
+
+O node **Nexo** tem `usableAsTool` e a imagem do n8n liga `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE`.
+Ao ligá-lo à porta **Tool** de um AI Agent, cada campo mostra o botão ✨ **Let the model define this
+parameter**. Nos recursos de Atendimentos, todos os campos aceitam isso (são campos simples, sem
+grupos de opções): por exemplo, o agente decide o **Período**, o **Dia de referência**, o **Nome do
+cliente**, o **Início** e o **ID do serviço** a partir da conversa. O recurso e a operação são
+escolhidos no node (um node por ação), e o negócio pode ficar fixo ou ser decidido pela IA.
 
 O node de ações **Nexo** pode ser conectado à entrada **Tool** do **AI Agent**
 (`usableAsTool`). Configure uma operação por node — por exemplo, um node para

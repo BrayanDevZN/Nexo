@@ -10,6 +10,7 @@ from backend.domain.roles import (
 )
 from backend.service.access import REQUEST_AUTHENTICATED
 from backend.service.api_keys import ApiKeyAuthenticationError
+from backend.service.scheduling_auth import BookingApiKeyError
 from backend.service.security import AuthenticationError
 
 
@@ -23,13 +24,25 @@ def current_user(request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired session") from None
 
 
-def booking_user(request: Request):
-    """The scheduling product's session: its own cookie, its own token audience, its own account table."""
+def booking_session_user(request: Request):
+    """The scheduling product's browser session only: its own cookie, token audience and account table."""
     token = request.cookies.get(request.app.state.settings.booking_cookie_name, "")
     try:
         return request.app.state.services.booking_sessions.authenticate(token)
     except AuthenticationError:
         raise HTTPException(status_code=401, detail="Invalid or expired session") from None
+
+
+def booking_user(request: Request):
+    """A scheduling account: a Bearer `nexo_book_` key (n8n, scripts) or, failing that, the browser session."""
+    header = request.headers.get("authorization", "")
+    scheme, _, value = header.partition(" ")
+    if scheme.lower() == "bearer" and value.strip():
+        try:
+            return request.app.state.services.booking_api_keys.authenticate(value.strip())
+        except BookingApiKeyError:
+            raise HTTPException(status_code=401, detail="Invalid API key") from None
+    return booking_session_user(request)
 
 
 def _header_api_key(request: Request):

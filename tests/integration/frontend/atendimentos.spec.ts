@@ -8,6 +8,7 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
   const businesses: Record<string, unknown>[] = [];
   const services: Record<string, unknown>[] = [];
   const appointments: Record<string, unknown>[] = [];
+  const apiKeys: Record<string, unknown>[] = [];
   await page.route("**/api/atendimentos/**", async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -26,6 +27,13 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
       const row = { ...request.postDataJSON(), id: "b1", owner_id: user.id, slug: "barbearia", timezone: "America/Sao_Paulo", my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" };
       businesses.push(row); body = row; status = 201;
     }
+    else if (path === "/auth/api-keys" && method === "GET") body = apiKeys;
+    else if (path === "/auth/api-keys" && method === "POST") {
+      csrf();
+      const row = { id: "k1", name: request.postDataJSON().name, key_prefix: "nexo_book_AbCdEfGh", created_at: "2026-11-16T10:00:00", last_used_at: null };
+      apiKeys.push(row); body = { ...row, key: "nexo_book_AbCdEfGh1234567890" }; status = 201;
+    }
+    else if (path === "/auth/api-keys/k1" && method === "DELETE") { csrf(); apiKeys.length = 0; status = 204; }
     else if (path === "/businesses/b1/photo" && method === "PUT") {
       csrf();
       const upload = request.postDataBuffer() || Buffer.alloc(0);
@@ -143,4 +151,20 @@ test("the calendar books a free slot on click and remembers its customization", 
   await page.reload();
   await page.getByRole("radio", { name: "Semana" }).click();
   await expect(page.locator(".bk-tg-day")).toHaveCount(5);
+});
+
+test("an Atendimentos API key is created, shown once and can be revoked", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  await page.goto("/atendimentos");
+  await page.getByRole("button", { name: "Foto, dados e senha" }).click();
+  await page.getByLabel("Nome da chave").fill("n8n");
+  await page.getByRole("button", { name: "Criar chave" }).click();
+  await expect(page.getByTestId("new-api-key")).toHaveText("nexo_book_AbCdEfGh1234567890");
+  await expect(page.getByRole("list", { name: "Suas chaves" })).toContainText("nexo_book_AbCdEfGh");
+  // The list only keeps the prefix: the full key is gone after the next load.
+  await expect(page.getByRole("list", { name: "Suas chaves" })).not.toContainText("1234567890");
+  page.once("dialog", dialog => void dialog.accept());
+  await page.getByRole("button", { name: "Revogar a chave n8n" }).click();
+  await expect(page.getByRole("list", { name: "Suas chaves" })).toHaveCount(0);
+  await expect(page.getByTestId("new-api-key")).toHaveCount(0);
 });

@@ -11,8 +11,10 @@ from backend.domain.scheduling import (
     ACTIVE_STATUSES,
     BUSINESS_OWNER,
     INVITABLE_ROLES,
+    ANCHORED_PERIODS,
     allowed,
     outranks,
+    period_range,
     slugify,
     to_utc,
 )
@@ -284,11 +286,20 @@ class SchedulingService:
                 for row in rows]
 
     def list_appointments(self, actor, business_id, *, starts_from=None, starts_until=None, status=None,
-                          staff_user_id=None, customer=None, limit=50, offset=0):
+                          staff_user_id=None, customer=None, limit=50, offset=0, period=None, date=None,
+                          week_starts="sunday"):
+        if period and (starts_from or starts_until):
+            raise ValueError("Use either a period or starts_from/starts_until, not both")
+        if date and period not in ANCHORED_PERIODS:
+            raise ValueError("date only applies to the day, week and month periods")
         starts_from = to_utc(starts_from) if starts_from else None
         starts_until = to_utc(starts_until) if starts_until else None
         with self.repositories.read_transaction() as repos:
             self._member(repos, actor, business_id)
+            if period:
+                business = repos.businesses.get(business_id)
+                starts_from, starts_until = period_range(period, anchor=date, timezone=business.timezone,
+                                                         week_starts=week_starts)
             query = {"operation": "list", "from": starts_from.isoformat() if starts_from else None,
                      "until": starts_until.isoformat() if starts_until else None, "status": status,
                      "staff_user_id": staff_user_id, "customer": customer, "limit": limit, "offset": offset}

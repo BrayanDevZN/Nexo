@@ -2,6 +2,7 @@
 import hashlib
 import secrets
 from dataclasses import asdict
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 
@@ -137,3 +138,57 @@ class BookingGoogleAuth:
             return user, self.sessions.issue(user)
         except IntegrityError:
             raise RegistrationConflict("Account already registered; sign in again") from None
+
+
+class BookingApiKeyError(ValueError):
+    pass
+
+
+class BookingApiKeyService:
+    """Keys that let n8n or a script act as one scheduling account, with the same access that account has."""
+    prefix = "nexo_book_"
+
+    def __init__(self, repositories):
+        self.repositories = repositories
+
+    @staticmethod
+    def _hash(value: str) -> str:
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _output(key) -> dict:
+        return {"id": key.id, "name": key.name, "key_prefix": key.key_prefix,
+                "created_at": key.created_at, "last_used_at": key.last_used_at}
+
+    def create(self, actor, name: str):
+        with self.repositories.transaction() as repos:
+            user = authorize_booking(repos, actor)
+            raw = self.prefix + secrets.token_urlsafe(32)
+            key = repos.booking_api_keys.create(user_id=user.id, name=name, key_prefix=raw[:len(self.prefix) + 8],
+                                                key_hash=self._hash(raw))
+            return self._output(key), raw
+
+    def list(self, actor):
+        with self.repositories.read_transaction() as repos:
+            user = authorize_booking(repos, actor)
+            return [self._output(key) for key in repos.booking_api_keys.list_for_user(user.id)]
+
+    def revoke(self, actor, identifier: str) -> None:
+        with self.repositories.transaction() as repos:
+            user = authorize_booking(repos, actor)
+            if not repos.booking_api_keys.revoke(user.id, identifier, datetime.now(UTC).replace(tzinfo=None)):
+                raise ResourceNotFound("API key not found")
+
+    def authenticate(self, raw: str):
+        if not raw or len(raw) > 160 or not raw.startswith(self.prefix):
+            raise BookingApiKeyError("Invalid API key")
+        with self.repositories.transaction() as repos:
+            key = repos.booking_api_keys.active_by_hash(self._hash(raw))
+            user = repos.booking_users.get(key.user_id) if key else None
+            if key is None or user is None:
+                raise BookingApiKeyError("Invalid API key")
+            # Record the use at most once a minute, so a busy workflow does not write on every request.
+            now = datetime.now(UTC).replace(tzinfo=None)
+            if key.last_used_at is None or (now - key.last_used_at).total_seconds() > 60:
+                repos.booking_api_keys.touch(key.id, now)
+            return user

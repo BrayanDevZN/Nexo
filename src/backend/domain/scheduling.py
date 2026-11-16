@@ -1,7 +1,8 @@
 """Rules of the scheduling product (/atendimentos): roles inside a business, permissions, statuses and hours."""
 import re
 import unicodedata
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 from typing import Literal
 
 BUSINESS_OWNER = "owner"
@@ -100,6 +101,49 @@ def to_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(microsecond=0)
     return value.astimezone(UTC).replace(tzinfo=None, microsecond=0)
+
+
+PERIODS: tuple[str, ...] = ("today", "tomorrow", "day", "week", "month", "next_7_days", "next_30_days", "upcoming")
+Period = Literal["today", "tomorrow", "day", "week", "month", "next_7_days", "next_30_days", "upcoming"]
+ANCHORED_PERIODS = frozenset({"day", "week", "month"})
+
+
+def period_range(period: str, *, anchor: date | None = None, timezone: str = "America/Sao_Paulo",
+                 week_starts: str = "sunday", now: datetime | None = None) -> tuple[datetime, datetime | None]:
+    """The [from, until) of a calendar period, as the business sees it, in the naive UTC the database stores.
+
+    day/week/month look at `anchor` (default: today), exactly like the day, week and month views of the agenda;
+    the week starts on Sunday or Monday. "upcoming" has no end.
+    """
+    if period not in PERIODS:
+        raise ValueError("Unknown period")
+    zone = ZoneInfo(timezone)
+    moment = (now or datetime.now(UTC)).astimezone(zone)
+    today = moment.date()
+    base = anchor or today
+
+    def utc(day: date) -> datetime:
+        return datetime.combine(day, time.min, zone).astimezone(UTC).replace(tzinfo=None)
+
+    if period == "upcoming":
+        return moment.astimezone(UTC).replace(tzinfo=None, second=0, microsecond=0), None
+    if period == "today":
+        start, end = today, today + timedelta(days=1)
+    elif period == "tomorrow":
+        start, end = today + timedelta(days=1), today + timedelta(days=2)
+    elif period == "day":
+        start, end = base, base + timedelta(days=1)
+    elif period == "week":
+        start = base - timedelta(days=(base.weekday() + 1) % 7 if week_starts == "sunday" else base.weekday())
+        end = start + timedelta(days=7)
+    elif period == "month":
+        start = base.replace(day=1)
+        end = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    elif period == "next_7_days":
+        start, end = today, today + timedelta(days=7)
+    else:
+        start, end = today, today + timedelta(days=30)
+    return utc(start), utc(end)
 
 
 def slugify(name: str) -> str:

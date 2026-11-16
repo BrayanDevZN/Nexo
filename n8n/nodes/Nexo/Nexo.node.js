@@ -1,4 +1,5 @@
 const DEFAULT_BASE_URL = 'https://nexo-production-60a0.up.railway.app';
+const booking = require('./booking');
 const DEFAULT_MAPS_URL = 'https://nexo-production-52a1.up.railway.app';
 
 function safeFilename(value) {
@@ -143,6 +144,7 @@ const resourceOptions = [
 	{ name: 'Documentos', value: 'documents' }, { name: 'Notificações', value: 'notifications' },
 	{ name: 'Dashboard', value: 'dashboard' }, { name: 'Avisos administrativos', value: 'announcements' },
 	{ name: 'Maps', value: 'maps' },
+	...booking.bookingResourceOptions,
 ];
 const operationOptions = {
 	clients: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Buscar por ID ou nome', value: 'search' }, { name: 'Criar', value: 'create' }, { name: 'Atualizar', value: 'update' }, { name: 'Excluir', value: 'delete' }],
@@ -152,7 +154,9 @@ const operationOptions = {
 	dashboard: [{ name: 'Obter resumo', value: 'get' }], announcements: [{ name: 'Criar aviso', value: 'create' }],
 	maps: [{ name: 'Criar busca', value: 'create' }, { name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Baixar resultados', value: 'results' }, { name: 'Excluir busca', value: 'delete' }],
 };
+Object.assign(operationOptions, booking.bookingOperationOptions);
 const toolOperationDescriptions = {
+	...booking.bookingToolDescriptions,
 	clients: { getMany: 'Listar clientes, com filtros opcionais.', get: 'Consultar um cliente pelo ID.', search: 'Localizar cliente pelo ID ou nome.', create: 'Cadastrar um cliente na Nexo.', update: 'Atualizar um cliente localizando-o por ID, nome ou telefone.', delete: 'Excluir um cliente da Nexo.' },
 	automations: { getMany: 'Listar automações salvas na biblioteca.', get: 'Consultar os dados de uma automação.', create: 'Salvar uma automação na biblioteca.', download: 'Baixar o arquivo de uma automação.', image: 'Baixar a imagem de uma automação.' },
 	documents: { getMany: 'Listar documentos, opcionalmente filtrados por cliente.', get: 'Consultar um documento pelo ID.', upload: 'Enviar um documento para a Nexo.', download: 'Baixar um documento.', delete: 'Excluir um documento.' },
@@ -210,12 +214,15 @@ add('Contato que você quer nos leads', 'mapsResultsContact', 'options', 'any', 
 add('Limite de empresas', 'mapsResultsLimit', 'number', 0, 'maps', ['results'], { typeOptions: { minValue: 0 }, description: 'Devolve no máximo essa quantidade de empresas (já com o contato escolhido). 0 devolve todas.' });
 add('ID da busca', 'identifier', 'string', '', 'maps', ['get', 'results', 'delete'], { required: true });
 
+fields.push(...booking.bookingFields);
+
 class Nexo {
-	constructor() { this.description = { displayName: 'Nexo', name: 'nexo', icon: 'file:nexo-mark.svg', group: ['transform'], version: 1, subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}', description: 'Node de ações da Nexo. Conecte à porta Tool do AI Agent e configure o recurso e a operação que o agente deve executar.', defaults: { name: 'Nexo', color: '#6D4AFF' }, usableAsTool: true, inputs: ['main'], outputs: ['main'], credentials: [{ name: 'nexoApi', required: true }], properties: fields }; }
-	methods = { loadOptions: { getOperations() { const resource = this.getCurrentNodeParameter('resource'); return (operationOptions[resource] || []).map((operation) => ({ ...operation, action: operation.name, description: toolOperationDescriptions[resource]?.[operation.value] || operation.name })); } } };
+	constructor() { this.description = { displayName: 'Nexo', name: 'nexo', icon: 'file:nexo-mark.svg', group: ['transform'], version: 1, subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}', description: 'Node de ações da Nexo. Conecte à porta Tool do AI Agent e configure o recurso e a operação que o agente deve executar.', defaults: { name: 'Nexo', color: '#6D4AFF' }, usableAsTool: true, inputs: ['main'], outputs: ['main'], credentials: [{ name: 'nexoApi', required: true, displayOptions: { hide: { resource: booking.BOOKING_RESOURCES } } }, { name: booking.CREDENTIAL, required: true, displayOptions: { show: { resource: booking.BOOKING_RESOURCES } } }], properties: fields }; }
+	methods = { loadOptions: { ...booking.loadOptions, getOperations() { const resource = this.getCurrentNodeParameter('resource'); return (operationOptions[resource] || []).map((operation) => ({ ...operation, action: operation.name, description: toolOperationDescriptions[resource]?.[operation.value] || operation.name })); } } };
 	async execute() {
-		const items = this.getInputData(); const returnData = []; const resource = this.getNodeParameter('resource', 0); const operation = this.getNodeParameter('operation', 0); const credentials = await this.getCredentials('nexoApi'); const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+		const items = this.getInputData(); const returnData = []; const resource = this.getNodeParameter('resource', 0); const operation = this.getNodeParameter('operation', 0); const bookingResource = booking.isBookingResource(resource); const credentials = await this.getCredentials(bookingResource ? booking.CREDENTIAL : 'nexoApi'); const bookingState = { zones: new Map() }; const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 		for (let i = 0; i < items.length; i++) {
+			if (bookingResource) { for (const row of await booking.executeBooking(this, resource, operation, i, { baseUrl, zones: bookingState.zones })) returnData.push({ json: row, pairedItem: { item: i } }); continue; }
 			let method = 'GET', path = '', qs = {}, body, headers = {}, binaryResult = false, csvResult = false, fallbackFilename = 'nexo-file', requestBase = baseUrl;
 			if (resource === 'dashboard') path = '/dashboard';
 			else if (resource === 'clients') {

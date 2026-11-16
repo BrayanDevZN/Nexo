@@ -17,6 +17,7 @@ from backend.repository.db.control.scheduling import (
     BUSINESS_SCOPED_TABLES,
     SCHEDULING_TABLES,
     AppointmentRepository,
+    BookingApiKeyRepository,
     BookingUserRepository,
     BusinessRepository,
     BusinessServiceRepository,
@@ -32,6 +33,7 @@ class Repositories:
     def __init__(self, session, principal_email=None):
         self.users = UserRepository(session, principal_email=principal_email)
         self.booking_users = BookingUserRepository(session)
+        self.booking_api_keys = BookingApiKeyRepository(session)
         self.businesses = BusinessRepository(session)
         self.business_services = BusinessServiceRepository(session)
         self.appointments = AppointmentRepository(session)

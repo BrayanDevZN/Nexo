@@ -1,6 +1,8 @@
 """Businesses, teams, services and appointments of /atendimentos. Every route needs the scheduling session."""
 import asyncio
+from datetime import date as Date
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 
@@ -23,7 +25,7 @@ from backend.controller.schema.scheduling import (
     ServicePatch,
 )
 from backend.domain.photos import PhotoTooLarge, PhotoValidationError
-from backend.domain.scheduling import AppointmentStatus
+from backend.domain.scheduling import AppointmentStatus, Period
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 
 router = APIRouter(prefix="/atendimentos", tags=["scheduling"])
@@ -237,11 +239,15 @@ def list_appointments(business_id: str, request: Request, starts_from: datetime 
                       staff_user_id: str | None = Query(default=None, max_length=36),
                       customer: str | None = Query(default=None, max_length=160),
                       limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
+                      period: Period | None = Query(default=None, description="today, tomorrow, day, week, month, next_7_days, next_30_days or upcoming, in the business's time zone"),
+                      date: Date | None = Query(default=None, description="Anchor of day, week and month (default: today)"),
+                      week_starts: Literal["sunday", "monday"] = "sunday",
                       actor=Depends(booking_user)):
     try:
         return service(request).list_appointments(actor, business_id, starts_from=starts_from, starts_until=starts_until,
                                                   status=status, staff_user_id=staff_user_id, customer=customer,
-                                                  limit=limit, offset=offset)
+                                                  limit=limit, offset=offset, period=period, date=date,
+                                                  week_starts=week_starts)
     except ERRORS as exc:
         raise fail(exc) from None
 
