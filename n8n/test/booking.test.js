@@ -181,17 +181,17 @@ const SERVICES = [{ id: 's1', name: 'Corte', price: 45, duration_minutes: 30 }, 
 const answer = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SERVICES : { id: 'a1' });
 const CREATE = { ...BASE, operation: 'create', bookingCustomerName: ' João ', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00' };
 
-test('creating asks only for the customer name, Start, End and the services, with no phone, e-mail, ID, price or client picker', () => {
+test('creating asks for Start and End; the customer name and phone are optional, and there is no e-mail, ID, price or client picker', () => {
 	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.resource[0] === 'bookingAppointments' && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
-	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen']);
+	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingCustomerPhone', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen']);
 	const properties = new Nexo().description.properties;
-	assert.ok(!properties.some((field) => ['bookingClient', 'bookingCustomerPhone', 'bookingCustomerEmail', 'bookingServiceId', 'bookingServiceName', 'bookingPrice', 'bookingNotes', 'bookingStaffId'].includes(field.name)));
+	assert.ok(!properties.some((field) => ['bookingClient', 'bookingCustomerEmail', 'bookingServiceId', 'bookingServiceName', 'bookingPrice', 'bookingNotes', 'bookingStaffId'].includes(field.name)));
 	assert.equal(new Nexo().methods.listSearch, undefined);
 	const services = properties.find((field) => field.name === 'bookingServicesChosen');
 	assert.equal(services.type, 'multiOptions');
 	assert.equal(services.typeOptions.loadOptionsMethod, 'getBookingServices');
 	assert.deepEqual(services.typeOptions.loadOptionsDependsOn, ['bookingBusinessId']);
-	for (const name of ['bookingCustomerName', 'bookingStartsAt', 'bookingEndsAt']) assert.equal(properties.find((field) => field.name === name && field.displayOptions.show.operation.includes('create')).required, true);
+	for (const name of ['bookingStartsAt', 'bookingEndsAt']) assert.equal(properties.find((field) => field.name === name && field.displayOptions.show.operation.includes('create')).required, true);
 });
 
 test('create converts the local time of the business and sends one service by its ID', async () => {
@@ -215,9 +215,8 @@ test('several services become one appointment named after all of them, priced wi
 	assert.match(foreign.message, /Serviço não encontrado neste negócio: other-business\. Serviços deste negócio: Corte \(s1\); Barba \(s2\); Sobrancelha \(s3\)/);
 });
 
-test('create needs the name, Start and End, in order', async () => {
+test('create needs Start and End, in order', async () => {
 	const fails = async (parameters, pattern) => assert.match((await run({ ...BASE, operation: 'create', ...parameters }, answer).catch((error) => error)).message, pattern);
-	await fails({ bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z' }, /nome do cliente/);
 	await fails({ bookingCustomerName: 'João', bookingEndsAt: '2026-11-16T10:00:00Z' }, /Start/);
 	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z' }, /End/);
 	await fails({ bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T08:00:00Z' }, /depois do Start/);
@@ -292,4 +291,21 @@ test('services can be given by name too, and an unknown one answers with the rea
 	assert.match(wrong.message, /Serviço não encontrado neste negócio: 72db3f47/);
 	assert.match(wrong.message, /Corte \(s1\); Barba, completa \(s2\)\./);   // inactive ones are not offered
 	assert.ok(!/Antigo/.test(wrong.message));
+});
+
+test('the customer name and phone are optional: the phone stands in for a missing name, then just "Cliente"', async () => {
+	const create = async (parameters) => (await run({ ...BASE, operation: 'create', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', ...parameters }, () => ({ id: 'a1' }))).requests.find((request) => request.method === 'POST').body;
+	const both = await create({ bookingCustomerName: ' João ', bookingCustomerPhone: '11999999999' });
+	assert.equal(both.customer_name, 'João'); assert.equal(both.customer_phone, '11999999999');
+	const phoneOnly = await create({ bookingCustomerPhone: '11999999999' });
+	assert.equal(phoneOnly.customer_name, '11999999999'); assert.equal(phoneOnly.customer_phone, '11999999999');
+	const nameOnly = await create({ bookingCustomerName: 'Ana' });
+	assert.equal(nameOnly.customer_name, 'Ana'); assert.ok(!('customer_phone' in nameOnly));
+	const neither = await create({});
+	assert.equal(neither.customer_name, 'Cliente'); assert.ok(!('customer_phone' in neither));
+	const properties = new Nexo().description.properties;
+	for (const name of ['bookingCustomerName', 'bookingCustomerPhone']) for (const field of properties.filter((candidate) => candidate.name === name)) assert.ok(!field.required && !field.noDataExpression);
+	// Updating never invents a name: empty fields are not sent.
+	const update = (await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingCustomerPhone: '11988887777' }, () => ({}))).requests[0].body;
+	assert.deepEqual(update, { customer_phone: '11988887777' });
 });

@@ -70,8 +70,9 @@ add('Limite', 'bookingLimit', 'number', 50, 'bookingAppointments', ['getMany'], 
 // Appointments: identify, create, update
 add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointments', ['get', 'update', 'delete'], { required: true, description: 'ID do agendamento (campo id de Agendamentos > Get Many).' });
 // Creating an appointment needs only the customer's name, a Start, an End and (optionally) the services of the business.
-add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { required: true, description: 'Nome de quem vai ser atendido.' });
+add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { description: 'Nome de quem vai ser atendido (opcional). Sem nome, usa o celular; sem os dois, fica "Cliente".' });
 add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera.' });
+add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Celular com DDD, ex.: 11999999999 (opcional). Vazio: não altera, ao atualizar.' });
 add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento começa. ${WINDOW}` });
 add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Para remarcar. Vazio: não altera. ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento termina (depois do Start). ${WINDOW}` });
@@ -234,8 +235,11 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	// create / update
 	const update = operation === 'update';
 	const body = {};
-	const name = clean(param('bookingCustomerName'));
-	if (name) body.customer_name = name; else if (!update) throw new Error('Informe o nome do cliente.');
+	const phone = clean(param('bookingCustomerPhone'));
+	if (phone) body.customer_phone = phone;
+	// The name is optional: without it the phone stands in, and without both it is just "Cliente".
+	const name = clean(param('bookingCustomerName')) ?? (update ? undefined : phone ?? 'Cliente');
+	if (name) body.customer_name = name;
 	const starts = clean(param('bookingStartsAt'));
 	if (starts) body.starts_at = await when(starts, 'o Start'); else if (!update) throw new Error('Informe o Start do atendimento.');
 	const ends = clean(param('bookingEndsAt'));
