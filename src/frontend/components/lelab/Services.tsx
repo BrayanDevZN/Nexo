@@ -1,21 +1,20 @@
 import { useState } from "react";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { contactUrl, solutions, steps } from "@/lib/content";
+import { ConstellationArt, serviceArts } from "@/components/lelab/Illustrations";
 
 const tones = ["ink", "paper", "violet", "stone"] as const;
 
-function Service({ item, tone }: { item: (typeof solutions)[number]; tone: (typeof tones)[number] }) {
+function Service({ item, tone, index }: { item: (typeof solutions)[number]; tone: (typeof tones)[number]; index: number }) {
   const [open, setOpen] = useState(false);
-  const Icon = item.icon;
+  const Art = serviceArts[index % serviceArts.length];
   const panel = `ll-more-${item.number}`;
   return (
     <article className="ll-service" data-tone={tone} id={`estacao-${Number(item.number)}`} aria-labelledby={`ll-s-${item.number}`}>
       <div className="ll-wrap ll-service-grid">
         <div className="ll-service-art nx-reveal" aria-hidden="true">
           <span className="ll-bignum">{item.number}</span>
-          <span className="ll-service-icon">
-            <Icon />
-          </span>
+          <Art />
         </div>
         <div className="ll-service-copy">
           <p className="ll-tags nx-reveal">{item.tags.join("  ·  ")}</p>
@@ -52,7 +51,7 @@ export function Services() {
         </h2>
       </div>
       {solutions.map((item, index) => (
-        <Service key={item.number} item={item} tone={tones[index % tones.length]} />
+        <Service key={item.number} item={item} tone={tones[index % tones.length]} index={index} />
       ))}
     </section>
   );
@@ -111,21 +110,24 @@ export function About() {
   return (
     <section id="sobre" className="ll-about" aria-labelledby="ll-about-title">
       <div className="ll-wrap ll-about-grid">
-        <div>
+        <div className="ll-about-text">
           <p className="ll-tag nx-reveal">A Nexo</p>
           <h2 id="ll-about-title" className="ll-h2 nx-reveal">
             Tecnologia explicada em <em>português simples</em>.
           </h2>
+          <div className="ll-about-copy">
+            <p className="nx-reveal">
+              Você conta o problema do jeito que ele aparece no seu dia a dia. A gente escolhe a melhor forma de resolver, mostra
+              o plano, o prazo e o valor <strong>antes</strong> de começar e combina como medir se deu certo.
+            </p>
+            <p className="nx-reveal">Nas decisões importantes, uma pessoa da sua equipe confirma. Você mantém o controle.</p>
+            <a className="ll-pill nx-reveal" href={contactUrl} target="_blank" rel="noopener noreferrer">
+              Quero conversar <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
         </div>
-        <div className="ll-about-copy">
-          <p className="nx-reveal">
-            Você conta o problema do jeito que ele aparece no seu dia a dia. A gente escolhe a melhor forma de resolver, mostra
-            o plano, o prazo e o valor <strong>antes</strong> de começar e combina como medir se deu certo.
-          </p>
-          <p className="nx-reveal">Nas decisões importantes, uma pessoa da sua equipe confirma. Você mantém o controle.</p>
-          <a className="ll-pill nx-reveal" href={contactUrl} target="_blank" rel="noopener noreferrer">
-            Quero conversar <ArrowUpRight aria-hidden="true" />
-          </a>
+        <div className="ll-about-art nx-reveal">
+          <ConstellationArt />
         </div>
       </div>
     </section>

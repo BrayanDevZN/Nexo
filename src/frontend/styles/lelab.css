@@ -456,3 +456,42 @@ html.ll-home .rp-content {
 @keyframes ll-dot { 50% { transform: translateY(-0.2rem); opacity: 0.55; } }
 @media (prefers-reduced-motion: reduce) { .ll-bubble, .ll-chat-done, .ll-typing i { animation: none; } }
 html[data-reduce-motion="true"] :is(.ll-bubble, .ll-chat-done, .ll-typing i) { animation: none !important; }
+
+/* Illustrations */
+.il { display: block; width: 100%; height: auto; overflow: visible; color: inherit; }
+.il-ring { fill: none; stroke: color-mix(in srgb, currentColor 16%, transparent); stroke-width: 1.2; }
+.il-card { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: color-mix(in srgb, currentColor 26%, transparent); stroke-width: 1.5; }
+.il-soft { fill: color-mix(in srgb, currentColor 9%, transparent); }
+.il-line { fill: color-mix(in srgb, currentColor 34%, transparent); stroke: color-mix(in srgb, currentColor 34%, transparent); }
+.il-bar { fill: color-mix(in srgb, currentColor 22%, transparent); }
+.il-dot { fill: var(--accent, currentColor); }
+.il-flow { animation: il-dash 3.2s linear infinite; }
+@keyframes il-dash { to { stroke-dashoffset: -48; } }
+.il-wide { max-width: 34rem; margin-inline: auto; }
+.ll-service-art .il { position: relative; z-index: 1; width: 94%; animation: ll-float 8s ease-in-out infinite; filter: drop-shadow(0 1.6rem 2.2rem color-mix(in srgb, var(--accent) 28%, transparent)); }
+.ll-service-art .ll-bignum { position: absolute; z-index: 0; inset: auto; font-size: clamp(9rem, 24vw, 19rem); opacity: 0.55; top: 50%; left: 50%; transform: translate(-50%, -50%); -webkit-text-stroke-width: 1.5px; }
+.ll-service-art { max-width: 32rem; }
+.ll-service-icon { display: none; }
+@media (max-width: 899px) { .ll-service-art { max-width: 20rem; } }
+
+/* About: a two-column layout with the constellation on the right */
+.ll-about-grid { align-items: center; }
+.ll-about-text { display: grid; justify-items: start; }
+.ll-about-text .ll-about-copy { margin-top: 1.75rem; max-width: 34rem; }
+.ll-about-art { position: relative; }
+.ll-about-art .il { animation: ll-float 10s ease-in-out infinite; filter: drop-shadow(0 0 3rem rgb(124 77 255 / 0.5)); }
+@media (min-width: 900px) { .ll-about-grid { grid-template-columns: 1.05fr 0.95fr; } }
+
+/* Hero: small glass cards orbiting the mark */
+.ll-chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.95rem; border-radius: 999px; background: rgb(255 255 255 / 0.82); backdrop-filter: blur(10px); border: 1px solid rgb(124 77 255 / 0.22); box-shadow: 0 1rem 2rem -0.8rem rgb(91 61 245 / 0.45); font-size: 0.85rem; font-weight: 700; color: var(--ll-ink); white-space: nowrap; animation: ll-float 6s ease-in-out infinite; }
+.ll-chip svg { width: 1.1rem; height: 1.1rem; color: var(--ll-violet); }
+.ll-chip b { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0.25rem rgb(34 197 94 / 0.18); }
+.ll-chip-1 { top: 10%; left: -2%; animation-delay: -1s; }
+.ll-chip-2 { top: 44%; right: -8%; animation-delay: -3s; }
+.ll-chip-3 { bottom: 8%; left: 6%; animation-delay: -5s; }
+@media (max-width: 999px) { .ll-chip-1 { left: -14%; } .ll-chip-2 { right: -18%; } .ll-chip-3 { left: -10%; } .ll-chip { font-size: 0.74rem; padding: 0.45rem 0.75rem; } }
+@media (prefers-reduced-motion: reduce) { .ll-chip, .ll-service-art .il, .ll-about-art .il, .il-flow { animation: none; } }
+html[data-reduce-motion="true"] :is(.ll-chip, .ll-service-art .il, .ll-about-art .il, .il-flow) { animation: none !important; }
+/* the outline number becomes a corner label so it no longer fights the illustration */
+.ll-service-art .ll-bignum { top: 0; left: 0; transform: none; font-size: clamp(4rem, 8vw, 6.5rem); line-height: 0.85; opacity: 0.95; -webkit-text-stroke-width: 1.5px; }
+.ll-about .ll-h2 { font-size: clamp(2.3rem, 5.6vw, 5.2rem); max-width: 16ch; }

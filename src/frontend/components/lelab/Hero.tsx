@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUpRight, Mail, MessageCircle } from "lucide-react";
+import { ArrowDown, ArrowUpRight, CalendarCheck, Mail, MessageCircle, PackageCheck } from "lucide-react";
 import { contactUrl } from "@/lib/content";
 
 const keywords = ["agentes de IA", "automação", "integrações", "software sob medida"];
@@ -43,6 +43,18 @@ export function Hero() {
           <i className="ll-logo-ring ll-logo-ring-1" />
           <i className="ll-logo-ring ll-logo-ring-2" />
           <img src="/images/nexo-symbol-purple-xl.png" width="720" height="716" alt="" decoding="async" fetchPriority="high" />
+          <div className="ll-chip ll-chip-1">
+            <b />
+            <span>Oi! Posso ajudar?</span>
+          </div>
+          <div className="ll-chip ll-chip-2">
+            <CalendarCheck aria-hidden="true" />
+            <span>Agenda atualizada</span>
+          </div>
+          <div className="ll-chip ll-chip-3">
+            <PackageCheck aria-hidden="true" />
+            <span>Pedido confirmado</span>
+          </div>
         </div>
       </div>
       <a className="ll-scroll" href="#solucoes" aria-label="Rolar para as soluções">
