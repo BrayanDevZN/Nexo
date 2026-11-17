@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-17 | 457 files | ~595.8K tokens if all read
+Generated: 2026-11-17 | 457 files | ~595.6K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -233,7 +233,7 @@ Generated: 2026-11-17 | 457 files | ~595.8K tokens if all read
 | src/frontend/components/home/Faq.tsx | 35 | 281 | source |
 | src/frontend/components/home/Value.tsx | 125 | 1.2K | source |
 | src/frontend/components/IntelligenceCore.tsx | 34 | 262 | source |
-| src/frontend/components/lelab/Hero.tsx | 92 | 794 | source |
+| src/frontend/components/lelab/Hero.tsx | 67 | 647 | source |
 | src/frontend/components/lelab/LeHeader.tsx | 80 | 725 | source |
 | src/frontend/components/lelab/Services.tsx | 134 | 1.3K | source |
 | src/frontend/components/MotionProvider.tsx | 174 | 1.3K | source |
@@ -439,7 +439,7 @@ Generated: 2026-11-17 | 457 files | ~595.8K tokens if all read
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
 | src/frontend/styles/atendimentos.css | 343 | 8.6K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
-| src/frontend/styles/lelab.css | 199 | 4.5K | style |
+| src/frontend/styles/lelab.css | 196 | 4.5K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/scene3d.css | 30 | 648 | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
@@ -463,11 +463,11 @@ Generated: 2026-11-17 | 457 files | ~595.8K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 296 files, ~381.3K tokens
+- source: 296 files, ~381.2K tokens
 - config: 13 files, ~3.6K tokens
 - test: 112 files, ~137.7K tokens
 - docs: 11 files, ~19.1K tokens
-- style: 7 files, ~48.1K tokens
+- style: 7 files, ~48.0K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

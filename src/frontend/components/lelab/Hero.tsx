@@ -1,46 +1,7 @@
-import { useRef } from "react";
-import { ArrowDown, Mail, MessageCircle } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Mail, MessageCircle } from "lucide-react";
 import { contactUrl } from "@/lib/content";
 
 const keywords = ["agentes de IA", "automação", "integrações", "software sob medida"];
-
-/** The round CTA from the reference: a ring that morphs and follows the pointer a little (a magnet). */
-function MagnetButton() {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const move = (event: React.PointerEvent<HTMLAnchorElement>) => {
-    const el = ref.current;
-    if (!el || event.pointerType !== "mouse") return;
-    const box = el.getBoundingClientRect();
-    const x = (event.clientX - (box.left + box.width / 2)) * 0.25;
-    const y = (event.clientY - (box.top + box.height / 2)) * 0.25;
-    el.style.setProperty("--mx", `${x}px`);
-    el.style.setProperty("--my", `${y}px`);
-  };
-  const leave = () => {
-    ref.current?.style.setProperty("--mx", "0px");
-    ref.current?.style.setProperty("--my", "0px");
-  };
-  return (
-    <a
-      ref={ref}
-      className="ll-magnet"
-      href={contactUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Falar com a Nexo no WhatsApp"
-      onPointerMove={move}
-      onPointerLeave={leave}
-    >
-      <i className="ll-blob ll-blob-1" />
-      <i className="ll-blob ll-blob-2" />
-      <i className="ll-blob ll-blob-3" />
-      <span className="ll-magnet-core">
-        <img src="/images/nexo-symbol-purple.png" width="56" height="56" alt="" aria-hidden="true" decoding="async" />
-        <b>Vamos conversar</b>
-      </span>
-    </a>
-  );
-}
 
 export function Hero() {
   return (
@@ -48,27 +9,41 @@ export function Hero() {
       <div className="ll-hero-top">
         <p className="ll-tag nx-reveal">Inteligência Artificial Aplicada</p>
       </div>
-      <h1 id="ll-hero-title" className="ll-giant">
-        <span>IA aplicada</span>
-        <span>
-          ao seu <em>negócio</em>
-          <i className="ll-dot">.</i>
-        </span>
-      </h1>
-      <p className="ll-keywords" aria-label="O que fazemos">
-        {keywords.map((word, index) => (
-          <span key={word}>
-            {index > 0 ? <i aria-hidden="true">|</i> : null}
-            {word}
-          </span>
-        ))}
-      </p>
       <div className="ll-hero-grid">
-        <p className="ll-hero-lead">
-          Sua empresa cresceu, mas a rotina não acompanha? A Nexo tira do caminho o trabalho repetitivo para a sua equipe
-          atender mais, errar menos e <strong>fechar mais negócios</strong>.
-        </p>
-        <MagnetButton />
+        <div className="ll-hero-copy">
+          <h1 id="ll-hero-title" className="ll-giant">
+            <span>IA aplicada</span>
+            <span>
+              ao seu <em>negócio</em>
+              <i className="ll-dot">.</i>
+            </span>
+          </h1>
+          <p className="ll-keywords" aria-label="O que fazemos">
+            {keywords.map((word, index) => (
+              <span key={word}>
+                {index > 0 ? <i aria-hidden="true">|</i> : null}
+                {word}
+              </span>
+            ))}
+          </p>
+          <p className="ll-hero-lead">
+            Sua empresa cresceu, mas a rotina não acompanha? A Nexo tira do caminho o trabalho repetitivo para a sua equipe
+            atender mais, errar menos e <strong>fechar mais negócios</strong>.
+          </p>
+          <div className="ll-hero-actions">
+            <a className="ll-pill" href={contactUrl} target="_blank" rel="noopener noreferrer">
+              Falar no WhatsApp <ArrowUpRight aria-hidden="true" />
+            </a>
+            <a className="ll-textlink" href="#solucoes">
+              Ver soluções
+            </a>
+          </div>
+        </div>
+        <div className="ll-hero-logo" aria-hidden="true">
+          <i className="ll-logo-ring ll-logo-ring-1" />
+          <i className="ll-logo-ring ll-logo-ring-2" />
+          <img src="/images/nexo-symbol-purple-xl.png" width="720" height="716" alt="" decoding="async" fetchPriority="high" />
+        </div>
       </div>
       <a className="ll-scroll" href="#solucoes" aria-label="Rolar para as soluções">
         <span>Role</span>

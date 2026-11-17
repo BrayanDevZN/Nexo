@@ -74,33 +74,30 @@ html.ll-home ::selection { background: var(--ll-violet); color: #fff; }
 @keyframes ll-rise { from { transform: translateY(110%); } }
 
 /* hero */
-.ll-hero { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 7.5rem clamp(1.25rem, 3.5vw, 3.5rem) 5.5rem; background: var(--ll-paper); overflow: hidden; }
+.ll-hero { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 6.5rem clamp(1.25rem, 3.5vw, 3.5rem) 5rem; background: var(--ll-paper); overflow: hidden; }
 .ll-hero::before { content: ""; position: absolute; inset: auto -10% -35% auto; width: min(70vw, 56rem); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--ll-lilac), transparent 66%); opacity: 0.38; pointer-events: none; }
 .ll-hero > * { position: relative; }
 .ll-giant { font-family: var(--ll-display); font-weight: 600; text-transform: uppercase; font-size: clamp(3.4rem, 15.5vw, 14rem); line-height: 0.86; letter-spacing: -0.015em; margin: 1.5rem 0 0; color: var(--ll-ink); }
 .ll-giant span { display: block; }
-@media (min-width: 700px) { .ll-giant { font-size: clamp(4rem, 10.4vw, 12rem); } .ll-giant span { white-space: nowrap; } }
+@media (min-width: 700px) { .ll-giant { font-size: clamp(4rem, 7.2vw, 9rem); } .ll-giant span { white-space: nowrap; } }
 .ll-dot { font-style: normal; color: var(--ll-violet); }
-.ll-keywords { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.9rem; margin: clamp(1.25rem, 2.5vw, 2rem) 0 0; font-family: var(--ll-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: clamp(1.05rem, 2.2vw, 1.7rem); color: var(--ll-ink); }
+.ll-keywords { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.9rem; margin: clamp(1.25rem, 2.5vw, 2rem) 0 0; font-family: var(--ll-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: clamp(0.95rem, 1.5vw, 1.3rem); color: var(--ll-ink); }
 .ll-keywords i { font-style: normal; color: var(--ll-violet); margin-right: 0.9rem; }
-.ll-hero-grid { display: flex; flex-direction: column; gap: 2rem; margin-top: clamp(2rem, 4vw, 3.5rem); }
-.ll-hero-lead { max-width: 34rem; font-size: clamp(1.05rem, 1.6vw, 1.3rem); line-height: 1.55; font-weight: 300; color: var(--ll-ink); }
+.ll-hero-grid { display: grid; gap: 2.5rem; align-items: center; margin-top: 1.25rem; }
+.ll-hero-lead { max-width: 34rem; margin-top: clamp(1.25rem, 2.5vw, 2rem); font-size: clamp(1.05rem, 1.6vw, 1.3rem); line-height: 1.55; font-weight: 300; color: var(--ll-ink); }
 .ll-hero-lead strong { font-weight: 700; }
-@media (min-width: 900px) { .ll-hero-grid { flex-direction: row; align-items: center; justify-content: space-between; } }
-
-/* the round, morphing CTA */
-.ll-magnet { --mx: 0px; --my: 0px; position: relative; display: grid; place-items: center; width: 11.5rem; height: 11.5rem; flex: none; transform: translate(var(--mx), var(--my)); transition: transform 0.35s var(--ease); margin-right: clamp(0rem, 4vw, 4rem); }
-.ll-blob { position: absolute; inset: 0; border: 1.5px solid var(--ll-ink); opacity: 0.55; border-radius: 40% 42% 45% 55%; animation: ll-spin 9s linear infinite; }
-.ll-blob-2 { border-radius: 55% 41% 65% 43%; animation: ll-spin-r 11s linear infinite; inset: -0.4rem; border-color: var(--ll-violet); }
-.ll-blob-3 { border-radius: 52% 72% 45% 61%; animation: ll-spin 7s linear infinite; inset: 0.5rem; background: color-mix(in srgb, var(--ll-lilac) 55%, transparent); border-color: transparent; opacity: 1; z-index: 0; }
-.ll-magnet-core { position: relative; z-index: 1; display: grid; place-items: center; gap: 0.1rem; text-align: center; font-family: var(--ll-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 1rem; color: var(--ll-ink); }
-.ll-magnet-core img { width: 3.4rem; height: 3.4rem; transition: transform 0.5s var(--ease); }
-.ll-magnet:hover .ll-magnet-core img { transform: rotate(-12deg) scale(1.12); }
-.ll-magnet:hover .ll-blob-3 { background: var(--ll-violet); }
-.ll-magnet:hover .ll-magnet-core { color: #fff; }
-.ll-magnet:hover .ll-magnet-core img { filter: brightness(0) invert(1); }
+.ll-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.2rem 1.8rem; margin-top: 1.75rem; }
+.ll-textlink { font-weight: 700; border-bottom: 2px solid var(--ll-violet); padding-bottom: 0.15rem; transition: color 0.25s; }
+.ll-textlink:hover { color: var(--ll-violet); }
+@media (min-width: 1000px) { .ll-hero-grid { grid-template-columns: 1.35fr 0.65fr; gap: 3rem; } }
+/* the big logo */
+.ll-hero-logo { position: relative; display: grid; place-items: center; aspect-ratio: 1; width: min(100%, 34rem); margin-inline: auto; }
+.ll-hero-logo img { position: relative; z-index: 1; width: 78%; height: auto; filter: drop-shadow(0 2.5rem 3rem color-mix(in srgb, var(--ll-violet) 38%, transparent)); animation: ll-float 7s ease-in-out infinite; }
+.ll-logo-ring { position: absolute; inset: 4%; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--ll-violet) 35%, transparent); }
+.ll-logo-ring-2 { inset: 14%; border-style: dashed; border-color: color-mix(in srgb, var(--ll-ink) 22%, transparent); animation: ll-spin 40s linear infinite; }
+@keyframes ll-float { 50% { transform: translateY(-1.1rem) rotate(-2deg); } }
 @keyframes ll-spin { to { transform: rotate(360deg); } }
-@keyframes ll-spin-r { to { transform: rotate(-720deg); } }
+@media (max-width: 999px) { .ll-hero-logo { width: min(70%, 20rem); order: -1; } .ll-hero { padding-top: 6.5rem; } }
 .ll-scroll { position: absolute !important; left: clamp(1.25rem, 3.5vw, 3.5rem); bottom: 1.6rem; display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--ll-display); text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.95rem; color: var(--ll-ink); }
 .ll-scroll svg { width: 1.1rem; height: 1.1rem; animation: ll-bob 1.8s ease-in-out infinite; }
 @keyframes ll-bob { 50% { transform: translateY(5px); } }
@@ -188,9 +185,9 @@ html.ll-home .nx-inverse .brand, html.ll-home .nx-inverse .brand-dot { color: #f
 html.ll-home .nx-inverse .nx-footer { border-top-color: rgb(255 255 255 / 0.3); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ll-blob, .ll-marquee-track, .ll-scroll svg { animation: none !important; }
+  .ll-logo-ring, .ll-hero-logo img, .ll-marquee-track, .ll-scroll svg { animation: none !important; }
 }
-html[data-reduce-motion="true"] :is(.ll-blob, .ll-marquee-track, .ll-scroll svg) { animation: none !important; }
+html[data-reduce-motion="true"] :is(.ll-logo-ring, .ll-hero-logo img, .ll-marquee-track, .ll-scroll svg) { animation: none !important; }
 
 @media (max-width: 899px) { .ll-service-art { max-width: 17rem; } .ll-service-icon { width: 30%; } }
 .ll-header:has(.ll-menu) .ll-logo .brand { color: #fff; }
