@@ -283,3 +283,39 @@ html.ll-home [data-stream="on"] .nx-caret { animation-delay: 0.1s, calc(var(--i)
 html.ll-home .nx-footer[data-stream="on"] :is(.nx-footer-top > *, .nx-footer-top nav > *, .nx-footer-legal > *) { transition: opacity 0.3s ease calc(var(--k, 0) * 40ms + 60ms), transform 0.35s var(--ease) calc(var(--k, 0) * 40ms + 60ms); }
 /* the glow behind the title stays crisp-edged */
 html.ll-home .nx-inverse .nx-display { text-shadow: 0 0 1.5rem rgb(140 100 255 / 0.3); }
+
+/* The dark blocks (solution 01, "A Nexo", the marquee) get a lighter version of the closing's deep-space look:
+   a couple of soft violet nebulae and a sprinkle of stars, no grid. */
+.ll-service[data-tone="ink"], .ll-about { background: #04030c; overflow: hidden; }
+.ll-service[data-tone="ink"]::before, .ll-about::before {
+  content: ""; position: absolute; inset: -10%; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(34rem 22rem at 88% 12%, rgb(124 77 255 / 0.38), transparent 70%),
+    radial-gradient(30rem 20rem at 8% 88%, rgb(168 56 230 / 0.22), transparent 72%),
+    radial-gradient(40rem 24rem at 55% 105%, rgb(59 31 168 / 0.35), transparent 70%);
+  animation: ll-nebula 32s ease-in-out infinite alternate;
+}
+.ll-about::before { inset: -10%; width: auto; height: auto; aspect-ratio: auto; border-radius: 0; filter: none; opacity: 1; }
+.ll-service[data-tone="ink"]::after, .ll-about::after {
+  /* two star layers on unrelated tile sizes, so the pattern never reads as a grid */
+  background-image:
+    radial-gradient(1.4px 1.4px at 9% 18%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 31% 63%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1.6px 1.6px at 47% 12%, #e9e1ff, transparent 60%),
+    radial-gradient(1px 1px at 64% 81%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1.2px 1.2px at 78% 37%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 92% 69%, rgb(215 200 255 / 0.9), transparent 60%),
+    radial-gradient(1px 1px at 18% 91%, rgb(255 255 255 / 0.65), transparent 60%),
+    radial-gradient(1.3px 1.3px at 3% 47%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 22% 34%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1.2px 1.2px at 71% 8%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 55% 58%, rgb(230 220 255 / 0.8), transparent 60%),
+    radial-gradient(1px 1px at 88% 93%, rgb(255 255 255 / 0.6), transparent 60%);
+  background-size: 791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px, 449px 337px, 449px 337px, 449px 337px, 449px 337px, 449px 337px;
+  background-position: 0 0;
+  -webkit-mask-image: none; mask-image: none;
+  animation: ll-twinkle 7s ease-in-out infinite alternate;
+}
+.ll-marquee { background: linear-gradient(90deg, #04030c, #120a33 50%, #04030c); border-color: #1d1442; }
+@media (prefers-reduced-motion: reduce) { .ll-service[data-tone="ink"]::before, .ll-about::before, .ll-service[data-tone="ink"]::after, .ll-about::after { animation: none; } }
+html[data-reduce-motion="true"] :is(.ll-service[data-tone="ink"], .ll-about)::before, html[data-reduce-motion="true"] :is(.ll-service[data-tone="ink"], .ll-about)::after { animation: none !important; }
