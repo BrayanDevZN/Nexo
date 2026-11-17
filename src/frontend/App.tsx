@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { StreamingDemo } from "@/components/StreamingDemo";
+import { ChatDemo } from "@/components/lelab/ChatDemo";
 import { Value } from "@/components/home/Value";
 import { Faq } from "@/components/home/Faq";
 import { Close } from "@/components/home/Close";
@@ -32,7 +32,7 @@ export default function App() {
         <Process />
         <About />
         <div className="rp-content">
-          <StreamingDemo />
+          <ChatDemo />
           <Value />
           <Faq />
         </div>

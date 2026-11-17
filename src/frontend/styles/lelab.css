@@ -417,3 +417,42 @@ html.ll-home .rp-content {
     radial-gradient(46rem 30rem at 30% -8%, rgb(150 100 255 / 0.24), transparent 70%),
     radial-gradient(34rem 26rem at 100% 0%, rgb(124 77 255 / 0.16), transparent 70%);
 }
+
+/* "Na prática": a phone with a made-up attendant conversation (replaces the old step table) */
+.ll-demo { position: relative; padding-block: clamp(4.5rem, 9vw, 8rem); }
+.ll-demo-grid { display: grid; gap: 3rem; align-items: center; }
+@media (min-width: 960px) { .ll-demo-grid { grid-template-columns: 1.05fr 0.95fr; gap: 5rem; } }
+.ll-demo-copy { display: grid; gap: 1.5rem; justify-items: start; }
+.ll-demo-copy .ll-h2 { margin-top: 0.25rem; max-width: 14ch; }
+.ll-demo-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; max-width: 34rem; }
+.ll-demo-points li { display: flex; gap: 0.8rem; align-items: flex-start; font-size: clamp(1.02rem, 1.4vw, 1.15rem); line-height: 1.5; font-weight: 300; }
+.ll-demo-points svg { flex: none; width: 1.5rem; height: 1.5rem; padding: 0.3rem; border-radius: 50%; background: var(--ll-grad); color: #fff; margin-top: 0.1rem; }
+.ll-demo-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ll-demo-tab { padding: 0.55rem 1.1rem; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--ll-ink) 22%, transparent); background: transparent; font-weight: 700; font-size: 0.92rem; color: var(--ll-ink); cursor: pointer; transition: background 0.25s, color 0.25s, border-color 0.25s; }
+.ll-demo-tab:hover { border-color: var(--ll-violet); }
+.ll-demo-tab[aria-selected="true"] { background: var(--ll-ink); color: #fff; border-color: var(--ll-ink); }
+
+.ll-phone { position: relative; margin: 0 auto; width: min(100%, 25rem); border-radius: 2.2rem; padding: 0.7rem; background: linear-gradient(160deg, #1d1540, #0b0b10); box-shadow: 0 2.5rem 5rem -1.5rem rgb(91 61 245 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.08) inset; }
+.ll-phone::before { content: ""; position: absolute; top: 1.15rem; left: 50%; width: 5rem; height: 0.35rem; border-radius: 999px; background: rgb(255 255 255 / 0.14); transform: translateX(-50%); z-index: 2; }
+.ll-phone-bar { display: flex; align-items: center; gap: 0.75rem; padding: 2rem 1.1rem 0.9rem; background: #fff; border-radius: 1.6rem 1.6rem 0 0; }
+.ll-phone-bar img { width: 2.1rem; height: 2.1rem; }
+.ll-phone-bar div { display: grid; line-height: 1.25; }
+.ll-phone-bar strong { font-size: 0.98rem; }
+.ll-phone-bar span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #4c4b5c; }
+.ll-phone-bar span i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #22c55e; }
+.ll-phone-bar small { margin-left: auto; font-size: 0.75rem; color: #6b6a7a; }
+.ll-chat { display: flex; flex-direction: column; gap: 0.6rem; height: 23rem; overflow: hidden; padding: 1.1rem 1rem; background: linear-gradient(180deg, #f4f0ff, #ece6ff); scroll-behavior: smooth; }
+.ll-bubble { max-width: 82%; margin: 0; padding: 0.65rem 0.95rem; border-radius: 1.1rem; font-size: 0.95rem; line-height: 1.4; animation: ll-pop 0.35s var(--ease) both; }
+.ll-bubble-client { align-self: flex-start; background: #fff; color: var(--ll-ink); border-bottom-left-radius: 0.3rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.ll-bubble-nexo { align-self: flex-end; background: var(--ll-grad); color: #fff; border-bottom-right-radius: 0.3rem; }
+.ll-typing { display: inline-flex; gap: 0.3rem; padding-block: 0.85rem; }
+.ll-typing i { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: rgb(255 255 255 / 0.85); animation: ll-dot 1s ease-in-out infinite; }
+.ll-typing i:nth-child(2) { animation-delay: 0.15s; }
+.ll-typing i:nth-child(3) { animation-delay: 0.3s; }
+.ll-chat-done { display: inline-flex; align-items: center; gap: 0.5rem; align-self: center; margin: 0.4rem 0 0; padding: 0.45rem 0.9rem; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 0.82rem; font-weight: 700; animation: ll-pop 0.35s var(--ease) both; }
+.ll-chat-done svg { width: 1rem; height: 1rem; }
+.ll-phone figcaption { padding: 0.75rem 1rem 0.5rem; text-align: center; font-size: 0.74rem; color: rgb(255 255 255 / 0.6); }
+@keyframes ll-pop { from { opacity: 0; transform: translateY(0.5rem) scale(0.97); } }
+@keyframes ll-dot { 50% { transform: translateY(-0.2rem); opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .ll-bubble, .ll-chat-done, .ll-typing i { animation: none; } }
+html[data-reduce-motion="true"] :is(.ll-bubble, .ll-chat-done, .ll-typing i) { animation: none !important; }

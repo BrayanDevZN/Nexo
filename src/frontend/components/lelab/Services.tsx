@@ -58,13 +58,13 @@ export function Services() {
   );
 }
 
-const tools = ["WhatsApp", "E-mail", "CRM", "ERP", "Planilhas", "Documentos", "Agenda", "Formulários", "APIs", "Banco de dados"];
+const tools = ["Atendimento", "WhatsApp", "Pedidos", "Agenda", "Clientes", "Orçamentos", "E-mail", "Cobranças", "Estoque", "Documentos", "Equipe", "Vendas"];
 
-/** Where the reference has a wall of client logos, we show what the solutions plug into (no invented clients). */
+/** Where the reference has a wall of client logos, we show, in everyday words, what the Nexo takes care of (no invented clients). */
 export function Marquee() {
   const row = [...tools, ...tools];
   return (
-    <div className="ll-marquee" role="group" aria-label="A Nexo se conecta com as ferramentas que você já usa">
+    <div className="ll-marquee" role="group" aria-label="O que a Nexo faz no dia a dia da sua empresa">
       <div className="ll-marquee-track" aria-hidden="true">
         {row.map((tool, index) => (
           <span key={`${tool}-${index}`}>
@@ -73,7 +73,7 @@ export function Marquee() {
           </span>
         ))}
       </div>
-      <p className="sr-only">Conecta com: {tools.join(", ")}.</p>
+      <p className="sr-only">Cuida de: {tools.join(", ")}.</p>
     </div>
   );
 }
