@@ -182,7 +182,7 @@ const answer = (options) => (options.url.endsWith('/b1') ? business : options.ur
 const CREATE = { ...BASE, operation: 'create', bookingCustomerName: ' João ', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00' };
 
 test('creating asks only for the customer name, Start, End and the services, with no phone, e-mail, ID, price or client picker', () => {
-	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
+	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.resource[0] === 'bookingAppointments' && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
 	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen']);
 	const properties = new Nexo().description.properties;
 	assert.ok(!properties.some((field) => ['bookingClient', 'bookingCustomerPhone', 'bookingCustomerEmail', 'bookingServiceId', 'bookingServiceName', 'bookingPrice', 'bookingNotes', 'bookingStaffId'].includes(field.name)));
@@ -254,4 +254,25 @@ test('the services can come from the AI as one text with commas, or from the lis
 		assert.equal(body.service_name, 'Corte + Barba');
 		assert.equal(body.price, '75.00');
 	}
+});
+
+test('a service is created with a name and a duration; price, description and active are optional and the AI can fill them', async () => {
+	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('bookingNewService'));
+	assert.deepEqual(fields.map((field) => field.name), ['bookingNewServiceName', 'bookingNewServiceDuration', 'bookingNewServicePrice', 'bookingNewServiceDescription', 'bookingNewServiceActive']);
+	assert.ok(fields.every((field) => !field.noDataExpression && field.description && field.displayOptions.show.operation[0] === 'create'));
+	const operations = new Nexo().methods.loadOptions.getOperations.call({ getCurrentNodeParameter: () => 'bookingServices' });
+	assert.deepEqual(operations.map((operation) => operation.value), ['getMany', 'create']);
+	assert.ok(operations.every((operation) => operation.action && operation.description));
+	const full = await run({ resource: 'bookingServices', operation: 'create', bookingBusinessId: 'b1', bookingNewServiceName: ' Corte masculino ', bookingNewServiceDuration: 45, bookingNewServicePrice: 'R$ 45,00', bookingNewServiceDescription: 'Máquina e tesoura', bookingNewServiceActive: false }, () => ({ id: 's1' }));
+	assert.equal(full.requests[0].method, 'POST');
+	assert.equal(full.requests[0].url, 'atendimentos/businesses/b1/services');
+	assert.deepEqual(full.requests[0].body, { name: 'Corte masculino', duration_minutes: 45, active: false, price: '45.00', description: 'Máquina e tesoura' });
+	assert.equal(full.output[0][0].json.id, 's1');
+	const minimal = await run({ resource: 'bookingServices', operation: 'create', bookingBusinessId: 'b1', bookingNewServiceName: 'Barba' }, () => ({ id: 's2' }));
+	assert.deepEqual(minimal.requests[0].body, { name: 'Barba', duration_minutes: 30, active: true });
+	const fails = async (parameters, pattern) => assert.match((await run({ resource: 'bookingServices', operation: 'create', bookingBusinessId: 'b1', ...parameters }, () => ({})).catch((error) => error)).message, pattern);
+	await fails({}, /nome do serviço/);
+	await fails({ bookingNewServiceName: 'Barba', bookingNewServiceDuration: 3 }, /de 5 a 1440/);
+	await fails({ bookingNewServiceName: 'Barba', bookingNewServiceDuration: 'longo' }, /de 5 a 1440/);
+	await fails({ bookingNewServiceName: 'Barba', bookingNewServicePrice: 'caro' }, /Preço inválido/);
 });

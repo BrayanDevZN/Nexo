@@ -15,7 +15,7 @@ const bookingResourceOptions = [
 ];
 const bookingOperationOptions = {
 	bookingBusinesses: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Resumo da agenda', value: 'overview' }, { name: 'Listar equipe', value: 'members' }],
-	bookingServices: [{ name: 'Get Many', value: 'getMany' }],
+	bookingServices: [{ name: 'Get Many', value: 'getMany' }, { name: 'Criar', value: 'create' }],
 	bookingAppointments: [{ name: 'Get Many', value: 'getMany' }, { name: 'Get', value: 'get' }, { name: 'Criar', value: 'create' }, { name: 'Atualizar', value: 'update' }, { name: 'Excluir', value: 'delete' }],
 };
 const bookingToolDescriptions = {
@@ -25,7 +25,10 @@ const bookingToolDescriptions = {
 		overview: 'Resumo da agenda de um negócio: atendimentos de hoje, dos próximos 7 dias, futuros e concluídos, e os próximos marcados.',
 		members: 'Listar a equipe de um negócio.',
 	},
-	bookingServices: { getMany: 'Listar os serviços de um negócio, com ID, duração e preço.' },
+	bookingServices: {
+		getMany: 'Listar os serviços de um negócio, com ID, duração e preço.',
+		create: 'Criar um serviço no negócio: nome, duração em minutos e, se quiser, preço e descrição.',
+	},
 	bookingAppointments: {
 		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show).',
 		get: 'Consultar um agendamento pelo ID.',
@@ -45,11 +48,17 @@ function add(displayName, name, type, defaultValue, resource, operations, extra 
 	bookingFields.push({ displayName, name, type, default: defaultValue, displayOptions: { show: { ...show, ...(displayOptions?.show || {}) } }, ...rest });
 }
 
-const NEEDS_BUSINESS = { bookingBusinesses: ['get', 'overview', 'members'], bookingServices: ['getMany'], bookingAppointments: ['getMany', 'get', 'create', 'update', 'delete'] };
+const NEEDS_BUSINESS = { bookingBusinesses: ['get', 'overview', 'members'], bookingServices: ['getMany', 'create'], bookingAppointments: ['getMany', 'get', 'create', 'update', 'delete'] };
 for (const [resource, operations] of Object.entries(NEEDS_BUSINESS)) {
 	add('Negócio', 'bookingBusinessId', 'options', '', resource, operations, { required: true, noDataExpression: true, typeOptions: { loadOptionsMethod: 'getBookingBusinesses' }, description: 'Lista todos os negócios do Atendimentos: escolha qual agenda mexer. É sempre escolhido aqui, pela pessoa (a IA não define este campo).' });
 }
 // Services
+// Services: create one (every field but the business can be filled by the AI)
+add('Nome do serviço', 'bookingNewServiceName', 'string', '', 'bookingServices', ['create'], { required: true, description: 'Nome do serviço, ex.: Corte masculino.' });
+add('Duração (minutos)', 'bookingNewServiceDuration', 'number', 30, 'bookingServices', ['create'], { required: true, typeOptions: { minValue: 5, maxValue: 1440 }, description: 'Quanto tempo o serviço leva, em minutos (de 5 a 1440).' });
+add('Preço (R$)', 'bookingNewServicePrice', 'string', '', 'bookingServices', ['create'], { description: 'Valor do serviço, ex.: 45,00. Vazio: sem preço.' });
+add('Descrição', 'bookingNewServiceDescription', 'string', '', 'bookingServices', ['create'], { typeOptions: { rows: 2 }, description: 'Texto opcional que explica o serviço.' });
+add('Ativo', 'bookingNewServiceActive', 'boolean', true, 'bookingServices', ['create'], { description: 'Serviços desativados não aparecem para marcar atendimentos.' });
 add('Só serviços ativos', 'bookingActiveOnly', 'boolean', false, 'bookingServices', ['getMany'], { description: 'Esconde os serviços desativados.' });
 // Appointments: search between a Start and an End, like Google Calendar's timeMin / timeMax.
 const WINDOW = 'Formato ISO 8601, ex.: 2026-11-16T09:00:00-03:00. Sem fuso, vale o horário do negócio.';
@@ -174,6 +183,18 @@ async function executeBooking(ctx, resource, operation, index, state) {
 		if (operation === 'get') return rows(await call({ method: 'GET', url: base() }));
 		if (operation === 'overview') return rows(await call({ method: 'GET', url: base('/overview') }));
 		if (operation === 'members') return rows(await call({ method: 'GET', url: base('/members') }));
+	}
+	if (resource === 'bookingServices' && operation === 'create') {
+		const name = clean(param('bookingNewServiceName'));
+		if (!name) throw new Error('Informe o nome do serviço.');
+		const duration = Number(param('bookingNewServiceDuration', 30));
+		if (!Number.isInteger(duration) || duration < 5 || duration > 1440) throw new Error('A duração precisa ser um número inteiro de minutos, de 5 a 1440.');
+		const body = { name, duration_minutes: duration, active: param('bookingNewServiceActive', true) !== false };
+		const price = money(param('bookingNewServicePrice'));
+		if (price !== undefined) body.price = price;
+		const description = clean(param('bookingNewServiceDescription'));
+		if (description) body.description = description;
+		return rows(await call({ method: 'POST', url: base('/services'), body }));
 	}
 	if (resource === 'bookingServices') {
 		return rows(await call({ method: 'GET', url: base('/services'), qs: param('bookingActiveOnly', false) ? { active: true } : {} }));
