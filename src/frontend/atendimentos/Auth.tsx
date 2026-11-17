@@ -72,12 +72,14 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
     : { login: "Acesse a agenda do seu negócio.", register: "Leva um minuto. Depois é só cadastrar o negócio.", verify: `Digite o código de 8 números que chegou em ${email}.`, recovery: "Enviamos um código para o seu e-mail.", confirm: "Use o código recebido e escolha a nova senha." }[mode];
   const action = complete ? "Concluir" : { login: "Entrar", register: "Criar conta", verify: "Confirmar", recovery: "Enviar código", confirm: "Salvar senha" }[mode];
   return <main className="bk-auth">
-    <div className="bk-auth-head">
+    <div className="bk-auth-head animate-in fade-in-0 slide-in-from-top-2 duration-500 motion-reduce:animate-none bk-fade">
       <a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="64" height="64" decoding="async" /></a>
       <h1>Nexo Atendimentos</h1>
       <p>Agenda, serviços e equipe do seu negócio, direto do celular.</p>
     </div>
     {invite && <Feedback success={`Você foi convidado para ${invite.business_name} como ${ROLE_LABELS[invite.role].toLowerCase()}. Entre ou crie sua conta para aceitar.`} />}
+    {/* Each mode (sign in, sign up, code, recovery) is a new element, so switching plays the entrance again. */}
+    <div key={complete ? "google" : mode} className="animate-in fade-in-0 slide-in-from-bottom-3 duration-300 motion-reduce:animate-none bk-fade">
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -114,6 +116,7 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
         <Button variant="link" disabled={busy} onClick={() => switchMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar"}</Button>
       </CardFooter>}
     </Card>
+    </div>
     <p className="bk-muted flex items-center justify-center gap-2"><CalendarCheck className="size-4" aria-hidden="true" /> Feito pela Nexo para quem atende com hora marcada.</p>
   </main>;
 }

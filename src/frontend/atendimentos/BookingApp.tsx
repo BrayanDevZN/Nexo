@@ -99,7 +99,7 @@ export default function BookingApp() {
     <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="outline" size="sm" onClick={() => setAccountOnly(false)}>Voltar</Button></div>
     <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
   </main>;
-  if (!business) return <main className="bk-page">
+  if (!business) return <main className="bk-page animate-in fade-in-0 slide-in-from-bottom-3 duration-300 motion-reduce:animate-none bk-fade" key={creating ? "new" : "list"}>
     <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="ghost" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}><LogOut data-icon="inline-start" />Sair</Button></div>
     <div className="bk-hello">
       <Picture api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} />
@@ -180,6 +180,7 @@ export default function BookingApp() {
       </header>
       <div className="bk-content" data-wide={page === "agenda" || undefined}>
         <Feedback error={error} />
+        <div key={page + ":" + business.id} className="animate-in fade-in-0 slide-in-from-bottom-3 duration-300 motion-reduce:animate-none bk-fade">
         {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
           : page === "services" ? <Services api={api} business={business} />
           : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
@@ -187,6 +188,7 @@ export default function BookingApp() {
             ? <BusinessForm api={api} business={business} canDelete={can.deleteBusiness(business.my_role)} onSaved={saved => { setBusiness(saved); void loadBusinesses(); }} onDeleted={() => { pick(undefined); void loadBusinesses(); }} />
             : <Card><CardContent className="flex flex-col gap-1 pt-4"><strong>{business.name}</strong>{business.address && <span>{business.address}</span>}{business.phone && <span>{business.phone}</span>}<span className="bk-muted">Só o dono ou um gerente altera estes dados.</span></CardContent></Card>)
           : <Agenda api={api} business={business} />}
+        </div>
       </div>
     </SidebarInset>
   </SidebarProvider></TooltipProvider>;
