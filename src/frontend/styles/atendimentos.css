@@ -20,7 +20,7 @@ html.booking-theme body {
   background: radial-gradient(60rem 22rem at 50% -8rem, color-mix(in srgb, var(--primary) 9%, transparent), transparent 70%), #f6f5f9;
   background-attachment: scroll;
 }
-html.booking-theme *:not([data-slot="spinner"]):not(.s3d, .s3d *, .bk-fade), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
+html.booking-theme *:not([data-slot="spinner"]):not(.s3d, .s3d *, .bk-fade, .bk-stagger > *, .bk-fade > section > *), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
 html.booking-theme h1 { font-family: var(--rp-body); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.015em; }
 html.booking-theme h2 { font-size: 1.05rem; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
 
@@ -256,3 +256,26 @@ html.booking-theme .bk-switcher { border: 1px solid var(--bk-line); background: 
 [data-slot="dialog-content"] { box-shadow: var(--bk-shadow-lg), 0 0 0 1px var(--bk-line); }
 html.booking-theme [data-slot="toggle-group-item"]:not([data-state="on"]) { box-shadow: none !important; background: transparent; }
 html.booking-theme [data-slot="toggle-group-item"][data-state="on"] { box-shadow: 0 1px 3px rgb(24 16 48 / 0.16) !important; }
+
+/* ---- transitions: a 3D pop for each screen, the fields and blocks rising one after the other ---- */
+/* Transform and opacity only, so a weak phone runs them on the graphics card. The system's "reduce motion" is not
+   honoured on purpose, like the rest of the site (many weak PCs have it on without knowing); nothing here blocks input. */
+.bk-pop { animation: bk-pop 0.6s cubic-bezier(0.2, 0.9, 0.25, 1.12) backwards; transform-origin: 50% 0%; }
+.bk-drop { animation: bk-drop 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.1) backwards; }
+@keyframes bk-pop {
+  0% { opacity: 0; transform: perspective(900px) translate3d(0, 34px, -90px) rotateX(16deg) scale(0.93); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0) rotateX(0deg) scale(1); }
+}
+@keyframes bk-drop {
+  0% { opacity: 0; transform: translate3d(0, -26px, 0) scale(0.9); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+.bk-stagger > *, .bk-fade > section > * { animation: bk-rise 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) backwards; }
+.bk-stagger > :nth-child(1), .bk-fade > section > :nth-child(1) { animation-delay: 0.12s; }
+.bk-stagger > :nth-child(2), .bk-fade > section > :nth-child(2) { animation-delay: 0.19s; }
+.bk-stagger > :nth-child(3), .bk-fade > section > :nth-child(3) { animation-delay: 0.26s; }
+.bk-stagger > :nth-child(4), .bk-fade > section > :nth-child(4) { animation-delay: 0.33s; }
+.bk-stagger > :nth-child(5), .bk-fade > section > :nth-child(5) { animation-delay: 0.4s; }
+.bk-stagger > :nth-child(n + 6), .bk-fade > section > :nth-child(n + 6) { animation-delay: 0.46s; }
+@keyframes bk-rise { 0% { opacity: 0; transform: translate3d(0, 18px, 0); } 100% { opacity: 1; transform: translate3d(0, 0, 0); } }
