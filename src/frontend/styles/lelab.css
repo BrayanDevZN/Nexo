@@ -319,3 +319,43 @@ html.ll-home .nx-inverse .nx-display { text-shadow: 0 0 1.5rem rgb(140 100 255 /
 .ll-marquee { background: linear-gradient(90deg, #04030c, #120a33 50%, #04030c); border-color: #1d1442; }
 @media (prefers-reduced-motion: reduce) { .ll-service[data-tone="ink"]::before, .ll-about::before, .ll-service[data-tone="ink"]::after, .ll-about::after { animation: none; } }
 html[data-reduce-motion="true"] :is(.ll-service[data-tone="ink"], .ll-about)::before, html[data-reduce-motion="true"] :is(.ll-service[data-tone="ink"], .ll-about)::after { animation: none !important; }
+
+/* Dark blocks, turned up: richer nebulae, a lit horizon, many more stars and a few bright ones with a glow. */
+.ll-service[data-tone="ink"], .ll-about { background: #03020a; }
+.ll-service[data-tone="ink"]::before, .ll-about::before {
+  background:
+    radial-gradient(40rem 28rem at 88% 10%, rgb(132 84 255 / 0.62), transparent 70%),
+    radial-gradient(36rem 24rem at 6% 90%, rgb(190 60 240 / 0.42), transparent 72%),
+    radial-gradient(46rem 28rem at 50% 108%, rgb(80 44 210 / 0.6), transparent 70%),
+    radial-gradient(26rem 18rem at 22% 12%, rgb(70 110 255 / 0.3), transparent 72%),
+    radial-gradient(ellipse 70% 34% at 50% 122%, rgb(175 145 255 / 0.5) 0%, rgb(110 70 240 / 0.22) 40%, transparent 70%);
+}
+.ll-service[data-tone="ink"]::after, .ll-about::after {
+  background-image:
+    /* bright stars with a soft halo */
+    radial-gradient(2.6px 2.6px at 16% 28%, #fff 0%, rgb(255 255 255 / 0.5) 45%, transparent 70%),
+    radial-gradient(3px 3px at 81% 72%, #fff 0%, rgb(220 205 255 / 0.5) 45%, transparent 70%),
+    radial-gradient(2.4px 2.4px at 58% 16%, #fff 0%, rgb(255 255 255 / 0.45) 45%, transparent 70%),
+    radial-gradient(1.4px 1.4px at 9% 18%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 31% 63%, rgb(255 255 255 / 0.9), transparent 60%),
+    radial-gradient(1.6px 1.6px at 47% 12%, #e9e1ff, transparent 60%),
+    radial-gradient(1px 1px at 64% 81%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 78% 37%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 92% 69%, rgb(215 200 255 / 0.95), transparent 60%),
+    radial-gradient(1px 1px at 18% 91%, rgb(255 255 255 / 0.75), transparent 60%),
+    radial-gradient(1.3px 1.3px at 3% 47%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 22% 34%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 71% 8%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 55% 58%, rgb(230 220 255 / 0.9), transparent 60%),
+    radial-gradient(1px 1px at 88% 93%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1px 1px at 38% 82%, rgb(255 255 255 / 0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 95% 21%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 12% 71%, rgb(220 210 255 / 0.9), transparent 60%),
+    radial-gradient(1px 1px at 67% 44%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1.1px 1.1px at 41% 31%, #fff, transparent 60%);
+  background-size: 977px 811px, 977px 811px, 977px 811px,
+    791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px, 791px 653px,
+    449px 337px, 449px 337px, 449px 337px, 449px 337px, 449px 337px,
+    281px 223px, 281px 223px, 281px 223px, 281px 223px, 281px 223px;
+}
+.ll-marquee { background: linear-gradient(90deg, #03020a, #1a0d4d 50%, #03020a); border-color: #2a1b66; box-shadow: inset 0 0 3rem rgb(124 77 255 / 0.25); }
