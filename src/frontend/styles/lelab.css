@@ -213,3 +213,46 @@ html.ll-home .nx-inverse .nx-display *, html.ll-home .nx-inverse .nx-lead * { co
 .ll-hero::after { background-image: linear-gradient(to right, color-mix(in srgb, var(--ll-ink) 11%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ll-ink) 11%, transparent) 1px, transparent 1px); -webkit-mask-image: radial-gradient(ellipse 80% 75% at 68% 45%, #000 15%, transparent 78%); mask-image: radial-gradient(ellipse 80% 75% at 68% 45%, #000 15%, transparent 78%); }
 html.ll-home .rp-content::after { opacity: 0.8; }
 @media (max-width: 700px) { .ll-hero::after, .ll-service::after, .ll-process::after, .ll-about::after, html.ll-home .rp-content::after, html.ll-home .nx-inverse::after { background-size: 3rem 3rem; } }
+
+/* Closing: deep space. No grid here. Violet nebulae over black, a lit planet horizon, drifting stars and a vignette. */
+html.ll-home .nx-inverse { background: #02010a; overflow: hidden; }
+html.ll-home .nx-inverse::before {
+  content: ""; position: absolute; inset: -10%; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(38rem 26rem at 82% 8%, rgb(124 77 255 / 0.55), transparent 70%),
+    radial-gradient(34rem 24rem at 12% 30%, rgb(168 56 230 / 0.32), transparent 72%),
+    radial-gradient(46rem 30rem at 55% 70%, rgb(59 31 168 / 0.5), transparent 70%),
+    radial-gradient(28rem 20rem at 90% 80%, rgb(56 120 255 / 0.22), transparent 72%),
+    radial-gradient(ellipse 70% 40% at 50% 118%, rgb(170 140 255 / 0.55) 0%, rgb(110 70 240 / 0.25) 38%, transparent 70%);
+  animation: ll-nebula 28s ease-in-out infinite alternate;
+}
+html.ll-home .nx-inverse::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 22%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 74% 14%, rgb(255 255 255 / 0.9), transparent 60%),
+    radial-gradient(1.6px 1.6px at 38% 68%, #e9e1ff, transparent 60%),
+    radial-gradient(1px 1px at 88% 52%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 56% 36%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 22% 88%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1.3px 1.3px at 93% 90%, #d8ccff, transparent 60%);
+  background-size: 360px 300px;
+  -webkit-mask-image: none; mask-image: none;
+  animation: ll-twinkle 6s ease-in-out infinite alternate;
+}
+html.ll-home .nx-inverse .nx-cta::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 30% 40%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 66% 78%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 84% 26%, rgb(220 205 255 / 0.9), transparent 60%),
+    radial-gradient(1.1px 1.1px at 8% 62%, rgb(255 255 255 / 0.85), transparent 60%);
+  background-size: 530px 410px;
+}
+html.ll-home .nx-inverse .nx-cta { position: relative; }
+html.ll-home .nx-inverse .nx-display { text-shadow: 0 0 3rem rgb(140 100 255 / 0.45); }
+@keyframes ll-nebula { from { transform: translate3d(-1.5%, 0, 0) scale(1); } to { transform: translate3d(1.5%, -1.5%, 0) scale(1.06); } }
+@keyframes ll-twinkle { from { opacity: 0.65; } to { opacity: 1; } }
+@media (max-width: 700px) { html.ll-home .nx-inverse::after { background-size: 260px 220px; } }
+@media (prefers-reduced-motion: reduce) { html.ll-home .nx-inverse::before, html.ll-home .nx-inverse::after { animation: none; } }
+html[data-reduce-motion="true"] .nx-inverse::before, html[data-reduce-motion="true"] .nx-inverse::after { animation: none !important; }
