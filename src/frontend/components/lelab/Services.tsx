@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { contactUrl, solutions, steps } from "@/lib/content";
 
-const tones = ["violet", "lilac", "ink", "paper"] as const;
+const tones = ["ink", "paper", "violet", "stone"] as const;
 
 function Service({ item, tone }: { item: (typeof solutions)[number]; tone: (typeof tones)[number] }) {
   const [open, setOpen] = useState(false);
