@@ -195,3 +195,21 @@ html[data-reduce-motion="true"] :is(.ll-logo-ring, .ll-hero-logo img, .ll-marque
 .ll-header:has(.ll-menu) .ll-burger svg { stroke: var(--ll-ink); }
 /* the closing title's words must stay white (they inherited the muted tone) */
 html.ll-home .nx-inverse .nx-display *, html.ll-home .nx-inverse .nx-lead * { color: #fff; }
+
+/* Blueprint grid: hairlines drawn in each section's own text colour, so it reads on light, dark and violet alike.
+   It fades toward the edges so it frames the content instead of competing with it. */
+.ll-hero, .ll-service, .ll-process, .ll-about, html.ll-home .rp-content, html.ll-home .nx-inverse { position: relative; isolation: isolate; }
+.ll-hero::after, .ll-service::after, .ll-process::after, .ll-about::after, html.ll-home .rp-content::after, html.ll-home .nx-inverse::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, currentColor 9%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, currentColor 9%, transparent) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 95% 85% at 50% 45%, #000 25%, transparent 82%);
+  mask-image: radial-gradient(ellipse 95% 85% at 50% 45%, #000 25%, transparent 82%);
+}
+/* the hero is the showpiece: slightly stronger, centred behind the logo */
+.ll-hero::after { background-image: linear-gradient(to right, color-mix(in srgb, var(--ll-ink) 11%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ll-ink) 11%, transparent) 1px, transparent 1px); -webkit-mask-image: radial-gradient(ellipse 80% 75% at 68% 45%, #000 15%, transparent 78%); mask-image: radial-gradient(ellipse 80% 75% at 68% 45%, #000 15%, transparent 78%); }
+html.ll-home .rp-content::after { opacity: 0.8; }
+@media (max-width: 700px) { .ll-hero::after, .ll-service::after, .ll-process::after, .ll-about::after, html.ll-home .rp-content::after, html.ll-home .nx-inverse::after { background-size: 3rem 3rem; } }

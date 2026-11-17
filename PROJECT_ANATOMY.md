@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-17 | 457 files | ~595.6K tokens if all read
+Generated: 2026-11-17 | 457 files | ~596.1K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -439,7 +439,7 @@ Generated: 2026-11-17 | 457 files | ~595.6K tokens if all read
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
 | src/frontend/styles/atendimentos.css | 343 | 8.6K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
-| src/frontend/styles/lelab.css | 198 | 4.5K | style |
+| src/frontend/styles/lelab.css | 216 | 5.0K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
 | src/frontend/styles/scene3d.css | 30 | 648 | style |
 | src/frontend/styles/site.css | 328 | 5.7K | style |
@@ -467,7 +467,7 @@ Generated: 2026-11-17 | 457 files | ~595.6K tokens if all read
 - config: 13 files, ~3.6K tokens
 - test: 112 files, ~137.7K tokens
 - docs: 11 files, ~19.1K tokens
-- style: 7 files, ~48.1K tokens
+- style: 7 files, ~48.5K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
