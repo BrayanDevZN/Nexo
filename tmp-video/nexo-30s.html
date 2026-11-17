@@ -1,0 +1,130 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#07040f}
+#root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#07040f;font-family:Montserrat,Inter,sans-serif;color:#fff}
+.abs{position:absolute}
+.glow{position:absolute;border-radius:50%;filter:blur(120px)}
+#g1{width:900px;height:900px;left:-200px;top:-250px;background:#6d28d9;opacity:.55}
+#g2{width:800px;height:800px;right:-200px;bottom:-300px;background:#a78bfa;opacity:.35}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(167,139,250,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(167,139,250,.07) 1px,transparent 1px);background-size:96px 96px}
+.scene{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.h1{font-weight:800;font-size:128px;line-height:1.05;letter-spacing:-2px}
+.h2{font-weight:800;font-size:104px;line-height:1.08;letter-spacing:-1px}
+.v{color:#a78bfa}
+.center{left:0;width:1920px;text-align:center}
+.chip{position:absolute;left:340px;width:1240px;white-space:nowrap;height:130px;border-radius:28px;background:rgba(255,255,255,.06);border:2px solid rgba(167,139,250,.35);display:flex;align-items:center;padding:0 48px;font-size:52px;font-weight:700;box-sizing:border-box}
+.chip i{display:inline-block;width:20px;height:20px;border-radius:50%;background:#f87171;margin-right:32px}
+.chip .strike{position:absolute;left:48px;right:48px;top:62px;height:6px;transform-origin:left center;background:#f87171;border-radius:3px}
+.bubble{position:absolute;padding:30px 44px;border-radius:40px;font-size:50px;font-weight:600;max-width:900px;line-height:1.2}
+.in{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15)}
+.out{background:linear-gradient(135deg,#6d28d9,#8b5cf6);box-shadow:0 20px 80px rgba(109,40,217,.6)}
+.card{position:absolute;top:330px;width:500px;height:520px;border-radius:40px;background:rgba(255,255,255,.06);border:2px solid rgba(167,139,250,.35);box-sizing:border-box;padding:56px;text-align:left}
+.card .ic{width:120px;height:120px;border-radius:32px;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;margin-bottom:44px}
+.card b{display:block;font-size:56px;font-weight:800;margin-bottom:18px}
+.card span{font-size:34px;color:#cdbff2;line-height:1.35}
+.panel{position:absolute;left:260px;top:250px;width:1400px;height:640px;border-radius:44px;background:rgba(20,12,38,.9);border:2px solid rgba(167,139,250,.4);box-shadow:0 40px 140px rgba(109,40,217,.45)}
+.bar{position:absolute;bottom:90px;width:110px;border-radius:20px 20px 0 0;background:linear-gradient(180deg,#a78bfa,#6d28d9);transform-origin:bottom}
+.btn{display:inline-block;padding:36px 90px;border-radius:100px;background:linear-gradient(135deg,#7c3aed,#a78bfa);font-size:56px;font-weight:800;box-shadow:0 20px 100px rgba(124,58,237,.8)}
+</style></head><body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+
+  <div id="bg" class="scene clip" data-start="0" data-duration="30" data-track-index="0">
+    <div class="glow" id="g1"></div><div class="glow" id="g2"></div><div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Cena 1 -->
+  <div id="s1" class="scene clip" data-start="0" data-duration="4" data-track-index="1" data-narration="Seu negócio perde clientes todos os dias.">
+    <div class="abs center h1" style="top:300px"><span id="s1a">Quantos clientes</span></div>
+    <div class="abs center h1 v" style="top:450px"><span id="s1b">você perdeu hoje?</span></div>
+    <div class="abs center" id="s1c" style="top:700px;font-size:46px;color:#cdbff2;font-weight:500">Enquanto você lê, alguém ficou sem resposta.</div>
+  </div>
+
+  <!-- Cena 2 -->
+  <div id="s2" class="scene clip" data-start="4" data-duration="5" data-track-index="2" data-narration="Mensagens sem resposta, agenda bagunçada, tempo jogado fora.">
+    <div class="abs center h2" style="top:110px">O custo de <span class="v">não automatizar</span></div>
+    <div class="chip c2" style="top:380px"><i></i>Mensagens sem resposta<div class="strike"></div></div>
+    <div class="chip c2" style="top:550px"><i></i>Agenda bagunçada<div class="strike"></div></div>
+    <div class="chip c2" style="top:720px"><i></i>Horas perdidas em tarefas manuais<div class="strike"></div></div>
+  </div>
+
+  <!-- Cena 3 -->
+  <div id="s3" class="scene clip" data-start="9" data-duration="6" data-track-index="3" data-narration="A Nexo cria agentes de inteligência artificial que atendem seus clientes no WhatsApp.">
+    <div class="abs center" id="s3logo" style="top:90px;font-size:150px;font-weight:800;letter-spacing:-4px">Nexo<span class="v">.</span></div>
+    <div class="abs center" id="s3sub" style="top:270px;font-size:48px;font-weight:600;color:#cdbff2">Agentes de IA que atendem no WhatsApp</div>
+    <div class="bubble in" id="b1" style="left:360px;top:450px">Oi! Vocês têm horário amanhã?</div>
+    <div class="bubble out" id="b2" style="right:360px;top:620px">Temos sim! 10h ou 15h. Qual prefere?</div>
+    <div class="bubble in" id="b3" style="left:360px;top:800px">15h, pode ser!</div>
+  </div>
+
+  <!-- Cena 4 -->
+  <div id="s4" class="scene clip" data-start="15" data-duration="6" data-track-index="4" data-narration="Agendam horários, organizam seus contatos e automatizam o que toma seu tempo.">
+    <div class="abs center h2" style="top:110px">Ele faz o trabalho <span class="v">por você</span></div>
+    <div class="card k4" style="left:190px"><div class="ic"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div><b>Agenda</b><span>Marca e confirma horários sozinho.</span></div>
+    <div class="card k4" style="left:710px"><div class="ic"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 010 8M22 21c0-3-2-5-4-6"/></svg></div><b>Contatos</b><span>Organiza clientes e leads em um funil.</span></div>
+    <div class="card k4" style="left:1230px"><div class="ic"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div><b>Automação</b><span>Tarefas repetitivas viram rotina automática.</span></div>
+  </div>
+
+  <!-- Cena 5 -->
+  <div id="s5" class="scene clip" data-start="21" data-duration="5" data-track-index="5" data-narration="Tudo em um só painel, funcionando vinte e quatro horas por dia.">
+    <div class="abs center h2" style="top:80px">Tudo em <span class="v">um só painel</span></div>
+    <div class="panel" id="panel">
+      <div class="abs" style="left:70px;top:56px;font-size:40px;font-weight:700;color:#cdbff2">Atendimentos</div>
+      <div class="abs" id="s5n" style="left:70px;top:120px;font-size:140px;font-weight:800">24/7</div>
+      <div class="bar" style="left:620px;height:180px"></div>
+      <div class="bar" style="left:780px;height:260px"></div>
+      <div class="bar" style="left:940px;height:340px"></div>
+      <div class="bar" style="left:1100px;height:430px"></div>
+      <div class="bar" style="left:1260px;height:500px"></div>
+    </div>
+  </div>
+
+  <!-- Cena 6 -->
+  <div id="s6" class="scene clip" data-start="26" data-duration="4" data-track-index="6" data-narration="Nexo. Automatize hoje e venda mais.">
+    <div class="abs center" id="s6a" style="top:230px;font-size:190px;font-weight:800;letter-spacing:-5px">Nexo<span class="v">.</span></div>
+    <div class="abs center h2" id="s6b" style="top:470px;font-size:84px">Automatize hoje. <span class="v">Venda mais.</span></div>
+    <div class="abs center" id="s6c" style="top:710px"><span class="btn">Fale com a Nexo</span></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+const tl = gsap.timeline({ paused: true });
+// fundo
+tl.to("#g1", { x: 260, y: 120, duration: 30, ease: "none" }, 0);
+tl.to("#g2", { x: -260, y: -120, duration: 30, ease: "none" }, 0);
+tl.to("#grid", { y: 96, duration: 30, ease: "none" }, 0);
+// 1
+tl.from("#s1a", { opacity: 0, y: 70, duration: .8, ease: "power3.out" }, .2);
+tl.from("#s1b", { opacity: 0, y: 70, duration: .8, ease: "power3.out" }, .8);
+tl.from("#s1c", { opacity: 0, duration: .8, ease: "power2.out" }, 1.8);
+tl.to("#s1", { opacity: 0, duration: .4, ease: "power2.in" }, 3.55);
+// 2 (inicio 4)
+tl.from("#s2 .h2", { opacity: 0, y: 50, duration: .7, ease: "power3.out" }, 4.2);
+tl.from("#s2 .chip", { opacity: 0, x: -120, duration: .6, stagger: .5, ease: "back.out(1.4)" }, 4.8);
+tl.from("#s2 .strike", { scaleX: 0, duration: .5, stagger: .5, ease: "power2.inOut" }, 6.2);
+tl.to("#s2", { opacity: 0, duration: .4, ease: "power2.in" }, 8.55);
+// 3 (inicio 9)
+tl.from("#s3logo", { opacity: 0, scale: .6, duration: .8, ease: "back.out(1.6)", transformOrigin: "50% 50%" }, 9.2);
+tl.from("#s3sub", { opacity: 0, y: 30, duration: .6, ease: "power2.out" }, 9.9);
+tl.from("#b1", { opacity: 0, x: -80, duration: .6, ease: "power3.out" }, 10.9);
+tl.from("#b2", { opacity: 0, x: 80, duration: .6, ease: "power3.out" }, 12.0);
+tl.from("#b3", { opacity: 0, x: -80, duration: .6, ease: "power3.out" }, 13.2);
+tl.to("#s3", { opacity: 0, duration: .4, ease: "power2.in" }, 14.55);
+// 4 (inicio 15)
+tl.from("#s4 .h2", { opacity: 0, y: 50, duration: .7, ease: "power3.out" }, 15.2);
+tl.from("#s4 .k4", { opacity: 0, y: 120, scale: .9, duration: .7, stagger: .45, ease: "back.out(1.3)" }, 16.0);
+tl.to("#s4", { opacity: 0, duration: .4, ease: "power2.in" }, 20.55);
+// 5 (inicio 21)
+tl.from("#s5 .h2", { opacity: 0, y: 50, duration: .7, ease: "power3.out" }, 21.2);
+tl.from("#panel", { opacity: 0, y: 100, scale: .95, duration: .8, ease: "power3.out" }, 21.6);
+tl.from("#s5n", { opacity: 0, scale: .7, duration: .6, ease: "back.out(1.6)", transformOrigin: "0 50%" }, 22.2);
+tl.from("#s5 .bar", { scaleY: 0, duration: .7, stagger: .15, ease: "power3.out" }, 22.4);
+tl.to("#s5", { opacity: 0, duration: .4, ease: "power2.in" }, 25.55);
+// 6 (inicio 26)
+tl.from("#s6a", { opacity: 0, scale: .7, duration: .8, ease: "back.out(1.5)", transformOrigin: "50% 50%" }, 26.2);
+tl.from("#s6b", { opacity: 0, y: 50, duration: .7, ease: "power3.out" }, 26.9);
+tl.from("#s6c", { opacity: 0, y: 40, scale: .9, duration: .6, ease: "back.out(1.5)", transformOrigin: "50% 50%" }, 27.6);
+tl.to("#s6c .btn", { scale: 1.06, duration: .6, yoyo: true, repeat: 1, ease: "sine.inOut" }, 28.3);
+window.__timelines = window.__timelines || {};
+window.__timelines["main"] = tl;
+</script></body></html>
