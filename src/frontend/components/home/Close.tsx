@@ -44,8 +44,8 @@ type CloseProps = {
 export function Close({ title: TITLE = HOME_TITLE, lead: LEAD = HOME_LEAD, link, nav = navigation, longTitle }: CloseProps) {
   const whatsapp = { href: contactUrl, ...link, target: "_blank", rel: "noopener noreferrer" };
   const { reduced, setReduced } = useMotionPreferences();
-  const [cta, ctaSeen] = useScrollTrigger<HTMLElement>(0.45, 0.9);
-  const [footer, footerSeen] = useScrollTrigger<HTMLElement>(0.9, 1.05);
+  const [cta, ctaSeen] = useScrollTrigger<HTMLElement>(0.85, 1.1);
+  const [footer, footerSeen] = useScrollTrigger<HTMLElement>(1, 1.2);
   const titleWords = TITLE.join(" ").split(" ").length;
   const leadWords = LEAD.split(" ").length;
   return (

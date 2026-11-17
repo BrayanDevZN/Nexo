@@ -267,3 +267,19 @@ html.ll-home .nx-stream-pop { transform: translateY(0.5rem); }
 html.ll-home [data-stream="on"] .nx-stream-pop { transition: opacity 0.5s ease calc(var(--i) * 38ms), transform 0.5s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 38ms); }
 html.ll-home [data-stream="on"] .nx-caret { animation-delay: 0.2s, calc(var(--i) * 38ms + 0.8s); }
 @media (max-width: 700px) { html.ll-home .nx-inverse .nx-display { font-size: clamp(2.1rem, 10.5vw, 3.2rem); } }
+
+/* Motion, site-wide: quick and crisp. No blur anywhere in the reveals, short travel, short stagger. */
+html.ll-home .nx-reveal[data-reveal="pending"] { opacity: 0; transform: translateY(0.9rem); }
+html.ll-home .nx-reveal[data-reveal] { transition: opacity 0.35s ease, transform 0.4s var(--ease); transition-delay: calc(var(--reveal-delay, 0ms) * 0.3); }
+html.ll-home .rp-content [data-reveal], html.ll-home .nx-inverse [data-reveal] { filter: none; transform: translate3d(0, 0.9rem, 0); transition: opacity 0.35s ease, transform 0.4s var(--ease); transition-delay: calc(var(--reveal-delay, 0ms) * 0.3); }
+html.ll-home .rp-content [data-reveal="visible"], html.ll-home .nx-inverse [data-reveal="visible"] { opacity: 1; transform: none; filter: none; }
+html.ll-home .nx-cta-title[data-reveal] { transition-duration: 0.35s, 0.4s; }
+/* streaming words: fade + a hair of lift, 14ms apart (the whole title lands in about half a second) */
+html.ll-home .nx-stream-word { transform: translateY(0.12em); filter: none; transition: opacity 0.15s ease, transform 0.15s ease; }
+html.ll-home [data-stream="on"] .nx-stream-word { filter: none; transition: opacity 0.28s ease calc(var(--i) * 14ms), transform 0.32s var(--ease) calc(var(--i) * 14ms); }
+html.ll-home .nx-stream-pop { transform: translateY(0.4rem); }
+html.ll-home [data-stream="on"] .nx-stream-pop { transition: opacity 0.3s ease calc(var(--i) * 14ms), transform 0.35s var(--ease) calc(var(--i) * 14ms); }
+html.ll-home [data-stream="on"] .nx-caret { animation-delay: 0.1s, calc(var(--i) * 14ms + 0.5s); }
+html.ll-home .nx-footer[data-stream="on"] :is(.nx-footer-top > *, .nx-footer-top nav > *, .nx-footer-legal > *) { transition: opacity 0.3s ease calc(var(--k, 0) * 40ms + 60ms), transform 0.35s var(--ease) calc(var(--k, 0) * 40ms + 60ms); }
+/* the glow behind the title stays crisp-edged */
+html.ll-home .nx-inverse .nx-display { text-shadow: 0 0 1.5rem rgb(140 100 255 / 0.3); }
