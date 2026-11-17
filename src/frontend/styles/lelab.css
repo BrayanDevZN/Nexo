@@ -193,3 +193,5 @@ html[data-reduce-motion="true"] :is(.ll-logo-ring, .ll-hero-logo img, .ll-marque
 .ll-header:has(.ll-menu) .ll-logo .brand { color: #fff; }
 .ll-header:has(.ll-menu) .ll-burger { background: #fff; color: var(--ll-ink); }
 .ll-header:has(.ll-menu) .ll-burger svg { stroke: var(--ll-ink); }
+/* the closing title's words must stay white (they inherited the muted tone) */
+html.ll-home .nx-inverse .nx-display *, html.ll-home .nx-inverse .nx-lead * { color: #fff; }
