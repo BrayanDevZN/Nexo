@@ -20,7 +20,7 @@ html.booking-theme body {
   background: radial-gradient(60rem 22rem at 50% -8rem, color-mix(in srgb, var(--primary) 9%, transparent), transparent 70%), #f6f5f9;
   background-attachment: scroll;
 }
-html.booking-theme *:not([data-slot="spinner"]):not(.s3d, .s3d *, .bk-fade, .bk-stagger > *, .bk-fade > section > *), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
+html.booking-theme *:not([data-slot="spinner"]):not(.s3d, .s3d *, .bk-fade, .bk-stagger > *, .bk-fade > section > *, .bk-n, .bk-n *), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
 html.booking-theme h1 { font-family: var(--rp-body); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.015em; }
 html.booking-theme h2 { font-size: 1.05rem; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
 
@@ -279,3 +279,21 @@ html.booking-theme [data-slot="toggle-group-item"][data-state="on"] { box-shadow
 .bk-stagger > :nth-child(5), .bk-fade > section > :nth-child(5) { animation-delay: 0.4s; }
 .bk-stagger > :nth-child(n + 6), .bk-fade > section > :nth-child(n + 6) { animation-delay: 0.46s; }
 @keyframes bk-rise { 0% { opacity: 0; transform: translate3d(0, 18px, 0); } 100% { opacity: 1; transform: translate3d(0, 0, 0); } }
+
+/* ---- the N that assembles and dissolves (NTransition.tsx): used on sign-in, on switching business and on the auth modes ---- */
+.bk-n { --t: 1.7s; --cell: min(7.4vw, 24px); position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; overflow: hidden; pointer-events: none;
+  background: radial-gradient(60vmax 60vmax at 50% 45%, #efe7ff 0%, #f6f5f9 70%); animation: bk-n-veil var(--t) ease-in-out both; }
+.bk-n-quick { --t: 1.05s; }
+.bk-n-glow { position: absolute; width: 70vmin; height: 70vmin; border-radius: 50%; background: radial-gradient(closest-side, rgba(124, 58, 237, 0.28), transparent); animation: bk-n-glow var(--t) ease-in-out both; }
+.bk-n-letter { position: relative; width: calc(var(--cell) * 5); height: calc(var(--cell) * 7); perspective: 700px; }
+.bk-n-block { position: absolute; left: calc(var(--col) * var(--cell)); top: calc(var(--row) * var(--cell)); width: calc(var(--cell) - 3px); height: calc(var(--cell) - 3px); border-radius: 22%;
+  box-shadow: 0 6px 14px -4px rgba(91, 33, 182, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35); will-change: transform, opacity;
+  animation: bk-n-block var(--t) cubic-bezier(0.3, 0.8, 0.3, 1) both; animation-delay: calc(var(--i) * 0.014s); }
+@keyframes bk-n-veil { 0% { opacity: 0; } 16% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bk-n-glow { 0%, 12% { transform: scale(0.4); opacity: 0; } 42% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes bk-n-block {
+  0%, 8% { opacity: 0; transform: translate3d(var(--sx), var(--sy), 160px) rotate(var(--sr)) scale(0.3); }
+  40% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  62% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate3d(var(--ex), -220px, 60px) rotate(var(--er)) scale(0.2); }
+}

@@ -15,6 +15,7 @@ import { Picture } from "./Photo";
 import { ApiError } from "@/admin/api";
 import { Busy, Feedback, message } from "@/admin/shared";
 import { Account } from "./Account";
+import { useNTransition } from "./NTransition";
 import { Agenda } from "./Agenda";
 import { Auth } from "./Auth";
 import { BusinessForm } from "./BusinessForm";
@@ -31,7 +32,15 @@ const PAGES: { id: Page; label: string; icon: typeof CalendarDays; group: "work"
 const BUSINESS_KEY = "nexo:atendimentos:business";
 
 /** Nexo Atendimentos at /atendimentos: sign in, pick a business, work in it. No effects, just screens. */
+type Play = (change: () => void, quick?: boolean) => void;
+
+/** The N transition lives above every screen, so it survives the swap between sign-in and the app. */
 export default function BookingApp() {
+  const { play, overlay } = useNTransition();
+  return <>{overlay}<BookingScreens play={play} /></>;
+}
+
+function BookingScreens({ play }: { play: Play }) {
   const [user, setUser] = useState<BookingUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,7 +96,8 @@ export default function BookingApp() {
     try { if (next) sessionStorage.setItem(BUSINESS_KEY, next.id); else sessionStorage.removeItem(BUSINESS_KEY); } catch { /* sem armazenamento */ }
   }
   function onLogin(person: BookingUser) {
-    api.resetSession(); setUser(person); setError("");
+    // The N assembles and dissolves; the signed-in screen appears under it.
+    play(() => { api.resetSession(); setUser(person); setError(""); });
     if (complete) window.history.replaceState(null, "", "/atendimentos" + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : ""));
   }
   function signOut() { api.resetSession(); setUser(null); setBusinesses(undefined); pick(undefined); }
@@ -109,7 +119,7 @@ export default function BookingApp() {
     {creating ? <BusinessForm api={api} onSaved={saved => { void loadBusinesses(); pick(saved); }} />
       : !businesses ? <Busy /> : <>
         {businesses.length === 0 && <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Você ainda não tem nenhum negócio</EmptyTitle><EmptyDescription>Crie o seu em um minuto: só o nome é obrigatório. Se alguém te convidou, abra o link do convite.</EmptyDescription></EmptyHeader></Empty>}
-        <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item" key={row.id} onClick={() => pick(row)}>
+        <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item" key={row.id} onClick={() => play(() => pick(row))}>
           <Picture api={api} path={"/businesses/" + row.id + "/photo"} name={row.name} hasPhoto={row.has_photo} className="size-12" />
           <div className="bk-item-body"><strong>{row.name}</strong><span>{[row.city, row.state].filter(Boolean).join(" / ") || row.phone || "Sem endereço"}</span></div>
           <Badge variant={row.my_role === "owner" ? "default" : "secondary"}>{ROLE_LABELS[row.my_role]}</Badge>
@@ -126,7 +136,7 @@ export default function BookingApp() {
         <a className="bk-brand" href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" decoding="async" /><span>Nexo <b>Atendimentos</b></span></a>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="bk-switcher" tooltip="Trocar de negócio" onClick={() => pick(undefined)}>
+            <SidebarMenuButton size="lg" className="bk-switcher" tooltip="Trocar de negócio" onClick={() => play(() => pick(undefined))}>
               <Picture api={api} path={"/businesses/" + business.id + "/photo"} name={business.name} hasPhoto={business.has_photo} className="size-8 rounded-lg" version={business.updated_at.length} />
               <div className="grid flex-1 text-left leading-tight"><span className="truncate font-semibold">{business.name}</span><span className="truncate text-xs text-muted-foreground">{ROLE_LABELS[business.my_role]}{businesses && businesses.length > 1 ? " · " + businesses.length + " negócios" : ""}</span></div>
               <ArrowLeftRight className="ml-auto" aria-hidden="true" />

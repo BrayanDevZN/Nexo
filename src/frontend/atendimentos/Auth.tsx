@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Feedback, FieldGroup, TextField, message, passwordValid } from "@/admin/shared";
+import { useNTransition } from "./NTransition";
 import { ROLE_LABELS, type BookingApi, type BookingUser, type InvitationInfo } from "./api";
 
 type Mode = "login" | "register" | "verify" | "recovery" | "confirm";
@@ -36,7 +37,9 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
       .catch(e => { if (active) setError(message(e)); });
     return () => { active = false; };
   }, [api, complete]);
-  function switchMode(next: Mode) { setMode(next); setError(""); setSuccess(""); }
+  const { play, overlay } = useNTransition();
+  // Each switch plays the short version of the N transition, and the new mode appears under it.
+  function switchMode(next: Mode) { play(() => { setMode(next); setError(""); setSuccess(""); }, true); }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -72,6 +75,7 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
     : { login: "Acesse a agenda do seu negócio.", register: "Leva um minuto. Depois é só cadastrar o negócio.", verify: `Digite o código de 8 números que chegou em ${email}.`, recovery: "Enviamos um código para o seu e-mail.", confirm: "Use o código recebido e escolha a nova senha." }[mode];
   const action = complete ? "Concluir" : { login: "Entrar", register: "Criar conta", verify: "Confirmar", recovery: "Enviar código", confirm: "Salvar senha" }[mode];
   return <main className="bk-auth">
+    {overlay}
     <div className="bk-auth-head bk-drop bk-fade">
       <a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="64" height="64" decoding="async" /></a>
       <h1>Nexo Atendimentos</h1>
