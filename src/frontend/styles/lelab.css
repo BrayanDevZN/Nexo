@@ -359,3 +359,29 @@ html[data-reduce-motion="true"] :is(.ll-service[data-tone="ink"], .ll-about)::be
     281px 223px, 281px 223px, 281px 223px, 281px 223px, 281px 223px;
 }
 .ll-marquee { background: linear-gradient(90deg, #03020a, #1a0d4d 50%, #03020a); border-color: #2a1b66; box-shadow: inset 0 0 3rem rgb(124 77 255 / 0.25); }
+
+/* Light sections: soft violet shading painted on the section itself, under the grid, so the grid stays fully visible. */
+.ll-service[data-tone="paper"] {
+  background-image:
+    radial-gradient(44rem 30rem at 6% 8%, rgb(124 77 255 / 0.16), transparent 70%),
+    radial-gradient(40rem 28rem at 96% 100%, rgb(150 100 255 / 0.2), transparent 70%);
+}
+.ll-service[data-tone="stone"] {
+  background-image:
+    radial-gradient(46rem 30rem at 94% 0%, rgb(124 77 255 / 0.22), transparent 70%),
+    radial-gradient(38rem 26rem at 4% 100%, rgb(170 90 240 / 0.16), transparent 72%);
+}
+.ll-process {
+  background-image:
+    radial-gradient(50rem 32rem at 50% -8%, rgb(124 77 255 / 0.17), transparent 70%),
+    radial-gradient(42rem 28rem at 100% 100%, rgb(150 100 255 / 0.18), transparent 70%),
+    radial-gradient(36rem 24rem at 0% 70%, rgb(124 77 255 / 0.1), transparent 70%);
+}
+html.ll-home .rp-content {
+  background-image:
+    radial-gradient(52rem 34rem at 92% 6%, rgb(124 77 255 / 0.16), transparent 70%),
+    radial-gradient(48rem 34rem at 4% 46%, rgb(150 100 255 / 0.13), transparent 72%),
+    radial-gradient(52rem 34rem at 90% 92%, rgb(124 77 255 / 0.17), transparent 70%);
+}
+/* hero: a stronger violet wash on the left to balance the glow behind the logo */
+.ll-hero { background-image: radial-gradient(46rem 34rem at 0% 100%, rgb(124 77 255 / 0.16), transparent 70%), radial-gradient(40rem 26rem at 30% -6%, rgb(150 100 255 / 0.12), transparent 70%); }
