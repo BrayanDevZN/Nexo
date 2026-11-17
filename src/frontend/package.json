@@ -15,7 +15,6 @@
   "keywords": [],
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
-    "@fontsource-variable/geist-mono": "^5.3.0",
     "@fontsource/barlow-semi-condensed": "^5.3.0",
     "@fontsource/lato": "^5.3.0",
     "@shadcn/react": "^0.3.1",
