@@ -295,3 +295,48 @@ html.booking-theme [data-slot="toggle-group-item"][data-state="on"] { box-shadow
 @keyframes bk-n-name { 0%, 8% { opacity: 0; transform: translateY(40%) rotateX(-80deg); } 28% { opacity: 1; transform: none; } 100% { opacity: 1; transform: none; } }
 @keyframes bk-n-draw { to { stroke-dashoffset: 0; } }
 @keyframes bk-n-rings-out { 0%, 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.92); } }
+
+/* ---- finer type on buttons and firmer outlines (Atendimentos only) ---- */
+html.booking-theme {
+  --bk-edge: color-mix(in srgb, var(--primary) 24%, #cdc7db);          /* the outline of fields, buttons and cards */
+  --bk-edge-soft: color-mix(in srgb, var(--primary) 14%, #dedae8);     /* dividers and quiet frames */
+  --bk-edge-hover: color-mix(in srgb, var(--primary) 55%, #cdc7db);
+}
+/* Buttons use the display face (Barlow Semi Condensed): crisper at small sizes than the body face. Text-like variants keep Lato. */
+html.booking-theme [data-slot="button"] { font-family: var(--rp-display); font-weight: 600; font-size: 1.04rem; letter-spacing: 0.035em; line-height: 1; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html.booking-theme [data-slot="button"][data-size="sm"] { font-size: 0.98rem; letter-spacing: 0.03em; }
+html.booking-theme [data-slot="button"][data-variant="link"], html.booking-theme [data-slot="button"][data-variant="ghost"] { font-family: var(--rp-body); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.005em; }
+html.booking-theme [data-slot="toggle-group-item"] { font-family: var(--rp-display); font-weight: 600; font-size: 0.98rem; letter-spacing: 0.03em; }
+html.booking-theme [data-slot="badge"] { font-family: var(--rp-display); font-weight: 600; font-size: 0.82rem; letter-spacing: 0.07em; }
+html.booking-theme [data-slot="sidebar-menu-button"] { letter-spacing: 0.005em; }
+
+/* Outlines: one clear tone for every control, a tinted hover, and a visible keyboard focus. */
+html.booking-theme [data-slot="button"][data-variant="outline"] { border: 1.5px solid var(--bk-edge); }
+html.booking-theme [data-slot="button"][data-variant="outline"]:hover { border-color: var(--bk-edge-hover); }
+html.booking-theme [data-slot="button"][data-variant="default"] { border: 1px solid color-mix(in srgb, var(--primary) 72%, #1b0a40); }
+html.booking-theme :is([data-slot="input"], [data-slot="native-select"], select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) { border: 1.5px solid var(--bk-edge); }
+html.booking-theme :is([data-slot="input"], [data-slot="native-select"], select, textarea):hover { border-color: var(--bk-edge-hover); }
+html.booking-theme :is([data-slot="input"], [data-slot="native-select"], select, textarea):focus-visible { border-color: var(--primary); }
+html.booking-theme :is(button, a, [role="button"], summary):focus-visible { outline: 2px solid color-mix(in srgb, var(--primary) 80%, #fff); outline-offset: 2px; }
+html.booking-theme [data-slot="card"] { border: 1px solid var(--bk-edge-soft); box-shadow: var(--bk-shadow), 0 0 0 1px color-mix(in srgb, var(--primary) 5%, transparent); }
+html.booking-theme [data-slot="alert"], html.booking-theme [data-slot="toggle-group"], html.booking-theme [data-slot="tabs-list"] { border: 1px solid var(--bk-edge-soft); }
+html.booking-theme [data-slot="empty"] { border: 1.5px dashed var(--bk-edge); }
+html.booking-theme [data-slot="dialog-content"] { border: 1px solid var(--bk-edge-soft); }
+html.booking-theme [data-slot="separator"] { background: var(--bk-edge-soft); }
+html.booking-theme [data-slot="avatar"] { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--bk-edge-soft); }
+html.booking-theme [data-sidebar="sidebar"] { box-shadow: 1px 0 0 var(--bk-edge-soft), 6px 0 24px -12px rgb(24 16 48 / 0.18); }
+html.booking-theme .bk-header { border-bottom: 1px solid var(--bk-edge-soft); }
+html.booking-theme .bk-switcher { border: 1.5px solid var(--bk-edge); }
+html.booking-theme .bk-sidebar [data-slot="sidebar-footer"], html.booking-theme [data-slot="sidebar-footer"] { border-top: 1px solid var(--bk-edge-soft); }
+html.booking-theme .bk-item, html.booking-theme .bk-stat { border: 1px solid var(--bk-edge-soft); }
+/* the calendar frames and grid lines */
+html.booking-theme .bk-cal { border: 1px solid var(--bk-edge-soft); }
+html.booking-theme .bk-grid-scroll, html.booking-theme .bk-month { border: 1.5px solid var(--bk-edge); }
+html.booking-theme .bk-tg-head, html.booking-theme .bk-month-head { border-bottom-color: var(--bk-edge); }
+html.booking-theme .bk-tg-col, html.booking-theme .bk-tg-day, html.booking-theme .bk-month-cell { border-left-color: var(--bk-edge-soft); }
+html.booking-theme .bk-month-cell { border-top-color: var(--bk-edge-soft); }
+html.booking-theme .bk-tg-col { background-image: linear-gradient(to bottom, var(--bk-edge-soft) 1px, transparent 1px); }
+html.booking-theme .bk-chip { border: 1px solid color-mix(in srgb, var(--ev) 28%, transparent); }
+html.booking-theme .bk-event { border: 1px solid color-mix(in srgb, var(--ev) 70%, #000); border-left-width: 3px; }
+html.booking-theme .bk-search { border: 1.5px solid var(--bk-edge); }
+html.booking-theme .bk-customer-button, html.booking-theme .bk-picker-item { border-color: var(--bk-edge-soft); }
