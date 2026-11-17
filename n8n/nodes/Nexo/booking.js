@@ -47,7 +47,7 @@ function add(displayName, name, type, defaultValue, resource, operations, extra 
 
 const NEEDS_BUSINESS = { bookingBusinesses: ['get', 'overview', 'members'], bookingServices: ['getMany'], bookingAppointments: ['getMany', 'get', 'create', 'update', 'delete'] };
 for (const [resource, operations] of Object.entries(NEEDS_BUSINESS)) {
-	add('Negócio', 'bookingBusinessId', 'options', '', resource, operations, { required: true, typeOptions: { loadOptionsMethod: 'getBookingBusinesses' }, description: 'Lista todos os negócios da sua conta do Atendimentos: escolha qual agenda mexer. Com a IA, informe o ID (veja em Negócios > Get Many).' });
+	add('Negócio', 'bookingBusinessId', 'options', '', resource, operations, { required: true, noDataExpression: true, typeOptions: { loadOptionsMethod: 'getBookingBusinesses' }, description: 'Lista todos os negócios do Atendimentos: escolha qual agenda mexer. É sempre escolhido aqui, pela pessoa (a IA não define este campo).' });
 }
 // Services
 add('Só serviços ativos', 'bookingActiveOnly', 'boolean', false, 'bookingServices', ['getMany'], { description: 'Esconde os serviços desativados.' });
@@ -67,7 +67,7 @@ add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'
 add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Para remarcar. Vazio: não altera. ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento termina (depois do Start). ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Vazio: não altera. ${WINDOW}` });
-add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes e a soma dos preços. Ao atualizar, vazio não altera. Com a IA, informe os IDs dos serviços (veja em Atendimentos: serviços > Get Many).' });
+add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes e a soma dos preços. Ao atualizar, vazio não altera. Com a IA (✨), informe os IDs dos serviços separados por vírgula (veja em Atendimentos: serviços > Get Many).' });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS], description: 'Nova situação: scheduled, confirmed, done, cancelled ou no_show. Vazio: não altera.' });
 
 // Time ----------------------------------------------------------------------------------------------------
@@ -222,7 +222,8 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
 	// Services of this business: one keeps its link (and its price); several become one appointment named after all of
 	// them, priced with their sum. Nothing chosen: a plain "Atendimento".
-	const chosen = [].concat(param('bookingServicesChosen', [])).map((id) => String(id).trim()).filter(Boolean);
+	// From the list it is an array of IDs; from the AI it may arrive as one text, with the IDs separated by commas.
+	const chosen = [].concat(param('bookingServicesChosen', [])).flatMap((id) => String(id).split(',')).map((id) => id.trim()).filter(Boolean);
 	if (chosen.length) {
 		const known = rows(await call({ method: 'GET', url: base('/services') }));
 		const picked = chosen.map((id) => known.find((service) => service.id === id) || (() => { throw new Error('Um dos serviços escolhidos não é deste negócio.'); })());

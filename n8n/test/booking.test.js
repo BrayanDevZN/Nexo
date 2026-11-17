@@ -38,7 +38,9 @@ test('every Atendimentos field can be filled by the AI model: none blocks expres
 	const node = new Nexo();
 	const fields = node.description.properties.filter((field) => field.name.startsWith('booking'));
 	assert.ok(fields.length > 15);
-	assert.ok(fields.every((field) => !field.noDataExpression && !['collection', 'fixedCollection'].includes(field.type)));
+	// The business is the one field a person picks in the node; every other field takes the AI sparkle.
+	assert.ok(fields.every((field) => (field.name === 'bookingBusinessId') === Boolean(field.noDataExpression)));
+	assert.ok(fields.every((field) => !['collection', 'fixedCollection', 'resourceLocator'].includes(field.type)));
 	assert.ok(fields.every((field) => field.displayOptions.show.resource[0].startsWith('booking')));
 });
 
@@ -241,4 +243,15 @@ test('update changes only what was filled in, including the services, and delete
 	const removed = await run({ ...BASE, operation: 'delete', bookingAppointmentId: 'a/1' }, () => undefined);
 	assert.equal(removed.requests[0].url, 'atendimentos/businesses/b1/appointments/a%2F1');
 	assert.deepEqual(removed.output[0].map((item) => item.json), [{ id: 'a/1', deleted: true }]);
+});
+
+test('the services can come from the AI as one text with commas, or from the list as an array', async () => {
+	const SVC = [{ id: 's1', name: 'Corte', price: 45 }, { id: 's2', name: 'Barba', price: 30 }];
+	const reply = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
+	for (const chosen of ['s1, s2', ['s1', 's2'], ['s1,s2']]) {
+		const { requests } = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
+		const body = requests.find((request) => request.method === 'POST').body;
+		assert.equal(body.service_name, 'Corte + Barba');
+		assert.equal(body.price, '75.00');
+	}
 });
