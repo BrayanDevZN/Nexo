@@ -20,7 +20,7 @@ html.booking-theme body {
   background: radial-gradient(60rem 22rem at 50% -8rem, color-mix(in srgb, var(--primary) 9%, transparent), transparent 70%), #f6f5f9;
   background-attachment: scroll;
 }
-html.booking-theme *:not([data-slot="spinner"]), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
+html.booking-theme *:not([data-slot="spinner"]):not(.s3d, .s3d *), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; transition: none !important; }
 html.booking-theme h1 { font-family: var(--rp-body); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.015em; }
 html.booking-theme h2 { font-size: 1.05rem; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
 
