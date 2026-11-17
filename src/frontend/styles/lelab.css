@@ -385,3 +385,35 @@ html.ll-home .rp-content {
 }
 /* hero: a stronger violet wash on the left to balance the glow behind the logo */
 .ll-hero { background-image: radial-gradient(46rem 34rem at 0% 100%, rgb(124 77 255 / 0.16), transparent 70%), radial-gradient(40rem 26rem at 30% -6%, rgb(150 100 255 / 0.12), transparent 70%); }
+
+/* Light sections, shading turned up (roughly double), still painted under the grid. */
+.ll-service[data-tone="paper"] {
+  background-image:
+    radial-gradient(52rem 36rem at 4% 6%, rgb(124 77 255 / 0.34), transparent 70%),
+    radial-gradient(48rem 34rem at 98% 100%, rgb(150 100 255 / 0.4), transparent 70%),
+    radial-gradient(30rem 22rem at 60% 40%, rgb(190 150 255 / 0.14), transparent 70%);
+}
+.ll-service[data-tone="stone"] {
+  background-image:
+    radial-gradient(54rem 36rem at 96% 0%, rgb(124 77 255 / 0.4), transparent 70%),
+    radial-gradient(46rem 32rem at 2% 100%, rgb(170 90 240 / 0.32), transparent 72%),
+    radial-gradient(30rem 22rem at 40% 50%, rgb(150 100 255 / 0.14), transparent 70%);
+}
+.ll-process {
+  background-image:
+    radial-gradient(58rem 38rem at 50% -8%, rgb(124 77 255 / 0.34), transparent 70%),
+    radial-gradient(50rem 34rem at 102% 100%, rgb(150 100 255 / 0.38), transparent 70%),
+    radial-gradient(42rem 28rem at -2% 72%, rgb(124 77 255 / 0.22), transparent 70%);
+}
+html.ll-home .rp-content {
+  background-image:
+    radial-gradient(60rem 40rem at 94% 5%, rgb(124 77 255 / 0.32), transparent 70%),
+    radial-gradient(56rem 40rem at 2% 46%, rgb(150 100 255 / 0.26), transparent 72%),
+    radial-gradient(60rem 40rem at 92% 94%, rgb(124 77 255 / 0.34), transparent 70%);
+}
+.ll-hero {
+  background-image:
+    radial-gradient(54rem 40rem at 0% 100%, rgb(124 77 255 / 0.3), transparent 70%),
+    radial-gradient(46rem 30rem at 30% -8%, rgb(150 100 255 / 0.24), transparent 70%),
+    radial-gradient(34rem 26rem at 100% 0%, rgb(124 77 255 / 0.16), transparent 70%);
+}
