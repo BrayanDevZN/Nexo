@@ -256,3 +256,14 @@ html.ll-home .nx-inverse .nx-display { text-shadow: 0 0 3rem rgb(140 100 255 / 0
 @media (max-width: 700px) { html.ll-home .nx-inverse::after { background-size: 260px 220px; } }
 @media (prefers-reduced-motion: reduce) { html.ll-home .nx-inverse::before, html.ll-home .nx-inverse::after { animation: none; } }
 html[data-reduce-motion="true"] .nx-inverse::before, html[data-reduce-motion="true"] .nx-inverse::after { animation: none !important; }
+
+/* Closing title: sized in line with the hero (it was the biggest type on the page) and a calmer streaming reveal:
+   shorter travel, less blur, faster stagger. */
+html.ll-home .nx-inverse .nx-display { font-size: clamp(2.5rem, 7.2vw, 6.6rem); line-height: 0.98; letter-spacing: -0.005em; text-shadow: 0 0 2rem rgb(140 100 255 / 0.35); }
+html.ll-home .nx-inverse .nx-cta { padding-block: clamp(4rem, 8vw, 7rem) clamp(3rem, 5vw, 4.5rem); }
+html.ll-home .nx-stream-word { transform: translateY(0.2em); filter: blur(3px); }
+html.ll-home [data-stream="on"] .nx-stream-word { transition: opacity 0.45s ease calc(var(--i) * 38ms), transform 0.5s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 38ms), filter 0.5s ease calc(var(--i) * 38ms); }
+html.ll-home .nx-stream-pop { transform: translateY(0.5rem); }
+html.ll-home [data-stream="on"] .nx-stream-pop { transition: opacity 0.5s ease calc(var(--i) * 38ms), transform 0.5s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 38ms); }
+html.ll-home [data-stream="on"] .nx-caret { animation-delay: 0.2s, calc(var(--i) * 38ms + 0.8s); }
+@media (max-width: 700px) { html.ll-home .nx-inverse .nx-display { font-size: clamp(2.1rem, 10.5vw, 3.2rem); } }
