@@ -243,11 +243,31 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
 	// Services of this business: one keeps its link (and its price); several become one appointment named after all of
 	// them, priced with their sum. Nothing chosen: a plain "Atendimento".
-	// From the list it is an array of IDs; from the AI it may arrive as one text, with the IDs separated by commas.
-	const chosen = [].concat(param('bookingServicesChosen', [])).flatMap((id) => String(id).split(',')).map((id) => id.trim()).filter(Boolean);
-	if (chosen.length) {
+	// From the list it is an array of IDs; from the AI it may be one text: IDs or names, separated by commas.
+	const raw = [].concat(param('bookingServicesChosen', [])).map((item) => String(item).trim()).filter(Boolean);
+	if (raw.length) {
 		const known = rows(await call({ method: 'GET', url: base('/services') }));
-		const picked = chosen.map((id) => known.find((service) => service.id === id) || (() => { throw new Error('Um dos serviços escolhidos não é deste negócio.'); })());
+		const find = (text) => known.find((service) => service.id === text) || known.find((service) => String(service.name).trim().toLowerCase() === text.toLowerCase());
+		// Read each value left to right, matching the longest real service (ID or name) first, so a name with a comma stays whole.
+		const keys = known.flatMap((service) => [service.id, String(service.name).trim()]).sort((a, b) => b.length - a.length);
+		const tokens = [];
+		for (const item of raw) {
+			let rest = item;
+			while (rest.replace(/^[\s,]+/, '') !== '') {
+				rest = rest.replace(/^[\s,]+/, '');
+				const hit = keys.find((key) => rest.toLowerCase().startsWith(key.toLowerCase()) && /^\s*(,|$)/.test(rest.slice(key.length)));
+				const token = hit ?? rest.split(',')[0].trim();
+				tokens.push(token);
+				rest = rest.slice(token.length);
+			}
+		}
+		const picked = [];
+		const unknown = [];
+		for (const token of tokens) { const service = find(token); if (service) { if (!picked.includes(service)) picked.push(service); } else unknown.push(token); }
+		if (unknown.length) {
+			const available = known.filter((service) => service.active !== false).map((service) => `${service.name} (${service.id})`).join('; ');
+			throw new Error(`Serviço não encontrado neste negócio: ${unknown.join(', ')}. ${available ? `Serviços deste negócio: ${available}.` : 'Este negócio ainda não tem serviços: crie um em Atendimentos: serviços > Criar.'}`);
+		}
 		if (picked.length === 1) body.service_id = picked[0].id;
 		else {
 			body.service_name = picked.map((service) => service.name).join(' + ').slice(0, 160);

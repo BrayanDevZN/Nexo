@@ -212,7 +212,7 @@ test('several services become one appointment named after all of them, priced wi
 	const none = await run({ ...CREATE }, answer);
 	assert.equal(none.requests.find((request) => request.method === 'POST').body.service_name, 'Atendimento');
 	const foreign = await run({ ...CREATE, bookingServicesChosen: ['s1', 'other-business'] }, answer).catch((error) => error);
-	assert.match(foreign.message, /não é deste negócio/);
+	assert.match(foreign.message, /Serviço não encontrado neste negócio: other-business\. Serviços deste negócio: Corte \(s1\); Barba \(s2\); Sobrancelha \(s3\)/);
 });
 
 test('create needs the name, Start and End, in order', async () => {
@@ -275,4 +275,21 @@ test('a service is created with a name and a duration; price, description and ac
 	await fails({ bookingNewServiceName: 'Barba', bookingNewServiceDuration: 3 }, /de 5 a 1440/);
 	await fails({ bookingNewServiceName: 'Barba', bookingNewServiceDuration: 'longo' }, /de 5 a 1440/);
 	await fails({ bookingNewServiceName: 'Barba', bookingNewServicePrice: 'caro' }, /Preço inválido/);
+});
+
+test('services can be given by name too, and an unknown one answers with the real list of the business', async () => {
+	const SVC = [{ id: 's1', name: 'Corte', price: 45, active: true }, { id: 's2', name: 'Barba, completa', price: 30, active: true }, { id: 's3', name: 'Antigo', price: 10, active: false }];
+	const reply = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
+	const make = (chosen) => run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
+	const byName = await make('corte');
+	assert.equal(byName.requests.find((request) => request.method === 'POST').body.service_id, 's1');
+	const mixed = await make('Corte, Barba, completa');   // a name with a comma stays whole
+	const body = mixed.requests.find((request) => request.method === 'POST').body;
+	assert.equal(body.service_name, 'Corte + Barba, completa');
+	assert.equal(body.price, '75.00');
+	assert.equal((await make(['s1', 'Corte'])).requests.find((request) => request.method === 'POST').body.service_id, 's1');   // no duplicates
+	const wrong = await make('72db3f47-7d38-4f75-83a5-01b5c457c875').catch((error) => error);
+	assert.match(wrong.message, /Serviço não encontrado neste negócio: 72db3f47/);
+	assert.match(wrong.message, /Corte \(s1\); Barba, completa \(s2\)\./);   // inactive ones are not offered
+	assert.ok(!/Antigo/.test(wrong.message));
 });
