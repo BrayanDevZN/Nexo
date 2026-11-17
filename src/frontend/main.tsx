@@ -10,6 +10,7 @@ import { MotionProvider } from "./components/MotionProvider";
 import { applyAdminTheme, readAdminTheme } from "./admin/theme";
 import { setCanonical, setNoIndex } from "./lib/seo";
 import { startPageEntrance, startSiteEffects } from "./lib/siteEffects";
+import "@fontsource-variable/geist-mono";
 import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/lato/300.css";
 import "@fontsource/lato/300-italic.css";

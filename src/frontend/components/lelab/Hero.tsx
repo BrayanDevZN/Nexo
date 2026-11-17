@@ -7,7 +7,7 @@ export function Hero() {
   return (
     <section id="inicio" className="ll-hero" aria-labelledby="ll-hero-title">
       <div className="ll-hero-top">
-        <p className="ll-tag nx-reveal">Inteligência Artificial Aplicada</p>
+        <p className="ll-tag ll-mono nx-reveal"><i className="ll-status" aria-hidden="true" />Inteligência Artificial Aplicada</p>
       </div>
       <div className="ll-hero-grid">
         <div className="ll-hero-copy">

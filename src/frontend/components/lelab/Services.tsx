@@ -2,41 +2,43 @@ import { useState } from "react";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { contactUrl, solutions, steps } from "@/lib/content";
 
-const tones = ["ink", "paper", "violet", "stone"] as const;
-
-function Service({ item, tone }: { item: (typeof solutions)[number]; tone: (typeof tones)[number] }) {
+function Service({ item }: { item: (typeof solutions)[number] }) {
   const [open, setOpen] = useState(false);
   const Icon = item.icon;
   const panel = `ll-more-${item.number}`;
   return (
-    <article className="ll-service" data-tone={tone} id={`estacao-${Number(item.number)}`} aria-labelledby={`ll-s-${item.number}`}>
-      <div className="ll-wrap ll-service-grid">
-        <div className="ll-service-art nx-reveal" aria-hidden="true">
-          <span className="ll-bignum">{item.number}</span>
-          <span className="ll-service-icon">
-            <Icon />
-          </span>
-        </div>
-        <div className="ll-service-copy">
-          <p className="ll-tags nx-reveal">{item.tags.join("  ·  ")}</p>
-          <h3 id={`ll-s-${item.number}`} className="ll-service-title nx-reveal">
-            {item.title}
-          </h3>
-          <p className="ll-service-text nx-reveal">{item.description}</p>
-          <button type="button" className="ll-more-btn" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((v) => !v)}>
-            <Plus aria-hidden="true" /> {open ? "Fechar detalhes" : "Em detalhes"}
-          </button>
-          <div id={panel} className="ll-more" hidden={!open}>
-            <ul>
-              {item.includes.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-            <blockquote>
-              <strong>Na prática.</strong> {item.example}
-            </blockquote>
-          </div>
-        </div>
+    <article className="ll-card nx-reveal" id={`estacao-${Number(item.number)}`} aria-labelledby={`ll-s-${item.number}`}>
+      <div className="ll-card-top">
+        <span className="ll-card-icon" aria-hidden="true">
+          <Icon />
+        </span>
+        <span className="ll-mono ll-card-n" aria-hidden="true">
+          {item.number}
+        </span>
+      </div>
+      <h3 id={`ll-s-${item.number}`} className="ll-card-title">
+        {item.title}
+      </h3>
+      <p className="ll-card-text">{item.description}</p>
+      <ul className="ll-chips" aria-label="Aplicações">
+        {item.tags.map((tag) => (
+          <li key={tag} className="ll-mono">
+            {tag}
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="ll-more-btn" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((v) => !v)}>
+        <Plus aria-hidden="true" /> {open ? "Fechar detalhes" : "Ver detalhes"}
+      </button>
+      <div id={panel} className="ll-more" hidden={!open}>
+        <ul>
+          {item.includes.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <blockquote>
+          <strong>Na prática.</strong> {item.example}
+        </blockquote>
       </div>
     </article>
   );
@@ -44,16 +46,18 @@ function Service({ item, tone }: { item: (typeof solutions)[number]; tone: (type
 
 export function Services() {
   return (
-    <section id="solucoes" aria-labelledby="ll-solutions-title">
+    <section id="solucoes" className="ll-section" aria-labelledby="ll-solutions-title">
       <div className="ll-wrap ll-head">
-        <p className="ll-tag nx-reveal">O que fazemos</p>
+        <p className="ll-tag ll-mono nx-reveal">Soluções</p>
         <h2 id="ll-solutions-title" className="ll-h2 nx-reveal">
           Quatro jeitos de <em>devolver tempo</em> à sua equipe.
         </h2>
       </div>
-      {solutions.map((item, index) => (
-        <Service key={item.number} item={item} tone={tones[index % tones.length]} />
-      ))}
+      <div className="ll-wrap ll-bento">
+        {solutions.map((item) => (
+          <Service key={item.number} item={item} />
+        ))}
+      </div>
     </section>
   );
 }
@@ -83,7 +87,7 @@ export function Process() {
     <section id="processo" className="ll-process" aria-labelledby="ll-process-title">
       <div className="ll-wrap">
         <div className="ll-head">
-          <p className="ll-tag nx-reveal">Como funciona</p>
+          <p className="ll-tag ll-mono nx-reveal">Como funciona</p>
           <h2 id="ll-process-title" className="ll-h2 nx-reveal">
             Do primeiro papo ao <em>resultado</em>, em quatro passos.
           </h2>
@@ -112,7 +116,7 @@ export function About() {
     <section id="sobre" className="ll-about" aria-labelledby="ll-about-title">
       <div className="ll-wrap ll-about-grid">
         <div>
-          <p className="ll-tag nx-reveal">A Nexo</p>
+          <p className="ll-tag ll-mono nx-reveal">A Nexo</p>
           <h2 id="ll-about-title" className="ll-h2 nx-reveal">
             Tecnologia explicada em <em>português simples</em>.
           </h2>
