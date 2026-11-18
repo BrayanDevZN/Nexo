@@ -2,9 +2,11 @@
 import json
 import logging
 import secrets
+import threading
 from decimal import Decimal
 from types import SimpleNamespace
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
 
 from sqlalchemy.exc import IntegrityError
@@ -37,8 +39,9 @@ INVITATION_TTL = timedelta(days=7)
 
 
 class SchedulingService:
-    def __init__(self, repositories, cache, settings, messages=None):
+    def __init__(self, repositories, cache, settings, messages=None, events=None, push=None):
         self.repositories, self.cache, self.settings, self.messages = repositories, cache, settings, messages
+        self.events, self.push = events, push   # real-time channel and Web Push; both optional
 
     # Authorization ----------------------------------------------------------------------------------------
 
@@ -299,6 +302,69 @@ class SchedulingService:
             dirty.update({"appointments", "appointments:" + business_id})
             repos.business_services.delete(service_id)
 
+
+    # Real time ---------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def channel_of(business_id):
+        return "biz:" + business_id
+
+    def realtime_ticket(self, actor, business_id, origin, expires_at):
+        """A ticket for the socket of one business, only for a member of it."""
+        with self.repositories.read_transaction() as repos:
+            user, _ = self._member(repos, actor, business_id)
+            self._needs_account(user)
+            version = user.session_version
+        return self.events.issue_booking_ticket(user.id, business_id, version, expires_at, origin)
+
+    def realtime_access(self, payload):
+        """Is the person of this ticket still signed in and still a member? Checked when the socket opens and every few seconds."""
+        with self.repositories.read_transaction() as repos:
+            user = repos.booking_users.get(payload["id"])
+            if user is None or user.session_version != payload["session_version"]:
+                raise AccessDenied("Access denied")
+            if repos.businesses.membership(payload["business_id"], user.id) is None:
+                raise AccessDenied("Access denied")
+            return user
+
+    def _announce(self, action, business_id, appointment, info):
+        """Tell everyone looking at the business that an appointment changed, and push new bookings to the others."""
+        try:
+            if self.events is not None:
+                self.events.publish({"type": "appointment.changed", "action": action, "business_id": business_id,
+                                     "appointment_id": appointment["id"], "customer_name": appointment["customer_name"],
+                                     "service_name": appointment["service_name"], "starts_at": (lambda text: text if text.endswith("Z") else text + "Z")(
+                                         appointment["starts_at"].isoformat() if hasattr(appointment["starts_at"], "isoformat") else str(appointment["starts_at"])),
+                                     "status": appointment.get("status"), "by_id": info["actor_id"],
+                                     "by_name": info["actor_name"], "business_name": info["name"]},
+                                    user_ids=[self.channel_of(business_id)])
+        except Exception:
+            logger.warning("Realtime event unavailable; appointment change committed")
+        if action != "created" or self.push is None or not getattr(self.push, "enabled", False):
+            return
+        recipients = [user_id for user_id in info["members"] if user_id != info["actor_id"]]
+        if not recipients:
+            return
+        starts = appointment["starts_at"]
+        try:
+            if isinstance(starts, str):
+                starts = datetime.fromisoformat(starts.rstrip("Z"))
+            local = starts.replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo(info["timezone"]))
+            when = local.strftime("%d/%m às %H:%M")
+        except Exception:
+            when = ""
+        who = info["actor_name"] or "Alguém"
+        body = f"{who} marcou {appointment['customer_name']}" + (f" · {when}" if when else "")
+        # The title is the business, never the platform: it is what the person sees on the lock screen.
+        threading.Thread(target=self.push.notify_users, daemon=True,
+                         args=(recipients, info["name"], body, "/atendimentos"),
+                         kwargs={"tag": "appointment-" + appointment["id"]}).start()
+
+    def _announcement_info(self, repos, business_id, user):
+        business = repos.businesses.get(business_id)
+        return {"name": business.name, "timezone": business.timezone, "actor_id": user.id, "actor_name": user.name,
+                "members": [member.user_id for member in repos.businesses.members(business_id)]}
+
     # Appointments ------------------------------------------------------------------------------------------
 
     @staticmethod
@@ -445,7 +511,10 @@ class SchedulingService:
             period = self._resolve_period(repos, business_id, service_ids=ids, service_name=service_name,
                                           starts_at=starts_at, ends_at=ends_at, price=price, staff_user_id=staff_user_id)
             row = repos.appointments.create(business_id=business_id, created_by_id=user.id, **period, **fields)
-            return self._with_people(repos, [snapshot("appointments", row)])[0]
+            result = self._with_people(repos, [snapshot("appointments", row)])[0]
+            info = self._announcement_info(repos, business_id, user)
+        self._announce("created", business_id, result, info)
+        return result
 
     @staticmethod
     def _service_ids_of(appointment):
@@ -455,7 +524,7 @@ class SchedulingService:
 
     def update_appointment(self, actor, business_id, appointment_id, **changes):
         with self.repositories.transaction() as repos:
-            self._member(repos, actor, business_id, "appointments.write")
+            user, _ = self._member(repos, actor, business_id, "appointments.write")
             appointment = repos.appointments.in_business(business_id, appointment_id)
             if appointment is None:
                 raise ResourceNotFound("Appointment not found")
@@ -486,12 +555,18 @@ class SchedulingService:
                     check_staff=changes.get("status", appointment.status) in ACTIVE_STATUSES)
                 changes.update(period)
             row = repos.appointments.update(appointment, **changes)
-            return self._with_people(repos, [snapshot("appointments", row)])[0]
+            result = self._with_people(repos, [snapshot("appointments", row)])[0]
+            info = self._announcement_info(repos, business_id, user)
+        self._announce("updated", business_id, result, info)
+        return result
 
     def delete_appointment(self, actor, business_id, appointment_id):
         with self.repositories.transaction() as repos:
-            self._member(repos, actor, business_id, "appointments.delete")
+            user, _ = self._member(repos, actor, business_id, "appointments.delete")
             appointment = repos.appointments.in_business(business_id, appointment_id)
             if appointment is None:
                 raise ResourceNotFound("Appointment not found")
+            gone = snapshot("appointments", appointment)
+            info = self._announcement_info(repos, business_id, user)
             repos.appointments.delete(appointment_id)
+        self._announce("deleted", business_id, gone, info)

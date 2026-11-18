@@ -34,6 +34,14 @@ class RealtimeRepository:
         self.redis.set(self.ticket_key(ticket), json.dumps(payload), ex=30)
         return ticket
 
+    def issue_booking_ticket(self, user_id, business_id, session_version, expires_at, origin):
+        """A 30-second, single-use ticket to open the socket of one business of the scheduling product."""
+        ticket = secrets.token_urlsafe(32)
+        payload = {"id": user_id, "business_id": business_id, "session_version": session_version,
+                   "expires_at": expires_at, "origin": origin}
+        self.redis.set(self.ticket_key(ticket), json.dumps(payload), ex=30)
+        return ticket
+
     def consume_ticket(self, ticket, origin):
         if not isinstance(ticket, str) or len(ticket) != 43:
             return None

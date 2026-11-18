@@ -5,6 +5,7 @@ self.addEventListener("push", (event) => {
     body: data.body || "Você tem uma nova atualização.",
     icon: "/images/nexo-symbol-purple.png",
     badge: "/images/nexo-symbol-purple.png",
+    tag: data.tag || undefined,
     data: { url: data.url || "/admin" },
   }));
 });

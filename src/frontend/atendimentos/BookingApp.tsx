@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
@@ -21,6 +21,9 @@ import { Agenda } from "./Agenda";
 import { Auth } from "./Auth";
 import { BusinessForm } from "./BusinessForm";
 import { Performance } from "./Performance";
+import { LiveBar, LiveToast, type Flash } from "./LiveBar";
+import { useBusinessEvents, type AppointmentEvent } from "./realtime";
+import { showBookingNotification } from "./notifications";
 import { Services } from "./Services";
 import { Team } from "./Team";
 import { can, createBookingApi, ROLE_LABELS, type BookingUser, type Business, type InvitationInfo } from "./api";
@@ -59,10 +62,14 @@ function BookingScreens({ play }: { play: Play }) {
   const [creating, setCreating] = useState(false);
   const [accountOnly, setAccountOnly] = useState(false);
   const [page, setPage] = useState<Page>("agenda");
+  const [liveTick, setLiveTick] = useState(0);
+  const [flash, setFlash] = useState<Flash>();
   const [inviteToken, setInviteToken] = useState(() => { const fromUrl = new URLSearchParams(window.location.search).get("invite") || ""; if (fromUrl) storedInvite.write(fromUrl); return fromUrl || storedInvite.read(); });
   const [invite, setInvite] = useState<InvitationInfo>();
   const [inviteError, setInviteError] = useState("");
   const complete = window.location.pathname.replace(/\/$/, "") === "/atendimentos/completar-perfil";
+  const userRef = useRef<BookingUser | null>(null);
+  userRef.current = user;
   const refresh = useCallback(async () => {
     try { setUser(await api.request<BookingUser>("/auth/me")); setError(""); }
     catch (e) { if (e instanceof ApiError && e.status === 401) setUser(null); else setError(message(e)); }
@@ -101,6 +108,18 @@ function BookingScreens({ play }: { play: Play }) {
       .catch(e => { if (active) { storedInvite.clear(); setInviteToken(""); setInviteError(message(e)); setInvite(undefined); } });
     return () => { active = false; };
   }, [user?.id, invite, inviteToken]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Appointments arrive in real time: anyone's change in the open business reloads the screens that show them.
+  const onLive = useCallback((event: AppointmentEvent) => {
+    setLiveTick(tick => tick + 1);
+    if (event.by_id && event.by_id === userRef.current?.id) return;   // your own change is already on screen
+    const when = new Date(event.starts_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+    const who = event.by_name || "Alguém";
+    const text = event.action === "created" ? `${who} marcou ${event.customer_name} · ${when}`
+      : event.action === "deleted" ? `${who} apagou o horário de ${event.customer_name}` : `${who} alterou o horário de ${event.customer_name} · ${when}`;
+    setFlash({ id: Date.now(), title: event.business_name, text });
+    if (event.action === "created" && document.hidden) void showBookingNotification(event.business_name, text, "appointment-" + event.appointment_id);
+  }, []);
+  const online = useBusinessEvents(api, user && business ? business.id : undefined, onLive, () => setLiveTick(tick => tick + 1));
   function pick(next: Business | undefined) {
     setBusiness(next); setPage("agenda"); setCreating(false); setAccountOnly(false);
     try { if (next) sessionStorage.setItem(BUSINESS_KEY, next.id); else sessionStorage.removeItem(BUSINESS_KEY); } catch { /* sem armazenamento */ }
@@ -200,18 +219,20 @@ function BookingScreens({ play }: { play: Play }) {
           <BreadcrumbSeparator className="hidden sm:block" />
           <BreadcrumbItem><BreadcrumbPage>{current.label}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList></Breadcrumb>
+        <LiveBar api={api} online={online} />
       </header>
+      <LiveToast flash={flash} onClose={() => setFlash(undefined)} />
       <div className="bk-sheet"><div className="bk-content" data-wide={page === "agenda" || undefined}>
         <Feedback error={error} />
         <div key={page + ":" + business.id} className="bk-fade">
         {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
           : page === "services" ? <Services api={api} business={business} />
-          : page === "performance" ? <Performance api={api} business={business} />
+          : page === "performance" ? <Performance api={api} business={business} liveTick={liveTick} />
           : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
           : page === "business" ? (can.editBusiness(business.my_role)
             ? <BusinessForm api={api} business={business} canDelete={can.deleteBusiness(business.my_role)} onSaved={saved => { setBusiness(saved); void loadBusinesses(); }} onDeleted={() => { pick(undefined); void loadBusinesses(); }} />
             : <Card><CardContent className="flex flex-col gap-1 pt-4"><strong>{business.name}</strong>{business.address && <span>{business.address}</span>}{business.phone && <span>{business.phone}</span>}<span className="bk-muted">Só o dono ou um gerente altera estes dados.</span></CardContent></Card>)
-          : <Agenda api={api} business={business} />}
+          : <Agenda api={api} business={business} liveTick={liveTick} />}
         </div>
       </div></div>
     </SidebarInset>

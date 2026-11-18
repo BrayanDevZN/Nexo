@@ -35,6 +35,8 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
     else if (path === "/businesses/b1/photo" && method === "GET") { await route.fulfill({ status: 404 }); return; }
     else if (path === "/businesses/b1/overview") body = { today: appointments.length, next_7_days: appointments.length, upcoming: appointments.length, finished: 0, by_status: { scheduled: appointments.length, confirmed: 0, done: 0, cancelled: 0, no_show: 0 }, next: appointments };
     else if (path === "/businesses/b1/members") body = [{ id: "m1", business_id: "b1", user_id: user.id, role: "owner", name: user.name, email: user.email, created_at: "2026-11-16" }];
+    else if (path === "/realtime/ticket" && method === "POST") { csrf(); body = { ticket: "t".repeat(43), expires_in: 30 }; }
+    else if (path === "/push/public-key") status = 503;
     else if (path === "/businesses/b1/invitations" && method === "GET") body = [];
     else if (path === "/businesses/b1/invitations" && method === "POST") {
       csrf();
@@ -228,4 +230,43 @@ test("an appointment needs only the customer's name; several services add up the
   expect(sent[1].service_ids).toEqual(["s1", "s2"]);
   expect(sent[1].price).toBe("80.00");
   expect(sent[1].ends_at).toBeUndefined();
+});
+
+test("appointments show up in real time for everyone, with a notice titled with the business, and notifications can be turned on", async ({ page }) => {
+  // A headless browser cannot be granted the permission; this stands in for the prompt: default until asked, then granted.
+  await page.addInitScript(() => {
+    let permission = "default";
+    class FakeNotification { static get permission() { return permission; } static async requestPermission() { permission = "granted"; return permission; } }
+    Object.defineProperty(window, "Notification", { value: FakeNotification, configurable: true });
+  });
+  await mock(page, { signedIn: true });
+  const sockets: { send: (message: string) => void }[] = [];
+  await page.routeWebSocket("**/api/atendimentos/realtime", socket => { sockets.push(socket); socket.send(JSON.stringify({ type: "ready", business_id: "b1" })); });
+  let loads = 0;
+  page.on("request", request => { if (request.method() === "GET" && /\/businesses\/b1\/appointments\?/.test(request.url())) loads += 1; });
+  await page.goto("/atendimentos");
+  await page.getByRole("button", { name: "Criar negócio" }).first().click();
+  await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
+  await page.getByRole("button", { name: "Criar negócio" }).last().click();
+  await expect(page.getByText("Ao vivo")).toBeVisible();
+  await expect.poll(() => sockets.length).toBe(1);
+  const before = loads;
+
+  // Someone else books: the notice names the business and the person, and the agenda reloads by itself.
+  sockets[0].send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a77", customer_name: "Zé", service_name: "Corte", starts_at: "2026-12-01T13:00:00Z", status: "scheduled", by_id: "u9", by_name: "Camila", business_name: "Barbearia do Zé" }));
+  const notice = page.getByRole("status").filter({ hasText: "Camila marcou Zé" });
+  await expect(notice).toBeVisible();
+  await expect(notice.getByText("Barbearia do Zé")).toBeVisible();
+  await expect.poll(() => loads).toBeGreaterThan(before);
+  // Your own change is not announced to you.
+  sockets[0].send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a78", customer_name: "Eu mesma", service_name: "Corte", starts_at: "2026-12-01T14:00:00Z", status: "scheduled", by_id: "u1", by_name: "Ana Silva", business_name: "Barbearia do Zé" }));
+  await page.waitForTimeout(300);
+  await expect(page.getByText("Eu mesma marcou")).toHaveCount(0);
+
+  // Notifications: off until asked, then on.
+  const bell = page.getByRole("button", { name: /Ativar notificações/ });
+  await expect(bell).toHaveAttribute("aria-pressed", "false");
+  await bell.click();
+  await expect(page.getByRole("button", { name: /Desativar notificações/ })).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => localStorage.getItem("nexo:atendimentos:notify"))).toBe("on");
 });

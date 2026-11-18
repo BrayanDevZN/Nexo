@@ -566,3 +566,58 @@ def test_an_appointment_takes_several_services_and_only_the_customer_name_is_req
     assert moved["ends_at"].startswith("2026-12-01T16:10:00") and moved["price"] == 95.0 and moved["service_ids"] == [corte["id"], barba["id"]]
     pinned = client.patch(appointments + "/" + three["id"], headers=headers, json={"service_ids": [barba["id"]], "price": "10.00"}).json()
     assert pinned["price"] == 10.0 and pinned["ends_at"].startswith("2026-12-02T13:30:00")
+
+
+def test_appointments_arrive_in_real_time_and_new_bookings_are_pushed_with_the_business_name(client):
+    import time
+
+    register(client, ANA)
+    ana = login(client, ANA)
+    business = create_business(client, ana, "Barbearia do Zé")
+    path = "/atendimentos/businesses/" + business["id"]
+    token = parse_qs(urlsplit(client.post(path + "/invitations", headers=ana, json={"role": "staff"}).json()["url"]).query)["invite"][0]
+    register(client, BIA)
+    bia = login(client, BIA)
+    assert client.post("/atendimentos/invitations/" + token + "/accept", headers=bia).status_code == 200
+    bia_id = client.get("/atendimentos/auth/me").json()["id"]
+
+    # The socket is per business and needs a one-time ticket; a stranger gets none.
+    assert client.post("/atendimentos/realtime/ticket", headers=bia, params={"business_id": "nope"}).status_code == 404
+    ticket = client.post("/atendimentos/realtime/ticket", headers=bia, params={"business_id": business["id"]}).json()["ticket"]
+    with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=ORIGIN) as socket:
+        assert socket.receive_json() == {"type": "ready", "business_id": business["id"]}
+        # The ticket is single-use.
+        with pytest.raises(Exception):
+            with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=ORIGIN) as again:
+                again.receive_json()
+
+        push = Mock(enabled=True)
+        client.app.state.services.scheduling.push = push
+        ana = login(client, ANA)
+        created = client.post(path + "/appointments", headers=ana, json={"customer_name": "Zé", "starts_at": "2026-12-01T13:00:00Z"}).json()
+        event = socket.receive_json()
+        assert event["type"] == "appointment.changed" and event["action"] == "created" and event["appointment_id"] == created["id"]
+        assert event["customer_name"] == "Zé" and event["by_name"] == "Ana" and event["business_name"] == "Barbearia do Zé"
+        for _ in range(50):
+            if push.notify_users.called:
+                break
+            time.sleep(0.02)
+        args = push.notify_users.call_args
+        assert args.args[0] == [bia_id] and args.args[1] == "Barbearia do Zé" and "Ana marcou Zé" in args.args[2] and "01/12 às 10:00" in args.args[2]
+        assert args.args[3] == "/atendimentos" and args.kwargs["tag"] == "appointment-" + created["id"]
+
+        # Changes and removals are announced too, but only new bookings are pushed.
+        push.notify_users.reset_mock()
+        client.patch(path + "/appointments/" + created["id"], headers=ana, json={"status": "confirmed"})
+        assert socket.receive_json()["action"] == "updated"
+        client.delete(path + "/appointments/" + created["id"], headers=ana)
+        assert socket.receive_json()["action"] == "deleted"
+        assert not push.notify_users.called
+
+    # Not a member of this business: no ticket.
+    register(client, {**ANA, "name": "Caio", "email": "caio@example.com"})
+    caio = login(client, {**ANA, "email": "caio@example.com"})
+    assert client.post("/atendimentos/realtime/ticket", headers=caio, params={"business_id": business["id"]}).status_code == 404
+    # The Atendimentos Web Push routes need the Atendimentos session.
+    client.cookies.clear()
+    assert client.get("/atendimentos/push/public-key").status_code == 401

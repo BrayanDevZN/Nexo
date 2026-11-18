@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -31,17 +31,20 @@ function queryFor(range: Range, weekStartsMonday: boolean) {
 const percent = (part: number, whole: number) => whole === 0 ? "—" : Math.round(part / whole * 100) + "%";
 
 /** What each person did: appointments they attended by outcome, the revenue of the finished ones and how many they booked. */
-export function Performance({ api, business }: { api: BookingApi; business: Business }) {
+export function Performance({ api, business, liveTick = 0 }: { api: BookingApi; business: Business; liveTick?: number }) {
   const [range, setRange] = useState<Range>("month");
   const [report, setReport] = useState<Report>();
   const [error, setError] = useState("");
   const base = "/businesses/" + business.id;
+  const shown = useRef(range);
   useEffect(() => {
     let active = true;
-    setReport(undefined); setError("");
+    // A live update keeps the numbers on screen while they refresh; changing the range starts from the skeleton.
+    if (shown.current !== range) { shown.current = range; setReport(undefined); }
+    setError("");
     api.request<Report>(base + "/performance?" + queryFor(range, loadPrefs(business.id).firstDay === 1)).then(data => { if (active) setReport(data); }).catch(e => { if (active) setError(message(e)); });
     return () => { active = false; };
-  }, [api, base, range]);
+  }, [api, base, range, liveTick]); // eslint-disable-line react-hooks/exhaustive-deps
   const people = useMemo(() => report?.rows.filter(row => row.total > 0 || row.created > 0 || row.user_id) ?? [], [report]);
   const leader = report?.rows.find(row => row.user_id && row.done > 0);
   const finished = report ? report.rows.reduce((sum, row) => sum + row.done + row.no_show + row.cancelled, 0) : 0;

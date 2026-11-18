@@ -23,7 +23,7 @@ const VIEWS: { id: View; label: string }[] = [{ id: "day", label: "Dia" }, { id:
 const PAGE = 100;
 
 /** A calendar like Google's: day, week, month and list views, click a free slot to book it, and a Personalizar panel. */
-export function Agenda({ api, business }: { api: BookingApi; business: Business }) {
+export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; business: Business; liveTick?: number }) {
   const [prefs, setPrefs] = useState<CalendarPrefs>(() => loadPrefs(business.id));
   const [view, setView] = useState<View>(prefs.view);
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
@@ -60,6 +60,8 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
   }
   // The range is a pair of Dates; depend on its instants so the effect runs once per real change.
   useEffect(() => { setRows(undefined); void load(); }, [business.id, range.from.getTime(), range.until?.getTime(), statusFilter, customer]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Someone else booked, changed or removed an appointment: reload the visible range.
+  useEffect(() => { if (liveTick > 0) void load(); }, [liveTick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let active = true;
     void Promise.all([api.request<Service[]>(base + "/services?active=true"), api.request<Member[]>(base + "/members")])

@@ -43,7 +43,7 @@ html.booking-theme body {
   background: var(--bk-frame); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
 /* Nothing performs an entrance here: quick feedback on controls and the slow ambient drift below. The spinner and the sign-in veil keep their motion. */
-html.booking-theme *:not([data-slot="spinner"]):not(.bk-n, .bk-n *, .bk-pop, .bk-fade, .bk-art-toast, .bk-art-team, .bk-art-stat):not(.animate-spin), html.booking-theme *:not(body)::before, html.booking-theme *::after { animation: none !important; }
+html.booking-theme *:not([data-slot="spinner"]):not(.bk-n, .bk-n *, .bk-pop, .bk-fade, .bk-art-toast, .bk-art-team, .bk-art-stat, .bk-toast):not(.animate-spin), html.booking-theme *:not(body, .bk-live-dot)::before, html.booking-theme *::after { animation: none !important; }
 html.booking-theme :is(button, a, input, select, textarea, [role="button"], [data-slot="sidebar-menu-button"]) { transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease; }
 html.booking-theme h1, html.booking-theme h2, html.booking-theme h3 { font-family: var(--bk-font); color: var(--bk-ink); text-transform: none; }
 html.booking-theme h1 { font-size: 1.375rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.015em; }
@@ -603,3 +603,21 @@ html.booking-theme .bk-mix [data-slot="card-content"] { padding: 0.5rem 0.5rem 0
 html.booking-theme .bk-header { background: linear-gradient(180deg, #e9e2fa 0%, #f1eefb 55%, #f5f5f8 100%); box-shadow: 0 10px 24px -14px rgb(109 40 217 / 0.5); }
 html.booking-theme .bk-header::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 28px; pointer-events: none; background: linear-gradient(180deg, rgb(245 245 248 / 0.95) 0%, rgb(245 245 248 / 0.6) 45%, rgb(245 245 248 / 0) 100%); }
 @media (max-width: 767px) { html.booking-theme .bk-header { height: 52px; } html.booking-theme .bk-header::after { height: 22px; } }
+
+/* ---- live: the corner of the top bar and the notice of what someone else just did ---- */
+.bk-live { position: relative; margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.bk-live-dot { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; font-weight: 500; color: var(--bk-muted); }
+.bk-live-dot::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #b9b7c6; }
+.bk-live-dot[data-on] { color: #1f6f46; }
+.bk-live-dot[data-on]::before { background: #1f8a52; box-shadow: 0 0 0 3px rgb(31 138 82 / 0.2); animation: bk-pulse 2.4s ease-in-out infinite; }
+@keyframes bk-pulse { 0%, 100% { box-shadow: 0 0 0 2px rgb(31 138 82 / 0.25); } 50% { box-shadow: 0 0 0 5px rgb(31 138 82 / 0.05); } }
+.bk-live-note { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 30; width: max-content; max-width: min(20rem, 86vw); margin: 0; padding: 0.625rem 0.875rem; font-size: 0.8125rem; line-height: 1.4; background: var(--bk-sheet); border: 1px solid var(--bk-edge); border-radius: 0.625rem; box-shadow: var(--bk-glow-lg); }
+html.booking-theme .bk-bell[aria-pressed="true"] { color: var(--bk-accent); background: var(--bk-accent-soft); }
+@media (max-width: 599px) { .bk-bell > span { display: none; } html.booking-theme .bk-bell { min-width: 32px; padding-inline: 0; } .bk-live-dot { font-size: 0.6875rem; } }
+.bk-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 60; display: flex; align-items: center; gap: 0.75rem; width: min(24rem, calc(100vw - 2rem)); padding: 0.75rem 0.75rem 0.75rem 0.875rem; background: var(--bk-sheet); border: 1px solid var(--bk-edge); border-left: 3px solid var(--bk-accent); border-radius: 0.75rem; box-shadow: var(--bk-glow-lg); animation: bk-in 160ms ease-out backwards; }
+.bk-toast p { margin: 0; flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
+.bk-toast strong { font-size: 0.875rem; font-weight: 600; }
+.bk-toast p span { font-size: 0.8125rem; color: var(--bk-muted); }
+.bk-toast-icon { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; border-radius: 0.5rem; background: var(--bk-accent-soft); color: var(--bk-accent); }
+.bk-toast-icon svg { width: 1rem; height: 1rem; }
+html[data-perf="lite"] .bk-live-dot[data-on]::before, html[data-reduce-motion="true"] .bk-live-dot[data-on]::before { animation: none; }

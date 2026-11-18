@@ -27,10 +27,10 @@ class PushService:
     def unsubscribe(self, user_id: str, endpoint: str) -> None:
         self.redis.delete(self.key(user_id, endpoint))
 
-    def notify_users(self, user_ids, title: str, body: str, url: str = "/admin") -> None:
+    def notify_users(self, user_ids, title: str, body: str, url: str = "/admin", tag: str | None = None) -> None:
         if not self.enabled:
             return
-        payload = json.dumps({"title": title, "body": body, "url": url})
+        payload = json.dumps({"title": title, "body": body, "url": url, **({"tag": tag} if tag else {})})
         for user_id in set(user_ids):
             for key in self.redis.scan_iter(match=f"{self.prefix}{user_id}:*"):
                 raw = self.redis.get(key)

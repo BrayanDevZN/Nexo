@@ -196,7 +196,7 @@ class RuntimeServices:
         self.booking_passwords = PasswordService(
             self.repositories, self.passwords, EmailCodeService(secret, "booking-password-recovery"),
             codes("password"), self.email, messages=booking_messages, repository_name="booking_users")
-        self.scheduling = SchedulingService(self.repositories, self.cache, settings, self.messages)
+        self.scheduling = SchedulingService(self.repositories, self.cache, settings, self.messages, self.events, self.push)
 
     def initialize(self, settings: Settings) -> None:
         create_tables(self.database.engine, str(settings.email) if settings.email else None)

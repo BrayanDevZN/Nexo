@@ -37,6 +37,7 @@ from backend.controller.handles.push import router as push_router
 from backend.controller.handles.realtime import router as realtime_router
 from backend.controller.handles.scheduling import router as scheduling_router
 from backend.controller.handles.scheduling_auth import router as scheduling_auth_router
+from backend.controller.handles.scheduling_realtime import router as scheduling_realtime_router
 from backend.controller.handles.videos import router as videos_router
 from backend.controller.handles.webhook_events import router as webhook_events_router
 from backend.controller.middleware.csrf import CSRFMiddleware
@@ -102,7 +103,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                automation_requests_router, automations_router, documents_router, passwords_router, clients_router, paid_leads_router, public_paid_leads_router,
                dashboard_router, databases_router, maps_router, videos_router, profiles_router, push_router, webhook_events_router, google_router, users_router,
                members_router, invitations_router, directory_router, notifications_router, announcements_router,
-               member_notifications_router, scheduling_auth_router, scheduling_router]
+               member_notifications_router, scheduling_auth_router, scheduling_realtime_router, scheduling_router]
     app.state.rate_limit_routes = [route for router in routers for route in router.routes]
     for router in routers:
         app.include_router(router)
