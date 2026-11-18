@@ -57,6 +57,7 @@ export function Performance({ api, business }: { api: BookingApi; business: Busi
         <div className="bk-kpi"><span>Faltas e cancelados</span><strong>{report.rows.reduce((sum, row) => sum + row.no_show + row.cancelled, 0)}</strong><small>{percent(report.rows.reduce((sum, row) => sum + row.no_show + row.cancelled, 0), finished)} dos encerrados</small></div>
         <div className="bk-kpi"><span>Receita dos concluídos</span><strong>{formatMoney(report.revenue)}</strong><small>soma dos preços</small></div>
       </div>
+      {people.some(row => row.total > 0) && <Mix rows={people} top={top} />}
       {people.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><TrendingUp /></EmptyMedia><EmptyTitle>Sem números ainda</EmptyTitle><EmptyDescription>Quando a equipe marcar e concluir atendimentos, o desempenho de cada pessoa aparece aqui.</EmptyDescription></EmptyHeader></Empty>
         : <div className="bk-perf">
           <Table>
@@ -73,6 +74,25 @@ export function Performance({ api, business }: { api: BookingApi; business: Busi
   </section>;
 }
 
+/** A small chart: for each person, how their appointments ended. The bars share one scale, so a longer bar is more work. */
+function Mix({ rows, top }: { rows: PerformanceRow[]; top: number }) {
+  const shown = rows.filter(row => row.total > 0);
+  return <div className="bk-mix" role="group" aria-label="Como terminaram os atendimentos de cada pessoa">
+    <header><h2>Como terminaram</h2>
+      <ul aria-hidden="true"><li data-k="done">Concluídos</li><li data-k="active">Em aberto</li><li data-k="lost">Faltas e cancelados</li></ul></header>
+    {shown.map(row => {
+      const lost = row.no_show + row.cancelled;
+      return <div className="bk-mix-row" key={row.user_id ?? "none"} role="img" aria-label={`${row.name}: ${row.done} concluídos, ${row.active} em aberto, ${lost} faltas ou cancelados`}>
+        <span>{row.user_id ? row.name.split(" ")[0] : "Sem responsável"}</span>
+        <div className="bk-mix-bar" style={{ width: (row.total / top * 100) + "%" }}>
+          {row.done > 0 && <i data-k="done" style={{ flexGrow: row.done }} />}{row.active > 0 && <i data-k="active" style={{ flexGrow: row.active }} />}{lost > 0 && <i data-k="lost" style={{ flexGrow: lost }} />}
+        </div>
+        <b>{row.total}</b>
+      </div>;
+    })}
+  </div>;
+}
+
 function PerformanceLine({ api, row, top }: { api: BookingApi; row: PerformanceRow; top: number }) {
   const idle = row.total === 0 && row.created === 0;
   return <TableRow data-idle={idle || undefined}>
@@ -80,11 +100,11 @@ function PerformanceLine({ api, row, top }: { api: BookingApi; row: PerformanceR
       {row.user_id ? <Picture shared api={api} path={"/auth/profile/photo?user_id=" + encodeURIComponent(row.user_id)} name={row.name} hasPhoto={row.has_photo} className="size-8" /> : <span className="bk-person-none" aria-hidden="true">?</span>}
       <div><strong>{row.name}</strong><span>{row.role ? ROLE_LABELS[row.role] : "Nenhum funcionário escolhido"}</span></div>
     </div></TableCell>
-    <TableCell className="text-right"><div className="bk-bar" role="img" aria-label={`${row.total} atendimentos, ${row.done} concluídos`}><i><u style={{ width: (row.total / top * 100) + "%" }}><b style={{ width: row.total ? (row.done / row.total * 100) + "%" : "0%" }} /></u></i><span>{row.total}</span></div></TableCell>
-    <TableCell className="text-right bk-num">{row.done}<small>{percent(row.done, row.total)}</small></TableCell>
-    <TableCell className="text-right bk-num">{row.no_show}</TableCell>
-    <TableCell className="text-right bk-num">{row.cancelled}</TableCell>
-    <TableCell className="text-right bk-num">{formatMoney(row.revenue)}</TableCell>
-    <TableCell className="text-right bk-num">{row.user_id ? row.created : "—"}</TableCell>
+    <TableCell className="text-right" data-label="Atendimentos"><div className="bk-bar" role="img" aria-label={`${row.total} atendimentos, ${row.done} concluídos`}><i><u style={{ width: (row.total / top * 100) + "%" }}><b style={{ width: row.total ? (row.done / row.total * 100) + "%" : "0%" }} /></u></i><span>{row.total}</span></div></TableCell>
+    <TableCell className="text-right bk-num" data-label="Concluídos">{row.done}<small>{percent(row.done, row.total)}</small></TableCell>
+    <TableCell className="text-right bk-num" data-label="Faltas">{row.no_show}</TableCell>
+    <TableCell className="text-right bk-num" data-label="Cancelados">{row.cancelled}</TableCell>
+    <TableCell className="text-right bk-num" data-label="Receita">{formatMoney(row.revenue)}</TableCell>
+    <TableCell className="text-right bk-num" data-label="Marcou">{row.user_id ? row.created : "—"}</TableCell>
   </TableRow>;
 }
