@@ -33,6 +33,13 @@ const PAGES: { id: Page; label: string; icon: typeof CalendarDays; group: "work"
   { id: "business", label: "Negócio", icon: Settings2, group: "settings" }, { id: "account", label: "Conta", icon: UserRound, group: "settings" },
 ];
 const BUSINESS_KEY = "nexo:atendimentos:business";
+const INVITE_KEY = "nexo:atendimentos:invite";
+/** The invitation token is kept while the person signs in, creates an account or goes through Google and comes back. */
+const storedInvite = {
+  read() { try { return localStorage.getItem(INVITE_KEY) || ""; } catch { return ""; } },
+  write(token: string) { try { localStorage.setItem(INVITE_KEY, token); } catch { /* sem armazenamento */ } },
+  clear() { try { localStorage.removeItem(INVITE_KEY); } catch { /* sem armazenamento */ } },
+};
 
 /** Nexo Atendimentos at /atendimentos: sign in, pick a business, work in it. No effects, just screens. */
 type Play = (change: () => void, quick?: boolean) => void;
@@ -52,7 +59,7 @@ function BookingScreens({ play }: { play: Play }) {
   const [creating, setCreating] = useState(false);
   const [accountOnly, setAccountOnly] = useState(false);
   const [page, setPage] = useState<Page>("agenda");
-  const [inviteToken] = useState(() => new URLSearchParams(window.location.search).get("invite") || "");
+  const [inviteToken, setInviteToken] = useState(() => { const fromUrl = new URLSearchParams(window.location.search).get("invite") || ""; if (fromUrl) storedInvite.write(fromUrl); return fromUrl || storedInvite.read(); });
   const [invite, setInvite] = useState<InvitationInfo>();
   const [inviteError, setInviteError] = useState("");
   const complete = window.location.pathname.replace(/\/$/, "") === "/atendimentos/completar-perfil";
@@ -67,7 +74,7 @@ function BookingScreens({ play }: { play: Play }) {
     let active = true;
     api.request<InvitationInfo>("/invitations/" + encodeURIComponent(inviteToken))
       .then(info => { if (active) setInvite(info); })
-      .catch(() => { if (active) setInviteError("Este convite não existe mais ou já venceu."); });
+      .catch(() => { if (active) { setInviteError("Este convite não existe mais ou já venceu."); storedInvite.clear(); setInviteToken(""); } });
     return () => { active = false; };
   }, [inviteToken]);
   useEffect(() => {
@@ -90,8 +97,8 @@ function BookingScreens({ play }: { play: Play }) {
     if (!user || !invite || !inviteToken) return;
     let active = true;
     api.mutate<Business>("/invitations/" + encodeURIComponent(inviteToken) + "/accept", "POST")
-      .then(joined => { if (active) { setInvite(undefined); window.history.replaceState(null, "", "/atendimentos"); pick(joined); void loadBusinesses(); } })
-      .catch(e => { if (active) { setInviteError(message(e)); setInvite(undefined); } });
+      .then(joined => { if (active) { storedInvite.clear(); setInviteToken(""); setInvite(undefined); window.history.replaceState(null, "", "/atendimentos"); pick(joined); void loadBusinesses(); } })
+      .catch(e => { if (active) { storedInvite.clear(); setInviteToken(""); setInviteError(message(e)); setInvite(undefined); } });
     return () => { active = false; };
   }, [user?.id, invite, inviteToken]); // eslint-disable-line react-hooks/exhaustive-deps
   function pick(next: Business | undefined) {

@@ -212,10 +212,10 @@ class SchedulingService:
             result = snapshot("business_invitations", row)
             business_name, inviter = business.name, user.name
         url = self.invitation_url(token)
-        if email and self.messages:
-            self.messages.booking_invitation(email, business_name=business_name, role_label=ROLE_LABELS[role],
-                                             inviter_name=inviter, url=url)
-        return {**result, "url": url}
+        # By link: no e-mail given, the inviter shares the URL. By e-mail: it is sent here, and the URL stays available as a backup.
+        sent = bool(email and self.messages and self.messages.booking_invitation(
+            email, business_name=business_name, role_label=ROLE_LABELS[role], inviter_name=inviter, url=url))
+        return {**result, "url": url, "email_sent": sent}
 
     def list_invitations(self, actor, business_id):
         with self.repositories.read_transaction() as repos:

@@ -201,6 +201,19 @@ def test_invitations_roles_and_permissions(client):
         invite = client.post(invitations, headers=owner, json={"role": "viewer", "email": "bia@example.com"})
     assert invite.status_code == 201 and invite.json()["url"].startswith("http://localhost:5173/atendimentos?invite=")
     assert sent.call_args.args[0] == "bia@example.com" and sent.call_args.kwargs["role_label"] == "leitura"
+    assert invite.json()["email_sent"] is True
+    # By link: no e-mail, nothing is sent, and the URL is what the inviter shares.
+    unsent = Mock(return_value=True)
+    with patch.object(client.app.state.services.messages, "booking_invitation", unsent):
+        by_link = client.post(invitations, headers=owner, json={"role": "staff"})
+    assert by_link.status_code == 201 and by_link.json()["email"] is None and by_link.json()["email_sent"] is False
+    assert by_link.json()["url"].startswith("http://localhost:5173/atendimentos?invite=") and not unsent.called
+    # An e-mail that could not be queued is reported, with the link still there as a backup.
+    with patch.object(client.app.state.services.messages, "booking_invitation", Mock(return_value=False)):
+        failed = client.post(invitations, headers=owner, json={"role": "viewer", "email": "caio@example.com"})
+    assert failed.json()["email_sent"] is False and failed.json()["url"]
+    for extra in (by_link.json()["id"], failed.json()["id"]):
+        assert client.delete(invitations + "/" + extra, headers=owner).status_code == 204
     token = parse_qs(urlsplit(invite.json()["url"]).query)["invite"][0]
     assert [row["id"] for row in client.get(invitations).json()] == [invite.json()["id"]]
     assert "url" not in client.get(invitations).json()[0] or client.get(invitations).json()[0]["url"] is None

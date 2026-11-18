@@ -36,6 +36,12 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
     else if (path === "/businesses/b1/overview") body = { today: appointments.length, next_7_days: appointments.length, upcoming: appointments.length, finished: 0, by_status: { scheduled: appointments.length, confirmed: 0, done: 0, cancelled: 0, no_show: 0 }, next: appointments };
     else if (path === "/businesses/b1/members") body = [{ id: "m1", business_id: "b1", user_id: user.id, role: "owner", name: user.name, email: user.email, created_at: "2026-11-16" }];
     else if (path === "/businesses/b1/invitations" && method === "GET") body = [];
+    else if (path === "/businesses/b1/invitations" && method === "POST") {
+      csrf();
+      const data = request.postDataJSON();
+      body = { id: "i1", business_id: "b1", email: data.email, role: data.role, created_by_id: user.id, expires_at: "2026-11-23T00:00:00Z", created_at: "2026-11-16T00:00:00Z", url: "http://localhost/atendimentos?invite=tok123", email_sent: !!data.email };
+      status = 201;
+    }
     else if (path === "/businesses/b1/services" && method === "GET") body = services;
     else if (path === "/businesses/b1/services" && method === "POST") {
       csrf();
@@ -144,4 +150,33 @@ test("the calendar books a free slot on click and remembers its customization", 
   await page.reload();
   await page.getByRole("radio", { name: "Semana" }).click();
   await expect(page.locator(".bk-tg-day")).toHaveCount(5);
+});
+
+test("inviting is a choice: by e-mail (address required) or by link (no address), and the invitation survives a trip through Google", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  await page.goto("/atendimentos");
+  await page.getByRole("button", { name: "Criar negócio" }).first().click();
+  await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
+  await page.getByRole("button", { name: "Criar negócio" }).last().click();
+  await page.getByRole("button", { name: "Equipe" }).click();
+  await expect(page.getByRole("radio", { name: "Por e-mail" })).toBeChecked();
+  await expect(page.getByLabel("E-mail da pessoa")).toBeVisible();
+  await page.getByRole("radio", { name: "Por link" }).click();
+  await expect(page.getByLabel("E-mail da pessoa")).toHaveCount(0);
+  await page.getByRole("button", { name: "Gerar link" }).click();
+  await expect(page.getByText("http://localhost/atendimentos?invite=tok123")).toBeVisible();
+  await page.getByRole("radio", { name: "Por e-mail" }).click();
+  await page.getByLabel("E-mail da pessoa").fill("bia@example.com");
+  await page.getByRole("button", { name: "Enviar convite" }).click();
+  await expect(page.getByText("Convite enviado para bia@example.com")).toBeVisible();
+});
+
+test("the invitation survives a trip through Google: the token is kept and used when the person comes back without it in the URL", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/atendimentos/invitations/tok", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ business_name: "Barbearia do Zé", role: "staff", email: null, expires_at: "2026-11-23T00:00:00Z" }) }));
+  await page.goto("/atendimentos?invite=tok");
+  await expect(page.getByText("Você foi convidado para Barbearia do Zé como atendente.")).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("nexo:atendimentos:invite"))).toBe("tok");
+  await page.goto("/atendimentos");
+  await expect(page.getByText("Você foi convidado para Barbearia do Zé como atendente.")).toBeVisible();
 });

@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
+Generated: 2026-11-18 | 459 files | ~615.3K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -58,7 +58,7 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | src/backend/controller/schema/paid_leads.py | 105 | 819 | source |
 | src/backend/controller/schema/passwords.py | 37 | 227 | source |
 | src/backend/controller/schema/push.py | 19 | 118 | source |
-| src/backend/controller/schema/scheduling.py | 387 | 2.7K | source |
+| src/backend/controller/schema/scheduling.py | 388 | 2.8K | source |
 | src/backend/controller/schema/videos.py | 32 | 275 | source |
 | src/backend/domain/chat.py | 34 | 323 | source |
 | src/backend/domain/client_channels.py | 13 | 164 | source |
@@ -163,7 +163,7 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | src/backend/service/registration.py | 57 | 669 | source |
 | src/backend/service/runtime.py | 218 | 3.6K | source |
 | src/backend/service/scheduling_auth.py | 158 | 2.0K | source |
-| src/backend/service/scheduling.py | 471 | 7.3K | source |
+| src/backend/service/scheduling.py | 471 | 7.4K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 42 | 449 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
@@ -216,8 +216,8 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | src/frontend/atendimentos/Account.tsx | 50 | 947 | source |
 | src/frontend/atendimentos/Agenda.tsx | 201 | 3.9K | source |
 | src/frontend/atendimentos/api.ts | 80 | 1.5K | source |
-| src/frontend/atendimentos/Auth.tsx | 152 | 2.8K | source |
-| src/frontend/atendimentos/BookingApp.tsx | 213 | 3.9K | source |
+| src/frontend/atendimentos/Auth.tsx | 152 | 2.9K | source |
+| src/frontend/atendimentos/BookingApp.tsx | 220 | 4.1K | source |
 | src/frontend/atendimentos/BusinessForm.tsx | 143 | 2.5K | source |
 | src/frontend/atendimentos/Calendar.tsx | 202 | 4.0K | source |
 | src/frontend/atendimentos/calendarPrefs.ts | 155 | 2.1K | source |
@@ -225,7 +225,7 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | src/frontend/atendimentos/Performance.tsx | 91 | 1.9K | source |
 | src/frontend/atendimentos/Photo.tsx | 100 | 1.5K | source |
 | src/frontend/atendimentos/Services.tsx | 72 | 1.4K | source |
-| src/frontend/atendimentos/Team.tsx | 86 | 1.9K | source |
+| src/frontend/atendimentos/Team.tsx | 99 | 2.3K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -337,7 +337,7 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
-| tests/functional/controller/test_scheduling.py | 505 | 8.8K | test |
+| tests/functional/controller/test_scheduling.py | 518 | 9.1K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -347,7 +347,7 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/atendimentos.spec.ts | 148 | 2.6K | test |
+| tests/integration/frontend/atendimentos.spec.ts | 183 | 3.2K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -434,12 +434,12 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
 | requirements.txt | 16 | 75 | docs |
-| src/backend/README.md | 338 | 6.6K | docs |
+| src/backend/README.md | 340 | 6.7K | docs |
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/atendimentos.css | 479 | 11.3K | style |
+| src/frontend/styles/atendimentos.css | 481 | 11.3K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/lelab.css | 459 | 9.7K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
@@ -465,11 +465,11 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 298 files, ~389.2K tokens
+- source: 298 files, ~389.8K tokens
 - config: 13 files, ~3.6K tokens
-- test: 112 files, ~139.6K tokens
-- docs: 11 files, ~19.4K tokens
-- style: 7 files, ~55.9K tokens
+- test: 112 files, ~140.5K tokens
+- docs: 11 files, ~19.5K tokens
+- style: 7 files, ~56.0K tokens
 - other: 18 files, ~5.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
@@ -481,4 +481,4 @@ Generated: 2026-11-18 | 459 files | ~613.6K tokens if all read
 6. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
 7. mcp_server.py — 589 lines (~4.9K tokens)
 8. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
-9. tests/functional/controller/test_scheduling.py — 505 lines (~8.8K tokens)
+9. tests/functional/controller/test_scheduling.py — 518 lines (~9.1K tokens)

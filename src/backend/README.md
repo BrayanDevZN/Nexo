@@ -319,6 +319,8 @@ lista "meus negócios" junta as duas tabelas. Autorização e vínculo com o neg
 
 Quem atende (`staff_user_id`) é sempre opcional, e quem marcou (`created_by_id`) também; a resposta traz `staff_name`, `created_by_name` e os marcadores `staff_has_photo`/`created_by_has_photo` (a foto vem de `GET /atendimentos/auth/profile/photo?user_id=`). Sem funcionário, o agendamento é aceito do mesmo jeito.
 
+O convite pode ir **por e-mail** (`email` informado: o e-mail é enviado e só essa conta aceita; `email_sent` diz se saiu) ou **por link** (sem `email`: nada é enviado e qualquer pessoa com o `url` aceita). Nos dois casos o `url` vem na resposta. Quem abre o link entra, ou cria a conta (cadastro, Google ou código por e-mail), e já é registrado no negócio com o papel do convite; o app guarda o token do convite no navegador durante o cadastro e a ida ao Google.
+
 Horários são gravados em UTC sem fuso; entradas com fuso são convertidas e entradas sem fuso são lidas como UTC.
 Status: `scheduled`, `confirmed`, `done`, `cancelled`, `no_show`; só os dois primeiros ocupam a agenda. A página pública
 por negócio (o cliente final marcando sozinho) ainda não existe; o `slug` já fica reservado para ela.

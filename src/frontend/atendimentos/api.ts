@@ -25,7 +25,7 @@ export type Business = {
   opening_hours: OpeningHours; has_photo: boolean; my_role: BusinessRole; created_at: string; updated_at: string;
 };
 export type Member = { id: string; business_id: string; user_id: string; role: BusinessRole; name: string | null; email: string | null; has_photo: boolean; created_at: string };
-export type Invitation = { id: string; business_id: string; email: string | null; role: InvitableRole; created_by_id: string; expires_at: string; created_at: string; url?: string | null };
+export type Invitation = { id: string; business_id: string; email: string | null; role: InvitableRole; created_by_id: string; expires_at: string; created_at: string; url?: string | null; email_sent?: boolean };
 export type InvitationInfo = { business_name: string; role: InvitableRole; email: string | null; expires_at: string };
 export type Service = { id: string; business_id: string; name: string; description: string | null; duration_minutes: number; price: number | null; active: boolean; created_at: string; updated_at: string };
 export type AppointmentStatus = "scheduled" | "confirmed" | "done" | "cancelled" | "no_show";

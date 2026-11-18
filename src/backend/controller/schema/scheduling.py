@@ -215,6 +215,7 @@ class InvitationOutput(BaseModel):
     expires_at: datetime
     created_at: datetime
     url: str | None = None
+    email_sent: bool = False
 
 
 class InvitationInfo(BaseModel):

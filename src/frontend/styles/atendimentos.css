@@ -476,3 +476,5 @@ html.booking-theme .bk-perf [data-slot="table-row"]:hover { background: #fafafc;
 .bk-event strong { padding-right: 1.25rem; }
 /* The phone's menu is a drawer over the page: it keeps a solid ground. */
 html.booking-theme [data-sidebar="sidebar"][data-mobile="true"], html.booking-theme [data-mobile="true"] [data-slot="sidebar-inner"], html.booking-theme [data-mobile="true"][data-slot="sheet-content"] { background: var(--bk-frame); }
+.bk-via { align-self: flex-start; border-bottom: 1px solid var(--bk-edge); }
+.bk-via [data-slot="toggle-group-item"] { gap: 0.5rem; }

@@ -117,7 +117,7 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
               <TextField label="Seu nome" name="name" autoComplete="name" defaultValue={google?.name || ""} required maxLength={120} />
               <TextField label="Celular" name="phone" type="tel" autoComplete="tel" placeholder="(11) 99999-9999" maxLength={30} minLength={complete ? undefined : 10} required={!complete} help={complete ? "Opcional." : undefined} />
             </>}
-            {!complete && <TextField label="E-mail" name="email" type="email" autoComplete="email" required readOnly={mode === "verify"} value={email} onChange={e => setEmail(e.target.value)} />}
+            {!complete && <TextField label="E-mail" name="email" type="email" autoComplete="email" required readOnly={mode === "verify" || (mode === "register" && !!invite?.email)} value={email} onChange={e => setEmail(e.target.value)} />}
             {(mode === "verify" || mode === "confirm") && !complete && <TextField label="Código" name="code" inputMode="numeric" pattern="[0-9]{8}" minLength={8} maxLength={8} autoComplete="one-time-code" required />}
             {!complete && (mode === "login" || mode === "register" || mode === "confirm") && <TextField label={mode === "login" ? "Senha" : "Nova senha"} name="password" type="password" required autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "login" ? undefined : 12} help={mode === "login" ? undefined : "Pelo menos 12 caracteres."} />}
             {!complete && mode === "register" && <TextField label="Repita a senha" name="confirm_password" type="password" autoComplete="new-password" minLength={12} required />}
