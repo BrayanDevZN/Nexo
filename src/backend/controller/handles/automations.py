@@ -16,10 +16,26 @@ from pydantic import ValidationError
 from backend.controller.dependencies import approved_user, developer_user
 from backend.controller.schema.automations import AutomationOutput
 from backend.domain.documents import DocumentTooLarge, DocumentValidationError, validate_document
+from backend.domain.media import validate_media
 from backend.domain.photos import PhotoTooLarge, PhotoValidationError, normalize_photo
+from backend.service.automations import MediaLimitExceeded
 from backend.service.access import AccessDenied, ResourceNotFound
 
 router = APIRouter(prefix="/automations", tags=["automations"])
+
+
+async def _read_media(request: Request, uploads):
+    settings = request.app.state.settings
+    media = []
+    for upload in uploads:
+        if not upload.filename:
+            continue
+        limit = max(settings.automation_video_max_bytes, settings.document_max_bytes)
+        raw = await upload.read(limit + 1)
+        media.append(validate_media(upload.filename, raw, max_image_bytes=settings.document_max_bytes,
+                                    max_video_bytes=settings.automation_video_max_bytes,
+                                    max_pixels=settings.profile_photo_max_pixels))
+    return media
 
 
 @router.get("", response_model=list[AutomationOutput])
@@ -45,7 +61,7 @@ def get_automation(identifier: str, request: Request, actor=Depends(approved_use
 async def create(request: Request, name: str = Form(min_length=1, max_length=120),
                  description: str = Form(min_length=1, max_length=5000),
                  file: UploadFile = File(), image: UploadFile | None = File(default=None),
-                 actor=Depends(developer_user)):
+                 media: list[UploadFile] = File(default=[]), actor=Depends(developer_user)):
     try:
         if not name.strip() or not description.strip():
             raise HTTPException(status_code=422, detail="Name and description cannot be empty")
@@ -58,7 +74,7 @@ async def create(request: Request, name: str = Form(min_length=1, max_length=120
                                          max_pixels=request.app.state.settings.profile_photo_max_pixels)
         return request.app.state.services.automations.create(
             actor, name=name.strip(), description=description.strip(), filename=filename,
-            file_content=raw, image_data=image_data,
+            file_content=raw, image_data=image_data, media=await _read_media(request, media),
         )
     except DocumentTooLarge as error:
         raise HTTPException(status_code=413, detail=str(error)) from None
@@ -66,6 +82,8 @@ async def create(request: Request, name: str = Form(min_length=1, max_length=120
         raise HTTPException(status_code=413, detail=str(error)) from None
     except (DocumentValidationError, PhotoValidationError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from None
+    except MediaLimitExceeded as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors(include_input=False)) from None
     except AccessDenied as error:
@@ -74,15 +92,19 @@ async def create(request: Request, name: str = Form(min_length=1, max_length=120
         await file.close()
         if image is not None:
             await image.close()
+        for item in media:
+            await item.close()
 
 
 @router.patch("/{identifier}", response_model=AutomationOutput)
 async def update(identifier: str, request: Request, name: str | None = Form(default=None, max_length=120),
                  description: str | None = Form(default=None, max_length=5000),
                  file: UploadFile | None = File(default=None), image: UploadFile | None = File(default=None),
+                 media: list[UploadFile] = File(default=[]), remove_media: list[str] = Form(default=[]),
                  actor=Depends(developer_user)):
     try:
-        if name is None and description is None and file is None and image is None:
+        has_media = any(item.filename for item in media)
+        if name is None and description is None and file is None and image is None and not has_media and not remove_media:
             raise HTTPException(status_code=422, detail="Send at least one field to update")
         if name is not None and not name.strip():
             raise HTTPException(status_code=422, detail="Name cannot be empty")
@@ -100,7 +122,8 @@ async def update(identifier: str, request: Request, name: str | None = Form(defa
         return request.app.state.services.automations.update(
             actor, identifier, name=name.strip() if name is not None else None,
             description=description.strip() if description is not None else None,
-            filename=filename, file_content=raw, image_data=image_data,
+            filename=filename, file_content=raw, image_data=image_data, media=await _read_media(request, media),
+            remove_media_ids=remove_media,
         )
     except DocumentTooLarge as error:
         raise HTTPException(status_code=413, detail=str(error)) from None
@@ -108,6 +131,8 @@ async def update(identifier: str, request: Request, name: str | None = Form(defa
         raise HTTPException(status_code=413, detail=str(error)) from None
     except (DocumentValidationError, PhotoValidationError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from None
+    except MediaLimitExceeded as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors(include_input=False)) from None
     except AccessDenied as error:
@@ -119,6 +144,8 @@ async def update(identifier: str, request: Request, name: str | None = Form(defa
             await file.close()
         if image is not None:
             await image.close()
+        for item in media:
+            await item.close()
 
 
 @router.delete("/{identifier}")
@@ -154,3 +181,15 @@ def image(identifier: str, request: Request, actor=Depends(approved_user)):
         raise HTTPException(status_code=404, detail=str(error)) from None
     return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
+
+
+@router.get("/{identifier}/media/{media_id}")
+def media(identifier: str, media_id: str, request: Request, actor=Depends(approved_user)):
+    try:
+        content_type, data = request.app.state.services.automations.media(actor, identifier, media_id)
+    except AccessDenied as error:
+        raise HTTPException(status_code=403, detail=str(error)) from None
+    except ResourceNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from None
+    return Response(content=data, media_type=content_type, headers={
+        "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})

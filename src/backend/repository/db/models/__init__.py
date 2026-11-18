@@ -1,6 +1,6 @@
 from backend.repository.db.models.api_key import ApiKey
 from backend.repository.db.models.api_key_usage import ApiKeyUsage
-from backend.repository.db.models.automation import Automation
+from backend.repository.db.models.automation import Automation, AutomationMedia
 from backend.repository.db.models.automation_request import AutomationRequest
 from backend.repository.db.models.base import Base
 from backend.repository.db.models.chat import ChatMessage
@@ -22,6 +22,6 @@ from backend.repository.db.models.scheduling import (
 from backend.repository.db.models.user import User
 from backend.repository.db.models.video_job import VideoJob
 
-__all__ = ["ApiKey", "ApiKeyUsage", "Appointment", "Automation", "AutomationRequest", "Base", "BookingUser", "Business",
+__all__ = ["ApiKey", "ApiKeyUsage", "Appointment", "Automation", "AutomationMedia", "AutomationRequest", "Base", "BookingUser", "Business",
            "BusinessInvitation", "BusinessMember", "BusinessService", "ChatMessage", "Client", "Document", "MapsCredential",
            "MapsJob", "Notification", "PaidLead", "User", "VideoJob"]

@@ -12,7 +12,7 @@ class PhotoTooLarge(PhotoValidationError):
     pass
 
 
-def normalize_photo(data: bytes, *, max_bytes: int, max_pixels: int) -> bytes:
+def normalize_photo(data: bytes, *, max_bytes: int, max_pixels: int, max_side: int = 512) -> bytes:
     if len(data) > max_bytes:
         raise PhotoTooLarge("Profile photo exceeds the size limit")
     try:
@@ -25,7 +25,7 @@ def normalize_photo(data: bytes, *, max_bytes: int, max_pixels: int) -> bytes:
                     raise PhotoValidationError("Animated profile photos are not supported")
                 image.load()
                 oriented = ImageOps.exif_transpose(image)
-                oriented.thumbnail((512, 512))
+                oriented.thumbnail((max_side, max_side))
                 # Fresh pixels remove EXIF/XMP/ICC and all original metadata.
                 clean = Image.new("RGB", oriented.size, "white")
                 converted = oriented.convert("RGBA")

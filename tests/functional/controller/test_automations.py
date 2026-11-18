@@ -59,3 +59,37 @@ def test_api_key_validate_route_accepts_only_valid_api_keys(client):
     assert client.get("/auth/api-keys/validate", headers=session).status_code == 401
     client.cookies.clear()
     assert client.get("/auth/api-keys/validate").status_code == 401
+
+
+def test_automation_supports_multiple_images_and_mp4_videos(client):
+    from io import BytesIO
+
+    from PIL import Image
+
+    session = login(client)
+    key = client.post("/auth/api-keys", headers=session, json={"name": "media"}).json()["key"]
+    headers = {"Authorization": f"Bearer {key}"}
+    buffer = BytesIO()
+    Image.new("RGB", (40, 30), "red").save(buffer, format="PNG")
+    video = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64
+    created = client.post("/automations", headers=headers, data={"name": "Mídia", "description": "Com mídia."},
+                          files=[("file", ("a.json", b"{}", "application/json")),
+                                 ("media", ("one.png", buffer.getvalue(), "image/png")),
+                                 ("media", ("demo.mp4", video, "video/mp4"))])
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert [m["kind"] for m in body["media"]] == ["image", "video"]
+    video_id = body["media"][1]["id"]
+    served = client.get(f"/automations/{body['id']}/media/{video_id}", headers=headers)
+    assert served.status_code == 200 and served.headers["content-type"] == "video/mp4" and served.content == video
+
+    update = client.patch(f"/automations/{body['id']}", headers=headers, data={"remove_media": body["media"][0]["id"]},
+                          files=[("media", ("two.png", buffer.getvalue(), "image/png"))])
+    assert update.status_code == 200, update.text
+    assert [m["kind"] for m in update.json()["media"]] == ["video", "image"]
+
+    bad = client.post("/automations", headers=headers, data={"name": "x", "description": "y"},
+                      files=[("file", ("a.json", b"{}", "application/json")),
+                             ("media", ("fake.mp4", b"not a video at all", "video/mp4"))])
+    assert bad.status_code == 400
+    assert client.delete(f"/automations/{body['id']}", headers=headers).status_code == 200

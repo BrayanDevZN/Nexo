@@ -169,7 +169,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/automations",
     title: "Salvar automação",
     description: "Envia nome, descrição e arquivo em multipart/form-data; foto é opcional. A criação gera um aviso para todos os membros aprovados.",
-    body: "name=Captura de leads\ndescription=Importa e organiza novos contatos.\nfile=@captura-leads.json\nimage=@capa.png (opcional)",
+    body: "name=Captura de leads\ndescription=Importa e organiza novos contatos.\nfile=@captura-leads.json\nimage=@capa.png (opcional)\nmedia=@demo.mp4 (opcional, repita o campo para vários; imagens JPEG/PNG/WebP e vídeos MP4)",
     response: `{
   "id": "uuid-da-automacao",
   "name": "Captura de leads",

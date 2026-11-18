@@ -15,3 +15,18 @@ class Automation(IdentityTimestampMixin, Base):
     file_content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     image_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     created_by_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+
+
+class AutomationMedia(IdentityTimestampMixin, Base):
+    """Image or MP4 shown on an automation, in display order."""
+
+    __tablename__ = "automation_media"
+    __table_args__ = (Index("automation_media_automation_position", "automation_id", "position"),)
+
+    automation_id: Mapped[str] = mapped_column(ForeignKey("automations.id", ondelete="CASCADE"), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    kind: Mapped[str] = mapped_column(String(8), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    filename: Mapped[str] = mapped_column(String(180), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
