@@ -120,7 +120,7 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             : detail.includes("Email") || detail.includes("email")
             ? "Este e-mail já está cadastrado. Use a forma de acesso original."
             : "Este registro foi alterado. Atualize a lista.",
-          413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
+          413: path.startsWith("/chat") ? "O arquivo ultrapassa o tamanho permitido para o chat." : path.startsWith("/documents") ? "O documento ultrapassa o tamanho permitido." : path.startsWith("/automations") ? "Um dos arquivos ultrapassa o tamanho permitido (imagens até 10 MB, vídeos até 50 MB, automação até 10 MB)." : "A foto ultrapassa o tamanho ou a resolução permitidos.",
           422: path.startsWith("/videos") ? "Confira os campos do vídeo e tente novamente."
             : path === "/maps/key" ? "A chave deve começar com nexo_live_ e ter o formato gerado na página API."
             : path.startsWith("/maps") ? "Confira os campos da busca e tente novamente."

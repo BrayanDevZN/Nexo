@@ -28,6 +28,10 @@ RUN printf '%s\n' \
   '' \
   '    location /api/ {' \
   '        proxy_pass ${BACKEND_URL}/;' \
+  '        client_max_body_size 200m;' \
+  '        proxy_request_buffering off;' \
+  '        proxy_read_timeout 600s;' \
+  '        proxy_send_timeout 600s;' \
   '        proxy_http_version 1.1;' \
   '        proxy_ssl_server_name on;' \
   '        proxy_ssl_name $proxy_host;' \
