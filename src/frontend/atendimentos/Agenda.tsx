@@ -81,6 +81,13 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
     // Only the customer's name is required. No start means now; the end and the price are the sum of the services unless overwritten.
     if (values.starts_at) body.starts_at = localToIso(values.starts_at); else if (editing.appointment) { setError("Informe o início."); return; }
     if (values.ends_at) body.ends_at = localToIso(values.ends_at);
+    if (!values.staff_user_id) { setError("Escolha quem atende."); return; }
+    // The same professional cannot be in two appointments at once; another one can. The server decides, this just answers sooner.
+    if (body.starts_at && body.ends_at && (rows ?? []).some(row => row.id !== editing.appointment?.id && row.staff_user_id === values.staff_user_id
+        && (row.status === "scheduled" || row.status === "confirmed")
+        && new Date(row.starts_at) < new Date(String(body.ends_at)) && new Date(row.ends_at) > new Date(String(body.starts_at)))) {
+      setError("Esse funcionário já tem um agendamento nesse horário. Escolha outro horário ou outro funcionário."); return;
+    }
     if (!ids.length && values.service_name) body.service_name = values.service_name;
     if (values.price) body.price = values.price.replace(",", ".");
     else if (editing.appointment) body.price = null;
@@ -176,7 +183,7 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
             <NativeSelect id="bk-staff" name="staff_user_id" required defaultValue={current?.staff_user_id || (members.length === 1 ? members[0].user_id : "")}>
               <NativeSelectOption value="">Escolha quem atende</NativeSelectOption>
               {members.map(member => <NativeSelectOption key={member.user_id} value={member.user_id}>{member.name}</NativeSelectOption>)}
-            </NativeSelect></Field>
+            </NativeSelect><p className="text-sm text-muted-foreground">Obrigatório. A mesma pessoa não pode ter dois agendamentos no mesmo horário; pessoas diferentes podem.</p></Field>
           {current && <Field><FieldLabel htmlFor="bk-status">Situação</FieldLabel>
             <NativeSelect id="bk-status" name="status" defaultValue={current.status}>
               {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}

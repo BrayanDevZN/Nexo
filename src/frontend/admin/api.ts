@@ -112,8 +112,9 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             : "Confira os dados e tente novamente.",
           401: path === "/auth/login" ? "E-mail ou senha inválidos." : "Sua sessão expirou. Entre novamente.",
           403: "Você não tem permissão para esta ação. Atualize a página e tente novamente.",
-          404: "Registro não encontrado.",
-          409: detail.includes("Principal administrator") ? "A conta do administrador principal é protegida."
+          404: detail.includes("Professional is not a member") ? "Esse funcionário não faz parte da equipe deste negócio." : "Registro não encontrado.",
+          409: detail.includes("already has an appointment") ? "Esse funcionário já tem um agendamento nesse horário. Escolha outro horário ou outro funcionário."
+            : detail.includes("Principal administrator") ? "A conta do administrador principal é protegida."
             : detail.includes("Only approved") ? "Aprove o acesso antes de alterar o cargo."
             : detail.includes("own") ? "Você não pode excluir ou retirar seu próprio acesso de administrador."
             : detail.includes("Email") || detail.includes("email")
@@ -127,6 +128,8 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
             ? "Não foi possível registrar as notificações neste dispositivo. Atualize a página e tente novamente."
             : path.startsWith("/clients")
             ? "Confira os campos do cliente e tente novamente."
+            : path.includes("/appointments")
+            ? "Confira os campos do agendamento. É obrigatório escolher quem atende."
             : "Confira os campos. Senhas novas exigem 12 caracteres e até 72 bytes; celular, 10 a 15 dígitos.",
           429: path.startsWith("/videos") ? "Você já tem 2 vídeos em andamento. Aguarde um terminar para pedir outro."
             : "Muitas tentativas. Aguarde " + (response.headers.get("Retry-After") || "alguns") + " segundos.",

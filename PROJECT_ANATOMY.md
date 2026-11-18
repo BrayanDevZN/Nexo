@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 470 files | ~657.1K tokens if all read
+Generated: 2026-11-18 | 470 files | ~657.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -173,7 +173,7 @@ Generated: 2026-11-18 | 470 files | ~657.1K tokens if all read
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
 | src/frontend/admin/AdminApp.tsx | 291 | 6.5K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
-| src/frontend/admin/api.ts | 222 | 3.8K | source |
+| src/frontend/admin/api.ts | 225 | 3.9K | source |
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
 | src/frontend/admin/Approvals.tsx | 91 | 1.8K | source |
@@ -219,7 +219,7 @@ Generated: 2026-11-18 | 470 files | ~657.1K tokens if all read
 | src/frontend/App.tsx | 44 | 349 | source |
 | src/frontend/atendimentos/AccessGate.tsx | 26 | 549 | source |
 | src/frontend/atendimentos/Account.tsx | 61 | 1.3K | source |
-| src/frontend/atendimentos/Agenda.tsx | 198 | 3.8K | source |
+| src/frontend/atendimentos/Agenda.tsx | 205 | 4.0K | source |
 | src/frontend/atendimentos/api.ts | 82 | 1.6K | source |
 | src/frontend/atendimentos/AppointmentFields.tsx | 80 | 1.8K | source |
 | src/frontend/atendimentos/Auth.tsx | 175 | 3.5K | source |
@@ -476,7 +476,7 @@ Generated: 2026-11-18 | 470 files | ~657.1K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 308 files, ~416.0K tokens
+- source: 308 files, ~416.3K tokens
 - config: 13 files, ~3.6K tokens
 - test: 113 files, ~150.4K tokens
 - docs: 11 files, ~20.5K tokens
