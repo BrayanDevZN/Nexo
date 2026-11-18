@@ -42,6 +42,8 @@ Se a chave não tiver permissão, o node mostra o motivo em vez do genérico "Fo
 | Atendimentos: serviços | Get Many (opcionalmente só os ativos) |
 | Atendimentos: agendamentos | Get Many por período (e, se quiser, por funcionário); Get; criar; atualizar (remarcar, mudar a situação, trocar o funcionário); excluir (e, se quiser, só se for do funcionário escolhido) |
 
+Ao criar um agendamento, **só o nome do cliente é obrigatório**: sem Start é agora, e sem End vale a soma da duração dos serviços escolhidos (o preço também é a soma). Com mais de um serviço, tempo e preço somam sozinhos.
+
 O campo **Funcionário** de criar, atualizar, Get Many e excluir é **opcional**: abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. Deixando vazio, nada sobre funcionário é enviado ou conferido. Ao atualizar, **Remover funcionário** tira quem estava atendendo. Com a IA, vale o ID, o nome ou o e-mail da pessoa.
 | Maps | Criar busca; Get Many; Get (status); baixar resultados; excluir busca |
 

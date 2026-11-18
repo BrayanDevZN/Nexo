@@ -139,7 +139,12 @@ def test_business_services_and_appointments_with_cache_invalidation(client):
     assert [row["name"] for row in client.get(services, params={"active": True}).json()] == ["Corte"]
 
     appointments = path + "/appointments"
-    assert client.post(appointments, headers=headers, json={"customer_name": "João", "starts_at": "2026-12-01T13:00:00Z"}).status_code == 422
+    # Only the customer's name is required: a plain "Atendimento" of 30 minutes, with no price.
+    plain = client.post(appointments, headers=headers, json={"customer_name": "João", "starts_at": "2026-12-01T13:00:00Z"})
+    assert plain.status_code == 201 and plain.json()["service_name"] == "Atendimento" and plain.json()["price"] is None
+    assert plain.json()["service_ids"] == [] and plain.json()["ends_at"].startswith("2026-12-01T13:30:00")
+    assert client.delete(appointments + "/" + plain.json()["id"], headers=headers).status_code == 204
+    assert client.post(appointments, headers=headers, json={"starts_at": "2026-12-01T13:00:00Z"}).status_code == 422
     assert client.post(appointments, headers=headers, json={"customer_name": "João", "service_id": barba["id"],
                                                              "starts_at": "2026-12-01T13:00:00Z"}).status_code == 404
     me = client.get("/atendimentos/auth/me").json()
@@ -515,3 +520,49 @@ def test_appointments_show_who_booked_and_the_performance_of_each_person_with_ev
     empty = client.get(path + "/performance", params={"starts_from": "2027-01-01T00:00:00Z", "starts_until": "2027-02-01T00:00:00Z"}).json()
     assert empty["total"] == 0 and [row["name"] for row in empty["rows"]] == ["Ana"]
     assert client.get(path + "/performance", params={"period": "month", "starts_from": "2026-12-01T00:00:00Z"}).status_code == 422
+
+
+def test_an_appointment_takes_several_services_and_only_the_customer_name_is_required(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    business = create_business(client, headers)
+    path = "/atendimentos/businesses/" + business["id"]
+    services = path + "/services"
+    corte = client.post(services, headers=headers, json={"name": "Corte", "duration_minutes": 40, "price": "55.00"}).json()
+    barba = client.post(services, headers=headers, json={"name": "Barba", "duration_minutes": 30, "price": "40.00"}).json()
+    brinde = client.post(services, headers=headers, json={"name": "Hidratação", "duration_minutes": 15}).json()
+    appointments = path + "/appointments"
+
+    # Just the name: it starts now, rounded to the minute.
+    now = client.post(appointments, headers=headers, json={"customer_name": "Zé"})
+    assert now.status_code == 201, now.text
+    assert now.json()["service_name"] == "Atendimento" and now.json()["starts_at"] and now.json()["ends_at"] > now.json()["starts_at"]
+
+    # Two services: the end is the start plus 70 minutes and the price is 95.00; both services are kept.
+    both = client.post(appointments, headers=headers, json={"customer_name": "Ana", "service_ids": [corte["id"], barba["id"]],
+                                                            "starts_at": "2026-12-01T13:00:00Z"}).json()
+    assert both["service_name"] == "Corte + Barba" and both["service_id"] is None and both["service_ids"] == [corte["id"], barba["id"]]
+    assert both["ends_at"].startswith("2026-12-01T14:10:00") and both["price"] == 95.0
+    # A service without a price adds time and nothing to the price.
+    three = client.post(appointments, headers=headers, json={"customer_name": "Bia", "service_ids": [corte["id"], brinde["id"]],
+                                                             "starts_at": "2026-12-02T13:00:00Z"}).json()
+    assert three["ends_at"].startswith("2026-12-02T13:55:00") and three["price"] == 55.0
+    # One service keeps its link.
+    one = client.post(appointments, headers=headers, json={"customer_name": "Caio", "service_ids": [barba["id"]],
+                                                           "starts_at": "2026-12-03T13:00:00Z"}).json()
+    assert one["service_id"] == barba["id"] and one["service_ids"] == [barba["id"]] and one["ends_at"].startswith("2026-12-03T13:30:00")
+    # Duration and price can be overridden.
+    custom = client.post(appointments, headers=headers, json={"customer_name": "Davi", "service_ids": [corte["id"], barba["id"]],
+                                                              "starts_at": "2026-12-04T13:00:00Z", "ends_at": "2026-12-04T15:00:00Z",
+                                                              "price": "80.00"}).json()
+    assert custom["ends_at"].startswith("2026-12-04T15:00:00") and custom["price"] == 80.0
+    # An unknown service is refused.
+    assert client.post(appointments, headers=headers, json={"customer_name": "X", "service_ids": ["nope"]}).status_code == 404
+
+    # Changing the services recomputes the end and the price; moving keeps the duration; an explicit end or price wins.
+    changed = client.patch(appointments + "/" + one["id"], headers=headers, json={"service_ids": [corte["id"], barba["id"]]}).json()
+    assert changed["ends_at"].startswith("2026-12-03T14:10:00") and changed["price"] == 95.0 and changed["service_id"] is None
+    moved = client.patch(appointments + "/" + both["id"], headers=headers, json={"starts_at": "2026-12-01T15:00:00Z"}).json()
+    assert moved["ends_at"].startswith("2026-12-01T16:10:00") and moved["price"] == 95.0 and moved["service_ids"] == [corte["id"], barba["id"]]
+    pinned = client.patch(appointments + "/" + three["id"], headers=headers, json={"service_ids": [barba["id"]], "price": "10.00"}).json()
+    assert pinned["price"] == 10.0 and pinned["ends_at"].startswith("2026-12-02T13:30:00")

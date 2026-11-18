@@ -213,6 +213,9 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         with engine.begin() as connection:
             for name, definition in missing.items():
                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+    if "service_ids" not in {column["name"] for column in inspect(engine).get_columns("appointments")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE appointments ADD COLUMN service_ids TEXT"))
     # create_all does not reliably add a new index to every pre-existing
     # SQLite table.  Keep these additive and idempotent for Railway volumes.
     indexes = (

@@ -321,6 +321,8 @@ Quem atende (`staff_user_id`) é sempre opcional, e quem marcou (`created_by_id`
 
 O convite pode ir **por e-mail** (`email` informado: o e-mail é enviado e só essa conta aceita; `email_sent` diz se saiu) ou **por link** (sem `email`: nada é enviado e qualquer pessoa com o `url` aceita). Nos dois casos o `url` vem na resposta. Quem abre o link entra, ou cria a conta (cadastro, Google ou código por e-mail), e já é registrado no negócio com o papel do convite; o app guarda o token do convite no navegador durante o cadastro e a ida ao Google.
 
+Ao marcar, **só `customer_name` é obrigatório**. Sem `starts_at`, começa agora (arredondado ao minuto). `service_ids` aceita um ou mais serviços: o nome vira "A + B", o fim é o início mais a soma das durações e o preço é a soma dos preços (serviço sem preço só soma tempo); `ends_at` e `price` informados prevalecem sobre a soma. Com um serviço só, `service_id` também é preenchido; sem serviços, o atendimento é "Atendimento" de 30 minutos. Ao atualizar com `service_ids`, o fim e o preço são recalculados, a menos que venham junto. A resposta traz `service_ids`.
+
 Horários são gravados em UTC sem fuso; entradas com fuso são convertidas e entradas sem fuso são lidas como UTC.
 Status: `scheduled`, `confirmed`, `done`, `cancelled`, `no_show`; só os dois primeiros ocupam a agenda. A página pública
 por negócio (o cliente final marcando sozinho) ainda não existe; o `slug` já fica reservado para ela.

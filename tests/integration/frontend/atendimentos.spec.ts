@@ -54,7 +54,7 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
     else if (path === "/businesses/b1/appointments" && method === "POST") {
       csrf();
       const data = request.postDataJSON();
-      expect(data.service_id).toBe("s1"); expect(data.starts_at).toMatch(/Z$/);
+      expect(data.service_ids).toEqual(["s1"]); expect(data.starts_at).toMatch(/Z$/);
       const row = { ...data, id: "a1", business_id: "b1", service_name: "Corte", staff_name: null, ends_at: new Date(new Date(data.starts_at).getTime() + 30 * 60000).toISOString(), status: "scheduled", price: 45, created_by_id: user.id, created_at: "2026-11-16", updated_at: "2026-11-16" };
       appointments.push(row); body = row; status = 201;
     }
@@ -88,8 +88,11 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByRole("button", { name: "Agenda" }).click();
   await page.getByRole("button", { name: "Marcar atendimento" }).click();
   await page.getByLabel("Nome do cliente").fill("João");
-  await page.getByLabel("Serviço", { exact: true }).click();
-  await page.getByRole("option", { name: /Corte/ }).click();
+  // The start is already now, the duration and the price follow the chosen services.
+  await expect(page.getByLabel("Início")).not.toHaveValue("");
+  await page.getByRole("button", { name: /Corte/ }).click();
+  await expect(page.getByLabel("Duração (minutos)")).toHaveValue("30");
+  await expect(page.getByLabel("Preço (R$)")).toHaveValue("45,00");
   await page.getByRole("button", { name: "Salvar" }).click();
   const item = page.getByRole("button", { name: /João/ });
   await expect(item).toHaveAttribute("aria-label", /Marcado/);
@@ -179,4 +182,50 @@ test("the invitation survives a trip through Google: the token is kept and used 
   expect(await page.evaluate(() => localStorage.getItem("nexo:atendimentos:invite"))).toBe("tok");
   await page.goto("/atendimentos");
   await expect(page.getByText("Você foi convidado para Barbearia do Zé como atendente.")).toBeVisible();
+});
+
+test("an appointment needs only the customer's name; several services add up their time and price, and both can be overwritten", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  const sent: Record<string, unknown>[] = [];
+  await page.route("**/api/atendimentos/businesses/b1/services*", route => route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+      { id: "s1", business_id: "b1", name: "Corte", description: null, duration_minutes: 40, price: 55, active: true, created_at: "x", updated_at: "x" },
+      { id: "s2", business_id: "b1", name: "Barba", description: null, duration_minutes: 30, price: 40, active: true, created_at: "x", updated_at: "x" }]) })
+    : route.fallback());
+  await page.route("**/api/atendimentos/businesses/b1/appointments", async route => {
+    if (route.request().method() !== "POST") return route.fallback();
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "a9", business_id: "b1", service_id: null, service_ids: [], service_name: "Atendimento", staff_user_id: null, staff_name: null, customer_name: "Zé", customer_phone: null, customer_email: null, starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 1800000).toISOString(), status: "scheduled", price: null, notes: null, created_by_id: user.id, created_at: "x", updated_at: "x" }) });
+  });
+  await page.goto("/atendimentos");
+  await page.getByRole("button", { name: "Criar negócio" }).first().click();
+  await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
+  await page.getByRole("button", { name: "Criar negócio" }).last().click();
+  await page.getByRole("button", { name: "Marcar atendimento" }).click();
+  // Only the name: it is accepted as it is.
+  await page.getByLabel("Nome do cliente").fill("Zé");
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0].service_ids).toEqual([]);
+  expect(sent[0].ends_at).toBeUndefined();
+  expect(sent[0].price).toBeUndefined();
+
+  // Two services: 70 minutes and R$ 95,00, then overwritten by hand and back to automatic.
+  await page.getByRole("button", { name: "Marcar atendimento" }).click();
+  await page.getByLabel("Nome do cliente").fill("Ana");
+  await page.getByRole("button", { name: /Corte/ }).click();
+  await page.getByRole("button", { name: /Barba/ }).click();
+  await expect(page.getByLabel("Duração (minutos)")).toHaveValue("70");
+  await expect(page.getByLabel("Preço (R$)")).toHaveValue("95,00");
+  await expect(page.getByText("70 min", { exact: true })).toBeVisible();
+  await page.getByLabel("Duração (minutos)").fill("90");
+  await page.getByLabel("Preço (R$)").fill("80,00");
+  await page.getByRole("button", { name: /Voltar ao automático \(70 min\)/ }).click();
+  await expect(page.getByLabel("Duração (minutos)")).toHaveValue("70");
+  await page.getByLabel("Preço (R$)").fill("80,00");
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await expect.poll(() => sent.length).toBe(2);
+  expect(sent[1].service_ids).toEqual(["s1", "s2"]);
+  expect(sent[1].price).toBe("80.00");
+  expect(sent[1].ends_at).toBeUndefined();
 });

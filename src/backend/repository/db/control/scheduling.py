@@ -41,7 +41,7 @@ FIELDS = {
                              "accepted_by_id", "created_at", "updated_at"),
     "business_services": ("id", "business_id", "name", "description", "duration_minutes", "price", "active",
                           "created_at", "updated_at"),
-    "appointments": ("id", "business_id", "service_id", "service_name", "staff_user_id", "customer_name",
+    "appointments": ("id", "business_id", "service_id", "service_name", "service_ids", "staff_user_id", "customer_name",
                      "customer_phone", "customer_email", "starts_at", "ends_at", "status", "price", "notes",
                      "created_by_id", "created_at", "updated_at"),
 }
@@ -327,11 +327,11 @@ class AppointmentRepository(Repository[Appointment]):
     def create(self, *, business_id: str, service_id: str | None, service_name: str, staff_user_id: str | None,
                customer_name: str, starts_at: datetime, ends_at: datetime, created_by_id: str | None,
                customer_phone: str | None = None, customer_email: str | None = None, status: str = "scheduled",
-               price=None, notes: str | None = None) -> Appointment:
+               price=None, notes: str | None = None, service_ids: str | None = None) -> Appointment:
         if not customer_name.strip() or ends_at <= starts_at or status not in APPOINTMENT_STATUSES:
             raise ValueError("Customer, a valid period and a known status are required")
         return self.add(Appointment(business_id=business_id, service_id=service_id, service_name=service_name,
-                                    staff_user_id=staff_user_id, customer_name=customer_name.strip(),
+                                    service_ids=service_ids, staff_user_id=staff_user_id, customer_name=customer_name.strip(),
                                     customer_phone=customer_phone, customer_email=customer_email,
                                     starts_at=starts_at, ends_at=ends_at, status=status, price=price, notes=notes,
                                     created_by_id=created_by_id))
@@ -371,7 +371,7 @@ class AppointmentRepository(Repository[Appointment]):
         return self.session.scalar(query.order_by(Appointment.starts_at).limit(1))
 
     def update(self, appointment: Appointment, **changes) -> Appointment:
-        allowed = {"service_id", "service_name", "staff_user_id", "customer_name", "customer_phone", "customer_email",
+        allowed = {"service_id", "service_ids", "service_name", "staff_user_id", "customer_name", "customer_phone", "customer_email",
                    "starts_at", "ends_at", "status", "price", "notes"}
         if set(changes) - allowed:
             raise ValueError("Unsupported appointment fields")

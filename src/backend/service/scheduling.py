@@ -1,6 +1,8 @@
 """Businesses, their teams, services and appointments. Reads go through the cache; writes invalidate it per business."""
+import json
 import logging
 import secrets
+from decimal import Decimal
 from types import SimpleNamespace
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -30,6 +32,7 @@ PLATFORM_STAFF = "platform_staff"   # PlatformActor: an API key of the Nexo team
 
 ROLE_LABELS = {"owner": "dono", "manager": "gerente", "staff": "atendente", "viewer": "leitura"}
 MAX_BUSINESSES_PER_USER = 20
+DEFAULT_MINUTES = 30   # an appointment with no service and no end
 INVITATION_TTL = timedelta(days=7)
 
 
@@ -305,7 +308,7 @@ class SchedulingService:
 
         def who(user_id):
             return people.get(user_id, {}) if user_id else {}
-        return [{**row,
+        return [{**row, "service_ids": json.loads(row["service_ids"]) if row.get("service_ids") else ([row["service_id"]] if row["service_id"] else []),
                  "staff_name": who(row["staff_user_id"]).get("name"), "staff_has_photo": bool(who(row["staff_user_id"]).get("has_photo")),
                  "created_by_name": who(row["created_by_id"]).get("name"), "created_by_has_photo": bool(who(row["created_by_id"]).get("has_photo"))}
                 for row in rows]
@@ -394,42 +397,61 @@ class SchedulingService:
                 raise ResourceNotFound("Appointment not found")
             return self._with_people(repos, [row])[0]
 
-    def _resolve_period(self, repos, business_id, *, service_id, service_name, starts_at, ends_at, price,
-                        staff_user_id, exclude_id=None):
-        """Fill the service details, check the professional belongs to the team and that the slot is free."""
-        service = None
-        if service_id:
+    def _resolve_period(self, repos, business_id, *, service_ids, service_name, starts_at, ends_at, price,
+                        staff_user_id, exclude_id=None, check_staff=True):
+        """Fill in the services, the end and the price, check the professional belongs to the team and the slot is free.
+
+        With services, the end is the start plus the sum of their durations and the price is the sum of theirs; both can
+        be given instead. Without services the appointment is a plain "Atendimento" of 30 minutes. Nothing here is required.
+        """
+        services = []
+        for service_id in dict.fromkeys(service_ids or []):
             service = repos.business_services.in_business(business_id, service_id)
             if service is None or not service.active:
                 raise ResourceNotFound("Service not found")
-            service_name = service_name or service.name
+            services.append(service)
+        if services:
+            service_name = service_name or " + ".join(service.name for service in services)[:160]
             if ends_at is None:
-                ends_at = starts_at + timedelta(minutes=service.duration_minutes)
-            if price is None:
-                price = service.price
-        if not service_name or ends_at is None:
-            raise ValueError("A service, or a service name with an end time, is required")
+                ends_at = starts_at + timedelta(minutes=sum(service.duration_minutes for service in services))
+            priced = [service.price for service in services if service.price is not None]
+            if price is None and priced:
+                price = sum((Decimal(str(value)) for value in priced), Decimal("0"))
+        else:
+            service_name = service_name or "Atendimento"
+            if ends_at is None:
+                ends_at = starts_at + timedelta(minutes=DEFAULT_MINUTES)
         if ends_at <= starts_at:
             raise ValueError("Appointment must end after it starts")
         if staff_user_id:
             if repos.businesses.membership(business_id, staff_user_id) is None:
                 raise ResourceNotFound("Professional is not a member of this business")
-            conflict = repos.appointments.staff_conflict(business_id, staff_user_id, starts_at, ends_at, exclude_id)
-            if conflict is not None:
-                raise ResourceConflict("The professional already has an appointment in this period")
-        return {"service_id": service.id if service else None, "service_name": service_name,
-                "starts_at": starts_at, "ends_at": ends_at, "price": price, "staff_user_id": staff_user_id}
+            if check_staff:
+                conflict = repos.appointments.staff_conflict(business_id, staff_user_id, starts_at, ends_at, exclude_id)
+                if conflict is not None:
+                    raise ResourceConflict("The professional already has an appointment in this period")
+        return {"service_id": services[0].id if len(services) == 1 else None,
+                "service_ids": json.dumps([service.id for service in services]) if services else None,
+                "service_name": service_name, "starts_at": starts_at, "ends_at": ends_at, "price": price,
+                "staff_user_id": staff_user_id}
 
-    def create_appointment(self, actor, business_id, *, service_id=None, service_name=None, starts_at, ends_at=None,
-                           price=None, staff_user_id=None, **fields):
-        starts_at = to_utc(starts_at)
+    def create_appointment(self, actor, business_id, *, service_id=None, service_ids=None, service_name=None,
+                           starts_at=None, ends_at=None, price=None, staff_user_id=None, **fields):
+        starts_at = to_utc(starts_at) if starts_at else utc_now().replace(second=0, microsecond=0)
         ends_at = to_utc(ends_at) if ends_at else None
+        ids = list(service_ids or []) or ([service_id] if service_id else [])
         with self.repositories.transaction() as repos:
             user, _ = self._member(repos, actor, business_id, "appointments.write")
-            period = self._resolve_period(repos, business_id, service_id=service_id, service_name=service_name,
+            period = self._resolve_period(repos, business_id, service_ids=ids, service_name=service_name,
                                           starts_at=starts_at, ends_at=ends_at, price=price, staff_user_id=staff_user_id)
             row = repos.appointments.create(business_id=business_id, created_by_id=user.id, **period, **fields)
             return self._with_people(repos, [snapshot("appointments", row)])[0]
+
+    @staticmethod
+    def _service_ids_of(appointment):
+        if appointment.service_ids:
+            return json.loads(appointment.service_ids)
+        return [appointment.service_id] if appointment.service_id else []
 
     def update_appointment(self, actor, business_id, appointment_id, **changes):
         with self.repositories.transaction() as repos:
@@ -440,24 +462,29 @@ class SchedulingService:
             for field in ("starts_at", "ends_at"):
                 if changes.get(field) is not None:
                     changes[field] = to_utc(changes[field])
-            timing = {"service_id", "service_name", "starts_at", "ends_at", "price", "staff_user_id"}
-            if timing & set(changes) or changes.get("status") in ACTIVE_STATUSES:
+            # Choosing other services (one or several) recomputes the end and the price, unless they are given too.
+            new_ids = None
+            if "service_ids" in changes:
+                new_ids = list(changes.pop("service_ids") or [])
+                changes.pop("service_id", None)
+            elif "service_id" in changes:
+                new_ids = [changes.pop("service_id")] if changes.get("service_id") else []
+                changes.pop("service_id", None)
+            timing = {"service_name", "starts_at", "ends_at", "price", "staff_user_id"}
+            if new_ids is not None or timing & set(changes) or changes.get("status") in ACTIVE_STATUSES:
                 # A moved or reassigned appointment is checked like a new one, against the other active ones.
                 starts_at = changes.get("starts_at", appointment.starts_at)
                 ends_at = changes.get("ends_at")
-                if ends_at is None and "starts_at" in changes and "service_id" not in changes:
-                    ends_at = starts_at + (appointment.ends_at - appointment.starts_at)
-                elif ends_at is None and "service_id" not in changes:
-                    ends_at = appointment.ends_at
-                if changes.get("status", appointment.status) in ACTIVE_STATUSES:
-                    period = self._resolve_period(
-                        repos, business_id, service_id=changes.get("service_id", appointment.service_id),
-                        service_name=changes.get("service_name", appointment.service_name if "service_id" not in changes else None),
-                        starts_at=starts_at, ends_at=ends_at, price=changes.get("price", appointment.price),
-                        staff_user_id=changes.get("staff_user_id", appointment.staff_user_id), exclude_id=appointment.id)
-                    changes.update(period)
-                elif ends_at is not None:
-                    changes["ends_at"] = ends_at
+                if ends_at is None and new_ids is None:
+                    ends_at = (starts_at + (appointment.ends_at - appointment.starts_at)) if "starts_at" in changes else appointment.ends_at
+                price = changes["price"] if "price" in changes else (None if new_ids is not None else appointment.price)
+                period = self._resolve_period(
+                    repos, business_id, service_ids=new_ids if new_ids is not None else self._service_ids_of(appointment),
+                    service_name=changes.get("service_name", appointment.service_name if new_ids is None else None),
+                    starts_at=starts_at, ends_at=ends_at, price=price,
+                    staff_user_id=changes.get("staff_user_id", appointment.staff_user_id), exclude_id=appointment.id,
+                    check_staff=changes.get("status", appointment.status) in ACTIVE_STATUSES)
+                changes.update(period)
             row = repos.appointments.update(appointment, **changes)
             return self._with_people(repos, [snapshot("appointments", row)])[0]
 

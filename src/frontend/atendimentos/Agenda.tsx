@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import { Picture } from "./Photo";
+import { AppointmentFields, nowLocal } from "./AppointmentFields";
 import {
   can, dayKey, isoToLocal, localToIso, STATUS_LABELS,
   type Appointment, type AppointmentStatus, type BookingApi, type Business, type Member, type Overview, type Service,
@@ -70,13 +71,17 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
     event.preventDefault();
     if (busy || !editing) return;
     const values = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
+    const ids = JSON.parse(values.service_ids || "[]") as string[];
     const body: Record<string, unknown> = {
       customer_name: values.customer_name, customer_phone: values.customer_phone || null, customer_email: values.customer_email || null,
-      service_id: values.service_id || null, service_name: values.service_id ? null : values.service_name || null,
-      staff_user_id: values.staff_user_id || null, starts_at: localToIso(values.starts_at),
-      ends_at: values.ends_at ? localToIso(values.ends_at) : null, notes: values.notes || null,
-      price: values.price ? values.price.replace(",", ".") : null,
+      service_ids: ids, staff_user_id: values.staff_user_id || null, notes: values.notes || null,
     };
+    // Only the customer's name is required. No start means now; the end and the price are the sum of the services unless overwritten.
+    if (values.starts_at) body.starts_at = localToIso(values.starts_at); else if (editing.appointment) { setError("Informe o início."); return; }
+    if (values.ends_at) body.ends_at = localToIso(values.ends_at);
+    if (!ids.length && values.service_name) body.service_name = values.service_name;
+    if (values.price) body.price = values.price.replace(",", ".");
+    else if (editing.appointment) body.price = null;
     if (editing.appointment) body.status = values.status;
     setBusy(true); setError("");
     try {
@@ -98,7 +103,7 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
     catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
   const current = editing?.appointment;
-  const defaultStart = current ? isoToLocal(current.starts_at) : editing?.start || dayKey(anchor) + "T09:00";
+  const defaultStart = current ? isoToLocal(current.starts_at) : editing?.start || nowLocal();
   const handlers = {
     onEvent: (row: Appointment) => { if (writes) setEditing({ appointment: row }); },
     onSlot: (start: string) => { if (writes) setEditing({ start }); },
@@ -158,28 +163,18 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
         {editing && <form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || editing.start || "new"}>
         <FieldGroup>
           <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />
-          <TextField label="Celular do cliente" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
+          <TextField label="Celular do cliente (opcional)" name="customer_phone" type="tel" maxLength={30} defaultValue={current?.customer_phone || ""} />
           {current?.customer_phone && <div className="bk-row">
             <Button type="button" variant="outline" size="sm" asChild><a href={"tel:" + current.customer_phone}><Phone data-icon="inline-start" />Ligar</a></Button>
             <Button type="button" variant="outline" size="sm" asChild><a href={"https://wa.me/" + current.customer_phone.replace(/\D/g, "")} target="_blank" rel="noopener"><MessageCircle data-icon="inline-start" />WhatsApp</a></Button>
           </div>}
-          <TextField label="E-mail do cliente" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
-          <Field><FieldLabel htmlFor="bk-service">Serviço</FieldLabel>
-            <NativeSelect id="bk-service" name="service_id" defaultValue={current?.service_id || ""}>
-              <NativeSelectOption value="">Outro (escrever abaixo)</NativeSelectOption>
-              {services.map(service => <NativeSelectOption key={service.id} value={service.id}>{service.name} · {service.duration_minutes} min</NativeSelectOption>)}
-            </NativeSelect></Field>
-          <TextField label="Nome do serviço, se não estiver na lista" name="service_name" maxLength={160} defaultValue={current && !current.service_id ? current.service_name : ""} />
-          <div className="bk-grid-2">
-            <TextField label="Início" name="starts_at" type="datetime-local" required defaultValue={defaultStart} />
-            <TextField label="Fim" name="ends_at" type="datetime-local" defaultValue={current ? isoToLocal(current.ends_at) : ""} help="Pode deixar vazio: usa a duração do serviço." />
-          </div>
+          <TextField label="E-mail do cliente (opcional)" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
+          <AppointmentFields current={current} defaultStart={defaultStart} services={services} />
           <Field><FieldLabel htmlFor="bk-staff">Quem atende</FieldLabel>
             <NativeSelect id="bk-staff" name="staff_user_id" defaultValue={current?.staff_user_id || ""}>
               <NativeSelectOption value="">Qualquer pessoa</NativeSelectOption>
               {members.map(member => <NativeSelectOption key={member.user_id} value={member.user_id}>{member.name}</NativeSelectOption>)}
             </NativeSelect></Field>
-          <TextField label="Preço (R$)" name="price" inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="Usa o preço do serviço" defaultValue={current?.price ?? ""} />
           {current && <Field><FieldLabel htmlFor="bk-status">Situação</FieldLabel>
             <NativeSelect id="bk-status" name="status" defaultValue={current.status}>
               {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}

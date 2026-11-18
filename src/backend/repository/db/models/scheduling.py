@@ -124,6 +124,8 @@ class Appointment(IdentityTimestampMixin, Base):
     # The service may be deleted later; its name is kept so the history still reads well.
     service_id: Mapped[str | None] = mapped_column(ForeignKey("business_services.id", ondelete="SET NULL"))
     service_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    # Every service chosen, as a JSON list of ids in the order picked; service_id above is set only when there is exactly one.
+    service_ids: Mapped[str | None] = mapped_column(Text)
     staff_user_id: Mapped[str | None] = mapped_column(ForeignKey("booking_users.id", ondelete="SET NULL"))
     customer_name: Mapped[str] = mapped_column(String(160), nullable=False)
     customer_phone: Mapped[str | None] = mapped_column(String(32))

@@ -282,6 +282,7 @@ class ServiceOutput(BaseModel):
 class AppointmentFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
     service_id: str | None = Field(default=None, max_length=36)
+    service_ids: list[str] | None = Field(default=None, max_length=20, description="One or more services: the name, the duration and the price are the sum of them, unless given")
     service_name: str | None = Field(default=None, min_length=1, max_length=160)
     staff_user_id: str | None = Field(default=None, max_length=36)
     customer_name: str = Field(min_length=1, max_length=160)
@@ -307,11 +308,12 @@ class AppointmentFields(BaseModel):
 
 
 class AppointmentCreate(AppointmentFields):
+    """Only the customer's name is required. No start means now; no services means a plain "Atendimento" of 30 minutes."""
+    starts_at: datetime | None = None
+
     @model_validator(mode="after")
-    def service_or_manual(self):
-        if not self.service_id and (not self.service_name or self.ends_at is None):
-            raise ValueError("Choose a service, or give service_name and ends_at")
-        if self.ends_at is not None and self.ends_at <= self.starts_at:
+    def valid_period(self):
+        if self.ends_at is not None and self.starts_at is not None and self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be after starts_at")
         return self
 
@@ -336,6 +338,7 @@ class AppointmentOutput(BaseModel):
     business_id: str
     service_id: str | None
     service_name: str
+    service_ids: list[str] = []
     staff_user_id: str | None
     staff_name: str | None = None
     staff_has_photo: bool = False

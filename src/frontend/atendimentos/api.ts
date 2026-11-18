@@ -31,7 +31,7 @@ export type Service = { id: string; business_id: string; name: string; descripti
 export type AppointmentStatus = "scheduled" | "confirmed" | "done" | "cancelled" | "no_show";
 export const STATUS_LABELS: Record<AppointmentStatus, string> = { scheduled: "Marcado", confirmed: "Confirmado", done: "Concluído", cancelled: "Cancelado", no_show: "Não veio" };
 export type Appointment = {
-  id: string; business_id: string; service_id: string | null; service_name: string; staff_user_id: string | null;
+  id: string; business_id: string; service_id: string | null; service_ids?: string[]; service_name: string; staff_user_id: string | null;
   staff_name: string | null; staff_has_photo?: boolean; customer_name: string; customer_phone: string | null; customer_email: string | null;
   starts_at: string; ends_at: string; status: AppointmentStatus; price: number | null; notes: string | null;
   created_by_id: string | null; created_by_name?: string | null; created_by_has_photo?: boolean; created_at: string; updated_at: string;

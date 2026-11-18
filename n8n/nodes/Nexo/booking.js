@@ -32,7 +32,7 @@ const bookingToolDescriptions = {
 	bookingAppointments: {
 		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show) e, se quiser, por funcionário.',
 		get: 'Consultar um agendamento pelo ID.',
-		create: 'Marcar um atendimento: informe o nome do cliente, o Start, o End e, se quiser, um ou mais serviços do negócio e o funcionário que vai atender (opcional).',
+		create: 'Marcar um atendimento: só o nome do cliente é obrigatório. Start e End são opcionais (sem Start, agora; sem End, a soma da duração dos serviços). Se quiser, um ou mais serviços do negócio e o funcionário que vai atender (opcional).',
 		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, trocar o funcionário (opcional) ou mudar a situação (confirmar, concluir, cancelar, faltou).',
 		delete: 'Apagar um agendamento. Se informar o funcionário, só apaga se o agendamento for dele.',
 	},
@@ -73,11 +73,11 @@ add('ID do agendamento', 'bookingAppointmentId', 'string', '', 'bookingAppointme
 add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['create'], { description: 'Nome de quem vai ser atendido (opcional). Sem nome, usa o celular; sem os dois, fica "Cliente".' });
 add('Nome do cliente', 'bookingCustomerName', 'string', '', 'bookingAppointments', ['update'], { description: 'Vazio: não altera.' });
 add('Celular do cliente', 'bookingCustomerPhone', 'string', '', 'bookingAppointments', ['create', 'update'], { description: 'Celular com DDD, ex.: 11999999999 (opcional). Vazio: não altera, ao atualizar.' });
-add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento começa. ${WINDOW}` });
+add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['create'], { description: `Quando o atendimento começa (opcional). Vazio: agora. ${WINDOW}` });
 add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Para remarcar. Vazio: não altera. ${WINDOW}` });
-add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento termina (depois do Start). ${WINDOW}` });
+add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { description: `Quando o atendimento termina (opcional, depois do Start). Vazio: o Start mais a soma da duração dos serviços escolhidos (30 minutos sem serviços). ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Vazio: não altera. ${WINDOW}` });
-add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes e a soma dos preços. Ao atualizar, vazio não altera. Com a IA (✨), informe os IDs dos serviços separados por vírgula (veja em Atendimentos: serviços > Get Many).' });
+add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes, a soma das durações (a partir do Start) e a soma dos preços. Ao atualizar, vazio não altera. Com a IA (✨), informe os IDs dos serviços separados por vírgula (veja em Atendimentos: serviços > Get Many).' });
 // The employee is always optional: leave it empty and nothing about the employee is sent or checked.
 add('Funcionário', 'bookingStaff', 'options', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId', 'bookingStartsAt', 'bookingEndsAt'] }, description: 'Opcional. Quem vai atender. Abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. Vazio: sem funcionário (ao atualizar, não altera; escolha "Remover funcionário" para tirar). Com a IA (✨), informe o ID, o nome ou o e-mail da pessoa (veja em Negócios > Listar equipe).' });
 add('Funcionário', 'bookingStaffFilter', 'options', '', 'bookingAppointments', ['getMany'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Opcional. Só os agendamentos deste funcionário. Vazio: de todos.' });
@@ -293,9 +293,9 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	const name = clean(param('bookingCustomerName')) ?? (update ? undefined : phone ?? 'Cliente');
 	if (name) body.customer_name = name;
 	const starts = clean(param('bookingStartsAt'));
-	if (starts) body.starts_at = await when(starts, 'o Start'); else if (!update) throw new Error('Informe o Start do atendimento.');
+	if (starts) body.starts_at = await when(starts, 'o Start');
 	const ends = clean(param('bookingEndsAt'));
-	if (ends) body.ends_at = await when(ends, 'o End'); else if (!update) throw new Error('Informe o End do atendimento.');
+	if (ends) body.ends_at = await when(ends, 'o End');
 	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
 	const person = await staff(param('bookingStaff'));
 	if (person !== undefined) body.staff_user_id = person;
@@ -326,12 +326,9 @@ async function executeBooking(ctx, resource, operation, index, state) {
 			const available = known.filter((service) => service.active !== false).map((service) => `${service.name} (${service.id})`).join('; ');
 			throw new Error(`Serviço não encontrado neste negócio: ${unknown.join(', ')}. ${available ? `Serviços deste negócio: ${available}.` : 'Este negócio ainda não tem serviços: crie um em Atendimentos: serviços > Criar.'}`);
 		}
-		if (picked.length === 1) body.service_id = picked[0].id;
-		else {
-			body.service_name = picked.map((service) => service.name).join(' + ').slice(0, 160);
-			if (picked.every((service) => service.price !== null && service.price !== undefined)) body.price = picked.reduce((sum, service) => sum + Number(service.price), 0).toFixed(2);
-		}
-	} else if (!update) body.service_name = 'Atendimento';
+		// The services (one or several) are sent as they are: the server sums their time and their price.
+		body.service_ids = picked.map((service) => service.id);
+	}
 	if (!update) return rows(await call({ method: 'POST', url: base('/appointments'), body }));
 	const status = clean(param('bookingStatus'));
 	if (status) body.status = status;
