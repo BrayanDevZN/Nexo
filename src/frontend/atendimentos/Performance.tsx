@@ -3,6 +3,10 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { Feedback, message } from "@/admin/shared";
 import { formatMoney, ROLE_LABELS, type BookingApi, type Business, type Performance as Report, type PerformanceRow } from "./api";
@@ -57,7 +61,7 @@ export function Performance({ api, business }: { api: BookingApi; business: Busi
         <div className="bk-kpi"><span>Faltas e cancelados</span><strong>{report.rows.reduce((sum, row) => sum + row.no_show + row.cancelled, 0)}</strong><small>{percent(report.rows.reduce((sum, row) => sum + row.no_show + row.cancelled, 0), finished)} dos encerrados</small></div>
         <div className="bk-kpi"><span>Receita dos concluídos</span><strong>{formatMoney(report.revenue)}</strong><small>soma dos preços</small></div>
       </div>
-      {people.some(row => row.total > 0) && <Mix rows={people} top={top} />}
+      {people.some(row => row.total > 0) && <Mix rows={people} />}
       {people.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><TrendingUp /></EmptyMedia><EmptyTitle>Sem números ainda</EmptyTitle><EmptyDescription>Quando a equipe marcar e concluir atendimentos, o desempenho de cada pessoa aparece aqui.</EmptyDescription></EmptyHeader></Empty>
         : <div className="bk-perf">
           <Table>
@@ -74,23 +78,43 @@ export function Performance({ api, business }: { api: BookingApi; business: Busi
   </section>;
 }
 
-/** A small chart: for each person, how their appointments ended. The bars share one scale, so a longer bar is more work. */
-function Mix({ rows, top }: { rows: PerformanceRow[]; top: number }) {
-  const shown = rows.filter(row => row.total > 0);
-  return <div className="bk-mix" role="group" aria-label="Como terminaram os atendimentos de cada pessoa">
-    <header><h2>Como terminaram</h2>
-      <ul aria-hidden="true"><li data-k="done">Concluídos</li><li data-k="active">Em aberto</li><li data-k="lost">Faltas e cancelados</li></ul></header>
-    {shown.map(row => {
-      const lost = row.no_show + row.cancelled;
-      return <div className="bk-mix-row" key={row.user_id ?? "none"} role="img" aria-label={`${row.name}: ${row.done} concluídos, ${row.active} em aberto, ${lost} faltas ou cancelados`}>
-        <span>{row.user_id ? row.name.split(" ")[0] : "Sem responsável"}</span>
-        <div className="bk-mix-bar" style={{ width: (row.total / top * 100) + "%" }}>
-          {row.done > 0 && <i data-k="done" style={{ flexGrow: row.done }} />}{row.active > 0 && <i data-k="active" style={{ flexGrow: row.active }} />}{lost > 0 && <i data-k="lost" style={{ flexGrow: lost }} />}
+const MIX_CONFIG = {
+  done: { label: "Concluídos", color: "var(--bk-accent)" },
+  active: { label: "Em aberto", color: "color-mix(in srgb, var(--bk-accent) 30%, #fff)" },
+  lost: { label: "Faltas e cancelados", color: "#cfcfda" },
+} satisfies ChartConfig;
+const COLUMN = 76; // px per person: with more people than fit, the chart scrolls sideways instead of squeezing
+
+/** A bar chart of how each person's appointments ended (stacked). On a phone it scrolls sideways when the team is bigger than the screen. */
+function Mix({ rows }: { rows: PerformanceRow[] }) {
+  const data = rows.filter(row => row.total > 0).map(row => ({
+    name: row.user_id ? row.name.split(" ")[0] : "Sem resp.", full: row.name, done: row.done, active: row.active, lost: row.no_show + row.cancelled,
+  }));
+  return <Card className="bk-mix">
+    <CardHeader>
+      <CardTitle>Como terminaram os atendimentos</CardTitle>
+      <CardDescription>Cada coluna é uma pessoa.{data.length > 3 && <span className="bk-mix-hint"> Arraste para o lado para ver todas.</span>}</CardDescription>
+      <ul className="bk-mix-legend" aria-hidden="true">{Object.entries(MIX_CONFIG).map(([key, item]) => <li key={key}><i style={{ background: item.color }} />{item.label}</li>)}</ul>
+    </CardHeader>
+    <CardContent>
+      <ScrollArea className="bk-mix-scroll">
+        <div className="bk-mix-plot" style={{ minWidth: Math.max(data.length * COLUMN, 240) }}>
+          <ChartContainer className="h-full" config={MIX_CONFIG} aria-label={"Atendimentos por pessoa: " + data.map(row => `${row.full} ${row.done} concluídos, ${row.active} em aberto, ${row.lost} faltas ou cancelados`).join("; ")}>
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }} barCategoryGap="28%">
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} tickMargin={8} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
+              <ChartTooltip cursor={{ fill: "rgb(109 40 217 / 0.06)" }} content={<ChartTooltipContent />} />
+              <Bar dataKey="done" name={MIX_CONFIG.done.label} stackId="a" fill="var(--color-done)" radius={[0, 0, 2, 2]} />
+              <Bar dataKey="active" name={MIX_CONFIG.active.label} stackId="a" fill="var(--color-active)" />
+              <Bar dataKey="lost" name={MIX_CONFIG.lost.label} stackId="a" fill="var(--color-lost)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
         </div>
-        <b>{row.total}</b>
-      </div>;
-    })}
-  </div>;
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </CardContent>
+  </Card>;
 }
 
 function PerformanceLine({ api, row, top }: { api: BookingApi; row: PerformanceRow; top: number }) {

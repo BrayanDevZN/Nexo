@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
+Generated: 2026-11-18 | 461 files | ~625.0K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -223,7 +223,7 @@ Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
 | src/frontend/atendimentos/Calendar.tsx | 202 | 4.0K | source |
 | src/frontend/atendimentos/calendarPrefs.ts | 155 | 2.1K | source |
 | src/frontend/atendimentos/NTransition.tsx | 37 | 485 | source |
-| src/frontend/atendimentos/Performance.tsx | 91 | 1.9K | source |
+| src/frontend/atendimentos/Performance.tsx | 135 | 2.7K | source |
 | src/frontend/atendimentos/Photo.tsx | 100 | 1.5K | source |
 | src/frontend/atendimentos/Services.tsx | 72 | 1.4K | source |
 | src/frontend/atendimentos/Team.tsx | 99 | 2.3K | source |
@@ -269,6 +269,7 @@ Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
 | src/frontend/components/ui/message.tsx | 6 | 173 | source |
 | src/frontend/components/ui/native-select.tsx | 58 | 881 | source |
 | src/frontend/components/ui/progress.tsx | 29 | 181 | source |
+| src/frontend/components/ui/scroll-area.tsx | 53 | 417 | source |
 | src/frontend/components/ui/separator.tsx | 26 | 157 | source |
 | src/frontend/components/ui/sheet.tsx | 147 | 1.2K | source |
 | src/frontend/components/ui/sidebar.tsx | 700 | 5.3K | source |
@@ -440,7 +441,7 @@ Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/atendimentos.css | 572 | 14.2K | style |
+| src/frontend/styles/atendimentos.css | 601 | 14.9K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/lelab.css | 459 | 9.7K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
@@ -466,11 +467,11 @@ Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 299 files, ~392.5K tokens
+- source: 300 files, ~393.7K tokens
 - config: 13 files, ~3.6K tokens
 - test: 112 files, ~142.4K tokens
 - docs: 11 files, ~19.7K tokens
-- style: 7 files, ~58.9K tokens
+- style: 7 files, ~59.6K tokens
 - other: 18 files, ~5.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
@@ -480,7 +481,7 @@ Generated: 2026-11-18 | 460 files | ~623.1K tokens if all read
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 5. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
 6. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
-7. mcp_server.py — 589 lines (~4.9K tokens)
-8. src/frontend/styles/atendimentos.css — 572 lines (~14.2K tokens)
+7. src/frontend/styles/atendimentos.css — 601 lines (~14.9K tokens)
+8. mcp_server.py — 589 lines (~4.9K tokens)
 9. tests/functional/controller/test_scheduling.py — 569 lines (~10.2K tokens)
 10. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
