@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +42,10 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
   const days = useMemo(() => visibleDays(view, anchor, prefs), [view, anchor, prefs]);
   const range = useMemo(() => viewRange(view, anchor, prefs), [view, anchor, prefs]);
   function changePrefs(next: CalendarPrefs) { setPrefs(next); savePrefs(business.id, next); }
+  // Answers can arrive out of order (a live change reloads while you save or delete): only the newest one is shown.
+  const loading = useRef(0);
   async function load() {
+    const id = ++loading.current;
     try {
       const all: Appointment[] = [];
       // The server returns at most 100 per request; a busy month needs a few pages.
@@ -55,8 +58,10 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
         all.push(...page);
         if (page.length < PAGE) break;
       }
-      setRows(all); setOverview(await api.request<Overview>(base + "/overview")); setError("");
-    } catch (e) { setError(message(e)); }
+      const summary = await api.request<Overview>(base + "/overview");
+      if (id !== loading.current) return;
+      setRows(all); setOverview(summary); setError("");
+    } catch (e) { if (id === loading.current) setError(message(e)); }
   }
   // The range is a pair of Dates; depend on its instants so the effect runs once per real change.
   useEffect(() => { setRows(undefined); void load(); }, [business.id, range.from.getTime(), range.until?.getTime(), statusFilter, customer]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,9 +113,19 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
   async function remove(appointment: Appointment) {
     if (busy || !window.confirm(`Apagar o atendimento de ${appointment.customer_name}?`)) return;
     setBusy(true); setError("");
-    try { await api.mutate(base + "/appointments/" + appointment.id, "DELETE"); setEditing(undefined); await load(); }
+    try {
+      await api.mutate(base + "/appointments/" + appointment.id, "DELETE");
+      // It leaves the screen at once; the reload below only confirms what the server has.
+      setEditing(undefined); setRows(list => list?.filter(row => row.id !== appointment.id));
+      await load();
+    }
     catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
+  // An appointment that is open in the form and disappears from the agenda (someone deleted or moved it) closes the form.
+  useEffect(() => {
+    if (!rows || !editing?.appointment || busy) return;
+    if (!rows.some(row => row.id === editing.appointment!.id)) { setEditing(undefined); setError("Esse horário foi apagado ou não está mais nesta agenda."); }
+  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
   const current = editing?.appointment;
   const defaultStart = current ? isoToLocal(current.starts_at) : editing?.start || nowLocal();
   const handlers = {

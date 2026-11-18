@@ -60,6 +60,7 @@ async function mock(page: Page, options: { signedIn?: boolean } = {}) {
       const row = { ...data, id: "a1", business_id: "b1", service_name: "Corte", staff_name: null, ends_at: new Date(new Date(data.starts_at).getTime() + 30 * 60000).toISOString(), status: "scheduled", price: 45, created_by_id: user.id, created_at: "2026-11-16", updated_at: "2026-11-16" };
       appointments.push(row); body = row; status = 201;
     }
+    else if (path === "/businesses/b1/appointments/a1" && method === "DELETE") { csrf(); appointments.splice(0, appointments.length); status = 204; }
     else if (path === "/businesses/b1/appointments/a1" && method === "PATCH") { csrf(); Object.assign(appointments[0], request.postDataJSON()); body = appointments[0]; }
     else status = 404;
     await route.fulfill({ status, ...(status === 204 ? {} : { contentType: "application/json", body: JSON.stringify(body) }) });
@@ -101,6 +102,12 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await item.click();
   await page.getByRole("button", { name: "Concluído", exact: true }).click();
   await expect(page.getByRole("button", { name: /João/ })).toHaveAttribute("aria-label", /Concluído/);
+  // Deleting it closes the form and takes it off the calendar at once.
+  await page.getByRole("button", { name: /João/ }).click();
+  page.once("dialog", dialog => void dialog.accept());
+  await page.getByRole("button", { name: "Apagar", exact: true }).click();
+  await expect(page.getByRole("button", { name: /João/ })).toHaveCount(0);
+  await expect(page.getByLabel("Nome do cliente")).toHaveCount(0);
   // No panel session, no storage besides the chosen business.
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   expect(await page.evaluate(() => sessionStorage.getItem("nexo:atendimentos:business"))).toBe("b1");
