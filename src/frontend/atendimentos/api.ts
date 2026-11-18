@@ -32,10 +32,15 @@ export type AppointmentStatus = "scheduled" | "confirmed" | "done" | "cancelled"
 export const STATUS_LABELS: Record<AppointmentStatus, string> = { scheduled: "Marcado", confirmed: "Confirmado", done: "Concluído", cancelled: "Cancelado", no_show: "Não veio" };
 export type Appointment = {
   id: string; business_id: string; service_id: string | null; service_name: string; staff_user_id: string | null;
-  staff_name: string | null; customer_name: string; customer_phone: string | null; customer_email: string | null;
+  staff_name: string | null; staff_has_photo?: boolean; customer_name: string; customer_phone: string | null; customer_email: string | null;
   starts_at: string; ends_at: string; status: AppointmentStatus; price: number | null; notes: string | null;
-  created_by_id: string | null; created_at: string; updated_at: string;
+  created_by_id: string | null; created_by_name?: string | null; created_by_has_photo?: boolean; created_at: string; updated_at: string;
 };
+export type PerformanceRow = {
+  user_id: string | null; name: string; role: BusinessRole | null; has_photo: boolean;
+  total: number; active: number; done: number; cancelled: number; no_show: number; revenue: number; created: number;
+};
+export type Performance = { starts_from: string | null; starts_until: string | null; total: number; done: number; revenue: number; rows: PerformanceRow[] };
 export type Overview = { today: number; next_7_days: number; upcoming: number; finished: number; by_status: Record<AppointmentStatus, number>; next: Appointment[] };
 
 /** What each role may do; the server is the authority, this only hides buttons that would fail. */

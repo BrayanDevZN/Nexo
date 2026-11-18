@@ -6,11 +6,12 @@ import { CalendarPlus, ChevronLeft, ChevronRight, MessageCircle, Phone, Search, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
+import { Picture } from "./Photo";
 import {
   can, dayKey, isoToLocal, localToIso, STATUS_LABELS,
   type Appointment, type AppointmentStatus, type BookingApi, type Business, type Member, type Overview, type Service,
 } from "./api";
-import { CalendarView, Customize, Legend } from "./Calendar";
+import { Booker, CalendarView, Customize, Legend } from "./Calendar";
 import {
   loadPrefs, savePrefs, shiftAnchor, startOfDay, viewRange, viewTitle, visibleDays,
   type CalendarPrefs, type CalendarView as View,
@@ -141,7 +142,7 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
       </form>
       {!rows ? <div className="bk-cal-loading"><Busy /></div>
         : <>
-          <CalendarView view={view} days={days} anchor={anchor} rows={rows} prefs={prefs} handlers={handlers} />
+          <CalendarView api={api} view={view} days={days} anchor={anchor} rows={rows} prefs={prefs} handlers={handlers} />
           {view === "list" && rows.length === 0 && <p className="bk-muted bk-cal-empty">{customer || statusFilter ? "Nenhum atendimento futuro com esses filtros." : "Nenhum atendimento futuro."}</p>}
         </>}
       {rows && <Legend rows={rows} prefs={prefs} />}
@@ -150,6 +151,10 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
     <Dialog open={!!editing} onOpenChange={open => { if (!open && !busy) setEditing(undefined); }}>
       <DialogContent className="bk-editor">
         <DialogHeader><DialogTitle>{current ? "Atendimento" : "Novo atendimento"}</DialogTitle><DialogDescription>{current ? "Veja ou altere os dados." : "Preencha o cliente e o horário."}</DialogDescription></DialogHeader>
+        {current && <div className="bk-who">
+          {current.created_by_name ? <div><Booker api={api} row={current} className="size-8" /><p><span>Marcado por</span><strong>{current.created_by_name}</strong><small>{new Date(current.created_at.endsWith("Z") ? current.created_at : current.created_at + "Z").toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</small></p></div> : <div><p><span>Marcado por</span><strong>Não informado</strong></p></div>}
+          {current.staff_name && <div><Picture shared api={api} path={"/auth/profile/photo?user_id=" + encodeURIComponent(current.staff_user_id!)} name={current.staff_name} hasPhoto={!!current.staff_has_photo} className="size-8" /><p><span>Atende</span><strong>{current.staff_name}</strong></p></div>}
+        </div>}
         {editing && <form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || editing.start || "new"}>
         <FieldGroup>
           <TextField label="Nome do cliente" name="customer_name" required maxLength={160} defaultValue={current?.customer_name || ""} />

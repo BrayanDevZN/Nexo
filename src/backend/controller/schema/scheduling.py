@@ -337,6 +337,7 @@ class AppointmentOutput(BaseModel):
     service_name: str
     staff_user_id: str | None
     staff_name: str | None = None
+    staff_has_photo: bool = False
     customer_name: str
     customer_phone: str | None
     customer_email: str | None
@@ -346,6 +347,8 @@ class AppointmentOutput(BaseModel):
     price: float | None
     notes: str | None
     created_by_id: str | None
+    created_by_name: str | None = None
+    created_by_has_photo: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -357,3 +360,27 @@ class OverviewOutput(BaseModel):
     finished: int
     by_status: dict[str, int]
     next: list[AppointmentOutput]
+
+
+class PerformanceRow(BaseModel):
+    """One person's numbers in a period. `user_id` is None for appointments nobody was assigned to."""
+    user_id: str | None
+    name: str
+    role: BusinessRole | None = None
+    has_photo: bool = False
+    total: int
+    active: int
+    done: int
+    cancelled: int
+    no_show: int
+    revenue: float
+    created: int
+
+
+class PerformanceOutput(BaseModel):
+    starts_from: datetime | None
+    starts_until: datetime | None
+    total: int
+    done: int
+    revenue: float
+    rows: list[PerformanceRow]

@@ -80,12 +80,72 @@ test('the business picker lists the account businesses with the regular Nexo API
 	assert.deepEqual(options, [{ name: 'Barbearia', value: 'b1', description: 'São Paulo / SP' }]);
 });
 
-test('there is no "Quem atende" option: the node never asks for or sends who attends', async () => {
-	const names = new Nexo().description.properties.map((field) => field.name);
-	assert.ok(!names.includes('bookingStaffId') && !names.includes('bookingStaffFilter'));
-	assert.equal(new Nexo().methods.loadOptions.getBookingMembers, undefined);
-	const { requests } = await run({ ...BASE, operation: 'getMany', bookingPeriod: 'all', bookingStaffFilter: 'u1', bookingStaffId: 'u1' }, () => []);
-	assert.ok(!('staff_user_id' in requests[0].qs));
+const TEAM = [{ user_id: 'u1', name: 'Ana Silva', email: 'ana@x.com', role: 'owner' }, { user_id: 'u2', name: 'Bia Costa', email: 'bia@x.com', role: 'staff' }];
+const withTeam = (options) => (options.url.endsWith('/members') ? TEAM : answer(options));
+
+test('the employee is an optional choice: nothing is sent or checked when it is empty', async () => {
+	const props = new Nexo().description.properties;
+	for (const name of ['bookingStaff', 'bookingStaffFilter', 'bookingStaffGuard']) {
+		const field = props.find((item) => item.name === name);
+		assert.equal(field.typeOptions.loadOptionsMethod, 'getBookingStaff');
+		assert.notEqual(field.required, true);
+	}
+	assert.deepEqual(props.find((item) => item.name === 'bookingStaff').displayOptions.show.operation, ['create', 'update']);
+	assert.deepEqual(props.find((item) => item.name === 'bookingStaffGuard').displayOptions.show.operation, ['delete']);
+	const created = await run(CREATE, answer);
+	assert.ok(!('staff_user_id' in created.requests.find((request) => request.method === 'POST').body));
+	assert.ok(!created.requests.some((request) => request.url.endsWith('/members')));
+	const listed = await run({ ...BASE, operation: 'getMany' }, () => []);
+	assert.ok(!('staff_user_id' in listed.requests[0].qs));
+});
+
+test('creating and updating can pick the employee by ID, name or e-mail, and updating can remove it', async () => {
+	const byId = await run({ ...CREATE, bookingStaff: 'u2' }, withTeam);
+	assert.equal(byId.requests.find((request) => request.method === 'POST').body.staff_user_id, 'u2');
+	const byName = await run({ ...CREATE, bookingStaff: 'ana silva' }, withTeam);
+	assert.equal(byName.requests.find((request) => request.method === 'POST').body.staff_user_id, 'u1');
+	const byMail = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: 'bia@x.com' }, withTeam);
+	assert.deepEqual(byMail.requests.find((request) => request.method === 'PATCH').body, { staff_user_id: 'u2' });
+	const removed = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: '__none__' }, withTeam);
+	assert.deepEqual(removed.requests.find((request) => request.method === 'PATCH').body, { staff_user_id: null });
+	const unknown = await run({ ...CREATE, bookingStaff: 'Zé' }, withTeam).catch((error) => error);
+	assert.match(unknown.message, /Funcionário não encontrado.*Ana Silva \(u1\)/);
+});
+
+test('getMany filters by employee and delete only removes what belongs to the chosen employee', async () => {
+	const listed = await run({ ...BASE, operation: 'getMany', bookingStaffFilter: 'u2' }, withTeam);
+	assert.equal(listed.requests.find((request) => request.url.endsWith('/appointments')).qs.staff_user_id, 'u2');
+	const mine = (options) => (options.method === 'GET' && options.url.endsWith('/appointments/a1') ? { id: 'a1', staff_user_id: 'u2' } : withTeam(options));
+	const ok = await run({ ...BASE, operation: 'delete', bookingAppointmentId: 'a1', bookingStaffGuard: 'u2' }, mine);
+	assert.ok(ok.requests.some((request) => request.method === 'DELETE'));
+	const other = (options) => (options.method === 'GET' && options.url.endsWith('/appointments/a1') ? { id: 'a1', staff_user_id: 'u1', staff_name: 'Ana Silva' } : withTeam(options));
+	const refused = await run({ ...BASE, operation: 'delete', bookingAppointmentId: 'a1', bookingStaffGuard: 'u2' }, other).catch((error) => error);
+	assert.match(refused.message, /não é do funcionário.*Ana Silva.*nada foi apagado/);
+});
+
+test('the employee list shows the team, free people first, and who is busy at the chosen time', async () => {
+	const requests = [];
+	const parameters = { bookingBusinessId: 'b1', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00', operation: 'update', bookingAppointmentId: 'a1' };
+	const context = {
+		getCurrentNodeParameter: (name) => parameters[name],
+		getCredentials: async () => ({ baseUrl: 'https://nexo.test' }),
+		helpers: { httpRequestWithAuthentication: async (_credential, options) => {
+			requests.push(options);
+			if (options.url.endsWith('/members')) return TEAM;
+			if (options.url.endsWith('/appointments')) return [{ id: 'a2', staff_user_id: 'u1', status: 'confirmed' }, { id: 'a1', staff_user_id: 'u2', status: 'scheduled' }, { id: 'a3', staff_user_id: 'u2', status: 'cancelled' }];
+			return business;
+		} },
+	};
+	const options = await new Nexo().methods.loadOptions.getBookingStaff.call(context);
+	assert.deepEqual(options.map((option) => option.value), ['', '__none__', 'u2', 'u1']);
+	assert.equal(options[3].name, 'Ana Silva (ocupado neste horário)');
+	const window = requests.find((request) => request.url.endsWith('/appointments')).qs;
+	assert.equal(window.ends_after, '2026-11-16T12:00:00.000Z');
+	// Without a time the whole team is listed and no schedule is read.
+	const quiet = [];
+	const plain = await new Nexo().methods.loadOptions.getBookingStaff.call({ ...context, getCurrentNodeParameter: (name) => ({ bookingBusinessId: 'b1', operation: 'create' })[name], helpers: { httpRequestWithAuthentication: async (_c, options) => { quiet.push(options.url); return TEAM; } } });
+	assert.deepEqual(plain.map((option) => option.value), ['', 'u1', 'u2']);
+	assert.ok(!quiet.some((url) => url.endsWith('/appointments')));
 });
 
 test('time helpers: local time of the business, explicit offsets and prices', () => {
@@ -183,7 +243,7 @@ const CREATE = { ...BASE, operation: 'create', bookingCustomerName: ' João ', b
 
 test('creating asks for Start and End; the customer name and phone are optional, and there is no e-mail, ID, price or client picker', () => {
 	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.resource[0] === 'bookingAppointments' && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
-	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingCustomerPhone', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen']);
+	assert.deepEqual(fields, ['bookingBusinessId', 'bookingCustomerName', 'bookingCustomerPhone', 'bookingStartsAt', 'bookingEndsAt', 'bookingServicesChosen', 'bookingStaff']);
 	const properties = new Nexo().description.properties;
 	assert.ok(!properties.some((field) => ['bookingClient', 'bookingCustomerEmail', 'bookingServiceId', 'bookingServiceName', 'bookingPrice', 'bookingNotes', 'bookingStaffId'].includes(field.name)));
 	assert.equal(new Nexo().methods.listSearch, undefined);

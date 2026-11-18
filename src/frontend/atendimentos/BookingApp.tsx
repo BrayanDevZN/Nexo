@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
-import { ArrowLeftRight, Building2, CalendarDays, ChevronRight, LogOut, Plus, Scissors, Settings2, UserRound, Users } from "lucide-react";
+import { ArrowLeftRight, Building2, CalendarDays, ChevronRight, LogOut, Plus, Scissors, Settings2, TrendingUp, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -20,14 +20,16 @@ import { useNTransition } from "./NTransition";
 import { Agenda } from "./Agenda";
 import { Auth } from "./Auth";
 import { BusinessForm } from "./BusinessForm";
+import { Performance } from "./Performance";
 import { Services } from "./Services";
 import { Team } from "./Team";
 import { can, createBookingApi, ROLE_LABELS, type BookingUser, type Business, type InvitationInfo } from "./api";
 
 const api = createBookingApi();
-type Page = "agenda" | "services" | "team" | "business" | "account";
+type Page = "agenda" | "services" | "team" | "performance" | "business" | "account";
 const PAGES: { id: Page; label: string; icon: typeof CalendarDays; group: "work" | "settings" }[] = [
   { id: "agenda", label: "Agenda", icon: CalendarDays, group: "work" }, { id: "services", label: "Serviços", icon: Scissors, group: "work" }, { id: "team", label: "Equipe", icon: Users, group: "work" },
+  { id: "performance", label: "Desempenho", icon: TrendingUp, group: "work" },
   { id: "business", label: "Negócio", icon: Settings2, group: "settings" }, { id: "account", label: "Conta", icon: UserRound, group: "settings" },
 ];
 const BUSINESS_KEY = "nexo:atendimentos:business";
@@ -197,6 +199,7 @@ function BookingScreens({ play }: { play: Play }) {
         <div key={page + ":" + business.id} className="bk-fade">
         {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
           : page === "services" ? <Services api={api} business={business} />
+          : page === "performance" ? <Performance api={api} business={business} />
           : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
           : page === "business" ? (can.editBusiness(business.my_role)
             ? <BusinessForm api={api} business={business} canDelete={can.deleteBusiness(business.my_role)} onSaved={saved => { setBusiness(saved); void loadBusinesses(); }} onDeleted={() => { pick(undefined); void loadBusinesses(); }} />

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
-import { asDate, dayKey, formatTime, STATUS_LABELS, type Appointment, type AppointmentStatus } from "./api";
+import { asDate, dayKey, formatTime, STATUS_LABELS, type Appointment, type AppointmentStatus, type BookingApi } from "./api";
+import { Picture } from "./Photo";
 import {
   dayLong, defaultPrefs, eventColor, HOUR_HEIGHT, placeEvents, sameDay, startOfDay, STATUS_COLORS, weekdayShort,
   type CalendarPrefs, type CalendarView, type Density,
@@ -13,7 +14,13 @@ import {
 type Handlers = { onEvent: (row: Appointment) => void; onSlot: (start: string) => void; onDay: (day: Date) => void };
 const pad = (n: number) => String(n).padStart(2, "0");
 const hourLabel = (hour: number) => pad(hour) + ":00";
-const title = (row: Appointment) => `${formatTime(row.starts_at)} – ${formatTime(row.ends_at)} · ${row.customer_name} · ${row.service_name} · ${STATUS_LABELS[row.status]}`;
+const title = (row: Appointment) => `${formatTime(row.starts_at)} – ${formatTime(row.ends_at)} · ${row.customer_name} · ${row.service_name} · ${STATUS_LABELS[row.status]}${row.staff_name ? " · Atende: " + row.staff_name : ""}${row.created_by_name ? " · Marcado por " + row.created_by_name : ""}`;
+
+/** Who booked the appointment, as their photo (or initials). Nothing is drawn when nobody is recorded: it is optional. */
+export function Booker({ api, row, className = "size-4" }: { api: BookingApi; row: Appointment; className?: string }) {
+  if (!row.created_by_id || !row.created_by_name) return null;
+  return <Picture shared api={api} path={"/auth/profile/photo?user_id=" + encodeURIComponent(row.created_by_id)} name={row.created_by_name} hasPhoto={!!row.created_by_has_photo} className={className} />;
+}
 const byDay = (rows: Appointment[]) => {
   const map = new Map<string, Appointment[]>();
   for (const row of rows) { const key = dayKey(asDate(row.starts_at)); map.set(key, [...(map.get(key) || []), row]); }
@@ -21,18 +28,19 @@ const byDay = (rows: Appointment[]) => {
 };
 
 /** One appointment as a coloured block, the way Google Calendar draws events. */
-function Event({ row, prefs, onEvent, style, compact }: { row: Appointment; prefs: CalendarPrefs; onEvent: Handlers["onEvent"]; style?: React.CSSProperties; compact?: boolean }) {
+function Event({ api, row, prefs, onEvent, style, compact }: { api: BookingApi; row: Appointment; prefs: CalendarPrefs; onEvent: Handlers["onEvent"]; style?: React.CSSProperties; compact?: boolean }) {
   const color = eventColor(row, prefs);
   const closed = row.status === "cancelled" || row.status === "no_show";
   return <button type="button" className="bk-event" data-closed={closed || undefined} data-status={row.status} data-compact={compact || undefined} title={title(row)} aria-label={title(row)}
     style={{ ...style, "--ev": color } as React.CSSProperties} onClick={event => { event.stopPropagation(); onEvent(row); }}>
     <strong>{row.customer_name}</strong>
     <span>{formatTime(row.starts_at)} · {row.service_name}</span>
+    {row.created_by_name && <i className="bk-by" aria-hidden="true"><Booker api={api} row={row} /></i>}
   </button>;
 }
 
 /** Day and week: hours down the side, one column per day, events placed by time. Click an empty spot to book it. */
-function TimeGrid({ days, rows, prefs, handlers }: { days: Date[]; rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
+function TimeGrid({ api, days, rows, prefs, handlers }: { api: BookingApi; days: Date[]; rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
   const grouped = useMemo(() => byDay(rows), [rows]);
   // Never hide an appointment: widen the visible hours to include every one that was loaded.
   const [start, end] = useMemo(() => {
@@ -77,7 +85,7 @@ function TimeGrid({ days, rows, prefs, handlers }: { days: Date[]; rows: Appoint
           const placed = placeEvents(grouped.get(dayKey(day)) || [], start * 60);
           const isToday = sameDay(day, today);
           return <div className="bk-tg-col" key={day.getTime()} data-today={isToday || undefined} onClick={event => pick(day, event)}>
-            {placed.map(({ row, top, height, column, columns }) => <Event key={row.id} row={row} prefs={prefs} onEvent={handlers.onEvent} compact={height / 60 * hourHeight < 38}
+            {placed.map(({ row, top, height, column, columns }) => <Event key={row.id} api={api} row={row} prefs={prefs} onEvent={handlers.onEvent} compact={height / 60 * hourHeight < 38}
               style={{ top: top / 60 * hourHeight, height: Math.max(18, height / 60 * hourHeight - 2), left: `calc(${column / columns * 100}% + 1px)`, width: `calc(${100 / columns}% - 3px)` }} />)}
             {isToday && nowTop >= 0 && nowTop <= hours.length * hourHeight && <div className="bk-now" style={{ top: nowTop }} aria-hidden="true" />}
           </div>;
@@ -113,7 +121,7 @@ function MonthGrid({ days, anchor, rows, prefs, handlers }: { days: Date[]; anch
 }
 
 /** The schedule list: upcoming appointments grouped by day. */
-function ListView({ rows, prefs, handlers }: { rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
+function ListView({ api, rows, prefs, handlers }: { api: BookingApi; rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
   const groups = useMemo(() => [...byDay(rows)].sort(([a], [b]) => a.localeCompare(b)), [rows]);
   return <div className="bk-sched">
     {groups.map(([key, list]) => {
@@ -123,7 +131,8 @@ function ListView({ rows, prefs, handlers }: { rows: Appointment[]; prefs: Calen
         <div className="bk-sched-rows">{list.sort((a, b) => a.starts_at.localeCompare(b.starts_at)).map(row => <button type="button" className="bk-sched-row" key={row.id} data-closed={row.status === "cancelled" || row.status === "no_show" || undefined}
           style={{ "--ev": eventColor(row, prefs) } as React.CSSProperties} onClick={() => handlers.onEvent(row)}>
           <i aria-hidden="true" /><time>{formatTime(row.starts_at)} – {formatTime(row.ends_at)}</time>
-          <span><strong>{row.customer_name}</strong> · {row.service_name}{row.staff_name ? " · " + row.staff_name : ""}</span>
+          <span><strong>{row.customer_name}</strong> · {row.service_name}{row.staff_name ? " · Atende: " + row.staff_name : ""}</span>
+          <b className="bk-by-line">{row.created_by_name ? <><Booker api={api} row={row} className="size-5" />{row.created_by_name.split(" ")[0]}</> : null}</b>
           <em>{STATUS_LABELS[row.status]}</em>
         </button>)}</div>
       </section>;
@@ -131,11 +140,11 @@ function ListView({ rows, prefs, handlers }: { rows: Appointment[]; prefs: Calen
   </div>;
 }
 
-export function CalendarView({ view, days, anchor, rows, prefs, handlers }: { view: CalendarView; days: Date[]; anchor: Date; rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
+export function CalendarView({ api, view, days, anchor, rows, prefs, handlers }: { api: BookingApi; view: CalendarView; days: Date[]; anchor: Date; rows: Appointment[]; prefs: CalendarPrefs; handlers: Handlers }) {
   const visible = prefs.showCancelled ? rows : rows.filter(row => row.status !== "cancelled" && row.status !== "no_show");
   if (view === "month") return <MonthGrid days={days} anchor={anchor} rows={visible} prefs={prefs} handlers={handlers} />;
-  if (view === "list") return <ListView rows={visible} prefs={prefs} handlers={handlers} />;
-  return <TimeGrid days={days} rows={visible} prefs={prefs} handlers={handlers} />;
+  if (view === "list") return <ListView api={api} rows={visible} prefs={prefs} handlers={handlers} />;
+  return <TimeGrid api={api} days={days} rows={visible} prefs={prefs} handlers={handlers} />;
 }
 
 /** Colour key for the current "colour by" choice, like the legend under Google Calendar's sidebar. */

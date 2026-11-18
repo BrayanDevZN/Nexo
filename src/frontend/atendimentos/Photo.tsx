@@ -30,18 +30,30 @@ export async function preparePhoto(file: File): Promise<File> {
   return new File([blob], "foto.jpg", { type: "image/jpeg" });
 }
 
-/** A private photo (served only to signed-in teammates) fetched as a blob and shown in an Avatar, with initials behind. */
-export function Picture({ api, path, name, version = 0, hasPhoto, className }: {
-  api: BookingApi; path: string; name: string; version?: number; hasPhoto: boolean; className?: string;
+const shared = new Map<string, Promise<string>>();
+
+/**
+ * A private photo (served only to signed-in teammates) fetched as a blob and shown in an Avatar, with initials behind.
+ * `shared` keeps one fetched copy per photo for the whole session, for places that repeat the same person (the calendar).
+ */
+export function Picture({ api, path, name, version = 0, hasPhoto, className, shared: reuse = false }: {
+  api: BookingApi; path: string; name: string; version?: number; hasPhoto: boolean; className?: string; shared?: boolean;
 }) {
   const [source, setSource] = useState("");
   useEffect(() => {
     if (!hasPhoto) { setSource(""); return; }
     let active = true;
     let url = "";
+    if (reuse) {
+      const key = path + "#" + version;
+      let pending = shared.get(key);
+      if (!pending) { pending = api.file(path).then(blob => URL.createObjectURL(blob)); shared.set(key, pending); pending.catch(() => shared.delete(key)); }
+      pending.then(value => { if (active) setSource(value); }).catch(() => { if (active) setSource(""); });
+      return () => { active = false; };
+    }
     api.file(path).then(blob => { if (!active) return; url = URL.createObjectURL(blob); setSource(url); }).catch(() => { if (active) setSource(""); });
     return () => { active = false; if (url) URL.revokeObjectURL(url); };
-  }, [api, path, hasPhoto, version]);
+  }, [api, path, hasPhoto, version, reuse]);
   return <Avatar className={className}>
     {source && <AvatarImage src={source} alt={"Foto de " + name} />}
     <AvatarFallback>{initials(name) || "?"}</AvatarFallback>

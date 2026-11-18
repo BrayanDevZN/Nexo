@@ -300,9 +300,64 @@ class SchedulingService:
 
     @staticmethod
     def _with_people(repos, rows):
-        people = repos.booking_users.summaries_by_ids(row["staff_user_id"] for row in rows)
-        return [{**row, "staff_name": people.get(row["staff_user_id"], {}).get("name") if row["staff_user_id"] else None}
+        """Name and photo marker of who attends and who booked; both are optional, an appointment may have neither."""
+        people = repos.booking_users.summaries_by_ids([row["staff_user_id"] for row in rows] + [row["created_by_id"] for row in rows])
+
+        def who(user_id):
+            return people.get(user_id, {}) if user_id else {}
+        return [{**row,
+                 "staff_name": who(row["staff_user_id"]).get("name"), "staff_has_photo": bool(who(row["staff_user_id"]).get("has_photo")),
+                 "created_by_name": who(row["created_by_id"]).get("name"), "created_by_has_photo": bool(who(row["created_by_id"]).get("has_photo"))}
                 for row in rows]
+
+    def performance(self, actor, business_id, *, period=None, date=None, starts_from=None, starts_until=None,
+                    week_starts="sunday"):
+        """What each person did in a period: appointments attended by status, revenue of the finished ones, and how many they booked."""
+        if period and (starts_from or starts_until):
+            raise ValueError("Use either a period or starts_from/starts_until, not both")
+        if date and period not in ANCHORED_PERIODS:
+            raise ValueError("date only applies to the day, week and month periods")
+        starts_from = to_utc(starts_from) if starts_from else None
+        starts_until = to_utc(starts_until) if starts_until else None
+        with self.repositories.read_transaction() as repos:
+            self._member(repos, actor, business_id)
+            if period:
+                business = repos.businesses.get(business_id)
+                starts_from, starts_until = period_range(period, anchor=date, timezone=business.timezone,
+                                                         week_starts=week_starts)
+            query = {"operation": "performance", "from": starts_from.isoformat() if starts_from else None,
+                     "until": starts_until.isoformat() if starts_until else None}
+
+            def load():
+                members = [snapshot("business_members", row) for row in repos.businesses.members(business_id)]
+                handled, created = repos.appointments.performance(business_id, starts_from=starts_from, starts_until=starts_until)
+                ids = [m["user_id"] for m in members] + [uid for uid, *_ in handled if uid] + [uid for uid, _ in created if uid]
+                people = repos.booking_users.summaries_by_ids(ids)
+                roles = {m["user_id"]: m["role"] for m in members}
+                rows = {}
+
+                def row(user_id):
+                    if user_id not in rows:
+                        info = people.get(user_id, {}) if user_id else {}
+                        name = info.get("name") or ("Conta removida" if user_id else "Sem responsável")
+                        rows[user_id] = {"user_id": user_id, "name": name, "role": roles.get(user_id), "has_photo": bool(info.get("has_photo")),
+                                         "total": 0, "active": 0, "done": 0, "cancelled": 0, "no_show": 0, "revenue": 0.0, "created": 0}
+                    return rows[user_id]
+                for member in members:
+                    row(member["user_id"])
+                for user_id, status, count, revenue in handled:
+                    item = row(user_id)
+                    item["total"] += int(count)
+                    item["active" if status in ACTIVE_STATUSES else status] += int(count)
+                    if status == "done":
+                        item["revenue"] += float(revenue or 0)
+                for user_id, count in created:
+                    if user_id:
+                        row(user_id)["created"] += int(count)
+                ordered = sorted(rows.values(), key=lambda r: (-r["done"], -r["total"], r["name"].lower()))
+                return {"starts_from": starts_from.isoformat() if starts_from else None, "starts_until": starts_until.isoformat() if starts_until else None, "total": sum(r["total"] for r in ordered),
+                        "done": sum(r["done"] for r in ordered), "revenue": round(sum(r["revenue"] for r in ordered), 2), "rows": ordered}
+            return self.cache.read(self._scoped("appointments", business_id), query, load)
 
     def list_appointments(self, actor, business_id, *, starts_from=None, starts_until=None, status=None,
                           staff_user_id=None, customer=None, limit=50, offset=0, period=None, date=None,

@@ -42,8 +42,8 @@ html.booking-theme body {
   font-family: var(--bk-font); font-size: 14px; line-height: 1.5; color: var(--bk-ink); min-height: 100dvh;
   background: var(--bk-frame); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
-/* Nothing performs an entrance here: only quick feedback on controls. The spinner and the sign-in veil keep their motion. */
-html.booking-theme *:not([data-slot="spinner"]):not(.bk-n, .bk-n *, .bk-pop, .bk-fade):not(.animate-spin), html.booking-theme *::before, html.booking-theme *::after { animation: none !important; }
+/* Nothing performs an entrance here: quick feedback on controls and the slow ambient drift below. The spinner and the sign-in veil keep their motion. */
+html.booking-theme *:not([data-slot="spinner"]):not(.bk-n, .bk-n *, .bk-pop, .bk-fade):not(.animate-spin), html.booking-theme *:not(body)::before, html.booking-theme *::after { animation: none !important; }
 html.booking-theme :is(button, a, input, select, textarea, [role="button"], [data-slot="sidebar-menu-button"]) { transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease; }
 html.booking-theme h1, html.booking-theme h2, html.booking-theme h3 { font-family: var(--bk-font); color: var(--bk-ink); text-transform: none; }
 html.booking-theme h1 { font-size: 1.375rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.015em; }
@@ -406,3 +406,73 @@ html.booking-theme .bk-swatch input { position: absolute; inset: 0; width: 100%;
 .bk-member-actions [data-slot="native-select"], .bk-member-actions select { min-height: 32px; width: 9.5rem; font-size: 0.8125rem; }
 .bk-member-actions [data-slot="native-select-wrapper"] { width: 9.5rem; }
 @media (max-width: 599px) { .bk-item:has(.bk-member-actions) { flex-wrap: wrap; } .bk-member-actions { width: 100%; justify-content: space-between; } .bk-member-actions [data-slot="native-select-wrapper"] { flex: 1; width: auto; } }
+
+/* ---- ambient background and soft shading ---- */
+/* Three large soft lights drift very slowly behind the app (one transformed layer, no blur filter, so a weak phone copes).
+   The sidebar, the top bar and the sign-in form are transparent so the light shows through; the sheet is nearly opaque. */
+html.booking-theme body::before {
+  content: ""; position: fixed; inset: -20vmax; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38vmax 30vmax at 12% 18%, rgb(109 40 217 / 0.11), transparent 70%),
+    radial-gradient(34vmax 28vmax at 88% 84%, rgb(56 130 246 / 0.09), transparent 70%),
+    radial-gradient(26vmax 22vmax at 72% 10%, rgb(236 72 153 / 0.06), transparent 70%);
+  animation: bk-drift 40s ease-in-out infinite alternate; will-change: transform;
+}
+@keyframes bk-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(4vmax, -3vmax, 0) scale(1.08); } }
+html[data-perf="lite"].booking-theme body::before, html[data-reduce-motion="true"].booking-theme body::before { animation: none; }
+html.booking-theme .bk-shell { background: transparent !important; }
+html.booking-theme [data-sidebar="sidebar"], html.booking-theme [data-slot="sidebar-inner"], .bk-header { background: transparent; }
+.bk-sheet { background: rgb(255 255 255 / 0.9); box-shadow: 0 1px 2px rgb(23 21 31 / 0.05), 0 22px 48px -22px rgb(76 29 149 / 0.22); }
+.bk-auth { background: transparent; }
+.bk-auth-aside { background: rgb(245 245 248 / 0.55); }
+.bk-picker-sheet { box-shadow: 0 1px 2px rgb(23 21 31 / 0.05), 0 22px 48px -22px rgb(76 29 149 / 0.22); }
+html.booking-theme [data-slot="card"], .bk-kpis, .bk-list, .bk-businesses, .bk-grid-scroll, .bk-month, .bk-perf { box-shadow: 0 1px 2px rgb(23 21 31 / 0.04), 0 10px 24px -14px rgb(76 29 149 / 0.2); }
+.bk-peek { box-shadow: 0 1px 2px rgb(23 21 31 / 0.05), 0 24px 50px -24px rgb(76 29 149 / 0.28); }
+html.booking-theme .bk-event { box-shadow: 0 1px 2px rgb(23 21 31 / 0.08); }
+html.booking-theme .bk-event:hover { box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--ev) 55%, transparent); transform: translateY(-1px); }
+html.booking-theme [data-slot="button"][data-variant="default"]:not(:disabled):not([aria-disabled="true"]) { box-shadow: 0 1px 2px rgb(23 21 31 / 0.3), 0 8px 16px -8px rgb(23 21 31 / 0.5); }
+html.booking-theme [data-slot="button"][data-variant="outline"]:not(:disabled):not([aria-disabled="true"]) { box-shadow: 0 1px 2px rgb(23 21 31 / 0.05); }
+html.booking-theme [data-slot="sidebar-menu-button"][data-active="true"] { box-shadow: 0 1px 2px rgb(23 21 31 / 0.08) !important; background: #fff; }
+button.bk-item:hover:not(:disabled) { background: rgb(109 40 217 / 0.04); }
+
+/* ---- who booked, who attends ---- */
+.bk-by { position: absolute; top: 3px; right: 3px; display: block; line-height: 0; }
+.bk-by [data-slot="avatar"] { border: 1px solid #fff; }
+.bk-by [data-slot="avatar-fallback"] { font-size: 0.5rem; }
+.bk-event strong { padding-right: 1.25rem; }
+.bk-by-line { display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 400; font-size: 0.75rem; color: var(--bk-muted); min-width: 0; }
+.bk-by-line [data-slot="avatar-fallback"] { font-size: 0.5625rem; }
+.bk-sched-row { grid-template-columns: 3px 9.5rem 1fr auto auto; }
+@media (max-width: 699px) { .bk-sched-row { grid-template-columns: 3px 1fr; } .bk-sched-row .bk-by-line { grid-column: 2; } }
+.bk-who { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; padding: 0.75rem 0.875rem; background: var(--bk-fill); border-radius: 0.625rem; }
+.bk-who > div { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+.bk-who p { margin: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.bk-who span { font-size: 0.75rem; color: var(--bk-muted); }
+.bk-who strong { font-size: 0.875rem; font-weight: 500; }
+.bk-who small { font-size: 0.75rem; color: var(--bk-muted); }
+
+/* ---- performance ---- */
+.bk-perf { border: 1px solid var(--bk-edge); border-radius: 0.75rem; overflow-x: auto; background: var(--bk-sheet); }
+.bk-perf table { min-width: 44rem; }
+html.booking-theme .bk-perf [data-slot="table-head"] { height: 2.5rem; font-size: 0.8125rem; font-weight: 500; color: var(--bk-muted); white-space: nowrap; }
+html.booking-theme .bk-perf [data-slot="table-row"] { border-color: var(--bk-rule); }
+html.booking-theme .bk-perf [data-slot="table-row"]:hover { background: #fafafc; }
+.bk-perf tr[data-idle] { opacity: 0.55; }
+.bk-person { display: flex; align-items: center; gap: 0.75rem; min-width: 11rem; }
+.bk-person > div { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.bk-person strong { font-weight: 500; font-size: 0.9375rem; }
+.bk-person span { font-size: 0.8125rem; color: var(--bk-muted); }
+.bk-person-none { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px dashed var(--bk-control); color: var(--bk-muted); }
+.bk-num { font-variant-numeric: tabular-nums; }
+.bk-num small { display: block; font-size: 0.75rem; color: var(--bk-muted); }
+.bk-bar { display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.625rem; width: 100%; font-variant-numeric: tabular-nums; }
+.bk-bar > i { display: block; flex: 0 0 7rem; height: 6px; border-radius: 3px; background: var(--bk-fill); overflow: hidden; }
+.bk-bar > i > u { display: block; height: 100%; text-decoration: none; background: color-mix(in srgb, var(--bk-accent) 28%, #fff); border-radius: 3px; overflow: hidden; }
+.bk-bar > i > u > b { display: block; height: 100%; background: var(--bk-accent); }
+.bk-bar > span { min-width: 1.5rem; text-align: right; }
+.bk-head [data-slot="toggle-group"] { display: flex; flex-direction: row; flex-wrap: wrap; width: auto; }
+.bk-by [data-slot="avatar"] { width: 1.125rem; height: 1.125rem; }
+.bk-by [data-slot="avatar-fallback"] { font-size: 0.5625rem; }
+.bk-event strong { padding-right: 1.25rem; }
+/* The phone's menu is a drawer over the page: it keeps a solid ground. */
+html.booking-theme [data-sidebar="sidebar"][data-mobile="true"], html.booking-theme [data-mobile="true"] [data-slot="sidebar-inner"], html.booking-theme [data-mobile="true"][data-slot="sheet-content"] { background: var(--bk-frame); }

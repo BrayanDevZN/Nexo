@@ -40,7 +40,9 @@ Se a chave não tiver permissão, o node mostra o motivo em vez do genérico "Fo
 | Avisos administrativos | Criar aviso |
 | Atendimentos: negócios | Get Many; Get; resumo da agenda; listar equipe |
 | Atendimentos: serviços | Get Many (opcionalmente só os ativos) |
-| Atendimentos: agendamentos | Get Many por período; Get; criar; atualizar (remarcar, mudar a situação); excluir |
+| Atendimentos: agendamentos | Get Many por período (e, se quiser, por funcionário); Get; criar; atualizar (remarcar, mudar a situação, trocar o funcionário); excluir (e, se quiser, só se for do funcionário escolhido) |
+
+O campo **Funcionário** de criar, atualizar, Get Many e excluir é **opcional**: abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. Deixando vazio, nada sobre funcionário é enviado ou conferido. Ao atualizar, **Remover funcionário** tira quem estava atendendo. Com a IA, vale o ID, o nome ou o e-mail da pessoa.
 | Maps | Criar busca; Get Many; Get (status); baixar resultados; excluir busca |
 
 ### Buscar agendamentos por período

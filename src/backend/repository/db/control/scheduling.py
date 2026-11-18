@@ -407,3 +407,20 @@ class AppointmentRepository(Repository[Appointment]):
         return {"today": int(totals[0] or 0), "next_7_days": int(totals[1] or 0), "upcoming": int(totals[2] or 0),
                 "finished": int(totals[3] or 0),
                 "by_status": {status: by_status.get(status, 0) for status in APPOINTMENT_STATUSES}}
+
+    def performance(self, business_id: str, *, starts_from: datetime | None = None,
+                    starts_until: datetime | None = None) -> tuple[list[tuple], list[tuple]]:
+        """Counts per professional (staff_user_id, status, count, revenue) and per creator (created_by_id, count)."""
+        def scoped(query):
+            query = query.where(Appointment.business_id == business_id)
+            if starts_from is not None:
+                query = query.where(Appointment.starts_at >= starts_from)
+            if starts_until is not None:
+                query = query.where(Appointment.starts_at < starts_until)
+            return query
+        handled = self.session.execute(scoped(select(
+            Appointment.staff_user_id, Appointment.status, func.count(Appointment.id),
+            func.coalesce(func.sum(Appointment.price), 0)).group_by(Appointment.staff_user_id, Appointment.status))).all()
+        created = self.session.execute(scoped(select(
+            Appointment.created_by_id, func.count(Appointment.id)).group_by(Appointment.created_by_id))).all()
+        return [tuple(row) for row in handled], [tuple(row) for row in created]

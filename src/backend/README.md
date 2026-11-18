@@ -315,6 +315,9 @@ lista "meus negócios" junta as duas tabelas. Autorização e vínculo com o neg
 | GET /atendimentos/invitations/{token}; POST .../accept | ver o convite sem sessão; aceitar com sessão e CSRF |
 | GET/POST /atendimentos/businesses/{id}/services; PATCH/DELETE .../services/{id} | serviços com duração (5 min a 24 h), preço e `active`; excluir mantém o nome nos agendamentos |
 | GET/POST /atendimentos/businesses/{id}/appointments; GET/PATCH/DELETE .../appointments/{id} | agenda: `service_id` preenche nome, fim e preço, ou `service_name` + `ends_at`; filtros `starts_from`, `starts_until`, `status`, `staff_user_id`, `customer`, paginação; `staff_user_id` precisa ser membro e não pode ter outro agendamento ativo no mesmo período (409) |
+| GET /atendimentos/businesses/{id}/performance | desempenho por pessoa num período (`period` week/month/…, com `date`, ou `starts_from`/`starts_until`; sem nada, tudo): por quem atende, atendimentos, ativos, concluídos, faltas, cancelados e receita dos concluídos, mais quantos cada um marcou; inclui toda a equipe, mesmo com zeros, e a linha "Sem responsável" (`user_id` nulo) |
+
+Quem atende (`staff_user_id`) é sempre opcional, e quem marcou (`created_by_id`) também; a resposta traz `staff_name`, `created_by_name` e os marcadores `staff_has_photo`/`created_by_has_photo` (a foto vem de `GET /atendimentos/auth/profile/photo?user_id=`). Sem funcionário, o agendamento é aceito do mesmo jeito.
 
 Horários são gravados em UTC sem fuso; entradas com fuso são convertidas e entradas sem fuso são lidas como UTC.
 Status: `scheduled`, `confirmed`, `done`, `cancelled`, `no_show`; só os dois primeiros ocupam a agenda. A página pública

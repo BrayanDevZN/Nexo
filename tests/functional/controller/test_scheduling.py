@@ -470,3 +470,35 @@ def test_appointments_can_be_searched_with_a_start_and_an_end_like_google_calend
     assert names(ends_after="2026-11-16T17:30:00Z") == ["Depois"]          # only a start: from then on
     assert names(starts_until="2026-11-16T11:00:00Z") == ["Antes"]         # only an end: until then
     assert names(ends_after="2026-11-16T12:00:00Z", starts_from="2026-11-16T13:00:00Z", starts_until="2026-11-16T15:00:00Z") == ["Dentro"]
+
+
+def test_appointments_show_who_booked_and_the_performance_of_each_person_with_everything_optional(client):
+    register(client, ANA)
+    headers = login(client, ANA)
+    business = create_business(client, headers)
+    path = "/atendimentos/businesses/" + business["id"]
+    corte = client.post(path + "/services", headers=headers, json={"name": "Corte", "duration_minutes": 30, "price": "50.00"}).json()
+    me = client.get("/atendimentos/auth/me").json()
+    appointments = path + "/appointments"
+    # The professional is optional: with and without one, the appointment is accepted and says who booked it.
+    attended = client.post(appointments, headers=headers, json={"customer_name": "João", "service_id": corte["id"],
+                                                                 "staff_user_id": me["id"], "starts_at": "2026-12-01T13:00:00Z"}).json()
+    loose = client.post(appointments, headers=headers, json={"customer_name": "Pedro", "service_id": corte["id"],
+                                                              "starts_at": "2026-12-01T15:00:00Z"}).json()
+    assert attended["created_by_id"] == me["id"] and attended["created_by_name"] == "Ana" and attended["created_by_has_photo"] is False
+    assert attended["staff_name"] == "Ana" and loose["staff_user_id"] is None and loose["staff_name"] is None
+    assert loose["created_by_name"] == "Ana"
+    client.patch(appointments + "/" + attended["id"], headers=headers, json={"status": "done"})
+    client.patch(appointments + "/" + loose["id"], headers=headers, json={"status": "no_show"})
+
+    report = client.get(path + "/performance", params={"starts_from": "2026-12-01T00:00:00Z", "starts_until": "2026-12-02T00:00:00Z"})
+    assert report.status_code == 200, report.text
+    data = report.json()
+    assert data["total"] == 2 and data["done"] == 1 and data["revenue"] == 50.0
+    by_name = {row["name"]: row for row in data["rows"]}
+    assert by_name["Ana"]["total"] == 1 and by_name["Ana"]["done"] == 1 and by_name["Ana"]["created"] == 2 and by_name["Ana"]["revenue"] == 50.0
+    assert by_name["Sem responsável"]["user_id"] is None and by_name["Sem responsável"]["no_show"] == 1
+    # A period outside the data is all zeros but still lists the team.
+    empty = client.get(path + "/performance", params={"starts_from": "2027-01-01T00:00:00Z", "starts_until": "2027-02-01T00:00:00Z"}).json()
+    assert empty["total"] == 0 and [row["name"] for row in empty["rows"]] == ["Ana"]
+    assert client.get(path + "/performance", params={"period": "month", "starts_from": "2026-12-01T00:00:00Z"}).status_code == 422

@@ -20,6 +20,7 @@ from backend.controller.schema.scheduling import (
     MemberOutput,
     MemberRoleInput,
     OverviewOutput,
+    PerformanceOutput,
     ServiceCreate,
     ServiceOutput,
     ServicePatch,
@@ -249,6 +250,19 @@ def list_appointments(business_id: str, request: Request, starts_from: datetime 
                                                   status=status, staff_user_id=staff_user_id, customer=customer,
                                                   limit=limit, offset=offset, period=period, date=date,
                                                   week_starts=week_starts, ends_after=ends_after)
+    except ERRORS as exc:
+        raise fail(exc) from None
+
+
+@router.get("/businesses/{business_id}/performance", response_model=PerformanceOutput)
+def performance(business_id: str, request: Request, starts_from: datetime | None = None,
+                starts_until: datetime | None = None,
+                period: Period | None = Query(default=None, description="today, tomorrow, day, week, month, next_7_days, next_30_days or upcoming, in the business's time zone"),
+                date: Date | None = Query(default=None, description="Anchor of day, week and month (default: today)"),
+                week_starts: Literal["sunday", "monday"] = "sunday", actor=Depends(booking_user)):
+    try:
+        return service(request).performance(actor, business_id, period=period, date=date, starts_from=starts_from,
+                                            starts_until=starts_until, week_starts=week_starts)
     except ERRORS as exc:
         raise fail(exc) from None
 

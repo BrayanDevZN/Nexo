@@ -30,11 +30,11 @@ const bookingToolDescriptions = {
 		create: 'Criar um serviço no negócio: nome, duração em minutos e, se quiser, preço e descrição.',
 	},
 	bookingAppointments: {
-		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show).',
+		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show) e, se quiser, por funcionário.',
 		get: 'Consultar um agendamento pelo ID.',
-		create: 'Marcar um atendimento: informe o nome do cliente, o Start, o End e, se quiser, um ou mais serviços do negócio.',
-		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, ou mudar a situação (confirmar, concluir, cancelar, faltou).',
-		delete: 'Apagar um agendamento.',
+		create: 'Marcar um atendimento: informe o nome do cliente, o Start, o End e, se quiser, um ou mais serviços do negócio e o funcionário que vai atender (opcional).',
+		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, trocar o funcionário (opcional) ou mudar a situação (confirmar, concluir, cancelar, faltou).',
+		delete: 'Apagar um agendamento. Se informar o funcionário, só apaga se o agendamento for dele.',
 	},
 };
 
@@ -78,6 +78,10 @@ add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { required: true, description: `Quando o atendimento termina (depois do Start). ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Vazio: não altera. ${WINDOW}` });
 add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes e a soma dos preços. Ao atualizar, vazio não altera. Com a IA (✨), informe os IDs dos serviços separados por vírgula (veja em Atendimentos: serviços > Get Many).' });
+// The employee is always optional: leave it empty and nothing about the employee is sent or checked.
+add('Funcionário', 'bookingStaff', 'options', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId', 'bookingStartsAt', 'bookingEndsAt'] }, description: 'Opcional. Quem vai atender. Abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. Vazio: sem funcionário (ao atualizar, não altera; escolha "Remover funcionário" para tirar). Com a IA (✨), informe o ID, o nome ou o e-mail da pessoa (veja em Negócios > Listar equipe).' });
+add('Funcionário', 'bookingStaffFilter', 'options', '', 'bookingAppointments', ['getMany'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Opcional. Só os agendamentos deste funcionário. Vazio: de todos.' });
+add('Só se for do funcionário', 'bookingStaffGuard', 'options', '', 'bookingAppointments', ['delete'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Opcional. Só exclui se o agendamento for deste funcionário; se for de outra pessoa, nada é apagado. Vazio: exclui sem conferir.' });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS], description: 'Nova situação: scheduled, confirmed, done, cancelled ou no_show. Vazio: não altera.' });
 
 // Time ----------------------------------------------------------------------------------------------------
@@ -150,6 +154,37 @@ const loadOptions = {
 		const rows = await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url: `atendimentos/businesses/${encodeURIComponent(business)}/services`, qs: { active: true }, json: true, timeout: 30000 }).catch((error) => { throw explain(error); });
 		return (Array.isArray(rows) ? rows : []).map((row) => ({ name: row.name, value: row.id, description: `${row.duration_minutes} min${row.price !== null && row.price !== undefined ? ` · R$ ${Number(row.price).toFixed(2).replace('.', ',')}` : ''}` }));
 	},
+	/** The team of the chosen business, for "Funcionário". With a Start and an End filled in, who is busy then is said in the name. */
+	async getBookingStaff() {
+		const business = clean(this.getCurrentNodeParameter('bookingBusinessId', { extractValue: true }));
+		const none = [{ name: 'Nenhum (opcional)', value: '' }];
+		if (!business) return none;
+		const credentials = await this.getCredentials(CREDENTIAL);
+		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+		const get = (url, qs) => this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL, { method: 'GET', baseURL: `${baseUrl}/`, url, qs, json: true, timeout: 30000 }).catch((error) => { throw explain(error); });
+		const id = encodeURIComponent(business);
+		const members = await get(`atendimentos/businesses/${id}/members`);
+		const busy = new Set();
+		try {
+			const startText = clean(this.getCurrentNodeParameter('bookingStartsAt'));
+			const endText = clean(this.getCurrentNodeParameter('bookingEndsAt'));
+			if (startText && endText) {
+				const zone = HAS_OFFSET.test(startText) && HAS_OFFSET.test(endText) ? null : (await get(`atendimentos/businesses/${id}`))?.timezone || 'America/Sao_Paulo';
+				const from = instant(startText, HAS_OFFSET.test(startText) ? null : zone, 'o Start');
+				const until = instant(endText, HAS_OFFSET.test(endText) ? null : zone, 'o End');
+				let own;
+				try { own = clean(this.getCurrentNodeParameter('bookingAppointmentId')); } catch { own = undefined; }
+				const taken = await get(`atendimentos/businesses/${id}/appointments`, { ends_after: from, starts_until: until, limit: 100 });
+				for (const row of Array.isArray(taken) ? taken : []) if (row.staff_user_id && row.id !== own && (row.status === 'scheduled' || row.status === 'confirmed')) busy.add(row.staff_user_id);
+			}
+		} catch { /* without the schedule the whole team is listed, as free */ }
+		const roles = { owner: 'Dono', manager: 'Gerente', staff: 'Atendente', viewer: 'Só leitura' };
+		const people = (Array.isArray(members) ? members : []).map((row) => ({ name: `${row.name || row.email || 'Conta removida'}${busy.has(row.user_id) ? ' (ocupado neste horário)' : ''}`, value: row.user_id, description: `${roles[row.role] || row.role}${row.email ? ` · ${row.email}` : ''}`, busy: busy.has(row.user_id) }))
+			.sort((a, b) => Number(a.busy) - Number(b.busy)).map(({ busy: _busy, ...option }) => option);
+		let operation = '';
+		try { operation = this.getCurrentNodeParameter('operation'); } catch { /* not asked in this context */ }
+		return [...none, ...(operation === 'update' ? [{ name: 'Remover funcionário', value: '__none__' }] : []), ...people];
+	},
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -178,6 +213,16 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	const when = async (value, label) => { const text = String(value ?? '').trim(); return instant(text, text && !HAS_OFFSET.test(text) ? await zone() : null, label); };
 	const base = (suffix = '') => `atendimentos/businesses/${businessId()}${suffix}`;
 	const rows = (value) => (Array.isArray(value) ? value : value === undefined || value === null ? [] : [value]);
+	// The employee is optional everywhere: empty is undefined. From the list it is an ID; from the AI it may be a name or an e-mail.
+	const staff = async (value) => {
+		const text = clean(value);
+		if (text === undefined) return undefined;
+		if (text === '__none__') return null;
+		const team = rows(await call({ method: 'GET', url: base('/members') }));
+		const hit = team.find((member) => member.user_id === text) || team.find((member) => [member.name, member.email].some((field) => field && String(field).trim().toLowerCase() === text.toLowerCase()));
+		if (!hit) throw new Error(`Funcionário não encontrado neste negócio: ${text}. Equipe: ${team.map((member) => `${member.name || member.email} (${member.user_id})`).join('; ') || 'ninguém ainda'}.`);
+		return hit.user_id;
+	};
 
 	if (resource === 'bookingBusinesses') {
 		if (operation === 'getMany') return rows(await call({ method: 'GET', url: 'atendimentos/businesses' }));
@@ -206,6 +251,11 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	if (operation === 'delete') {
 		const id = String(param('bookingAppointmentId')).trim();
 		if (!id) throw new Error('Informe o ID do agendamento.');
+		const guard = await staff(param('bookingStaffGuard'));
+		if (guard) {
+			const current = await call({ method: 'GET', url: base('/appointments/' + encodeURIComponent(id)) });
+			if (current?.staff_user_id !== guard) throw new Error(`Este agendamento não é do funcionário escolhido${current?.staff_name ? ` (é de ${current.staff_name})` : ' (não tem funcionário)'}: nada foi apagado.`);
+		}
 		await call({ method: 'DELETE', url: base('/appointments/' + encodeURIComponent(id)) });
 		return [{ id, deleted: true }];
 	}
@@ -221,6 +271,8 @@ async function executeBooking(ctx, resource, operation, index, state) {
 			const value = clean(param(field));
 			if (value) qs[apiField] = value;
 		}
+		const filterStaff = await staff(param('bookingStaffFilter'));
+		if (filterStaff) qs.staff_user_id = filterStaff;
 		const wanted = param('bookingReturnAll', false) ? MAX_ROWS : Math.min(Math.max(Number(param('bookingLimit', 50)) || 50, 1), 500);
 		const all = [];
 		while (all.length < wanted) {
@@ -245,6 +297,8 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	const ends = clean(param('bookingEndsAt'));
 	if (ends) body.ends_at = await when(ends, 'o End'); else if (!update) throw new Error('Informe o End do atendimento.');
 	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
+	const person = await staff(param('bookingStaff'));
+	if (person !== undefined) body.staff_user_id = person;
 	// Services of this business: one keeps its link (and its price); several become one appointment named after all of
 	// them, priced with their sum. Nothing chosen: a plain "Atendimento".
 	// From the list it is an array of IDs; from the AI it may be one text: IDs or names, separated by commas.
