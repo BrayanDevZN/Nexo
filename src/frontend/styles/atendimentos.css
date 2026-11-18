@@ -478,3 +478,29 @@ html.booking-theme .bk-perf [data-slot="table-row"]:hover { background: #fafafc;
 html.booking-theme [data-sidebar="sidebar"][data-mobile="true"], html.booking-theme [data-mobile="true"] [data-slot="sidebar-inner"], html.booking-theme [data-mobile="true"][data-slot="sheet-content"] { background: var(--bk-frame); }
 .bk-via { align-self: flex-start; border-bottom: 1px solid var(--bk-edge); }
 .bk-via [data-slot="toggle-group-item"] { gap: 0.5rem; }
+
+/* ---- purple shading: every raised element gets a soft violet glow under it (resting) and a deeper one when touched ---- */
+html.booking-theme {
+  --bk-glow: 0 1px 2px rgb(76 29 149 / 0.08), 0 10px 26px -10px rgb(109 40 217 / 0.34);
+  --bk-glow-lg: 0 2px 4px rgb(76 29 149 / 0.08), 0 22px 50px -18px rgb(109 40 217 / 0.42);
+  --bk-glow-hover: 0 2px 4px rgb(76 29 149 / 0.1), 0 16px 34px -10px rgb(109 40 217 / 0.5);
+}
+.bk-sheet, .bk-picker-sheet, .bk-peek { box-shadow: var(--bk-glow-lg); }
+html.booking-theme [data-slot="card"], .bk-kpis, .bk-list, .bk-businesses, .bk-grid-scroll, .bk-month, .bk-perf, .bk-who { box-shadow: var(--bk-glow); }
+html.booking-theme [data-slot="dialog-content"] { box-shadow: 0 30px 80px -24px rgb(109 40 217 / 0.55), 0 0 0 1px var(--bk-edge); }
+html.booking-theme [data-slot="button"][data-variant="default"]:not(:disabled):not([aria-disabled="true"]) { box-shadow: 0 1px 2px rgb(23 21 31 / 0.3), 0 10px 20px -8px rgb(109 40 217 / 0.65); }
+html.booking-theme [data-slot="button"][data-variant="default"]:hover:not(:disabled) { box-shadow: 0 1px 2px rgb(23 21 31 / 0.3), 0 14px 26px -8px rgb(109 40 217 / 0.8); }
+html.booking-theme [data-slot="button"][data-variant="outline"]:not(:disabled):not([aria-disabled="true"]) { box-shadow: 0 1px 2px rgb(76 29 149 / 0.08), 0 6px 14px -8px rgb(109 40 217 / 0.35); }
+html.booking-theme [data-slot="button"][data-variant="outline"]:hover:not(:disabled) { box-shadow: 0 1px 2px rgb(76 29 149 / 0.1), 0 10px 20px -8px rgb(109 40 217 / 0.5); }
+html.booking-theme :is([data-slot="input"], [data-slot="native-select"], select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="color"])) { box-shadow: 0 1px 2px rgb(76 29 149 / 0.06), 0 4px 10px -6px rgb(109 40 217 / 0.28); }
+html.booking-theme :is([data-slot="input"], [data-slot="native-select"], select, textarea, input):focus-visible { box-shadow: 0 0 0 3px rgb(109 40 217 / 0.18), 0 8px 18px -8px rgb(109 40 217 / 0.45); }
+html.booking-theme [data-slot="sidebar-menu-button"][data-active="true"] { box-shadow: 0 1px 2px rgb(76 29 149 / 0.1), 0 8px 16px -8px rgb(109 40 217 / 0.5) !important; }
+html.booking-theme [data-slot="avatar"] { box-shadow: 0 2px 6px -2px rgb(109 40 217 / 0.4); }
+html.booking-theme .bk-event { box-shadow: 0 1px 2px rgb(76 29 149 / 0.1), 0 6px 12px -8px color-mix(in srgb, var(--ev) 70%, rgb(109 40 217)); }
+html.booking-theme .bk-event:hover { box-shadow: 0 10px 20px -8px color-mix(in srgb, var(--ev) 75%, rgb(109 40 217)); }
+html.booking-theme .bk-tg-day[data-today] b, html.booking-theme .bk-month-cell[data-today] .bk-month-num, html.booking-theme .bk-sched-date[data-today] b { box-shadow: 0 6px 12px -4px rgb(109 40 217 / 0.6); }
+html.booking-theme [data-slot="alert"], html.booking-theme [data-slot="empty"] { box-shadow: 0 6px 16px -10px rgb(109 40 217 / 0.3); }
+button.bk-item:hover:not(:disabled) { box-shadow: inset 3px 0 0 var(--bk-accent); }
+html.booking-theme [data-slot="toggle-group-item"][data-state="on"] { text-shadow: none; }
+.bk-peek li { transition: none; }
+html.booking-theme .bk-auth [data-slot="card"] { box-shadow: none; }
