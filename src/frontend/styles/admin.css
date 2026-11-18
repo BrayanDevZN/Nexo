@@ -200,3 +200,6 @@ html.admin-theme .admin-sidebar-header { flex-wrap: wrap; }
 
 /* The night-mode button on the sign-in and area screens sits above the page, so it can be pressed. */
 html.admin-theme [data-slot="button"][aria-label$="modo noturno"].fixed { z-index: 80; }
+
+/* Automation viewer: a wide, tall dialog whose media column scrolls. */
+html.admin-theme .automation-viewer { display: flex; flex-direction: column; width: min(96vw, 1400px); max-width: none; height: 92dvh; max-height: 92dvh; }

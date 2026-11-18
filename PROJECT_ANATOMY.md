@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
+Generated: 2026-11-18 | 473 files | ~670.7K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -181,9 +181,9 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
 | src/frontend/admin/areaTransition.ts | 246 | 2.6K | source |
 | src/frontend/admin/Auth.tsx | 172 | 3.3K | source |
-| src/frontend/admin/AutomationMedia.tsx | 126 | 2.4K | source |
+| src/frontend/admin/AutomationMedia.tsx | 123 | 2.1K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
-| src/frontend/admin/AutomationsLibrary.tsx | 202 | 3.7K | source |
+| src/frontend/admin/AutomationsLibrary.tsx | 207 | 3.8K | source |
 | src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
 | src/frontend/admin/BookingAccess.tsx | 127 | 3.4K | source |
 | src/frontend/admin/BusinessDashboard.tsx | 424 | 7.5K | source |
@@ -361,6 +361,7 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/atendimentos-admin.spec.ts | 109 | 1.9K | test |
 | tests/integration/frontend/atendimentos.spec.ts | 339 | 6.4K | test |
+| tests/integration/frontend/automations-viewer.spec.ts | 34 | 575 | test |
 | tests/integration/frontend/panel.spec.ts | 822 | 14.6K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -451,7 +452,7 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
-| src/frontend/styles/admin.css | 203 | 4.6K | style |
+| src/frontend/styles/admin.css | 206 | 4.7K | style |
 | src/frontend/styles/atendimentos.css | 636 | 16.0K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/lelab.css | 459 | 9.7K | style |
@@ -478,9 +479,9 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 310 files, ~425.4K tokens
+- source: 310 files, ~425.2K tokens
 - config: 13 files, ~3.6K tokens
-- test: 113 files, ~154.0K tokens
+- test: 114 files, ~154.6K tokens
 - docs: 11 files, ~20.6K tokens
 - style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens

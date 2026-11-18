@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { hasDeveloperAccess, type createApi, type User } from "./api";
 import { Feedback, Loading, message } from "./shared";
@@ -175,18 +176,22 @@ export function AutomationsLibrary({ api, user }: { api: ReturnType<typeof creat
     <Feedback success={success} />
     {loading ? <Loading /> : !items.length ? <Card><CardContent className="py-8"><Empty><EmptyHeader><EmptyMedia variant="icon"><FileArchive /></EmptyMedia><EmptyTitle>Nenhuma automação salva ainda</EmptyTitle><EmptyDescription>A primeira que for publicada aparecerá aqui.</EmptyDescription></EmptyHeader>{canCreate && <Button onClick={() => openEditor(null)}><Plus data-icon="inline-start" />Criar automação</Button>}</Empty></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map(item => <Card key={item.id} className="overflow-hidden">{item.media.length > 0 && <CardContent className="p-3 pb-0"><button type="button" className="block w-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Abrir ${item.name}`} onClick={() => setViewing(item)}><MediaCover api={api} automationId={item.id} media={item.media} /></button></CardContent>}<CardHeader><div className="flex items-start justify-between gap-3"><div className="min-w-0"><CardTitle className="break-words">{item.name}</CardTitle><CardDescription className="mt-1">Por {item.created_by_name} · {new Date(item.created_at.endsWith("Z") ? item.created_at : item.created_at + "Z").toLocaleDateString("pt-BR")}</CardDescription></div><Badge variant="secondary">{formatSize(item.file_size)}</Badge></div></CardHeader><CardContent className="flex flex-col gap-4"><p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.description}</p><p className="truncate text-xs text-muted-foreground" title={item.filename}>Arquivo: {item.filename}</p><div className="flex flex-wrap gap-2"><Button onClick={() => setViewing(item)}><Eye data-icon="inline-start" />Abrir</Button><Button variant="outline" onClick={() => void download(item)}><Download data-icon="inline-start" /> Baixar automação</Button>{canCreate && item.can_manage && <><Button variant="outline" onClick={() => openEditor(item)}><Pencil data-icon="inline-start" />Editar</Button><Button variant="destructive" onClick={() => setDeleting(item)}><Trash2 data-icon="inline-start" />Excluir</Button></>}</div></CardContent></Card>)}</div>}
     <Dialog open={Boolean(viewing)} onOpenChange={open => { if (!open) setViewing(null); }}>
-      <DialogContent className="flex h-[90dvh] w-[96vw] max-w-none flex-col gap-4 overflow-hidden p-4 sm:max-w-[1400px] sm:p-6">
+      <DialogContent className="automation-viewer gap-4 overflow-hidden p-4 sm:p-6">
         <DialogHeader className="shrink-0 pr-8">
           <DialogTitle className="break-words">{viewing?.name}</DialogTitle>
           <DialogDescription>Por {viewing?.created_by_name} · {viewing ? formatSize(viewing.file_size) : ""}</DialogDescription>
         </DialogHeader>
-        {viewing && <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden">
-          {viewing.media.length > 0 ? <MediaViewer api={api} automationId={viewing.id} media={viewing.media} /> : <Empty><EmptyHeader><EmptyMedia variant="icon"><FileArchive /></EmptyMedia><EmptyTitle>Sem imagens ou vídeos</EmptyTitle><EmptyDescription>Esta automação não tem mídia anexada.</EmptyDescription></EmptyHeader></Empty>}
-          <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto">
-            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{viewing.description}</p>
-            <p className="truncate text-xs text-muted-foreground" title={viewing.filename}>Arquivo: {viewing.filename}</p>
-            <Button variant="outline" onClick={() => void download(viewing)}><Download data-icon="inline-start" />Baixar automação</Button>
-          </div>
+        {viewing && <div className="grid min-h-0 flex-1 gap-6 max-lg:grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <ScrollArea className="min-h-0 h-full">
+            {viewing.media.length > 0 ? <MediaViewer api={api} automationId={viewing.id} media={viewing.media} /> : <Empty><EmptyHeader><EmptyMedia variant="icon"><FileArchive /></EmptyMedia><EmptyTitle>Sem imagens ou vídeos</EmptyTitle><EmptyDescription>Esta automação não tem mídia anexada.</EmptyDescription></EmptyHeader></Empty>}
+          </ScrollArea>
+          <ScrollArea className="min-h-0 h-full max-lg:max-h-[30dvh]">
+            <div className="flex flex-col gap-3 pr-3">
+              <p className="whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{viewing.description}</p>
+              <p className="truncate text-xs text-muted-foreground" title={viewing.filename}>Arquivo: {viewing.filename}</p>
+              <Button variant="outline" onClick={() => void download(viewing)}><Download data-icon="inline-start" />Baixar automação</Button>
+            </div>
+          </ScrollArea>
         </div>}
       </DialogContent>
     </Dialog>

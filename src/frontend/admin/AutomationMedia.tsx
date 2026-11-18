@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Film, Image as ImageIcon, Paperclip, Play, X } from "lucide-react";
+import { Film, Image as ImageIcon, Paperclip, Play, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -53,38 +53,35 @@ export function MediaCover({ api, automationId, media }: { api: Api; automationI
   </div>;
 }
 
-function Thumb({ api, automationId, item, active, onSelect }: { api: Api; automationId: string; item: MediaItem; active: boolean; onSelect: () => void }) {
-  const { url } = useMediaUrl(api, automationId, item.kind === "image" ? item : undefined);
-  return <button type="button" onClick={onSelect} aria-label={`Ver ${item.filename}`} aria-current={active}
-    className={`relative aspect-video h-16 shrink-0 overflow-hidden rounded-md border bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"}`}>
-    {item.kind === "image" ? (url ? <img src={url} alt="" className="size-full object-cover" /> : <Skeleton className="size-full" />)
-      : <span className="flex size-full items-center justify-center text-muted-foreground"><Film /></span>}
-  </button>;
+function MediaBlock({ api, automationId, item, position, total }: { api: Api; automationId: string; item: MediaItem; position: number; total: number }) {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(position === 0);
+  useEffect(() => {
+    const node = ref.current;
+    if (visible || !node) return;
+    const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); } }, { rootMargin: "400px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
+  const { url, failed } = useMediaUrl(api, automationId, item, visible);
+  return <figure ref={ref} className="flex flex-col gap-2">
+    <div className="flex min-h-48 items-center justify-center overflow-hidden rounded-xl border bg-black/90">
+      {failed ? <p className="p-6 text-sm text-muted-foreground">Não foi possível carregar este arquivo.</p>
+        : !url ? <Skeleton className="aspect-video w-full rounded-none" />
+        : item.kind === "video" ? <video src={url} controls playsInline preload="metadata" className="max-h-[78dvh] w-full" />
+        : <img src={url} alt={item.filename} className="max-h-[78dvh] w-full object-contain" />}
+    </div>
+    <figcaption className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+      <span className="min-w-0 truncate" title={item.filename}>{item.filename}</span>
+      <Badge variant="outline" className="shrink-0">{position + 1} / {total}</Badge>
+    </figcaption>
+  </figure>;
 }
 
-/** Large stage that renders the selected image or plays the selected MP4 in place. */
+/** Every image and MP4 stacked at full width, so the whole set is seen by scrolling. */
 export function MediaViewer({ api, automationId, media }: { api: Api; automationId: string; media: MediaItem[] }) {
-  const [index, setIndex] = useState(0);
-  useEffect(() => { setIndex(0); }, [automationId]);
-  const current = media[Math.min(index, media.length - 1)];
-  const { url, failed } = useMediaUrl(api, automationId, current);
-  if (!current) return null;
-  const step = (delta: number) => setIndex(value => (value + delta + media.length) % media.length);
-  return <div className="flex min-h-0 min-w-0 flex-col gap-3">
-    <div className="relative flex min-h-[40dvh] flex-1 items-center justify-center overflow-hidden rounded-xl border bg-black/90">
-      {failed ? <p className="text-sm text-muted-foreground">Não foi possível carregar este arquivo.</p>
-        : !url ? <Skeleton className="size-full min-h-[40dvh]" />
-        : current.kind === "video" ? <video key={url} src={url} controls playsInline className="max-h-[70dvh] max-w-full" />
-        : <img key={url} src={url} alt={current.filename} className="max-h-[70dvh] max-w-full object-contain" />}
-      {media.length > 1 && <>
-        <Button type="button" variant="secondary" size="icon" className="absolute top-1/2 left-3 -translate-y-1/2" aria-label="Anterior" onClick={() => step(-1)}><ChevronLeft /></Button>
-        <Button type="button" variant="secondary" size="icon" className="absolute top-1/2 right-3 -translate-y-1/2" aria-label="Próximo" onClick={() => step(1)}><ChevronRight /></Button>
-        <Badge variant="secondary" className="absolute bottom-3 left-3">{index + 1} / {media.length}</Badge>
-      </>}
-    </div>
-    {media.length > 1 && <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label="Miniaturas">
-      {media.map((item, position) => <div role="listitem" key={item.id}><Thumb api={api} automationId={automationId} item={item} active={position === index} onSelect={() => setIndex(position)} /></div>)}
-    </div>}
+  return <div className="flex flex-col gap-6 pr-3">
+    {media.map((item, position) => <MediaBlock key={item.id} api={api} automationId={automationId} item={item} position={position} total={media.length} />)}
   </div>;
 }
 
