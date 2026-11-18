@@ -6,6 +6,9 @@ from pywebpush import WebPushException, webpush
 
 logger = logging.getLogger(__name__)
 
+PUSH_TTL_SECONDS = 24 * 60 * 60
+PUSH_TIMEOUT_SECONDS = 10
+
 
 class PushService:
     prefix = "nexo:push:"
@@ -39,7 +42,10 @@ class PushService:
                 try:
                     webpush(subscription_info=json.loads(raw), data=payload,
                              vapid_private_key=self.settings.vapid_private_key.get_secret_value(),
-                             vapid_claims={"sub": self.settings.vapid_subject})
+                             vapid_claims={"sub": self.settings.vapid_subject},
+                             # Without a TTL the push service drops the message when the phone is asleep or offline at that
+                             # moment (the default is 0); a day keeps it until the device wakes. High urgency gets through Doze.
+                             ttl=PUSH_TTL_SECONDS, headers={"Urgency": "high"}, timeout=PUSH_TIMEOUT_SECONDS)
                 except WebPushException as exc:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                     if status in {404, 410}:

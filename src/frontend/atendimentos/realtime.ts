@@ -69,8 +69,28 @@ export function useBusinessEvents(api: BookingApi, enabled: boolean, businessId:
       }
     }
     void connect();
+    // A background tab or a sleeping phone pauses timers and can leave the socket dead without a close event, so events are
+    // missed silently. When the person comes back (tab visible, window focus, network back), reconnect at once if the socket is
+    // gone, and otherwise reload once: a live event may have been lost while the page was away.
+    let lastWake = 0;
+    const wake = () => {
+      if (!active || document.hidden) return;
+      const state = socket?.readyState;
+      if (state === WebSocket.CONNECTING) return;
+      if (state === WebSocket.OPEN) {
+        if (Date.now() - lastWake > 3000) { lastWake = Date.now(); resync.current?.(); }
+        return;
+      }
+      clearTimeout(reconnect); retry = 0; void connect();
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("focus", wake);
+    window.addEventListener("online", wake);
     // After a reconnection the pause may have cost events, so the screen is asked to reload once (onResync).
-    return () => { active = false; clearTimeout(reconnect); clearTimeout(watchdog); socket?.close(); setOnline(false); };
+    return () => {
+      active = false; clearTimeout(reconnect); clearTimeout(watchdog); socket?.close(); setOnline(false);
+      document.removeEventListener("visibilitychange", wake); window.removeEventListener("focus", wake); window.removeEventListener("online", wake);
+    };
   }, [api, enabled, businessId]);
   return online;
 }

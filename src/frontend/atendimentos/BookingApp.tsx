@@ -24,7 +24,7 @@ import { Performance } from "./Performance";
 import { AccessGate } from "./AccessGate";
 import { LiveBar, LiveToast, type Flash } from "./LiveBar";
 import { useBusinessEvents, type AppointmentEvent } from "./realtime";
-import { showBookingNotification } from "./notifications";
+import { showBookingNotification, syncPushSubscription } from "./notifications";
 import { Services } from "./Services";
 import { Team } from "./Team";
 import { can, createBookingApi, ROLE_LABELS, type AccessInfo, type BookingUser, type Business, type InvitationInfo } from "./api";
@@ -165,6 +165,8 @@ function BookingScreens({ play }: { play: Play }) {
     if (document.hidden || !document.hasFocus()) void showBookingNotification(event.business_name, text, "appointment-" + event.appointment_id);
   }, []);
   const allowed = user?.access_status === "approved";
+  // Keep the server's push subscription current, so a replaced or expired one does not silence the notifications.
+  useEffect(() => { if (user && allowed) void syncPushSubscription(api); }, [api, user?.id, allowed]); // eslint-disable-line react-hooks/exhaustive-deps
   const online = useBusinessEvents(api, !!user, allowed && business ? business.id : undefined, onLive,
     () => { api.invalidate(); setLiveTick(tick => tick + 1); }, () => { api.invalidate(); void refresh(); });
   function pick(next: Business | undefined) {

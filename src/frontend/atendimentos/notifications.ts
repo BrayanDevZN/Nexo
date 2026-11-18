@@ -56,6 +56,24 @@ export async function enableNotifications(api: BookingApi): Promise<"push" | "op
   }
 }
 
+/**
+ * The browser can replace or expire a push subscription without telling the server, and then the server keeps pushing to a
+ * dead endpoint, so the notification "sometimes" never arrives. On every start of the app, if the person has notifications on,
+ * send the current subscription again (the server stores it by endpoint, so this is idempotent).
+ */
+export async function syncPushSubscription(api: BookingApi): Promise<void> {
+  if (notificationState() !== "on" || !pushSupported()) return;
+  try {
+    const registration = await worker();
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      const { public_key } = await api.request<{ public_key: string }>("/push/public-key");
+      subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(public_key) });
+    }
+    await api.mutate("/push/subscribe", "POST", body(subscription));
+  } catch { /* sem push no servidor ou no navegador: os avisos com o app aberto continuam */ }
+}
+
 export async function disableNotifications(api: BookingApi): Promise<void> {
   writePreference(false);
   if (!pushSupported()) return;
