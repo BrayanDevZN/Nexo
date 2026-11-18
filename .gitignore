@@ -29,3 +29,6 @@ playwright-report/
 test-results/
 reports/
 dump.rdb
+
+# Arquivos de trabalho da skill de design
+.taste-skill/
