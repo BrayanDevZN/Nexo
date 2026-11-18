@@ -7,7 +7,8 @@ export type AppointmentEvent = {
   type: "appointment.changed"; action: "created" | "updated" | "deleted"; business_id: string; appointment_id: string;
   customer_name: string; service_name: string; starts_at: string; status: string | null; by_id: string | null; by_name: string | null; business_name: string;
 };
-type Message = AppointmentEvent | { type: "ready" | "heartbeat" | "error" };
+export type AccessEvent = { type: "access.changed"; status: string; access_expires_at: string | null };
+type Message = AppointmentEvent | AccessEvent | { type: "ready" | "heartbeat" | "error" };
 
 /** The socket of the Atendimentos sockets sits next to the panel's: the same host, its own path. */
 function socketAddress() {
@@ -19,20 +20,22 @@ function socketAddress() {
  * Keeps one socket open for the business on screen and calls `onEvent` for each appointment that anyone creates, changes or
  * removes. A one-time ticket opens it; it reconnects by itself with a growing pause and gives up when the session is gone.
  */
-export function useBusinessEvents(api: BookingApi, businessId: string | undefined, onEvent: (event: AppointmentEvent) => void, onResync?: () => void) {
+export function useBusinessEvents(api: BookingApi, enabled: boolean, businessId: string | undefined, onEvent: (event: AppointmentEvent) => void, onResync?: () => void, onAccess?: () => void) {
   const [online, setOnline] = useState(false);
   const callback = useRef(onEvent);
   callback.current = onEvent;
   const resync = useRef(onResync);
   resync.current = onResync;
+  const access = useRef(onAccess);
+  access.current = onAccess;
   useEffect(() => {
-    if (!businessId) { setOnline(false); return; }
+    if (!enabled) { setOnline(false); return; }
     let active = true; let retry = 0; let opened = false; let reconnect: ReturnType<typeof setTimeout>; let watchdog: ReturnType<typeof setTimeout>; let socket: WebSocket | undefined;
     const later = () => { reconnect = setTimeout(() => void connect(), Math.min(30000, 1000 * 2 ** retry++) + Math.random() * 500); };
     async function connect() {
       if (!active) return;
       try {
-        const { ticket } = await api.mutate<{ ticket: string }>("/realtime/ticket?business_id=" + encodeURIComponent(businessId!), "POST");
+        const { ticket } = await api.mutate<{ ticket: string }>("/realtime/ticket" + (businessId ? "?business_id=" + encodeURIComponent(businessId) : ""), "POST");
         if (!active) return;
         const ws = new WebSocket(socketAddress(), ["nexo.v1", ticket]);
         socket = ws;
@@ -45,12 +48,15 @@ export function useBusinessEvents(api: BookingApi, businessId: string | undefine
           try { value = JSON.parse(event.data); } catch { return; }
           if (value.type === "ready") { retry = 0; setOnline(true); if (opened) resync.current?.(); opened = true; }
           if (value.type === "appointment.changed" && value.business_id === businessId) callback.current(value);
+          if (value.type === "access.changed") access.current?.();
         };
         ws.onclose = event => {
           clearTimeout(watchdog);
           if (!active) return;
           setOnline(false);
           if (event.code === 4401) { window.dispatchEvent(new Event("nexo:session-expired")); return; }
+          // 4410: the session is fine but the permission ended; the app reads the account again and shows why.
+          if (event.code === 4410) { access.current?.(); return; }
           if (event.code === 4403) return;
           later();
         };
@@ -65,6 +71,6 @@ export function useBusinessEvents(api: BookingApi, businessId: string | undefine
     void connect();
     // After a reconnection the pause may have cost events, so the screen is asked to reload once (onResync).
     return () => { active = false; clearTimeout(reconnect); clearTimeout(watchdog); socket?.close(); setOnline(false); };
-  }, [api, businessId]);
+  }, [api, enabled, businessId]);
   return online;
 }

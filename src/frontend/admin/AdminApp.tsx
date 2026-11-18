@@ -96,8 +96,11 @@ export default function AdminApp() {
   }, []);
   const requests = useCallback(async () => {
     try {
-      const notes = await api.request<Approval[]>("/admin/notifications?unresolved_only=true&limit=1");
-      setHasRequests(notes.length > 0);
+      const [notes, booking] = await Promise.all([
+        api.request<Approval[]>("/admin/notifications?unresolved_only=true&limit=1"),
+        api.request<{ counts: { pending: number } }>("/admin/atendimentos/users?status=pending&limit=1"),
+      ]);
+      setHasRequests(notes.length > 0 || booking.counts.pending > 0);
     } catch (e) { if (!(e instanceof ApiError && e.status === 401)) setError(message(e)); }
   }, []);
   useEffect(() => { if (complete) setLoading(false); else void refresh(); }, [complete, refresh]);
@@ -122,11 +125,11 @@ export default function AdminApp() {
     return () => window.removeEventListener("nexo:session-expired", expired);
   }, []);
   const event = useCallback((value: RealtimeEvent) => {
-    if (["notifications.changed", "clients.changed", "account.changed", "chat.message"].includes(value.type)) api.invalidate();
+    if (["notifications.changed", "clients.changed", "account.changed", "chat.message", "booking.access.changed"].includes(value.type)) api.invalidate();
     window.dispatchEvent(new CustomEvent("nexo:realtime", { detail: value }));
     if (["ready", "account.changed"].includes(value.type)) void refresh();
     if (["ready", "notifications.changed", "chat.message"].includes(value.type)) void refreshUnreadCounts();
-    if (["ready", "notifications.changed"].includes(value.type) && user?.role === "owner" && user.status === "approved") void requests();
+    if (["ready", "notifications.changed", "booking.access.changed"].includes(value.type) && user?.role === "owner" && user.status === "approved") void requests();
     if (value.type === "chat.message" && value.message && value.message.recipient_id === user?.id && (page !== "chat" || activeChat !== value.message.sender_id)) setIncoming(value.message);
   }, [refresh, requests, refreshUnreadCounts, user?.id, user?.role, user?.status, page, activeChat]);
   const realtime = useRealtime(api, user, event);
@@ -279,7 +282,7 @@ export default function AdminApp() {
           page === "api-keys" ? <ApiKeys api={api} user={user} /> :
           page === "databases" && canDevelop ? <Databases api={api} /> :
           page === "members" && isOwner ? <Members api={api} actor={user} onUpdate={setUser} /> :
-          page === "approvals" && isOwner ? <Approvals api={api} onChanged={() => void requests()} /> : <Clients api={api} />}
+          page === "approvals" && isOwner ? <Approvals api={api} onChanged={() => void requests()} onOpenMembers={() => navigate("members")} /> : <Clients api={api} />}
       </main>
     </div>
   </div>;

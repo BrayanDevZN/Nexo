@@ -1,5 +1,6 @@
 """HTTP contract of /atendimentos: accounts, businesses, teams, services, appointments and the cache."""
 from concurrent.futures import Future
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
@@ -32,7 +33,21 @@ def client(settings, local_redis_url, monkeypatch, google_signer):
         yield client
 
 
-def register(client, data):
+def approve(client, email, **kwargs):
+    """What the Nexo team's approval does, for the scenarios that are about something else."""
+    with client.app.state.services.repositories.transaction() as repos:
+        repos.booking_users.set_access(repos.booking_users.by_email(email), status=kwargs.get("status", "approved"),
+                                       expires_at=kwargs.get("expires_at"), source="approval")
+
+
+def register(client, data, approved=True, access_token=None):
+    response = sign_up(client, data, access_token)
+    if approved and response.status_code == 201:
+        approve(client, data["email"])
+    return response
+
+
+def sign_up(client, data, access_token=None):
     service = client.app.state.services.booking_registration
     done = Future()
     done.set_result(None)
@@ -42,7 +57,7 @@ def register(client, data):
     if response.status_code != 202:
         return response
     return client.post("/atendimentos/auth/register/confirm", headers=ORIGIN,
-                       json={"email": data["email"], "code": "12345678"})
+                       json={"email": data["email"], "code": "12345678", **({"access_token": access_token} if access_token else {})})
 
 
 def login(client, data):
@@ -584,11 +599,11 @@ def test_appointments_arrive_in_real_time_and_new_bookings_are_pushed_with_the_b
     # The socket is per business and needs a one-time ticket; a stranger gets none.
     assert client.post("/atendimentos/realtime/ticket", headers=bia, params={"business_id": "nope"}).status_code == 404
     ticket = client.post("/atendimentos/realtime/ticket", headers=bia, params={"business_id": business["id"]}).json()["ticket"]
-    with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=ORIGIN) as socket:
+    with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=dict(ORIGIN)) as socket:
         assert socket.receive_json() == {"type": "ready", "business_id": business["id"]}
         # The ticket is single-use.
         with pytest.raises(Exception):
-            with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=ORIGIN) as again:
+            with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=dict(ORIGIN)) as again:
                 again.receive_json()
 
         push = Mock(enabled=True)
@@ -621,3 +636,119 @@ def test_appointments_arrive_in_real_time_and_new_bookings_are_pushed_with_the_b
     # The Atendimentos Web Push routes need the Atendimentos session.
     client.cookies.clear()
     assert client.get("/atendimentos/push/public-key").status_code == 401
+
+
+def panel_session(client, role="owner", email="dono@empresa.com"):
+    services = client.app.state.services
+    with services.repositories.transaction() as repos:
+        repos.users.create(name="Dono", email=email, status="approved", role=role, password_hash=services.passwords.hash(PANEL_PASSWORD))
+    client.cookies.clear()
+    assert client.post("/auth/login", headers=ORIGIN, json={"email": email, "password": PANEL_PASSWORD}).status_code == 200
+    return {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+
+
+def test_only_people_the_team_allows_can_use_the_atendimentos_with_links_approvals_expiry_and_live_updates(client):
+    import time
+    from datetime import timedelta
+
+    from backend.repository.db.models.base import utc_now
+
+    mails = Mock(return_value=True)
+    client.app.state.services.booking_access.messages = Mock(booking_access_granted=mails)
+
+    # Signing up alone leaves the account waiting: it can read and edit itself, and nothing else.
+    register(client, BIA, approved=False)
+    bia = login(client, BIA)
+    me = client.get("/atendimentos/auth/me").json()
+    assert me["access_status"] == "pending" and me["access_expires_at"] is None
+    blocked = client.get("/atendimentos/businesses")
+    assert blocked.status_code == 403 and "awaiting approval" in blocked.json()["detail"]
+    assert client.post("/atendimentos/businesses", headers=bia, json={"name": "Salão", "opening_hours": HOURS}).status_code == 403
+    assert client.put("/atendimentos/auth/profile", headers=bia, json={"name": "Bia Souza"}).status_code == 200
+    ticket = client.post("/atendimentos/realtime/ticket", headers=bia).json()["ticket"]   # the account socket has no business
+
+    # The owner's panel lists the waiting account; other panel roles cannot.
+    owner = panel_session(client)
+    waiting = client.get("/admin/atendimentos/users", params={"status": "pending"}).json()
+    assert waiting["counts"]["pending"] == 1 and [row["email"] for row in waiting["users"]] == ["bia@example.com"]
+    assert waiting["users"][0]["name"] == "Bia Souza" and waiting["users"][0]["status"] == "pending"
+    client.cookies.clear()
+    commercial = panel_session(client, "commercial", "vendas@empresa.com")
+    assert client.get("/admin/atendimentos/users").status_code == 403
+    assert client.post("/admin/atendimentos/links", headers=commercial, json={}).status_code == 403
+    owner = panel_session(client, "owner", "dono2@empresa.com") if False else None
+    client.cookies.clear()
+    assert client.post("/auth/login", headers=ORIGIN, json={"email": "dono@empresa.com", "password": PANEL_PASSWORD}).status_code == 200
+    owner = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+
+    # An access link with a 30-day permission: whoever signs up through it uses the product at once, and it is spent after one use.
+    link = client.post("/admin/atendimentos/links", headers=owner, json={"note": "Caio", "access_days": 30}).json()
+    assert "/atendimentos?access=" in link["url"] and link["access_days"] == 30 and link["max_uses"] == 1 and link["active"] is True
+    token = parse_qs(urlsplit(link["url"]).query)["access"][0]
+    assert client.get("/atendimentos/access/" + token).json() == {"access_days": 30}
+    caio = {**ANA, "name": "Caio", "email": "caio@example.com"}
+    joined = register(client, caio, approved=False, access_token=token)
+    assert joined.status_code == 201 and joined.json()["access_status"] == "approved"
+    assert 29 <= (datetime.fromisoformat(joined.json()["access_expires_at"]) - utc_now()).days <= 30
+    assert client.get("/atendimentos/businesses").status_code == 200
+    assert client.get("/atendimentos/access/" + token).status_code == 404          # the one use is gone
+    dani = register(client, {**ANA, "name": "Dani", "email": "dani@example.com"}, approved=False, access_token=token)
+    assert dani.status_code == 201 and dani.json()["access_status"] == "pending"      # too late: it waits like anyone
+    assert client.get("/admin/atendimentos/links", headers=owner).status_code == 200
+
+    # When the permission ends the person keeps the account but loses the product.
+    approve(client, "caio@example.com", expires_at=utc_now() - timedelta(minutes=1))
+    login(client, caio)
+    assert client.get("/atendimentos/auth/me").json()["access_status"] == "expired"
+    ended = client.get("/atendimentos/businesses")
+    assert ended.status_code == 403 and "ended" in ended.json()["detail"]
+
+    # Approving: with an end date or without one, announced live to the person and e-mailed.
+    login(client, BIA)
+    with client.websocket_connect("/atendimentos/realtime", subprotocols=["nexo.v1", ticket], headers=dict(ORIGIN)) as socket:
+        assert socket.receive_json() == {"type": "ready", "business_id": None}
+        client.cookies.clear()
+        assert client.post("/auth/login", headers=ORIGIN, json={"email": "dono@empresa.com", "password": PANEL_PASSWORD}).status_code == 200
+        owner = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+        biaid = waiting["users"][0]["id"]
+        done = client.patch("/admin/atendimentos/users/" + biaid, headers=owner, json={"decision": "approved", "days": 7})
+        assert done.status_code == 200 and done.json()["status"] == "approved" and done.json()["access_source"] == "approval"
+        event = socket.receive_json()
+        assert event["type"] == "access.changed" and event["status"] == "approved" and event["access_expires_at"]
+        for _ in range(50):
+            if mails.called:
+                break
+            time.sleep(0.02)
+        assert mails.call_args.args[0].email == "bia@example.com" and mails.call_args.args[1] is not None
+        # Taking it away is live too.
+        client.patch("/admin/atendimentos/users/" + biaid, headers=owner, json={"decision": "rejected"})
+        assert socket.receive_json()["status"] == "rejected"
+    assert client.get("/admin/atendimentos/users", params={"status": "rejected"}).json()["users"][0]["email"] == "bia@example.com"
+    spare = client.post("/admin/atendimentos/links", headers=owner, json={"access_days": 5}).json()
+    login(client, BIA)
+    removed = client.get("/atendimentos/businesses")
+    assert removed.status_code == 403 and "removed" in removed.json()["detail"]
+    # A removed account is not brought back by a link.
+    assert client.post("/atendimentos/access/redeem", headers={**ORIGIN, "X-CSRF-Token": client.get("/atendimentos/auth/csrf").json()["csrf_token"]},
+                       json={"token": parse_qs(urlsplit(spare["url"]).query)["access"][0]}).status_code == 403
+
+    # Someone waiting who is invited to a business by an approved owner is approved by that invitation.
+    register(client, ANA)
+    ana = login(client, ANA)
+    business = create_business(client, ana)
+    invite = client.post("/atendimentos/businesses/" + business["id"] + "/invitations", headers=ana, json={"role": "staff"})
+    assert invite.status_code == 201, invite.text
+    invite = invite.json()
+    invite_token = parse_qs(urlsplit(invite["url"]).query)["invite"][0]
+    register(client, {**ANA, "name": "Eva", "email": "eva@example.com"}, approved=False)
+    eva = login(client, {**ANA, "email": "eva@example.com"})
+    assert client.get("/atendimentos/auth/me").json()["access_status"] == "pending"
+    assert client.post("/atendimentos/invitations/" + invite_token + "/accept", headers=eva).status_code == 200
+    assert client.get("/atendimentos/auth/me").json()["access_status"] == "approved"
+    # Unknown or spent links answer 404 and a link can be deleted.
+    assert client.get("/atendimentos/access/" + "x" * 43).status_code == 404
+    client.cookies.clear()
+    assert client.post("/auth/login", headers=ORIGIN, json={"email": "dono@empresa.com", "password": PANEL_PASSWORD}).status_code == 200
+    owner = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
+    first = client.get("/admin/atendimentos/links").json()[0]
+    assert client.delete("/admin/atendimentos/links/" + first["id"], headers=owner).status_code == 204

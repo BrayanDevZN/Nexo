@@ -7,8 +7,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type createApi, type Approval, type User } from "./api";
 import { Busy, Feedback, Loading, message } from "./shared";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookingAccess } from "./BookingAccess";
 
-export function Approvals({ api, onChanged }: { api: ReturnType<typeof createApi>; onChanged: () => void }) {
+function PanelApprovals({ api, onChanged }: { api: ReturnType<typeof createApi>; onChanged: () => void }) {
   const [notes, setNotes] = useState<Approval[]>([]);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [offset, setOffset] = useState(0);
@@ -68,4 +70,21 @@ export function Approvals({ api, onChanged }: { api: ReturnType<typeof createApi
       </DialogContent>
     </Dialog>
   </section>;
+}
+
+/** Permissions: who may use the panel (the CRM) and who may use the Atendimentos, each in its own tab. */
+export function Approvals({ api, onChanged, onOpenMembers }: { api: ReturnType<typeof createApi>; onChanged: () => void; onOpenMembers: () => void }) {
+  const [pending, setPending] = useState(0);
+  const [tab, setTab] = useState("crm");
+  return <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-6">
+    <TabsList aria-label="Sistema">
+      <TabsTrigger value="crm">CRM</TabsTrigger>
+      <TabsTrigger value="atendimentos">Atendimento {pending > 0 && <Badge variant="default">{pending}</Badge>}</TabsTrigger>
+    </TabsList>
+    <TabsContent value="crm" className="flex flex-col gap-6"><PanelApprovals api={api} onChanged={onChanged} /></TabsContent>
+    <TabsContent value="atendimentos" className="flex flex-col gap-6" forceMount hidden={tab !== "atendimentos"}>
+      <div className="admin-section-head"><div><span className="admin-eyebrow">NEXO ATENDIMENTOS</span><h1>Permissões do Atendimento</h1><p>Decida quem pode usar o sistema de agendamento e por quanto tempo.</p></div></div>
+      <BookingAccess api={api} onOpenMembers={onOpenMembers} onCounts={setPending} />
+    </TabsContent>
+  </Tabs>;
 }

@@ -51,7 +51,10 @@ def service(request: Request):
 
 @router.get("/businesses", response_model=list[BusinessOutput])
 def list_businesses(request: Request, actor=Depends(booking_user)):
-    return service(request).list_businesses(actor)
+    try:
+        return service(request).list_businesses(actor)
+    except ERRORS as exc:
+        raise fail(exc) from None
 
 
 @router.post("/businesses", response_model=BusinessOutput, status_code=201)

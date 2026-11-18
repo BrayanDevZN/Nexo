@@ -213,6 +213,15 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
         with engine.begin() as connection:
             for name, definition in missing.items():
                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+    booking_columns = {column["name"] for column in inspect(engine).get_columns("booking_users")}
+    for name, definition in {"access_status": "VARCHAR(16) NOT NULL DEFAULT 'approved'", "access_expires_at": "DATETIME",
+                             "access_source": "VARCHAR(16)", "access_decided_at": "DATETIME"}.items():
+        if name not in booking_columns:
+            with engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE booking_users ADD COLUMN {name} {definition}"))
+                if name == "access_source":
+                    # Accounts from before the control keep working, marked as such.
+                    connection.execute(text("UPDATE booking_users SET access_source = 'legacy' WHERE access_source IS NULL"))
     if "service_ids" not in {column["name"] for column in inspect(engine).get_columns("appointments")}:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE appointments ADD COLUMN service_ids TEXT"))

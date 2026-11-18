@@ -48,6 +48,7 @@ from backend.service.members import MemberService
 from backend.service.paid_leads import PaidLeadService
 from backend.service.passwords import PasswordService
 from backend.service.profiles import ProfileService
+from backend.service.booking_access import BookingAccessService
 from backend.service.push import PushService
 from backend.service.rate_limits import RateLimitService
 from backend.service.realtime import RealtimeService
@@ -197,6 +198,7 @@ class RuntimeServices:
             self.repositories, self.passwords, EmailCodeService(secret, "booking-password-recovery"),
             codes("password"), self.email, messages=booking_messages, repository_name="booking_users")
         self.scheduling = SchedulingService(self.repositories, self.cache, settings, self.messages, self.events, self.push)
+        self.booking_access = BookingAccessService(self.repositories, settings, self.scheduling, self.messages)
 
     def initialize(self, settings: Settings) -> None:
         create_tables(self.database.engine, str(settings.email) if settings.email else None)

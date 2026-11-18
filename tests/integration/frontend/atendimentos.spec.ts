@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "../../../src/frontend/test-kit";
 
-const user = { id: "u1", name: "Ana Silva", email: "ana@example.com", phone: "+5511999999999" };
+const user = { id: "u1", name: "Ana Silva", email: "ana@example.com", phone: "+5511999999999", has_photo: false, access_status: "approved", access_expires_at: null };
 const hours = { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
 
 async function mock(page: Page, options: { signedIn?: boolean } = {}) {
@@ -249,17 +249,19 @@ test("appointments show up in real time for everyone, with a notice titled with 
   await page.getByLabel("Nome do negócio").fill("Barbearia do Zé");
   await page.getByRole("button", { name: "Criar negócio" }).last().click();
   await expect(page.getByText("Ao vivo")).toBeVisible();
-  await expect.poll(() => sockets.length).toBe(1);
+  // The account socket opens first (signed in, no business yet); opening the business swaps it for the business socket.
+  await expect.poll(() => sockets.length).toBeGreaterThanOrEqual(2);
+  const live = () => sockets[sockets.length - 1];
   const before = loads;
 
   // Someone else books: the notice names the business and the person, and the agenda reloads by itself.
-  sockets[0].send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a77", customer_name: "Zé", service_name: "Corte", starts_at: "2026-12-01T13:00:00Z", status: "scheduled", by_id: "u9", by_name: "Camila", business_name: "Barbearia do Zé" }));
+  live().send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a77", customer_name: "Zé", service_name: "Corte", starts_at: "2026-12-01T13:00:00Z", status: "scheduled", by_id: "u9", by_name: "Camila", business_name: "Barbearia do Zé" }));
   const notice = page.getByRole("status").filter({ hasText: "Camila marcou Zé" });
   await expect(notice).toBeVisible();
   await expect(notice.getByText("Barbearia do Zé")).toBeVisible();
   await expect.poll(() => loads).toBeGreaterThan(before);
   // Your own change is not announced to you.
-  sockets[0].send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a78", customer_name: "Eu mesma", service_name: "Corte", starts_at: "2026-12-01T14:00:00Z", status: "scheduled", by_id: "u1", by_name: "Ana Silva", business_name: "Barbearia do Zé" }));
+  live().send(JSON.stringify({ type: "appointment.changed", action: "created", business_id: "b1", appointment_id: "a78", customer_name: "Eu mesma", service_name: "Corte", starts_at: "2026-12-01T14:00:00Z", status: "scheduled", by_id: "u1", by_name: "Ana Silva", business_name: "Barbearia do Zé" }));
   await page.waitForTimeout(300);
   await expect(page.getByText("Eu mesma marcou")).toHaveCount(0);
 
@@ -269,4 +271,39 @@ test("appointments show up in real time for everyone, with a notice titled with 
   await bell.click();
   await expect(page.getByRole("button", { name: /Desativar notificações/ })).toHaveAttribute("aria-pressed", "true");
   expect(await page.evaluate(() => localStorage.getItem("nexo:atendimentos:notify"))).toBe("on");
+});
+
+test("someone without permission sees the waiting screen, and it opens by itself when the team approves, live", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  let status = "pending";
+  await page.route("**/api/atendimentos/auth/me", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...user, access_status: status, access_expires_at: status === "approved" ? "2027-01-01T00:00:00Z" : null }) }));
+  const sockets: { send: (message: string) => void }[] = [];
+  await page.routeWebSocket("**/api/atendimentos/realtime", socket => { sockets.push(socket); socket.send(JSON.stringify({ type: "ready", business_id: null })); });
+  await page.goto("/atendimentos");
+  await expect(page.getByRole("heading", { name: "Aguardando liberação" })).toBeVisible();
+  await expect(page.getByText("Atualiza sozinha", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Criar negócio" })).toHaveCount(0);
+  // The team approves: the screen is told, reads the account again and opens the product.
+  status = "approved";
+  await expect.poll(() => sockets.length).toBeGreaterThan(0);
+  sockets[sockets.length - 1].send(JSON.stringify({ type: "access.changed", status: "approved", access_expires_at: "2027-01-01T00:00:00Z" }));
+  await expect(page.getByRole("button", { name: "Criar negócio" }).first()).toBeVisible();
+  // Taking it away is as quick, and an ended permission says so.
+  status = "expired";
+  // The socket may be swapped around the approval; keep telling the newest one until the screen has heard it.
+  await expect(async () => {
+    sockets[sockets.length - 1].send(JSON.stringify({ type: "access.changed", status: "expired", access_expires_at: "2026-11-01T00:00:00Z" }));
+    await expect(page.getByRole("heading", { name: "Seu acesso expirou" })).toBeVisible({ timeout: 800 });
+  }).toPass({ timeout: 8000 });
+});
+
+test("an access link is read before signing up and is sent with the account that is created", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/atendimentos/access/tok", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ access_days: 30 }) }));
+  await page.goto("/atendimentos?access=tok");
+  await expect(page.getByText("Você recebeu um acesso de 30 dias ao Atendimentos.")).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("nexo:atendimentos:access"))).toBe("tok");
+  // It survives the trip through Google, where the address loses its query.
+  await page.goto("/atendimentos");
+  await expect(page.getByText("Você recebeu um acesso de 30 dias ao Atendimentos.")).toBeVisible();
 });

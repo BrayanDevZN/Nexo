@@ -207,3 +207,15 @@ export function createApi(base: string, fetcher: typeof fetch = fetch) {
     googleLogin: base + "/auth/google/login", photoUrl: base + "/auth/profile/photo" };
 }
 
+
+/** An account of the Atendimentos, as the owner sees it in the panel. `expired` is an approved account whose permission ended. */
+export type AccessStatus = "pending" | "approved" | "rejected" | "expired";
+export type BookingAccessUser = {
+  id: string; name: string; email: string; phone: string | null; has_photo: boolean; status: AccessStatus;
+  access_expires_at: string | null; access_source: string | null; role: "owner" | "manager" | "staff" | "viewer" | null; role_label: string | null;
+  businesses: { name: string; role: string }[]; created_at: string;
+};
+export type BookingAccessUsers = { counts: Record<AccessStatus, number>; users: BookingAccessUser[] };
+export type BookingAccessLink = {
+  id: string; note: string | null; access_days: number | null; max_uses: number; uses: number; expires_at: string; created_at: string; active: boolean; url?: string | null;
+};

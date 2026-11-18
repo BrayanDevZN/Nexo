@@ -26,7 +26,7 @@ from backend.domain.scheduling import (
 from backend.repository.db.control.scheduling import snapshot
 from backend.repository.db.models.base import utc_now
 from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
-from backend.service.scheduling_auth import authorize_booking
+from backend.service.scheduling_auth import AccessInactive, access_state, authorize_booking
 
 logger = logging.getLogger(__name__)
 
@@ -251,8 +251,11 @@ class SchedulingService:
     def accept_invitation(self, actor, token):
         try:
             with self.repositories.transaction() as repos:
-                user = authorize_booking(repos, actor)
+                user = authorize_booking(repos, actor, active=False)
                 self._needs_account(user)
+                state = access_state(user)
+                if state in ("rejected", "expired"):
+                    raise AccessInactive("Access removed" if state == "rejected" else "Access ended")
                 invitation = repos.businesses.invitation_by_token(token)
                 if invitation is None or invitation.accepted_at is not None or invitation.expires_at <= utc_now():
                     raise ResourceNotFound("Invitation not found or expired")
@@ -263,8 +266,16 @@ class SchedulingService:
                 if not repos.businesses.accept_invitation(invitation, user.id):
                     raise ResourceNotFound("Invitation not found or expired")
                 repos.businesses.add_member(invitation.business_id, user.id, invitation.role)
+                # Someone an approved business invited needs no one else's approval: the team vouches for them.
+                joined_now = state == "pending"
+                if joined_now:
+                    repos.booking_users.set_access(user, status="approved", expires_at=None, source="team")
+                user_id = user.id
                 business = repos.businesses.get(invitation.business_id)
-                return {**snapshot("businesses", business), "my_role": invitation.role}
+                result = {**snapshot("businesses", business), "my_role": invitation.role}
+            if joined_now:
+                self.announce_access(user_id)
+            return result
         except IntegrityError:
             raise ResourceConflict("You are already a member of this business") from None
 
@@ -312,10 +323,30 @@ class SchedulingService:
     def realtime_ticket(self, actor, business_id, origin, expires_at):
         """A ticket for the socket of one business, only for a member of it."""
         with self.repositories.read_transaction() as repos:
-            user, _ = self._member(repos, actor, business_id)
+            if business_id:
+                user, _ = self._member(repos, actor, business_id)
+            else:
+                user = authorize_booking(repos, actor, active=False)   # the account socket also serves people still waiting
             self._needs_account(user)
             version = user.session_version
         return self.events.issue_booking_ticket(user.id, business_id, version, expires_at, origin)
+
+    def announce_access(self, user_id):
+        """Tell the person (on any open screen) and the Nexo panel that an account's permission changed."""
+        try:
+            if self.events is not None:
+                with self.repositories.read_transaction() as repos:
+                    user = repos.booking_users.get(user_id)
+                    event = {"type": "access.changed", "status": access_state(user),
+                             "access_expires_at": user.access_expires_at.isoformat() + "Z" if user.access_expires_at else None}
+                self.events.publish(event, user_ids=[self.user_channel(user_id)])
+                self.events.publish({"type": "booking.access.changed"})
+        except Exception:
+            logger.warning("Realtime event unavailable; access change committed")
+
+    @staticmethod
+    def user_channel(user_id):
+        return "booking-user:" + user_id
 
     def realtime_access(self, payload):
         """Is the person of this ticket still signed in and still a member? Checked when the socket opens and every few seconds."""
@@ -323,8 +354,11 @@ class SchedulingService:
             user = repos.booking_users.get(payload["id"])
             if user is None or user.session_version != payload["session_version"]:
                 raise AccessDenied("Access denied")
-            if repos.businesses.membership(payload["business_id"], user.id) is None:
-                raise AccessDenied("Access denied")
+            if payload.get("business_id"):
+                if access_state(user) != "approved":
+                    raise AccessInactive("Access ended")   # the business socket closes when the permission ends
+                if repos.businesses.membership(payload["business_id"], user.id) is None:
+                    raise AccessDenied("Access denied")
             return user
 
     def _announce(self, action, business_id, appointment, info):

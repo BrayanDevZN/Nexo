@@ -7,13 +7,15 @@ from redis.exceptions import RedisError
 
 from backend.controller.cookies import clear_google_cookie, set_google_cookie
 from backend.controller.dependencies import booking_session_user as booking_user
-from backend.controller.schema.auth import LoginInput, RegistrationConfirmInput
+from backend.controller.schema.auth import LoginInput
 from backend.controller.schema.passwords import (
     PasswordChangeInput,
     RecoveryConfirmInput,
     RecoveryRequestInput,
 )
 from backend.controller.schema.scheduling import (
+    BookingConfirmInput,
+    BookingGoogleCompleteInput,
     BookingProfileInput,
     BookingRegistrationInput,
     BookingUserOutput,
@@ -21,7 +23,8 @@ from backend.controller.schema.scheduling import (
 from backend.domain.photos import PhotoTooLarge, PhotoValidationError
 from backend.infra.connections.email import EmailUnavailableError
 from backend.repository.redis.oauth import OAuthStateError
-from backend.service.access import AccessDenied, ResourceNotFound
+from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
+from backend.service.booking_access import AccessLinkError
 from backend.service.auth import RegistrationConflict
 from backend.service.passwords import PasswordRecoveryError
 from backend.service.registration import RegistrationCodeError, RegistrationCooldownError
@@ -62,7 +65,7 @@ def register(data: BookingRegistrationInput, request: Request):
 
 
 @router.post("/register/confirm", response_model=BookingUserOutput, status_code=201)
-def confirm_registration(data: RegistrationConfirmInput, request: Request, response: Response):
+def confirm_registration(data: BookingConfirmInput, request: Request, response: Response):
     services = request.app.state.services
     try:
         user = services.booking_registration.confirm(str(data.email), data.code.get_secret_value())
@@ -72,8 +75,20 @@ def confirm_registration(data: RegistrationConfirmInput, request: Request, respo
         raise HTTPException(status_code=409, detail="Email already registered") from None
     except RedisError:
         raise HTTPException(status_code=503, detail="Registration unavailable") from None
-    set_booking_cookie(response, request.app.state.settings, services.booking_sessions.issue(user))
-    return user
+    session = services.booking_sessions.issue(user)
+    set_booking_cookie(response, request.app.state.settings, session)
+    return redeem_if_given(services, user, data.access_token, session)
+
+
+def redeem_if_given(services, user, access_token, session):
+    """Someone who came through an access link is approved right after the account exists; a bad link just leaves it waiting."""
+    if not access_token:
+        return user
+    try:
+        services.booking_access.redeem(user.id, access_token)
+    except (AccessLinkError, ResourceNotFound, ResourceConflict):
+        return user
+    return services.booking_sessions.authenticate(session)
 
 
 @router.post("/login", response_model=BookingUserOutput)
@@ -207,7 +222,7 @@ def google_profile(request: Request):
 
 
 @router.post("/google/complete", response_model=BookingUserOutput, status_code=201)
-def google_complete(data: BookingProfileInput, request: Request, response: Response):
+def google_complete(data: BookingGoogleCompleteInput, request: Request, response: Response):
     settings = request.app.state.settings
     try:
         user, token = request.app.state.services.booking_google.complete(
@@ -220,4 +235,4 @@ def google_complete(data: BookingProfileInput, request: Request, response: Respo
         raise HTTPException(status_code=401, detail="Invalid or expired Google authentication") from None
     clear_google_cookie(response, settings, PROFILE_COOKIE)
     set_booking_cookie(response, settings, token)
-    return user
+    return redeem_if_given(request.app.state.services, user, data.access_token, token)

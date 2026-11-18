@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     LargeBinary,
     Numeric,
     String,
@@ -38,6 +39,28 @@ class BookingUser(IdentityTimestampMixin, Base):
     profile_photo: Mapped[str | None] = mapped_column(String(255))
     profile_photo_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     session_version: Mapped[int] = mapped_column(default=0)
+    # Who may use the product: new accounts wait for the Nexo team ("pending") unless they came through an access link or
+    # a team invitation. Accounts that existed before this control were migrated as "approved" with no end.
+    access_status: Mapped[str] = mapped_column(String(16), default="pending", server_default="approved", nullable=False)
+    access_expires_at: Mapped[datetime | None] = mapped_column(DateTime)   # None: no end
+    access_source: Mapped[str | None] = mapped_column(String(16))          # approval, link, team or legacy
+    access_decided_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class BookingAccessLink(IdentityTimestampMixin, Base):
+    """A link the Nexo team sends so a person can create an account and use the product right away, for a set time or with no end."""
+    __tablename__ = "booking_access_links"
+    __table_args__ = (
+        CheckConstraint("max_uses >= 1", name="booking_access_link_uses"),
+        CheckConstraint("access_days IS NULL OR access_days >= 1", name="booking_access_link_days"),
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    note: Mapped[str | None] = mapped_column(String(160))
+    access_days: Mapped[int | None] = mapped_column(Integer)   # None: the permission never ends
+    max_uses: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    uses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)   # until when the link itself can be used
+    created_by_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
 
 class Business(IdentityTimestampMixin, Base):

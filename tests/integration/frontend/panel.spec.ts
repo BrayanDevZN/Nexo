@@ -29,6 +29,8 @@ async function mock(page: Page, options: { user?: typeof member; requests?: bool
     else if (path === "/auth/password/recovery/confirm") status = 204;
     else if (path === "/admin/notifications") body = options.requests ? [{ id: "note", requested_user_id: "member", created_at: "2026-10-02T12:00:00" }] : [];
     else if (path === "/admin/users") body = members;
+    else if (path === "/admin/atendimentos/users") body = { counts: { pending: 0, approved: 0, rejected: 0, expired: 0 }, users: [] };
+    else if (path === "/admin/atendimentos/links") body = [];
     else if (path === "/members") body = members.map(({ id, name, role }) => ({ id, name, role, has_photo: false }));
     else if (path.startsWith("/admin/users/") && method === "PATCH") {
       expect(request.headers()["x-csrf-token"]).toBe("test-csrf");

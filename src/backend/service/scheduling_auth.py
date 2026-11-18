@@ -10,6 +10,7 @@ from backend.domain.photos import normalize_photo
 from backend.repository.redis.oauth import OAuthStateError
 from backend.service.access import AccessDenied, ResourceNotFound
 from backend.service.auth import RegistrationConflict
+from backend.repository.db.models.base import utc_now
 from backend.service.security import AuthenticationError
 
 BOOKING_APP = "atendimentos"
@@ -31,13 +32,33 @@ class PlatformActor:
         self.panel_user_id = panel_user.id
 
 
-def authorize_booking(repos, actor):
-    """Authoritative SQL check of a scheduling session; cached rows never authorize anything."""
+class AccessInactive(AccessDenied):
+    """The session is fine but the person has no permission to use the product (waiting, removed or ended)."""
+
+
+def access_state(user, now=None) -> str:
+    """pending, approved, rejected or expired (approved, but the permission ended)."""
+    status = getattr(user, "access_status", "approved") or "approved"
+    expires = getattr(user, "access_expires_at", None)
+    if status == "approved" and expires is not None and expires <= (now or utc_now()):
+        return "expired"
+    return status
+
+
+def authorize_booking(repos, actor, *, active=True):
+    """Authoritative SQL check of a scheduling session; cached rows never authorize anything.
+
+    With `active` (the default) the person must also have permission to use the product: approved and not ended.
+    Profile screens pass `active=False`: someone waiting for approval can still see and edit their account.
+    """
     if isinstance(actor, PlatformActor):
         return actor   # authenticated by the API key dependency; there is no account row to check
     current = repos.booking_users.get(actor.id)
     if current is None or current.session_version != actor.session_version:
         raise AccessDenied("Access denied")
+    if active and (state := access_state(current)) != "approved":
+        raise AccessInactive({"pending": "Access awaiting approval", "rejected": "Access removed",
+                              "expired": "Access ended"}[state])
     return current
 
 
@@ -70,7 +91,7 @@ class BookingAuthService:
 
     def update_profile(self, actor, name, phone):
         with self.repositories.transaction() as repos:
-            user = authorize_booking(repos, actor)
+            user = authorize_booking(repos, actor, active=False)
             if not repos.booking_users.set_profile_fields(user, name=name, phone=phone):
                 raise AccessDenied("Access denied")
             return user
@@ -79,18 +100,18 @@ class BookingAuthService:
         normalized = normalize_photo(data, max_bytes=settings.profile_photo_max_bytes,
                                      max_pixels=settings.profile_photo_max_pixels)
         with self.repositories.transaction() as repos:
-            user = authorize_booking(repos, actor)
+            user = authorize_booking(repos, actor, active=False)
             repos.booking_users.set_photo(user, normalized)
             return user
 
     def delete_photo(self, actor):
         with self.repositories.transaction() as repos:
-            repos.booking_users.set_photo(authorize_booking(repos, actor), None)
+            repos.booking_users.set_photo(authorize_booking(repos, actor, active=False), None)
 
     def read_photo(self, actor, user_id=None):
         """Own photo, or a teammate's: both must share at least one business."""
         with self.repositories.read_transaction() as repos:
-            user = authorize_booking(repos, actor)
+            user = authorize_booking(repos, actor, active=False)
             if user_id and user_id != user.id:
                 mine = {business.id for business, _ in repos.businesses.list_for_user(user.id)}
                 theirs = {business.id for business, _ in repos.businesses.list_for_user(user_id)}

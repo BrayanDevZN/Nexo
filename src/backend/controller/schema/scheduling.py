@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -12,7 +13,7 @@ from pydantic import (
     model_validator,
 )
 
-from backend.controller.schema.auth import ProfileInput, validate_new_password
+from backend.controller.schema.auth import ProfileInput, RegistrationConfirmInput, validate_new_password
 from backend.domain.scheduling import (
     AppointmentStatus,
     BusinessRole,
@@ -63,13 +64,18 @@ class BookingUserOutput(BaseModel):
     email: str
     phone: str | None
     has_photo: bool = False
+    # pending (waiting for the team), approved, rejected (removed) or expired (the permission ended)
+    access_status: Literal["pending", "approved", "rejected", "expired"] = "approved"
+    access_expires_at: datetime | None = None
 
     @model_validator(mode="before")
     @classmethod
     def photo_flag(cls, value):
         if not isinstance(value, dict) and hasattr(value, "profile_photo"):
+            from backend.service.scheduling_auth import access_state
             return {"id": value.id, "name": value.name, "email": value.email, "phone": value.phone,
-                    "has_photo": bool(value.profile_photo)}
+                    "has_photo": bool(value.profile_photo), "access_status": access_state(value),
+                    "access_expires_at": value.access_expires_at}
         return value
 
 
@@ -388,3 +394,72 @@ class PerformanceOutput(BaseModel):
     done: int
     revenue: float
     rows: list[PerformanceRow]
+
+
+class BookingConfirmInput(RegistrationConfirmInput):
+    """Confirming the e-mail code; an access link the person came through may come along."""
+    access_token: str | None = Field(default=None, max_length=64)
+
+
+class BookingGoogleCompleteInput(BookingProfileInput):
+    access_token: str | None = Field(default=None, max_length=64)
+
+
+class AccessRedeemInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=64)
+
+
+class AccessLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    note: str | None = Field(default=None, max_length=160)
+    access_days: int | None = Field(default=None, ge=1, le=3650, description="How long the permission lasts after the person joins; empty: no end")
+    max_uses: int = Field(default=1, ge=1, le=100)
+    valid_days: int = Field(default=14, ge=1, le=90, description="How long the link itself can be used")
+
+
+class AccessLinkOutput(BaseModel):
+    id: str
+    note: str | None
+    access_days: int | None
+    max_uses: int
+    uses: int
+    expires_at: datetime
+    created_at: datetime
+    active: bool
+    url: str | None = None
+
+
+class AccessLinkInfo(BaseModel):
+    access_days: int | None
+
+
+class AccessBusiness(BaseModel):
+    name: str
+    role: BusinessRole
+
+
+class AccessUserOutput(BaseModel):
+    id: str
+    name: str
+    email: str
+    phone: str | None
+    has_photo: bool
+    status: Literal["pending", "approved", "rejected", "expired"]
+    access_expires_at: datetime | None
+    access_source: str | None
+    role: BusinessRole | None
+    role_label: str | None
+    businesses: list[AccessBusiness]
+    created_at: datetime
+
+
+class AccessUsersOutput(BaseModel):
+    counts: dict[str, int]
+    users: list[AccessUserOutput]
+
+
+class AccessDecisionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["approved", "rejected", "pending"]
+    days: int | None = Field(default=None, ge=1, le=3650, description="With approved: how long it lasts; empty: no end")

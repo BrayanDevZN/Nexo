@@ -12,6 +12,7 @@ from backend.repository.db.models.notification import Notification
 from backend.repository.db.models.paid_lead import PaidLead
 from backend.repository.db.models.scheduling import (
     Appointment,
+    BookingAccessLink,
     BookingUser,
     Business,
     BusinessInvitation,

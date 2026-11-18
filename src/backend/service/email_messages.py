@@ -301,6 +301,23 @@ class AccountMessages:
             return False
         return True
 
+    def booking_access_granted(self, user, expires_at=None):
+        """The person asked for access to the Atendimentos and the Nexo team approved it."""
+        if not self.sender.configured:
+            return False
+        until = ("Seu acesso vale até " + expires_at.strftime("%d/%m/%Y") + ".") if expires_at else "Seu acesso não tem data para acabar."
+        try:
+            self._send(user.email, "Seu acesso ao Nexo Atendimentos foi liberado",
+                       "Você já pode entrar no Nexo Atendimentos.", "Acesso liberado",
+                       ["Olá, " + user.name + ". Seu acesso ao Nexo Atendimentos foi liberado.", until,
+                        "Entre com sua conta para criar seu negócio e começar a marcar atendimentos."],
+                       action_label="Abrir o Atendimentos", action_url=self.frontend_url.rstrip("/") + "/atendimentos",
+                       eyebrow="NEXO ATENDIMENTOS")
+        except (EmailUnavailableError, EmailQueueFullError):
+            logger.warning("Booking access email could not be queued")
+            return False
+        return True
+
     def automation_invitation(self, user, invite_url: str, message: str):
         if not self.sender.configured:
             return False

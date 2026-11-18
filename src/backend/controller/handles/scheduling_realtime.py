@@ -11,13 +11,14 @@ from backend.controller.dependencies import booking_session_user
 from backend.controller.schema.push import PushSubscription, PushUnsubscribe
 from backend.domain.tokens import InvalidTokenError
 from backend.service.access import AccessDenied, ResourceNotFound
+from backend.service.scheduling_auth import AccessInactive
 
 router = APIRouter(prefix="/atendimentos", tags=["scheduling real time"])
 TICKET_TTL = 30
 
 
 @router.post("/realtime/ticket")
-def ticket(request: Request, business_id: str = Query(max_length=36), actor=Depends(booking_session_user)):
+def ticket(request: Request, business_id: str | None = Query(default=None, max_length=36), actor=Depends(booking_session_user)):
     services = request.app.state.services
     try:
         claims = services.booking_tokens.read(request.cookies.get(request.app.state.settings.booking_cookie_name, ""))
@@ -50,17 +51,20 @@ async def realtime(socket: WebSocket):
         if not payload or "business_id" not in payload:
             await socket.close(code=4401)
             return
+        business_id = payload["business_id"]   # None: the account socket, for someone who has no business open (or no access yet)
         await asyncio.to_thread(services.scheduling.realtime_access, payload)
         user_key = "booking:" + payload["id"]
         acquired = await asyncio.to_thread(services.events.acquire, user_key, lease, settings.ws_connections_per_user * 2)
         if not acquired:
             await socket.close(code=4429)
             return
-        channel = services.events.channel(services.scheduling.channel_of(payload["business_id"]))
+        channels = [services.events.channel(services.scheduling.user_channel(payload["id"]))]
+        if business_id:
+            channels.append(services.events.channel(services.scheduling.channel_of(business_id)))
         async with services.realtime_connection.client.pubsub() as pubsub:
-            await pubsub.subscribe(channel)
+            await pubsub.subscribe(*channels)
             await socket.accept(subprotocol="nexo.v1")
-            await socket.send_json({"type": "ready", "business_id": payload["business_id"]})
+            await socket.send_json({"type": "ready", "business_id": business_id})
             outgoing = asyncio.Queue(maxsize=128)
 
             async def receive():
@@ -101,6 +105,10 @@ async def realtime(socket: WebSocket):
                 for task in tasks:
                     task.cancel()
                 await asyncio.gather(*tasks, return_exceptions=True)
+    except AccessInactive:
+        # The session is fine, the permission is not: the app reads the account again and shows why.
+        with suppress(RuntimeError, WebSocketDisconnect):
+            await socket.close(code=4410)
     except (AccessDenied, ResourceNotFound):
         with suppress(RuntimeError, WebSocketDisconnect):
             await socket.close(code=4401)

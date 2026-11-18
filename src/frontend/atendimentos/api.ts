@@ -6,7 +6,8 @@ export function createBookingApi() {
 }
 export type BookingApi = ReturnType<typeof createBookingApi>;
 
-export type BookingUser = { id: string; name: string; email: string; phone: string | null; has_photo: boolean };
+export type AccessStatus = "pending" | "approved" | "rejected" | "expired";
+export type BookingUser = { id: string; name: string; email: string; phone: string | null; has_photo: boolean; access_status: AccessStatus; access_expires_at: string | null };
 export type BusinessRole = "owner" | "manager" | "staff" | "viewer";
 export type InvitableRole = Exclude<BusinessRole, "owner">;
 export const ROLE_LABELS: Record<BusinessRole, string> = { owner: "Dono", manager: "Gerente", staff: "Atendente", viewer: "Só leitura" };
@@ -26,6 +27,7 @@ export type Business = {
 };
 export type Member = { id: string; business_id: string; user_id: string; role: BusinessRole; name: string | null; email: string | null; has_photo: boolean; created_at: string };
 export type Invitation = { id: string; business_id: string; email: string | null; role: InvitableRole; created_by_id: string; expires_at: string; created_at: string; url?: string | null; email_sent?: boolean };
+export type AccessInfo = { access_days: number | null };
 export type InvitationInfo = { business_name: string; role: InvitableRole; email: string | null; expires_at: string };
 export type Service = { id: string; business_id: string; name: string; description: string | null; duration_minutes: number; price: number | null; active: boolean; created_at: string; updated_at: string };
 export type AppointmentStatus = "scheduled" | "confirmed" | "done" | "cancelled" | "no_show";

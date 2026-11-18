@@ -19,6 +19,7 @@ from backend.domain.scheduling import (
 )
 from backend.repository.db.control.base import Repository, pagination
 from backend.repository.db.models import (
+    BookingAccessLink,
     Appointment,
     BookingUser,
     Business,
@@ -91,6 +92,56 @@ class BookingUserRepository(Repository[BookingUser]):
 
     def by_email(self, email: str) -> BookingUser | None:
         return self.session.scalar(select(BookingUser).where(BookingUser.email == email.strip().lower()))
+
+    def set_access(self, user: BookingUser, *, status: str, expires_at: datetime | None, source: str | None) -> BookingUser:
+        if status not in ("pending", "approved", "rejected"):
+            raise ValueError("Unknown access status")
+        user.access_status, user.access_expires_at, user.access_source = status, expires_at, source
+        user.access_decided_at = utc_now()
+        self.session.flush()
+        return user
+
+    def list_access(self, *, status: str | None = None, query: str | None = None, now: datetime,
+                    limit: int = 50, offset: int = 0) -> list[BookingUser]:
+        """Every account of the product. `expired` is an approved account whose permission has ended."""
+        pagination(limit, offset)
+        statement = select(BookingUser)
+        if status == "expired":
+            statement = statement.where(BookingUser.access_status == "approved", BookingUser.access_expires_at.is_not(None),
+                                        BookingUser.access_expires_at <= now)
+        elif status == "approved":
+            statement = statement.where(BookingUser.access_status == "approved", or_(
+                BookingUser.access_expires_at.is_(None), BookingUser.access_expires_at > now))
+        elif status in ("pending", "rejected"):
+            statement = statement.where(BookingUser.access_status == status)
+        if query:
+            statement = statement.where(or_(BookingUser.name.icontains(query, autoescape=True),
+                                            BookingUser.email.icontains(query, autoescape=True)))
+        return list(self.session.scalars(statement.order_by(BookingUser.created_at.desc(), BookingUser.id)
+                                         .limit(limit).offset(offset)))
+
+    def counts_by_status(self, now: datetime) -> dict[str, int]:
+        rows = self.session.execute(select(BookingUser.access_status, BookingUser.access_expires_at)).all()
+        result = {"pending": 0, "approved": 0, "rejected": 0, "expired": 0}
+        for status, expires in rows:
+            if status == "approved" and expires is not None and expires <= now:
+                result["expired"] += 1
+            else:
+                result[status] = result.get(status, 0) + 1
+        return result
+
+    def business_roles(self, user_ids) -> dict[str, list[tuple[str, str]]]:
+        """For each account, the (business name, role) of every business it belongs to."""
+        values = [str(identifier) for identifier in user_ids if identifier]
+        if not values:
+            return {}
+        result: dict[str, list[tuple[str, str]]] = {}
+        for user_id, role, name in self.session.execute(
+                select(BusinessMember.user_id, BusinessMember.role, Business.name).join(
+                    Business, Business.id == BusinessMember.business_id).where(BusinessMember.user_id.in_(values))
+                .order_by(Business.name)).all():
+            result.setdefault(user_id, []).append((name, role))
+        return result
 
     def by_google_sub(self, subject: str) -> BookingUser | None:
         return self.session.scalar(select(BookingUser).where(BookingUser.google_sub == subject))
@@ -424,3 +475,31 @@ class AppointmentRepository(Repository[Appointment]):
         created = self.session.execute(scoped(select(
             Appointment.created_by_id, func.count(Appointment.id)).group_by(Appointment.created_by_id))).all()
         return [tuple(row) for row in handled], [tuple(row) for row in created]
+
+
+class BookingAccessLinkRepository(Repository[BookingAccessLink]):
+    model = BookingAccessLink
+
+    def create(self, *, token: str, note: str | None, access_days: int | None, max_uses: int, expires_at: datetime,
+               created_by_id: str | None) -> BookingAccessLink:
+        return self.add(BookingAccessLink(token_hash=token_hash(token), note=(note or "").strip() or None,
+                                          access_days=access_days, max_uses=max_uses, expires_at=expires_at,
+                                          created_by_id=created_by_id))
+
+    def by_token(self, token: str) -> BookingAccessLink | None:
+        return self.session.scalar(select(BookingAccessLink).where(BookingAccessLink.token_hash == token_hash(token)))
+
+    def list(self) -> list[BookingAccessLink]:
+        return list(self.session.scalars(select(BookingAccessLink).order_by(BookingAccessLink.created_at.desc())))
+
+    def consume(self, link: BookingAccessLink, now: datetime) -> bool:
+        """One more use, only while the link is valid and has uses left (atomic, so two people cannot take the last use)."""
+        result = self.session.execute(update(BookingAccessLink).where(
+            BookingAccessLink.id == link.id, BookingAccessLink.uses < BookingAccessLink.max_uses,
+            BookingAccessLink.expires_at > now).values(uses=BookingAccessLink.uses + 1))
+        self.session.refresh(link)
+        return result.rowcount == 1
+
+    def delete_link(self, link: BookingAccessLink) -> None:
+        self.session.delete(link)
+        self.session.flush()

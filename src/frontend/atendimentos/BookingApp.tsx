@@ -21,12 +21,13 @@ import { Agenda } from "./Agenda";
 import { Auth } from "./Auth";
 import { BusinessForm } from "./BusinessForm";
 import { Performance } from "./Performance";
+import { AccessGate } from "./AccessGate";
 import { LiveBar, LiveToast, type Flash } from "./LiveBar";
 import { useBusinessEvents, type AppointmentEvent } from "./realtime";
 import { showBookingNotification } from "./notifications";
 import { Services } from "./Services";
 import { Team } from "./Team";
-import { can, createBookingApi, ROLE_LABELS, type BookingUser, type Business, type InvitationInfo } from "./api";
+import { can, createBookingApi, ROLE_LABELS, type AccessInfo, type BookingUser, type Business, type InvitationInfo } from "./api";
 
 const api = createBookingApi();
 type Page = "agenda" | "services" | "team" | "performance" | "business" | "account";
@@ -37,6 +38,13 @@ const PAGES: { id: Page; label: string; icon: typeof CalendarDays; group: "work"
 ];
 const BUSINESS_KEY = "nexo:atendimentos:business";
 const INVITE_KEY = "nexo:atendimentos:invite";
+const ACCESS_KEY = "nexo:atendimentos:access";
+/** The platform access link (/atendimentos?access=...) is kept the same way while the person signs up or goes through Google. */
+const storedAccess = {
+  read() { try { return localStorage.getItem(ACCESS_KEY) || ""; } catch { return ""; } },
+  write(token: string) { try { localStorage.setItem(ACCESS_KEY, token); } catch { /* sem armazenamento */ } },
+  clear() { try { localStorage.removeItem(ACCESS_KEY); } catch { /* sem armazenamento */ } },
+};
 /** The invitation token is kept while the person signs in, creates an account or goes through Google and comes back. */
 const storedInvite = {
   read() { try { return localStorage.getItem(INVITE_KEY) || ""; } catch { return ""; } },
@@ -65,6 +73,8 @@ function BookingScreens({ play }: { play: Play }) {
   const [liveTick, setLiveTick] = useState(0);
   const [flash, setFlash] = useState<Flash>();
   const [inviteToken, setInviteToken] = useState(() => { const fromUrl = new URLSearchParams(window.location.search).get("invite") || ""; if (fromUrl) storedInvite.write(fromUrl); return fromUrl || storedInvite.read(); });
+  const [accessToken, setAccessToken] = useState(() => { const fromUrl = new URLSearchParams(window.location.search).get("access") || ""; if (fromUrl) storedAccess.write(fromUrl); return fromUrl || storedAccess.read(); });
+  const [access, setAccess] = useState<AccessInfo>();
   const [invite, setInvite] = useState<InvitationInfo>();
   const [inviteError, setInviteError] = useState("");
   const complete = window.location.pathname.replace(/\/$/, "") === "/atendimentos/completar-perfil";
@@ -84,6 +94,25 @@ function BookingScreens({ play }: { play: Play }) {
       .catch(() => { if (active) { setInviteError("Este convite não existe mais ou já venceu."); storedInvite.clear(); setInviteToken(""); } });
     return () => { active = false; };
   }, [inviteToken]);
+  // The access link: what it grants is shown before signing up; a signed-in account that is waiting (or ended) redeems it at once.
+  useEffect(() => {
+    if (!accessToken || user) return;
+    let active = true;
+    api.request<AccessInfo>("/access/" + encodeURIComponent(accessToken))
+      .then(info => { if (active) setAccess(info); })
+      .catch(() => { if (active) { storedAccess.clear(); setAccessToken(""); setInviteError("Este link de acesso não existe mais ou já foi usado."); } });
+    return () => { active = false; };
+  }, [accessToken, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user || !accessToken) return;
+    if (user.access_status === "approved" && !user.access_expires_at) { storedAccess.clear(); setAccessToken(""); return; }
+    let active = true;
+    api.mutate<BookingUser>("/access/redeem", "POST", { token: accessToken })
+      .then(person => { if (active) { setUser(person); window.history.replaceState(null, "", "/atendimentos"); } })
+      .catch(() => undefined)
+      .finally(() => { if (active) { storedAccess.clear(); setAccessToken(""); } });
+    return () => { active = false; };
+  }, [user?.id, user?.access_status, accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const expired = () => { api.resetSession(); setUser(null); setBusinesses(undefined); setBusiness(undefined); };
     window.addEventListener("nexo:session-expired", expired);
@@ -98,18 +127,33 @@ function BookingScreens({ play }: { play: Play }) {
       setBusiness(current => rows.find(row => row.id === (current?.id || saved)) || (rows.length === 1 ? rows[0] : undefined));
     } catch (e) { setError(message(e)); }
   }, []);
-  useEffect(() => { if (user) void loadBusinesses(); }, [user?.id, loadBusinesses]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user?.access_status === "approved") void loadBusinesses(); }, [user?.id, user?.access_status, loadBusinesses]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The permission can end while the app is open: read the account again exactly then.
+  useEffect(() => {
+    if (user?.access_status !== "approved" || !user.access_expires_at) return;
+    const at = new Date(user.access_expires_at.endsWith("Z") ? user.access_expires_at : user.access_expires_at + "Z").getTime();
+    const wait = Math.min(at - Date.now() + 500, 2 ** 31 - 1);
+    const timer = setTimeout(() => void refresh(), Math.max(wait, 0));
+    return () => clearTimeout(timer);
+  }, [user?.access_status, user?.access_expires_at, refresh]);
+  // A permission granted while waiting is announced once.
+  const lastStatus = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (lastStatus.current && lastStatus.current !== "approved" && user?.access_status === "approved") setFlash({ id: Date.now(), title: "Acesso liberado", text: "A equipe da Nexo liberou o seu acesso ao Atendimentos." });
+    lastStatus.current = user?.access_status;
+  }, [user?.access_status]);
   // An invitation opened while signed in is accepted right away and the business opens.
   useEffect(() => {
     if (!user || !invite || !inviteToken) return;
     let active = true;
     api.mutate<Business>("/invitations/" + encodeURIComponent(inviteToken) + "/accept", "POST")
-      .then(joined => { if (active) { storedInvite.clear(); setInviteToken(""); setInvite(undefined); window.history.replaceState(null, "", "/atendimentos"); pick(joined); void loadBusinesses(); } })
+      .then(joined => { if (active) { storedInvite.clear(); setInviteToken(""); setInvite(undefined); window.history.replaceState(null, "", "/atendimentos"); void refresh(); pick(joined); void loadBusinesses(); } })
       .catch(e => { if (active) { storedInvite.clear(); setInviteToken(""); setInviteError(message(e)); setInvite(undefined); } });
     return () => { active = false; };
   }, [user?.id, invite, inviteToken]); // eslint-disable-line react-hooks/exhaustive-deps
   // Appointments arrive in real time: anyone's change in the open business reloads the screens that show them.
   const onLive = useCallback((event: AppointmentEvent) => {
+    api.invalidate();   // the client keeps GET answers for a moment; a live change must be read fresh
     setLiveTick(tick => tick + 1);
     if (event.by_id && event.by_id === userRef.current?.id) return;   // your own change is already on screen
     const when = new Date(event.starts_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
@@ -119,7 +163,9 @@ function BookingScreens({ play }: { play: Play }) {
     setFlash({ id: Date.now(), title: event.business_name, text });
     if (event.action === "created" && document.hidden) void showBookingNotification(event.business_name, text, "appointment-" + event.appointment_id);
   }, []);
-  const online = useBusinessEvents(api, user && business ? business.id : undefined, onLive, () => setLiveTick(tick => tick + 1));
+  const allowed = user?.access_status === "approved";
+  const online = useBusinessEvents(api, !!user, allowed && business ? business.id : undefined, onLive,
+    () => { api.invalidate(); setLiveTick(tick => tick + 1); }, () => { api.invalidate(); void refresh(); });
   function pick(next: Business | undefined) {
     setBusiness(next); setPage("agenda"); setCreating(false); setAccountOnly(false);
     try { if (next) sessionStorage.setItem(BUSINESS_KEY, next.id); else sessionStorage.removeItem(BUSINESS_KEY); } catch { /* sem armazenamento */ }
@@ -133,7 +179,8 @@ function BookingScreens({ play }: { play: Play }) {
 
   if (loading) return <main className="bk-page"><Busy /></main>;
   if (!user && error) return <main className="bk-page"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar de novo</Button></main>;
-  if (!user) return <Auth api={api} complete={complete} invite={invite} onLogin={onLogin} />;
+  if (!user) return <Auth api={api} complete={complete} invite={invite} access={access} accessToken={accessToken} accessNote={inviteError} onLogin={onLogin} />;
+  if (user.access_status !== "approved" && !invite) return <AccessGate user={user} online={online} onSignOut={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)} />;
   if (accountOnly) return <main className="bk-picker">
     <div className="bk-picker-bar"><a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" />Nexo Atendimentos</a><Button variant="outline" size="sm" onClick={() => setAccountOnly(false)}>Voltar</Button></div>
     <div className="bk-picker-sheet"><Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} /></div>

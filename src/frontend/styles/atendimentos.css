@@ -621,3 +621,15 @@ html.booking-theme .bk-bell[aria-pressed="true"] { color: var(--bk-accent); back
 .bk-toast-icon { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; border-radius: 0.5rem; background: var(--bk-accent-soft); color: var(--bk-accent); }
 .bk-toast-icon svg { width: 1rem; height: 1rem; }
 html[data-perf="lite"] .bk-live-dot[data-on]::before, html[data-reduce-motion="true"] .bk-live-dot[data-on]::before { animation: none; }
+
+/* ---- waiting for permission / permission ended ---- */
+.bk-gate { align-items: center; text-align: center; gap: 0.75rem; padding-block: 2.5rem; }
+.bk-gate h1 { font-size: 1.5rem; }
+.bk-gate p { margin: 0; max-width: 30rem; color: var(--bk-muted); line-height: 1.55; }
+.bk-gate-icon { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 1rem; background: var(--bk-accent-soft); color: var(--bk-accent); box-shadow: 0 10px 22px -10px rgb(109 40 217 / 0.6); }
+.bk-gate-icon svg { width: 1.5rem; height: 1.5rem; }
+.bk-gate-icon[data-state="rejected"] { background: #fbeaea; color: var(--bk-bad); box-shadow: 0 10px 22px -10px rgb(194 58 58 / 0.5); }
+.bk-gate-icon[data-state="expired"] { background: #fbf1e3; color: var(--bk-warn); box-shadow: 0 10px 22px -10px rgb(168 98 11 / 0.5); }
+.bk-gate-account { display: flex; flex-direction: column; margin-top: 0.5rem !important; padding: 0.625rem 1rem; background: var(--bk-fill); border-radius: 0.625rem; color: var(--bk-ink) !important; }
+.bk-gate-account strong { font-weight: 500; }
+.bk-gate-account span { font-size: 0.8125rem; color: var(--bk-muted); }

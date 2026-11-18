@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
+Generated: 2026-11-18 | 470 files | ~653.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -10,7 +10,7 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | n8n/nodes/Nexo/booking.js | 345 | 7.0K | source |
 | n8n/nodes/Nexo/Nexo.node.js | 358 | 11.6K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
-| src/backend/controller/application.py | 111 | 1.4K | source |
+| src/backend/controller/application.py | 113 | 1.5K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
 | src/backend/controller/dependencies.py | 107 | 978 | source |
 | src/backend/controller/handles/account_deletion.py | 43 | 532 | source |
@@ -19,6 +19,7 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/controller/handles/auth.py | 109 | 1.2K | source |
 | src/backend/controller/handles/automation_requests.py | 83 | 801 | source |
 | src/backend/controller/handles/automations.py | 157 | 2.0K | source |
+| src/backend/controller/handles/booking_access.py | 90 | 996 | source |
 | src/backend/controller/handles/chat.py | 66 | 671 | source |
 | src/backend/controller/handles/clients.py | 63 | 765 | source |
 | src/backend/controller/handles/dashboard.py | 13 | 104 | source |
@@ -34,9 +35,9 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/controller/handles/public_paid_leads.py | 24 | 238 | source |
 | src/backend/controller/handles/push.py | 25 | 246 | source |
 | src/backend/controller/handles/realtime.py | 131 | 1.6K | source |
-| src/backend/controller/handles/scheduling_auth.py | 224 | 2.6K | source |
-| src/backend/controller/handles/scheduling_realtime.py | 136 | 1.6K | source |
-| src/backend/controller/handles/scheduling.py | 303 | 3.5K | source |
+| src/backend/controller/handles/scheduling_auth.py | 239 | 2.8K | source |
+| src/backend/controller/handles/scheduling_realtime.py | 144 | 1.7K | source |
+| src/backend/controller/handles/scheduling.py | 306 | 3.5K | source |
 | src/backend/controller/handles/videos.py | 59 | 674 | source |
 | src/backend/controller/handles/webhook_events.py | 37 | 352 | source |
 | src/backend/controller/middleware/csrf.py | 62 | 929 | source |
@@ -59,7 +60,7 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/controller/schema/paid_leads.py | 105 | 819 | source |
 | src/backend/controller/schema/passwords.py | 37 | 227 | source |
 | src/backend/controller/schema/push.py | 19 | 118 | source |
-| src/backend/controller/schema/scheduling.py | 391 | 2.8K | source |
+| src/backend/controller/schema/scheduling.py | 466 | 3.4K | source |
 | src/backend/controller/schema/videos.py | 32 | 275 | source |
 | src/backend/domain/chat.py | 34 | 323 | source |
 | src/backend/domain/client_channels.py | 13 | 164 | source |
@@ -104,17 +105,17 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/repository/db/control/chat.py | 70 | 816 | source |
 | src/backend/repository/db/control/clients.py | 148 | 2.0K | source |
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
-| src/backend/repository/db/control/manager.py | 92 | 1.2K | source |
+| src/backend/repository/db/control/manager.py | 94 | 1.2K | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
-| src/backend/repository/db/control/scheduling.py | 427 | 5.9K | source |
+| src/backend/repository/db/control/scheduling.py | 506 | 7.0K | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/control/video_jobs.py | 31 | 366 | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
 | src/backend/repository/db/migrations/owner_role.py | 92 | 1.1K | source |
-| src/backend/repository/db/models/__init__.py | 27 | 336 | source |
+| src/backend/repository/db/models/__init__.py | 28 | 341 | source |
 | src/backend/repository/db/models/api_key_usage.py | 20 | 199 | source |
 | src/backend/repository/db/models/api_key.py | 22 | 228 | source |
 | src/backend/repository/db/models/automation_request.py | 33 | 358 | source |
@@ -127,10 +128,10 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/repository/db/models/maps_job.py | 30 | 435 | source |
 | src/backend/repository/db/models/notification.py | 32 | 388 | source |
 | src/backend/repository/db/models/paid_lead.py | 31 | 365 | source |
-| src/backend/repository/db/models/scheduling.py | 139 | 1.9K | source |
+| src/backend/repository/db/models/scheduling.py | 162 | 2.4K | source |
 | src/backend/repository/db/models/user.py | 28 | 377 | source |
 | src/backend/repository/db/models/video_job.py | 26 | 370 | source |
-| src/backend/repository/db/schema.py | 244 | 3.9K | source |
+| src/backend/repository/db/schema.py | 253 | 4.1K | source |
 | src/backend/repository/redis/email_codes.py | 52 | 434 | source |
 | src/backend/repository/redis/invitations.py | 37 | 304 | source |
 | src/backend/repository/redis/oauth.py | 47 | 395 | source |
@@ -144,12 +145,13 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/service/auth.py | 68 | 784 | source |
 | src/backend/service/automation_requests.py | 177 | 2.0K | source |
 | src/backend/service/automations.py | 181 | 2.4K | source |
+| src/backend/service/booking_access.py | 152 | 2.1K | source |
 | src/backend/service/chat.py | 127 | 1.5K | source |
 | src/backend/service/clients.py | 251 | 2.9K | source |
 | src/backend/service/dashboard.py | 55 | 680 | source |
 | src/backend/service/databases.py | 143 | 1.6K | source |
 | src/backend/service/documents.py | 115 | 1.3K | source |
-| src/backend/service/email_messages.py | 320 | 4.2K | source |
+| src/backend/service/email_messages.py | 337 | 4.5K | source |
 | src/backend/service/funnel_imports.py | 96 | 976 | source |
 | src/backend/service/google.py | 131 | 1.7K | source |
 | src/backend/service/invitations.py | 57 | 676 | source |
@@ -162,25 +164,26 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/backend/service/rate_limits.py | 47 | 676 | source |
 | src/backend/service/realtime.py | 39 | 409 | source |
 | src/backend/service/registration.py | 57 | 669 | source |
-| src/backend/service/runtime.py | 218 | 3.6K | source |
-| src/backend/service/scheduling_auth.py | 158 | 2.0K | source |
-| src/backend/service/scheduling.py | 573 | 8.9K | source |
+| src/backend/service/runtime.py | 220 | 3.6K | source |
+| src/backend/service/scheduling_auth.py | 179 | 2.3K | source |
+| src/backend/service/scheduling.py | 607 | 9.4K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 42 | 449 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
 | src/backend/service/webhook_events.py | 158 | 1.7K | source |
-| src/frontend/admin/AdminApp.tsx | 288 | 6.4K | source |
+| src/frontend/admin/AdminApp.tsx | 291 | 6.5K | source |
 | src/frontend/admin/Announcements.tsx | 132 | 2.9K | source |
-| src/frontend/admin/api.ts | 210 | 3.5K | source |
+| src/frontend/admin/api.ts | 222 | 3.8K | source |
 | src/frontend/admin/ApiDocumentation.tsx | 819 | 8.2K | source |
 | src/frontend/admin/ApiKeys.tsx | 296 | 4.8K | source |
-| src/frontend/admin/Approvals.tsx | 72 | 1.5K | source |
+| src/frontend/admin/Approvals.tsx | 91 | 1.8K | source |
 | src/frontend/admin/AreaGateway.tsx | 88 | 1.1K | source |
 | src/frontend/admin/areaTransition.ts | 246 | 2.6K | source |
 | src/frontend/admin/Auth.tsx | 172 | 3.3K | source |
 | src/frontend/admin/AutomationRequests.tsx | 194 | 3.7K | source |
 | src/frontend/admin/AutomationsLibrary.tsx | 204 | 3.6K | source |
 | src/frontend/admin/boardAutoScroll.ts | 40 | 439 | source |
+| src/frontend/admin/BookingAccess.tsx | 127 | 3.4K | source |
 | src/frontend/admin/BusinessDashboard.tsx | 424 | 7.5K | source |
 | src/frontend/admin/Chat.tsx | 129 | 5.0K | source |
 | src/frontend/admin/Clients.tsx | 240 | 6.1K | source |
@@ -199,8 +202,8 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/frontend/admin/LoginN.tsx | 35 | 354 | source |
 | src/frontend/admin/Maps.tsx | 620 | 10.8K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
-| src/frontend/admin/MemberPhoto.tsx | 21 | 341 | source |
-| src/frontend/admin/Members.tsx | 103 | 3.3K | source |
+| src/frontend/admin/MemberPhoto.tsx | 21 | 350 | source |
+| src/frontend/admin/Members.tsx | 131 | 4.4K | source |
 | src/frontend/admin/MyKeys.tsx | 178 | 3.0K | source |
 | src/frontend/admin/PaidFunnel.tsx | 158 | 3.6K | source |
 | src/frontend/admin/PhotoPicker.tsx | 42 | 649 | source |
@@ -214,12 +217,13 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/frontend/admin/XlsxPreview.tsx | 70 | 982 | source |
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 349 | source |
+| src/frontend/atendimentos/AccessGate.tsx | 26 | 549 | source |
 | src/frontend/atendimentos/Account.tsx | 50 | 947 | source |
 | src/frontend/atendimentos/Agenda.tsx | 198 | 3.8K | source |
-| src/frontend/atendimentos/api.ts | 80 | 1.5K | source |
+| src/frontend/atendimentos/api.ts | 82 | 1.6K | source |
 | src/frontend/atendimentos/AppointmentFields.tsx | 80 | 1.8K | source |
-| src/frontend/atendimentos/Auth.tsx | 173 | 3.4K | source |
-| src/frontend/atendimentos/BookingApp.tsx | 241 | 4.5K | source |
+| src/frontend/atendimentos/Auth.tsx | 175 | 3.5K | source |
+| src/frontend/atendimentos/BookingApp.tsx | 288 | 5.4K | source |
 | src/frontend/atendimentos/BusinessForm.tsx | 143 | 2.5K | source |
 | src/frontend/atendimentos/Calendar.tsx | 202 | 4.0K | source |
 | src/frontend/atendimentos/calendarPrefs.ts | 155 | 2.1K | source |
@@ -228,7 +232,7 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | src/frontend/atendimentos/NTransition.tsx | 37 | 485 | source |
 | src/frontend/atendimentos/Performance.tsx | 151 | 3.0K | source |
 | src/frontend/atendimentos/Photo.tsx | 100 | 1.5K | source |
-| src/frontend/atendimentos/realtime.ts | 71 | 904 | source |
+| src/frontend/atendimentos/realtime.ts | 77 | 1.0K | source |
 | src/frontend/atendimentos/Services.tsx | 72 | 1.4K | source |
 | src/frontend/atendimentos/Team.tsx | 99 | 2.3K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
@@ -343,7 +347,7 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
-| tests/functional/controller/test_scheduling.py | 624 | 11.1K | test |
+| tests/functional/controller/test_scheduling.py | 755 | 13.3K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -353,8 +357,9 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/atendimentos.spec.ts | 273 | 4.9K | test |
-| tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
+| tests/integration/frontend/atendimentos-admin.spec.ts | 109 | 1.9K | test |
+| tests/integration/frontend/atendimentos.spec.ts | 310 | 5.7K | test |
+| tests/integration/frontend/panel.spec.ts | 822 | 14.6K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
 | tests/integration/infra/test_database_connection.py | 58 | 599 | test |
@@ -440,12 +445,12 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | README.md | 121 | 2.4K | docs |
 | requirements.mcp.txt | 5 | 29 | docs |
 | requirements.txt | 16 | 75 | docs |
-| src/backend/README.md | 344 | 7.2K | docs |
+| src/backend/README.md | 346 | 7.6K | docs |
 | src/frontend/admin/README.md | 106 | 1.6K | docs |
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/atendimentos.css | 624 | 15.7K | style |
+| src/frontend/styles/atendimentos.css | 636 | 16.0K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/lelab.css | 459 | 9.7K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
@@ -471,22 +476,23 @@ Generated: 2026-11-18 | 465 files | ~634.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 304 files, ~400.4K tokens
+- source: 308 files, ~414.3K tokens
 - config: 13 files, ~3.6K tokens
-- test: 112 files, ~144.1K tokens
-- docs: 11 files, ~20.1K tokens
-- style: 7 files, ~60.4K tokens
+- test: 113 files, ~148.9K tokens
+- docs: 11 files, ~20.5K tokens
+- style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
 2. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
-3. tests/integration/frontend/panel.spec.ts — 820 lines (~14.5K tokens)
+3. tests/integration/frontend/panel.spec.ts — 822 lines (~14.6K tokens)
 4. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
-5. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
-6. src/frontend/styles/atendimentos.css — 624 lines (~15.7K tokens)
-7. tests/functional/controller/test_scheduling.py — 624 lines (~11.1K tokens)
+5. tests/functional/controller/test_scheduling.py — 755 lines (~13.3K tokens)
+6. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
+7. src/frontend/styles/atendimentos.css — 636 lines (~16.0K tokens)
 8. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
-9. mcp_server.py — 589 lines (~4.9K tokens)
-10. src/backend/service/scheduling.py — 573 lines (~8.9K tokens)
+9. src/backend/service/scheduling.py — 607 lines (~9.4K tokens)
+10. mcp_server.py — 589 lines (~4.9K tokens)
 11. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
+12. src/backend/repository/db/control/scheduling.py — 506 lines (~7.0K tokens)

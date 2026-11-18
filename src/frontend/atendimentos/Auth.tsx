@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Spinner } from "@/components/ui/spinner";
 import { Feedback, FieldGroup, TextField, message, passwordValid } from "@/admin/shared";
 import { useNTransition } from "./NTransition";
-import { ROLE_LABELS, type BookingApi, type BookingUser, type InvitationInfo } from "./api";
+import { ROLE_LABELS, type AccessInfo, type BookingApi, type BookingUser, type InvitationInfo } from "./api";
 
 type Mode = "login" | "register" | "verify" | "recovery" | "confirm";
-type Props = { api: BookingApi; complete: boolean; invite?: InvitationInfo; onLogin: (user: BookingUser) => void };
+type Props = { api: BookingApi; complete: boolean; invite?: InvitationInfo; access?: AccessInfo; accessToken?: string; accessNote?: string; onLogin: (user: BookingUser) => void };
 
 export function GoogleLogo() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-icon="inline-start">
@@ -63,8 +63,8 @@ function AuthArt() {
 }
 
 /** Sign-in, sign-up with an e-mail code, password recovery and the end of a Google sign-in. */
-export function Auth({ api, complete, invite, onLogin }: Props) {
-  const [mode, setMode] = useState<Mode>(invite ? "register" : "login");
+export function Auth({ api, complete, invite, access, accessToken, accessNote, onLogin }: Props) {
+  const [mode, setMode] = useState<Mode>(invite || accessToken ? "register" : "login");
   const [google, setGoogle] = useState<{ name: string; email: string; csrf_token: string }>();
   const [email, setEmail] = useState(invite?.email || "");
   const [registration, setRegistration] = useState<Record<string, string>>();
@@ -91,7 +91,7 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
     try {
       if (complete) {
         if (!google) throw new Error("Recomece o acesso com Google.");
-        onLogin(await api.mutate<BookingUser>("/auth/google/complete", "POST", { name: values.name, phone: values.phone || null }, google.csrf_token));
+        onLogin(await api.mutate<BookingUser>("/auth/google/complete", "POST", { name: values.name, phone: values.phone || null, ...(accessToken ? { access_token: accessToken } : {}) }, google.csrf_token));
       } else if (mode === "login") {
         onLogin(await api.publicPost<BookingUser>("/auth/login", { email, password: values.password }));
       } else if (mode === "register") {
@@ -102,7 +102,7 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
         setRegistration(data); setMode("verify");
         setSuccess("Enviamos um código para o seu e-mail. Confira também o spam.");
       } else if (mode === "verify") {
-        onLogin(await api.publicPost<BookingUser>("/auth/register/confirm", { email, code: values.code }));
+        onLogin(await api.publicPost<BookingUser>("/auth/register/confirm", { email, code: values.code, ...(accessToken ? { access_token: accessToken } : {}) }));
       } else if (mode === "recovery") {
         await api.publicPost("/auth/password/recovery/request", { email });
         setMode("confirm"); setSuccess("Se este e-mail tem conta com senha, você vai receber um código.");
@@ -125,6 +125,8 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
       <h1>{complete ? "Falta pouco para começar" : mode === "register" ? "Crie sua conta" : "Entre na sua agenda"}</h1>
       <p>Horários, serviços e equipe do seu negócio em um só lugar, no celular ou no computador.</p>
     </div>
+    {access && <Feedback success={access.access_days ? `Você recebeu um acesso de ${access.access_days} ${access.access_days === 1 ? "dia" : "dias"} ao Atendimentos. Crie sua conta para começar a usar.` : "Você recebeu um acesso ao Atendimentos. Crie sua conta para começar a usar."} />}
+    {accessNote && !access && !invite && <Feedback error={accessNote} />}
     {invite && <Feedback success={`Você foi convidado para ${invite.business_name} como ${ROLE_LABELS[invite.role].toLowerCase()}. Entre ou crie sua conta para aceitar.`} />}
     {/* Each mode (sign in, sign up, code, recovery) is a new element, so switching plays the entrance again. */}
     <div key={complete ? "google" : mode} className="bk-fade">
