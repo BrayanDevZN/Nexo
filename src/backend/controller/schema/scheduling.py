@@ -201,6 +201,7 @@ class MemberOutput(BaseModel):
     unavailable: bool = False
     busy_until: datetime | None = None
     available: bool = True
+    status: Literal["available", "busy", "unavailable"] = "available"
     automatic: bool = True
     created_at: datetime
 

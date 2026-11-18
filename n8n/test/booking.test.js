@@ -89,8 +89,9 @@ test('the employee is required to book, optional to filter and guard', async () 
 		const field = props.find((item) => item.name === name);
 		assert.equal(field.typeOptions.loadOptionsMethod, 'getBookingStaff');
 	}
-	assert.equal(props.find((item) => item.name === 'bookingStaff' && item.displayOptions.show.operation.includes('create')).required, true);
-	assert.notEqual(props.find((item) => item.name === 'bookingStaff' && item.displayOptions.show.operation.includes('update')).required, true);
+	// No noDataExpression: the ✨ button lets the model choose the employee.
+	assert.ok(props.filter((item) => item.name === 'bookingStaff').every((item) => item.noDataExpression !== true));
+	assert.match(props.find((item) => item.name === 'bookingStaff' && item.displayOptions.show.operation.includes('create')).description, /Obrigatório/);
 	assert.notEqual(props.find((item) => item.name === 'bookingStaffFilter').required, true);
 	assert.deepEqual(props.find((item) => item.name === 'bookingStaffGuard').displayOptions.show.operation, ['delete']);
 	const missing = await run({ ...CREATE, bookingStaff: '' }, withTeam).catch((error) => error);
@@ -138,7 +139,8 @@ test('the employee list shows the team, free people first, and who is busy at th
 	};
 	const options = await new Nexo().methods.loadOptions.getBookingStaff.call(context);
 	assert.deepEqual(options.map((option) => option.value), ['', 'u2', 'u1']);
-	assert.equal(options[2].name, 'Ana Silva (ocupado neste horário)');
+	assert.equal(options[2].name, 'Ana Silva · disponível (ocupado neste horário)');
+	assert.equal(options[1].name, 'Bia Costa · disponível');
 	const window = requests.find((request) => request.url.endsWith('/appointments')).qs;
 	assert.equal(window.ends_after, '2026-11-16T12:00:00.000Z');
 	// Without a time the whole team is listed and no schedule is read.

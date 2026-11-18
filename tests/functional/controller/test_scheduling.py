@@ -278,6 +278,7 @@ def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(cl
     me = client.get("/atendimentos/auth/me").json()
     mine = lambda: next(row for row in client.get(path + "/members").json() if row["user_id"] == me["id"])
     assert mine()["available"] is True and mine()["busy_until"] is None and mine()["unavailable"] is False
+    assert mine()["status"] == "available"
     # Inside an appointment: unavailable by itself, and free again as soon as it ends.
     now = utc_now()
     during = client.post(path + "/appointments", headers=owner, json={
@@ -285,6 +286,7 @@ def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(cl
         "ends_at": (now + timedelta(minutes=20)).isoformat() + "Z"})
     assert during.status_code == 201, during.text
     assert mine()["available"] is False and mine()["busy_until"] is not None and mine()["unavailable"] is False
+    assert mine()["status"] == "busy"
     assert client.patch(path + "/appointments/" + during.json()["id"], headers=owner, json={"status": "done"}).status_code == 200
     assert mine()["available"] is True and mine()["busy_until"] is None
     future = client.post(path + "/appointments", headers=owner, json={
@@ -304,6 +306,7 @@ def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(cl
     # By hand: stays until the person turns it off.
     off = client.put(path + "/members/me/availability", headers=owner, json={"unavailable": True})
     assert off.status_code == 200 and off.json()["unavailable"] is True and off.json()["available"] is False
+    assert off.json()["status"] == "unavailable"
     assert mine()["available"] is False
     on = client.put(path + "/members/me/availability", headers=owner, json={"unavailable": False})
     assert on.json()["available"] is True and mine()["unavailable"] is False

@@ -66,6 +66,14 @@ cadastrados na Nexo (como o seletor de planilhas do Google Sheets), ou aceita o 
 celular e o e-mail dele vão para o agendamento; o que for digitado nos campos abaixo prevalece. A lista usa
 a mesma chave da credencial e mostra os clientes que essa chave pode ver.
 
+### Funcionário e disponibilidade
+
+A lista **Funcionário** (e **Negócios > Listar equipe**) mostra o status de cada pessoa agora: `disponível`,
+`em atendimento até 15:30` (está num agendamento, o status volta sozinho no fim) ou `indisponível` (a pessoa
+marcou na aba Equipe). Quem está livre no horário escolhido aparece primeiro. O campo aceita o botão ✨: a IA
+escolhe o funcionário pelo ID, nome ou e-mail. **Listar equipe** devolve `status`, `available`, `unavailable`,
+`busy_until` e `automatic` de cada pessoa. O funcionário é obrigatório para agendar.
+
 ### Deixar a IA decidir (✨)
 
 O node **Nexo** tem `usableAsTool` e a imagem do n8n liga `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE`.

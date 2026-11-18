@@ -183,8 +183,10 @@ class SchedulingService:
     def _with_availability(row, busy_until):
         """unavailable: the person said so; busy_until: in an appointment now (only when automatic is on, it frees up by
         itself); available: neither."""
+        unavailable = bool(row.get("unavailable"))
         return {**row, "automatic": bool(row.get("auto_availability", True)), "busy_until": busy_until.isoformat() + "Z" if busy_until else None,
-                "available": not row.get("unavailable") and busy_until is None}
+                "available": not unavailable and busy_until is None,
+                "status": "unavailable" if unavailable else "busy" if busy_until else "available"}
 
     def set_my_availability(self, actor, business_id, *, unavailable=None, automatic=None):
         """Only the person changes their own availability: by hand (until they change it back) and whether it is automatic."""
