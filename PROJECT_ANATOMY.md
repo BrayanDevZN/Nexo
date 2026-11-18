@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
+Generated: 2026-11-18 | 459 files | ~606.7K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -214,17 +214,17 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | src/frontend/admin/xlsxReader.ts | 243 | 3.3K | source |
 | src/frontend/App.tsx | 44 | 349 | source |
 | src/frontend/atendimentos/Account.tsx | 50 | 947 | source |
-| src/frontend/atendimentos/Agenda.tsx | 193 | 3.6K | source |
+| src/frontend/atendimentos/Agenda.tsx | 196 | 3.7K | source |
 | src/frontend/atendimentos/api.ts | 75 | 1.4K | source |
-| src/frontend/atendimentos/Auth.tsx | 127 | 2.5K | source |
-| src/frontend/atendimentos/BookingApp.tsx | 206 | 3.6K | source |
-| src/frontend/atendimentos/BusinessForm.tsx | 139 | 2.5K | source |
+| src/frontend/atendimentos/Auth.tsx | 152 | 2.8K | source |
+| src/frontend/atendimentos/BookingApp.tsx | 210 | 3.8K | source |
+| src/frontend/atendimentos/BusinessForm.tsx | 143 | 2.5K | source |
 | src/frontend/atendimentos/Calendar.tsx | 193 | 3.7K | source |
 | src/frontend/atendimentos/calendarPrefs.ts | 155 | 2.1K | source |
 | src/frontend/atendimentos/NTransition.tsx | 37 | 485 | source |
 | src/frontend/atendimentos/Photo.tsx | 88 | 1.3K | source |
 | src/frontend/atendimentos/Services.tsx | 72 | 1.4K | source |
-| src/frontend/atendimentos/Team.tsx | 89 | 1.9K | source |
+| src/frontend/atendimentos/Team.tsx | 86 | 1.9K | source |
 | src/frontend/components/AnimatedBackground.tsx | 60 | 582 | source |
 | src/frontend/components/Brand.tsx | 20 | 103 | source |
 | src/frontend/components/CookieNotice.tsx | 55 | 483 | source |
@@ -293,7 +293,7 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | src/frontend/lib/tracking.ts | 50 | 514 | source |
 | src/frontend/lib/utils.ts | 2 | 7 | source |
 | src/frontend/lib/whatsapp.ts | 26 | 325 | source |
-| src/frontend/main.tsx | 54 | 687 | source |
+| src/frontend/main.tsx | 52 | 647 | source |
 | src/frontend/playwright.config.ts | 24 | 313 | source |
 | src/frontend/PrivacyPage.tsx | 103 | 1.3K | source |
 | src/frontend/public/sw.js | 21 | 231 | source |
@@ -309,8 +309,9 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | docker-compose.yml | 99 | 544 | config |
 | n8n/package.json | 20 | 102 | config |
 | pyproject.toml | 42 | 279 | config |
+| src/frontend/.taste-skill/direction.json | 208 | 2.5K | config |
 | src/frontend/components.json | 26 | 131 | config |
-| src/frontend/package.json | 48 | 326 | config |
+| src/frontend/package.json | 49 | 337 | config |
 | src/frontend/tsconfig.json | 42 | 187 | config |
 | src/frontend/vercel.json | 18 | 172 | config |
 | video-server/package.json | 19 | 102 | config |
@@ -346,7 +347,7 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | tests/functional/repository/test_create_tables_command.py | 27 | 402 | test |
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
-| tests/integration/frontend/atendimentos.spec.ts | 147 | 2.6K | test |
+| tests/integration/frontend/atendimentos.spec.ts | 148 | 2.6K | test |
 | tests/integration/frontend/panel.spec.ts | 820 | 14.5K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -438,7 +439,7 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | src/frontend/public/robots.txt | 7 | 26 | docs |
 | video-server/README.md | 44 | 554 | docs |
 | src/frontend/styles/admin.css | 203 | 4.6K | style |
-| src/frontend/styles/atendimentos.css | 343 | 8.6K | style |
+| src/frontend/styles/atendimentos.css | 409 | 9.7K | style |
 | src/frontend/styles/globals.css | 2689 | 15.6K | style |
 | src/frontend/styles/lelab.css | 459 | 9.7K | style |
 | src/frontend/styles/robin.css | 393 | 8.4K | style |
@@ -464,11 +465,11 @@ Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 297 files, ~382.7K tokens
-- config: 13 files, ~3.6K tokens
-- test: 112 files, ~137.7K tokens
+- source: 297 files, ~383.4K tokens
+- config: 14 files, ~6.2K tokens
+- test: 112 files, ~137.8K tokens
 - docs: 11 files, ~19.1K tokens
-- style: 7 files, ~53.3K tokens
+- style: 7 files, ~54.4K tokens
 - other: 18 files, ~5.8K tokens
 
 ## Heaviest files (read with offset/limit, not whole)

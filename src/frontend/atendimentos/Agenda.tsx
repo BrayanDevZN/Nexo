@@ -104,18 +104,21 @@ export function Agenda({ api, business }: { api: BookingApi; business: Business 
     onDay: (day: Date) => { setAnchor(day); setView("day"); },
   };
   return <section className="flex flex-col gap-4">
-    <div className="bk-row bk-row-between"><h1>Agenda</h1>{writes && <Button onClick={() => setEditing({})}><CalendarPlus data-icon="inline-start" />Marcar atendimento</Button>}</div>
-    {overview && <div className="bk-stats">
-      <div className="bk-stat"><strong>{overview.today}</strong><span>hoje</span></div>
-      <div className="bk-stat"><strong>{overview.next_7_days}</strong><span>próximos 7 dias</span></div>
-      <div className="bk-stat"><strong>{overview.upcoming}</strong><span>futuros</span></div>
-      <div className="bk-stat"><strong>{overview.by_status.done}</strong><span>concluídos</span></div>
+    <div className="bk-head">
+      <div><h1>Agenda</h1>{overview && <p>{overview.today === 0 ? "Nenhum atendimento hoje." : <><strong>{overview.today} {overview.today === 1 ? "atendimento" : "atendimentos"}</strong> hoje</>}{overview.next_7_days > 0 ? ` · ${overview.next_7_days} nos próximos 7 dias` : ""}</p>}</div>
+      {writes && <Button onClick={() => setEditing({})}><CalendarPlus data-icon="inline-start" />Marcar atendimento</Button>}
+    </div>
+    {overview && <div className="bk-kpis">
+      <div className="bk-kpi" data-hue><span>Hoje</span><strong>{overview.today}</strong><small>atendimentos marcados</small></div>
+      <div className="bk-kpi"><span>Próximos 7 dias</span><strong>{overview.next_7_days}</strong><small>atendimentos</small></div>
+      <div className="bk-kpi"><span>Futuros</span><strong>{overview.upcoming}</strong><small>ainda por vir</small></div>
+      <div className="bk-kpi"><span>Concluídos</span><strong>{overview.by_status.done}</strong><small>já realizados</small></div>
     </div>}
     <Feedback error={error} />
     <div className="bk-cal">
       <div className="bk-cal-bar">
         <div className="bk-cal-nav">
-          <Button variant="outline" onClick={() => setAnchor(startOfDay(new Date()))}>Hoje</Button>
+          <Button variant="outline" size="sm" onClick={() => setAnchor(startOfDay(new Date()))}>Hoje</Button>
           {view !== "list" && <>
             <Button variant="ghost" size="icon-lg" aria-label="Anterior" onClick={() => setAnchor(shiftAnchor(view, anchor, -1))}><ChevronLeft /></Button>
             <Button variant="ghost" size="icon-lg" aria-label="Próximo" onClick={() => setAnchor(shiftAnchor(view, anchor, 1))}><ChevronRight /></Button>

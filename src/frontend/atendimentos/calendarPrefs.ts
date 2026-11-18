@@ -18,7 +18,7 @@ export type CalendarPrefs = {
 };
 
 export const STATUS_COLORS: Record<AppointmentStatus, string> = {
-  scheduled: "#7c3aed", confirmed: "#0b8043", done: "#616161", cancelled: "#d50000", no_show: "#e67c73",
+  scheduled: "#6d28d9", confirmed: "#1f8a52", done: "#7b7a8a", cancelled: "#c23a3a", no_show: "#a8620b",
 };
 /** Google Calendar's event colours, used to tell services or people apart. */
 export const PALETTE = ["#7986cb", "#33b679", "#8e24aa", "#e67c73", "#f6bf26", "#f4511e", "#039be5", "#616161", "#3f51b5", "#0b8043", "#d50000"];

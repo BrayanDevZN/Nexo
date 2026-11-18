@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, CalendarCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -19,7 +19,29 @@ export function GoogleLogo() {
   </svg>;
 }
 
-/** Sign-in, sign-up with an e-mail code, password recovery and the end of a Google sign-in. One centered card. */
+/** A fragment of the product beside the form: one day of an agenda, drawn with the same marks the real calendar uses. */
+function AuthPeek() {
+  const rows = [
+    { at: "09:00", who: "Lucas Almeida", what: "Corte masculino · 40 min", who2: "Rafael", ev: "#1f8a52", done: true },
+    { at: "10:00", who: "Bruno Tavares", what: "Barba completa · 30 min", who2: "Camila", ev: "#1f8a52", done: true },
+    { at: "11:00", who: "Diego Ramos", what: "Corte + barba · 70 min", who2: "Rafael", ev: "#6d28d9" },
+    { at: "13:30", who: "Felipe Costa", what: "Pigmentação · 45 min", who2: "Eduardo", ev: "#6d28d9" },
+    { at: "15:00", who: "Thiago Nunes", what: "Sobrancelha · 15 min", who2: "Camila", ev: "#6d28d9" },
+  ];
+  return <aside className="bk-auth-aside" aria-hidden="true">
+    <p>Quem atende com hora marcada não deveria perder tempo com a agenda.</p>
+    <div className="bk-peek">
+      <header><strong>Quarta, 18 de novembro</strong><span>Exemplo da agenda</span></header>
+      <ul>{rows.map(row => <li key={row.at} data-done={row.done || undefined} style={{ "--ev": row.ev } as React.CSSProperties}>
+        <time>{row.at}</time><i /><div><strong>{row.who}</strong><span>{row.what}</span></div><em>{row.who2}</em>
+      </li>)}</ul>
+      <footer><span><strong>5</strong> atendimentos</span><span><strong>2</strong> concluídos</span><span><strong>R$ 270,00</strong> previstos</span></footer>
+    </div>
+    <small>Dados fictícios, só para mostrar como a agenda fica.</small>
+  </aside>;
+}
+
+/** Sign-in, sign-up with an e-mail code, password recovery and the end of a Google sign-in. */
 export function Auth({ api, complete, invite, onLogin }: Props) {
   const [mode, setMode] = useState<Mode>(invite ? "register" : "login");
   const [google, setGoogle] = useState<{ name: string; email: string; csrf_token: string }>();
@@ -76,19 +98,20 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
   const action = complete ? "Concluir" : { login: "Entrar", register: "Criar conta", verify: "Confirmar", recovery: "Enviar código", confirm: "Salvar senha" }[mode];
   return <main className="bk-auth">
     {overlay}
-    <div className="bk-auth-head bk-drop bk-fade">
-      <a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="64" height="64" decoding="async" /></a>
-      <h1>Nexo Atendimentos</h1>
-      <p>Agenda, serviços e equipe do seu negócio, direto do celular.</p>
+    <div className="bk-auth-main">
+    <div className="bk-auth-head">
+      <a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="32" height="32" decoding="async" />Nexo Atendimentos</a>
+      <h1>{complete ? "Falta pouco para começar" : mode === "register" ? "Crie sua conta" : "Entre na sua agenda"}</h1>
+      <p>Horários, serviços e equipe do seu negócio em um só lugar, no celular ou no computador.</p>
     </div>
     {invite && <Feedback success={`Você foi convidado para ${invite.business_name} como ${ROLE_LABELS[invite.role].toLowerCase()}. Entre ou crie sua conta para aceitar.`} />}
     {/* Each mode (sign in, sign up, code, recovery) is a new element, so switching plays the entrance again. */}
-    <div key={complete ? "google" : mode} className="bk-pop bk-fade">
+    <div key={complete ? "google" : mode} className="bk-fade">
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Feedback error={error} success={success} />
-        <form onSubmit={submit} key={complete ? "google" : mode} className="flex flex-col gap-4 bk-stagger">
+        <form onSubmit={submit} key={complete ? "google" : mode} className="flex flex-col gap-4">
           <FieldGroup>
             {(complete || mode === "register") && <>
               <TextField label="Seu nome" name="name" autoComplete="name" defaultValue={google?.name || ""} required maxLength={120} />
@@ -121,6 +144,8 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
       </CardFooter>}
     </Card>
     </div>
-    <p className="bk-muted flex items-center justify-center gap-2"><CalendarCheck className="size-4" aria-hidden="true" /> Feito pela Nexo para quem atende com hora marcada.</p>
+    <p className="bk-auth-foot">Feito pela Nexo para quem atende com hora marcada.</p>
+    </div>
+    <AuthPeek />
   </main>;
 }

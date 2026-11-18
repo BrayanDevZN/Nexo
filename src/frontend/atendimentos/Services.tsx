@@ -41,7 +41,7 @@ export function Services({ api, business }: { api: BookingApi; business: Busines
   }
   const current = editing === "new" ? undefined : editing;
   return <section className="flex flex-col gap-4">
-    <div className="bk-row bk-row-between"><h1>Serviços</h1>{editable && !editing && <Button onClick={() => setEditing("new")}><Plus data-icon="inline-start" />Novo serviço</Button>}</div>
+    <div className="bk-head"><div><h1>Serviços</h1>{rows && <p>{rows.length === 0 ? "Nenhum serviço cadastrado" : `${rows.length} ${rows.length === 1 ? "serviço" : "serviços"} · ${rows.filter(row => row.active).length} disponíveis para marcar`}</p>}</div>{editable && !editing && <Button onClick={() => setEditing("new")}><Plus data-icon="inline-start" />Novo serviço</Button>}</div>
     <Feedback error={error} />
     {editing && <Card><CardHeader><CardTitle>{current ? "Editar serviço" : "Novo serviço"}</CardTitle></CardHeader>
       <CardContent><form onSubmit={submit} className="flex flex-col gap-4" key={current?.id || "new"}>
@@ -63,9 +63,9 @@ export function Services({ api, business }: { api: BookingApi; business: Busines
     {!rows ? <Busy /> : rows.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><Scissors /></EmptyMedia><EmptyTitle>Nenhum serviço ainda</EmptyTitle><EmptyDescription>{editable ? "Cadastre o que você oferece, com duração e preço, para marcar mais rápido." : "O dono ou um gerente cadastra os serviços."}</EmptyDescription></EmptyHeader>{editable && !editing && <EmptyContent><Button onClick={() => setEditing("new")}><Plus data-icon="inline-start" />Cadastrar serviço</Button></EmptyContent>}</Empty>
       : <div className="bk-list">{rows.map(service => <button type="button" className="bk-item" key={service.id} disabled={!editable} onClick={() => setEditing(service)}>
         <div className="bk-item-body"><strong>{service.name}</strong>
-          <span>{service.duration_minutes} min{service.price !== null ? " · " + formatMoney(service.price) : ""}</span>
-          {service.description && <span>{service.description}</span>}</div>
+          <span>{service.duration_minutes} min{service.description ? " · " + service.description : ""}</span></div>
         {!service.active && <Badge variant="outline">Pausado</Badge>}
+        <span className="bk-price">{service.price !== null ? formatMoney(service.price) : "—"}</span>
       </button>)}</div>}
   </section>;
 }

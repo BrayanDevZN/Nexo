@@ -24,7 +24,7 @@ const byDay = (rows: Appointment[]) => {
 function Event({ row, prefs, onEvent, style, compact }: { row: Appointment; prefs: CalendarPrefs; onEvent: Handlers["onEvent"]; style?: React.CSSProperties; compact?: boolean }) {
   const color = eventColor(row, prefs);
   const closed = row.status === "cancelled" || row.status === "no_show";
-  return <button type="button" className="bk-event" data-closed={closed || undefined} data-compact={compact || undefined} title={title(row)} aria-label={title(row)}
+  return <button type="button" className="bk-event" data-closed={closed || undefined} data-status={row.status} data-compact={compact || undefined} title={title(row)} aria-label={title(row)}
     style={{ ...style, "--ev": color } as React.CSSProperties} onClick={event => { event.stopPropagation(); onEvent(row); }}>
     <strong>{row.customer_name}</strong>
     <span>{formatTime(row.starts_at)} · {row.service_name}</span>

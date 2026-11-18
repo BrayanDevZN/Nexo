@@ -76,7 +76,8 @@ test("signs in, creates a business, a service and an appointment, then marks it 
   await page.getByLabel("Nome", { exact: true }).fill("Corte");
   await page.getByLabel("Preço (R$)").fill("45,00");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("30 min · R$ 45,00")).toBeVisible();
+  await expect(page.getByText("30 min", { exact: true })).toBeVisible();
+  await expect(page.getByText("R$ 45,00", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Agenda" }).click();
   await page.getByRole("button", { name: "Marcar atendimento" }).click();

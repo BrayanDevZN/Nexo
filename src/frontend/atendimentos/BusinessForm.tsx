@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Camera, Trash2 } from "lucide-react";
+import { Camera, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,10 +97,14 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <FieldGroup>
           <TextField label="Nome do negócio" name="name" required maxLength={160} defaultValue={business?.name || ""} />
-          <TextField label="CNPJ (opcional)" name="cnpj" inputMode="numeric" maxLength={18} placeholder="00.000.000/0000-00" defaultValue={formatCnpj(business?.cnpj ?? null)} help="Deixe em branco se o negócio não tiver CNPJ." />
-          <TextField label="Telefone ou WhatsApp" name="phone" type="tel" maxLength={30} defaultValue={business?.phone || ""} />
-          <TextField label="E-mail" name="email" type="email" defaultValue={business?.email || ""} />
-          <TextField label="Endereço" name="address" maxLength={300} defaultValue={business?.address || ""} />
+          <div className="bk-grid-2">
+            <TextField label="CNPJ (opcional)" name="cnpj" inputMode="numeric" maxLength={18} placeholder="00.000.000/0000-00" defaultValue={formatCnpj(business?.cnpj ?? null)} help="Deixe em branco se o negócio não tiver CNPJ." />
+            <TextField label="Telefone ou WhatsApp" name="phone" type="tel" maxLength={30} defaultValue={business?.phone || ""} />
+          </div>
+          <div className="bk-grid-2">
+            <TextField label="E-mail" name="email" type="email" defaultValue={business?.email || ""} />
+            <TextField label="Endereço" name="address" maxLength={300} defaultValue={business?.address || ""} />
+          </div>
           <div className="bk-grid-2">
             <TextField label="Cidade" name="city" maxLength={120} defaultValue={business?.city || ""} />
             <TextField label="UF" name="state" maxLength={2} pattern="[A-Za-z]{2}" defaultValue={business?.state || ""} />
@@ -119,14 +123,14 @@ export function BusinessForm({ api, business, onSaved, onDeleted, canDelete }: {
                   <input type="time" aria-label={`${WEEKDAY_LABELS[day]}, início`} value={slot[0]} onChange={e => setSlot(day, index, 0, e.target.value)} required />
                   <span>às</span>
                   <input type="time" aria-label={`${WEEKDAY_LABELS[day]}, fim`} value={slot[1]} onChange={e => setSlot(day, index, 1, e.target.value)} required />
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeSlot(day, index)} aria-label={`Remover horário de ${WEEKDAY_LABELS[day]}`}>✕</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeSlot(day, index)} aria-label={`Remover horário de ${WEEKDAY_LABELS[day]}`}><X /></Button>
                 </div>)}
                 {hours[day].length < 4 && <Button type="button" variant="link" size="sm" className="self-start" onClick={() => addSlot(day)}>+ horário</Button>}
               </div>
             </div>)}
           </div>
         </div>
-        <Button type="submit" size="lg" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : business ? "Salvar" : "Criar negócio"}</Button>
+        <Button type="submit" size="lg" className="self-start" disabled={busy}>{busy ? <Busy>Salvando…</Busy> : business ? "Salvar alterações" : "Criar negócio"}</Button>
       </form>
       {business && canDelete && <div className="flex flex-col gap-2 border-t pt-4">
         {!confirmDelete ? <Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}>Excluir este negócio</Button>

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeftRight, Building2, CalendarDays, LogOut, Plus, Scissors, Settings2, UserRound, Users } from "lucide-react";
-import { Brand } from "@/components/Brand";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import { ArrowLeftRight, Building2, CalendarDays, ChevronRight, LogOut, Plus, Scissors, Settings2, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -105,33 +106,36 @@ function BookingScreens({ play }: { play: Play }) {
   if (loading) return <main className="bk-page"><Busy /></main>;
   if (!user && error) return <main className="bk-page"><Feedback error={error} /><Button onClick={() => { setLoading(true); void refresh(); }}>Tentar de novo</Button></main>;
   if (!user) return <Auth api={api} complete={complete} invite={invite} onLogin={onLogin} />;
-  if (accountOnly) return <main className="bk-page">
-    <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="outline" size="sm" onClick={() => setAccountOnly(false)}>Voltar</Button></div>
-    <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
+  if (accountOnly) return <main className="bk-picker">
+    <div className="bk-picker-bar"><a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" />Nexo Atendimentos</a><Button variant="outline" size="sm" onClick={() => setAccountOnly(false)}>Voltar</Button></div>
+    <div className="bk-picker-sheet"><Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} /></div>
   </main>;
-  if (!business) return <main className="bk-page bk-pop bk-fade" key={creating ? "new" : "list"}>
-    <div className="bk-top"><a href="/" aria-label="Nexo, voltar ao site"><Brand /></a><Button variant="ghost" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}><LogOut data-icon="inline-start" />Sair</Button></div>
-    <div className="bk-hello">
-      <Picture api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} />
-      <div><h1>Olá, {user.name.split(" ")[0]}</h1><p className="bk-muted">Escolha um negócio ou crie o seu.</p></div>
+  if (!business) return <main className="bk-picker bk-fade" key={creating ? "new" : "list"}>
+    <div className="bk-picker-bar"><a href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" />Nexo Atendimentos</a><Button variant="ghost" size="sm" onClick={() => void api.mutate("/auth/logout", "POST").then(signOut, signOut)}><LogOut data-icon="inline-start" />Sair</Button></div>
+    <div className="bk-picker-sheet">
+      <div className="bk-hello">
+        <Picture api={api} path="/auth/profile/photo" name={user.name} hasPhoto={user.has_photo} />
+        <div><h1>Olá, {user.name.split(" ")[0]}</h1><p className="bk-muted">{creating ? "Conte o básico do seu negócio. Só o nome é obrigatório." : businesses && businesses.length > 0 ? "Escolha o negócio que você quer abrir." : "Crie o seu primeiro negócio para começar."}</p></div>
+      </div>
+      <Feedback error={error || inviteError} />
+      {creating ? <BusinessForm api={api} onSaved={saved => { void loadBusinesses(); pick(saved); }} />
+        : !businesses ? <Busy /> : <>
+          {businesses.length === 0 && <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Você ainda não tem nenhum negócio</EmptyTitle><EmptyDescription>Crie o seu em um minuto: só o nome é obrigatório. Se alguém te convidou, abra o link do convite.</EmptyDescription></EmptyHeader></Empty>}
+          {businesses.length > 0 && <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item" key={row.id} onClick={() => play(() => pick(row))}>
+            <Picture api={api} path={"/businesses/" + row.id + "/photo"} name={row.name} hasPhoto={row.has_photo} className="size-10" />
+            <div className="bk-item-body"><strong>{row.name}</strong><span>{[row.city, row.state].filter(Boolean).join(" / ") || row.phone || "Sem endereço"}</span></div>
+            <span className="bk-role" data-owner={row.my_role === "owner" || undefined}>{ROLE_LABELS[row.my_role]}</span>
+            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+          </button>)}</div>}
+          <Button size="lg" variant={businesses.length ? "outline" : "default"} onClick={() => setCreating(true)}><Plus data-icon="inline-start" />Criar negócio</Button>
+        </>}
+      {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
+      <div className="bk-account-row"><div><strong>{user.name}</strong><span className="bk-muted">{user.email}</span></div><Button variant="outline" size="sm" onClick={() => setAccountOnly(true)}><UserRound data-icon="inline-start" />Foto, dados e senha</Button></div>
     </div>
-    <Feedback error={error || inviteError} />
-    {creating ? <BusinessForm api={api} onSaved={saved => { void loadBusinesses(); pick(saved); }} />
-      : !businesses ? <Busy /> : <>
-        {businesses.length === 0 && <Empty><EmptyHeader><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyTitle>Você ainda não tem nenhum negócio</EmptyTitle><EmptyDescription>Crie o seu em um minuto: só o nome é obrigatório. Se alguém te convidou, abra o link do convite.</EmptyDescription></EmptyHeader></Empty>}
-        <div className="bk-businesses">{businesses.map(row => <button type="button" className="bk-item" key={row.id} onClick={() => play(() => pick(row))}>
-          <Picture api={api} path={"/businesses/" + row.id + "/photo"} name={row.name} hasPhoto={row.has_photo} className="size-12" />
-          <div className="bk-item-body"><strong>{row.name}</strong><span>{[row.city, row.state].filter(Boolean).join(" / ") || row.phone || "Sem endereço"}</span></div>
-          <Badge variant={row.my_role === "owner" ? "default" : "secondary"}>{ROLE_LABELS[row.my_role]}</Badge>
-        </button>)}</div>
-        <Button size="lg" onClick={() => setCreating(true)}><Plus data-icon="inline-start" />Criar negócio</Button>
-      </>}
-    {creating && <Button variant="outline" onClick={() => setCreating(false)}>Voltar</Button>}
-    <Card><CardHeader><CardTitle>Minha conta</CardTitle><CardDescription>{user.email}</CardDescription></CardHeader><CardContent><Button variant="outline" size="sm" onClick={() => setAccountOnly(true)}><UserRound data-icon="inline-start" />Foto, dados e senha</Button></CardContent></Card>
   </main>;
   const current = PAGES.find(item => item.id === page) || PAGES[0];
   return <TooltipProvider delayDuration={200}><SidebarProvider className="bk-shell">
-    <Sidebar collapsible="icon" className="bk-sidebar" aria-label="Menu do Atendimentos">
+    <Sidebar variant="inset" collapsible="icon" className="bk-sidebar" aria-label="Menu do Atendimentos">
       <SidebarHeader>
         <a className="bk-brand" href="/" aria-label="Nexo, voltar ao site"><img src="/images/nexo-symbol-purple.png" alt="" width="28" height="28" decoding="async" /><span>Nexo <b>Atendimentos</b></span></a>
         <SidebarMenu>
@@ -188,9 +192,9 @@ function BookingScreens({ play }: { play: Play }) {
           <BreadcrumbItem><BreadcrumbPage>{current.label}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList></Breadcrumb>
       </header>
-      <div className="bk-content" data-wide={page === "agenda" || undefined}>
+      <div className="bk-sheet"><div className="bk-content" data-wide={page === "agenda" || undefined}>
         <Feedback error={error} />
-        <div key={page + ":" + business.id} className="bk-pop bk-fade">
+        <div key={page + ":" + business.id} className="bk-fade">
         {page === "account" ? <Account api={api} user={user} onUpdate={setUser} onLoggedOut={signOut} />
           : page === "services" ? <Services api={api} business={business} />
           : page === "team" ? <Team api={api} business={business} me={user} onLeft={() => { pick(undefined); void loadBusinesses(); }} />
@@ -199,7 +203,7 @@ function BookingScreens({ play }: { play: Play }) {
             : <Card><CardContent className="flex flex-col gap-1 pt-4"><strong>{business.name}</strong>{business.address && <span>{business.address}</span>}{business.phone && <span>{business.phone}</span>}<span className="bk-muted">Só o dono ou um gerente altera estes dados.</span></CardContent></Card>)
           : <Agenda api={api} business={business} />}
         </div>
-      </div>
+      </div></div>
     </SidebarInset>
   </SidebarProvider></TooltipProvider>;
 }

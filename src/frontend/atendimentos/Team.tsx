@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import { Copy, Share2, UserPlus } from "lucide-react";
@@ -43,7 +42,7 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
   }
   const roles = INVITABLE.filter(role => outranks(business.my_role, role));
   return <section className="flex flex-col gap-4">
-    <h1>Equipe</h1>
+    <div className="bk-head"><div><h1>Equipe</h1>{members && <p>{members.length} {members.length === 1 ? "pessoa" : "pessoas"} em {business.name}</p>}</div></div>
     <Feedback error={error} success={success} />
     {created?.url && <div className="bk-link-box" aria-live="polite">{created.url}<div className="bk-row" style={{ marginTop: "0.5rem" }}>
       <Button size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(created.url!).then(() => setSuccess("Link copiado."), () => undefined)}><Copy data-icon="inline-start" />Copiar link</Button>
@@ -54,17 +53,15 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
       const editable = manages && member.role !== "owner" && !mine && outranks(business.my_role, member.role);
       return <div className="bk-item" key={member.id} style={{ cursor: "default" }}>
         <Picture api={api} path={"/auth/profile/photo?user_id=" + member.user_id} name={member.name || "?"} hasPhoto={member.has_photo} className="size-11" />
-        <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span>
-          {editable && <div className="bk-row" style={{ marginTop: "0.4rem" }}>
-            <NativeSelect aria-label={"Papel de " + member.name} value={member.role} disabled={busy} onChange={e => void act(async () => {
-              await api.mutate(base + "/members/" + member.user_id, "PATCH", { role: e.target.value }); await load();
-            }, "Papel atualizado.")}>
-              {roles.map(role => <NativeSelectOption key={role} value={role}>{ROLE_LABELS[role]}</NativeSelectOption>)}
-            </NativeSelect>
-            <Button size="sm" variant="destructive" disabled={busy} onClick={() => { if (window.confirm(`Remover ${member.name} da equipe?`)) void act(async () => { await api.mutate(base + "/members/" + member.user_id, "DELETE"); await load(); }, "Pessoa removida."); }}>Remover</Button>
-          </div>}
-        </div>
-        <Badge variant={member.role === "owner" ? "default" : "secondary"}>{ROLE_LABELS[member.role]}</Badge>
+        <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span></div>
+        {editable ? <div className="bk-member-actions">
+          <NativeSelect aria-label={"Papel de " + member.name} value={member.role} disabled={busy} onChange={e => void act(async () => {
+            await api.mutate(base + "/members/" + member.user_id, "PATCH", { role: e.target.value }); await load();
+          }, "Papel atualizado.")}>
+            {roles.map(role => <NativeSelectOption key={role} value={role}>{ROLE_LABELS[role]}</NativeSelectOption>)}
+          </NativeSelect>
+          <Button size="sm" variant="destructive" disabled={busy} onClick={() => { if (window.confirm(`Remover ${member.name} da equipe?`)) void act(async () => { await api.mutate(base + "/members/" + member.user_id, "DELETE"); await load(); }, "Pessoa removida."); }}>Remover</Button>
+        </div> : <span className="bk-role" data-owner={member.role === "owner" || undefined}>{ROLE_LABELS[member.role]}</span>}
       </div>;
     })}</div>}
     {members && members.length === 1 && manages && <Empty><EmptyHeader><EmptyMedia variant="icon"><UserPlus /></EmptyMedia><EmptyTitle>Só você por enquanto</EmptyTitle><EmptyDescription>Convide quem trabalha com você. Cada pessoa entra com a própria conta e vê só o que o papel permite.</EmptyDescription></EmptyHeader></Empty>}
@@ -79,7 +76,7 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
         </FieldGroup>
         <Button type="submit" disabled={busy}>{busy ? <Busy>Criando…</Busy> : "Criar convite"}</Button>
       </form></CardContent></Card>}
-    {manages && invitations.length > 0 && <div className="flex flex-col gap-2"><h2>Convites pendentes</h2><div className="bk-list">{invitations.map(invitation => <div className="bk-item" key={invitation.id} style={{ cursor: "default" }}>
+    {manages && invitations.length > 0 && <div className="flex flex-col gap-3"><h2>Convites pendentes</h2><div className="bk-list">{invitations.map(invitation => <div className="bk-item" key={invitation.id} style={{ cursor: "default" }}>
       <div className="bk-item-body"><strong>{invitation.email || "Qualquer pessoa com o link"}</strong><span>{ROLE_LABELS[invitation.role]} · vale até {new Date(invitation.expires_at.endsWith("Z") ? invitation.expires_at : invitation.expires_at + "Z").toLocaleDateString("pt-BR")}</span></div>
       <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await api.mutate(base + "/invitations/" + invitation.id, "DELETE"); if (created?.id === invitation.id) setCreated(undefined); await load(); }, "Convite cancelado.")}>Cancelar</Button>
     </div>)}</div></div>}
