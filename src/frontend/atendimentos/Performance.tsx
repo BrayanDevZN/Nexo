@@ -83,6 +83,19 @@ const MIX_CONFIG = {
   active: { label: "Em aberto", color: "color-mix(in srgb, var(--bk-accent) 30%, #fff)" },
   lost: { label: "Faltas e cancelados", color: "#cfcfda" },
 } satisfies ChartConfig;
+type Slice = { done: number; active: number; lost: number };
+const ORDER = ["done", "active", "lost"] as const;
+/** A stacked bar whose outer ends are rounded: the first filled segment (bottom) and the last one (top) get the round corners, the ones between stay square. */
+function RoundedBar({ x = 0, y = 0, width = 0, height = 0, fill, payload, dataKey }: { x?: number; y?: number; width?: number; height?: number; fill?: string; payload?: Slice; dataKey?: string | number }) {
+  if (!payload || height <= 0 || width <= 0) return null;
+  const filled = ORDER.filter(key => payload[key] > 0);
+  const own = String(dataKey) as typeof ORDER[number];
+  const r = Math.min(9, width / 2, height / 2);
+  const top = filled[filled.length - 1] === own ? r : 0;
+  const bottom = filled[0] === own ? r : 0;
+  const d = `M${x + top},${y} H${x + width - top} Q${x + width},${y} ${x + width},${y + top} V${y + height - bottom} Q${x + width},${y + height} ${x + width - bottom},${y + height} H${x + bottom} Q${x},${y + height} ${x},${y + height - bottom} V${y + top} Q${x},${y} ${x + top},${y} Z`;
+  return <path d={d} fill={fill} />;
+}
 const COLUMN = 76; // px per person: with more people than fit, the chart scrolls sideways instead of squeezing
 
 /** A bar chart of how each person's appointments ended (stacked). On a phone it scrolls sideways when the team is bigger than the screen. */
@@ -105,9 +118,9 @@ function Mix({ rows }: { rows: PerformanceRow[] }) {
               <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} tickMargin={8} />
               <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
               <ChartTooltip cursor={{ fill: "rgb(109 40 217 / 0.06)" }} content={<ChartTooltipContent />} />
-              <Bar dataKey="done" name={MIX_CONFIG.done.label} stackId="a" fill="var(--color-done)" radius={[0, 0, 2, 2]} />
-              <Bar dataKey="active" name={MIX_CONFIG.active.label} stackId="a" fill="var(--color-active)" />
-              <Bar dataKey="lost" name={MIX_CONFIG.lost.label} stackId="a" fill="var(--color-lost)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="done" name={MIX_CONFIG.done.label} stackId="a" fill="var(--color-done)" shape={<RoundedBar />} />
+              <Bar dataKey="active" name={MIX_CONFIG.active.label} stackId="a" fill="var(--color-active)" shape={<RoundedBar />} />
+              <Bar dataKey="lost" name={MIX_CONFIG.lost.label} stackId="a" fill="var(--color-lost)" shape={<RoundedBar />} />
             </BarChart>
           </ChartContainer>
         </div>
