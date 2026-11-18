@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 470 files | ~653.9K tokens if all read
+Generated: 2026-11-18 | 470 files | ~654.1K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -203,7 +203,7 @@ Generated: 2026-11-18 | 470 files | ~653.9K tokens if all read
 | src/frontend/admin/Maps.tsx | 620 | 10.8K | source |
 | src/frontend/admin/MapsLink.tsx | 24 | 291 | source |
 | src/frontend/admin/MemberPhoto.tsx | 21 | 350 | source |
-| src/frontend/admin/Members.tsx | 131 | 4.4K | source |
+| src/frontend/admin/Members.tsx | 136 | 4.6K | source |
 | src/frontend/admin/MyKeys.tsx | 178 | 3.0K | source |
 | src/frontend/admin/PaidFunnel.tsx | 158 | 3.6K | source |
 | src/frontend/admin/PhotoPicker.tsx | 42 | 649 | source |
@@ -476,7 +476,7 @@ Generated: 2026-11-18 | 470 files | ~653.9K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 308 files, ~414.3K tokens
+- source: 308 files, ~414.5K tokens
 - config: 13 files, ~3.6K tokens
 - test: 113 files, ~148.9K tokens
 - docs: 11 files, ~20.5K tokens
