@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-17 | 458 files | ~602.3K tokens if all read
+Generated: 2026-11-18 | 458 files | ~602.3K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
