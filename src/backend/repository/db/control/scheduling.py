@@ -37,7 +37,7 @@ FIELDS = {
     "booking_users": ("id", "name", "email", "phone", "created_at", "updated_at"),
     "businesses": ("id", "owner_id", "name", "slug", "cnpj", "description", "phone", "email", "address", "city", "state",
                    "timezone", "opening_hours", "created_at", "updated_at"),
-    "business_members": ("id", "business_id", "user_id", "role", "created_at", "updated_at"),
+    "business_members": ("id", "business_id", "user_id", "role", "unavailable", "created_at", "updated_at"),
     "business_invitations": ("id", "business_id", "email", "role", "created_by_id", "expires_at", "accepted_at",
                              "accepted_by_id", "created_at", "updated_at"),
     "business_services": ("id", "business_id", "name", "description", "duration_minutes", "price", "active",
@@ -301,6 +301,12 @@ class BusinessRepository(Repository[Business]):
             raise ValueError("Invalid role")
         return self.add(BusinessMember(business_id=business_id, user_id=user_id, role=role))
 
+    def set_unavailable(self, member: BusinessMember, unavailable: bool) -> BusinessMember:
+        member.unavailable = bool(unavailable)
+        self.session.flush()
+        _mark_dirty(self.session, "business_members", member.business_id)
+        return member
+
     def set_role(self, member: BusinessMember, role: str) -> BusinessMember:
         if role not in BUSINESS_ROLES:
             raise ValueError("Invalid role")
@@ -422,6 +428,16 @@ class AppointmentRepository(Repository[Appointment]):
         if customer:
             query = query.where(Appointment.customer_name.icontains(customer, autoescape=True))
         return list(self.session.scalars(query.order_by(Appointment.starts_at, Appointment.id).limit(limit).offset(offset)))
+
+    def busy_now(self, business_id: str, now: datetime) -> dict[str, datetime]:
+        """Who is in an active appointment right now, and when it ends (the latest one if there are several)."""
+        rows = self.session.execute(select(Appointment.staff_user_id, Appointment.ends_at).where(
+            Appointment.business_id == business_id, Appointment.staff_user_id.is_not(None),
+            Appointment.status.in_(sorted(ACTIVE_STATUSES)), Appointment.starts_at <= now, Appointment.ends_at > now)).all()
+        busy: dict[str, datetime] = {}
+        for staff_id, ends_at in rows:
+            busy[staff_id] = max(ends_at, busy.get(staff_id, ends_at))
+        return busy
 
     def staff_conflict(self, business_id: str, staff_user_id: str, starts_at: datetime, ends_at: datetime,
                        exclude_id: str | None = None) -> Appointment | None:

@@ -268,6 +268,37 @@ def test_the_same_professional_cannot_double_book_but_two_different_ones_can(cli
     assert client.patch(appointments + "/" + other.json()["id"], headers=owner, json={"staff_user_id": None}).status_code == 422
 
 
+def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(client):
+    from datetime import timedelta
+    from backend.repository.db.models.base import utc_now
+    register(client, ANA)
+    owner = login(client, ANA)
+    business = create_business(client, owner)
+    path = "/atendimentos/businesses/" + business["id"]
+    me = client.get("/atendimentos/auth/me").json()
+    mine = lambda: next(row for row in client.get(path + "/members").json() if row["user_id"] == me["id"])
+    assert mine()["available"] is True and mine()["busy_until"] is None and mine()["unavailable"] is False
+    # Inside an appointment: unavailable by itself, and free again as soon as it ends.
+    now = utc_now()
+    during = client.post(path + "/appointments", headers=owner, json={
+        "customer_name": "João", "staff_user_id": me["id"], "starts_at": (now - timedelta(minutes=10)).isoformat() + "Z",
+        "ends_at": (now + timedelta(minutes=20)).isoformat() + "Z"})
+    assert during.status_code == 201, during.text
+    assert mine()["available"] is False and mine()["busy_until"] is not None and mine()["unavailable"] is False
+    assert client.patch(path + "/appointments/" + during.json()["id"], headers=owner, json={"status": "done"}).status_code == 200
+    assert mine()["available"] is True and mine()["busy_until"] is None
+    future = client.post(path + "/appointments", headers=owner, json={
+        "customer_name": "Pedro", "staff_user_id": me["id"], "starts_at": (now + timedelta(hours=2)).isoformat() + "Z"})
+    assert future.status_code == 201 and mine()["available"] is True
+    # By hand: stays until the person turns it off.
+    off = client.put(path + "/members/me/availability", headers=owner, json={"unavailable": True})
+    assert off.status_code == 200 and off.json()["unavailable"] is True and off.json()["available"] is False
+    assert mine()["available"] is False
+    on = client.put(path + "/members/me/availability", headers=owner, json={"unavailable": False})
+    assert on.json()["available"] is True and mine()["unavailable"] is False
+    assert client.put(path + "/members/me/availability", headers=owner, json={"unavailable": "x"}).status_code == 422
+
+
 def test_invitations_roles_and_permissions(client):
     register(client, ANA)
     register(client, BIA)

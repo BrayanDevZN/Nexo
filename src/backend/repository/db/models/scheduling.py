@@ -100,6 +100,8 @@ class BusinessMember(IdentityTimestampMixin, Base):
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
     user_id: Mapped[str] = mapped_column(ForeignKey("booking_users.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
+    # Set by the person themselves: unavailable until they say otherwise. Being in an appointment is worked out on its own.
+    unavailable: Mapped[bool] = mapped_column(default=False, server_default="0", nullable=False)
 
 
 class BusinessInvitation(IdentityTimestampMixin, Base):

@@ -4,12 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Busy, Feedback, Field, FieldGroup, FieldLabel, TextField, message } from "@/admin/shared";
 import { Copy, Link2, Mail, Share2, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { can, outranks, ROLE_HELP, ROLE_LABELS, type BookingApi, type BookingUser, type Business, type InvitableRole, type Invitation, type Member } from "./api";
 import { Picture } from "./Photo";
 
 const INVITABLE: InvitableRole[] = ["manager", "staff", "viewer"];
+
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+/** Why someone is not available: they said so (stays until they undo it), or they are in an appointment (ends by itself). */
+function availabilityNote(member: Member) {
+  if (member.unavailable) return member.busy_until ? `Marcou que está indisponível · também em atendimento até ${clock(member.busy_until)}` : "Marcou que está indisponível";
+  if (member.busy_until) return `Em atendimento até ${clock(member.busy_until)}`;
+  return "";
+}
 
 /** Who works in the business, what each person may do, and the invitation links. */
 export function Team({ api, business, me, onLeft }: { api: BookingApi; business: Business; me: BookingUser; onLeft: () => void }) {
@@ -29,6 +38,11 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
     } catch (e) { setError(message(e)); }
   }
   useEffect(() => { setMembers(undefined); setCreated(undefined); void load(); }, [business.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Being in an appointment starts and ends on its own, so the list is read again every half minute to show it.
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (!document.hidden) void api.request<Member[]>(base + "/members").then(setMembers).catch(() => undefined); }, 30000);
+    return () => window.clearInterval(timer);
+  }, [api, base]);
   async function act(run: () => Promise<void>, text = "") {
     if (busy) return;
     setBusy(true); setError(""); setSuccess("");
@@ -59,7 +73,13 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
       const editable = manages && member.role !== "owner" && !mine && outranks(business.my_role, member.role);
       return <div className="bk-item" key={member.id} style={{ cursor: "default" }}>
         <Picture api={api} path={"/auth/profile/photo?user_id=" + member.user_id} name={member.name || "?"} hasPhoto={member.has_photo} className="size-11" />
-        <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span></div>
+        <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span>
+          <span className="flex flex-wrap items-center gap-2"><Badge variant={member.available ? "secondary" : "destructive"}>{member.available ? "Disponível" : "Indisponível"}</Badge>
+            <span className="text-sm text-muted-foreground">{availabilityNote(member)}</span></span>
+          {mine && <Button size="sm" variant="outline" className="self-start" disabled={busy} onClick={() => void act(async () => {
+            await api.mutate(base + "/members/me/availability", "PUT", { unavailable: !member.unavailable }); await load();
+          }, member.unavailable ? "Você voltou a ficar disponível." : "Você ficou indisponível até avisar que voltou.")}>{member.unavailable ? "Voltar a ficar disponível" : "Ficar indisponível"}</Button>}
+        </div>
         {editable ? <div className="bk-member-actions">
           <NativeSelect aria-label={"Papel de " + member.name} value={member.role} disabled={busy} onChange={e => void act(async () => {
             await api.mutate(base + "/members/" + member.user_id, "PATCH", { role: e.target.value }); await load();

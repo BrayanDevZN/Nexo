@@ -17,6 +17,7 @@ from backend.controller.schema.scheduling import (
     InvitationCreate,
     InvitationInfo,
     InvitationOutput,
+    AvailabilityInput,
     MemberOutput,
     MemberRoleInput,
     OverviewOutput,
@@ -136,6 +137,14 @@ def overview(business_id: str, request: Request, actor=Depends(booking_user)):
 def list_members(business_id: str, request: Request, actor=Depends(booking_user)):
     try:
         return service(request).list_members(actor, business_id)
+    except ERRORS as exc:
+        raise fail(exc) from None
+
+
+@router.put("/businesses/{business_id}/members/me/availability", response_model=MemberOutput)
+def set_my_availability(business_id: str, data: AvailabilityInput, request: Request, actor=Depends(booking_user)):
+    try:
+        return service(request).set_my_availability(actor, business_id, data.unavailable)
     except ERRORS as exc:
         raise fail(exc) from None
 

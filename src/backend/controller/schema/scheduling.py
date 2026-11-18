@@ -198,7 +198,15 @@ class MemberOutput(BaseModel):
     name: str | None = None
     email: str | None = None
     has_photo: bool = False
+    unavailable: bool = False
+    busy_until: datetime | None = None
+    available: bool = True
     created_at: datetime
+
+
+class AvailabilityInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    unavailable: bool
 
 
 class MemberRoleInput(BaseModel):
