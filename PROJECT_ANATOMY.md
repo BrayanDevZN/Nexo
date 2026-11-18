@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
+Generated: 2026-11-18 | 470 files | ~661.4K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -7,7 +7,7 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | maps-server/start.sh | 36 | 294 | source |
 | mcp_server.py | 589 | 4.9K | source |
 | n8n/credentials/NexoApi.credentials.js | 50 | 283 | source |
-| n8n/nodes/Nexo/booking.js | 348 | 7.3K | source |
+| n8n/nodes/Nexo/booking.js | 356 | 7.4K | source |
 | n8n/nodes/Nexo/Nexo.node.js | 358 | 11.6K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
 | src/backend/controller/application.py | 113 | 1.5K | source |
@@ -110,7 +110,7 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
 | src/backend/repository/db/control/paid_leads.py | 41 | 449 | source |
-| src/backend/repository/db/control/scheduling.py | 539 | 7.5K | source |
+| src/backend/repository/db/control/scheduling.py | 547 | 7.6K | source |
 | src/backend/repository/db/control/users.py | 205 | 2.5K | source |
 | src/backend/repository/db/control/video_jobs.py | 31 | 366 | source |
 | src/backend/repository/db/migrations/__init__.py | 2 | 11 | source |
@@ -166,7 +166,7 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | src/backend/service/registration.py | 57 | 669 | source |
 | src/backend/service/runtime.py | 220 | 3.6K | source |
 | src/backend/service/scheduling_auth.py | 184 | 2.4K | source |
-| src/backend/service/scheduling.py | 628 | 9.8K | source |
+| src/backend/service/scheduling.py | 630 | 9.9K | source |
 | src/backend/service/schema.py | 13 | 102 | source |
 | src/backend/service/security.py | 42 | 449 | source |
 | src/backend/service/videos.py | 232 | 2.7K | source |
@@ -325,7 +325,7 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | src/frontend/tsconfig.json | 42 | 187 | config |
 | src/frontend/vercel.json | 18 | 172 | config |
 | video-server/package.json | 19 | 102 | config |
-| n8n/test/booking.test.js | 367 | 7.5K | test |
+| n8n/test/booking.test.js | 373 | 7.7K | test |
 | n8n/test/nodes.test.js | 532 | 8.1K | test |
 | tests/conftest.py | 92 | 737 | test |
 | tests/functional/controller/test_account_deletion.py | 47 | 633 | test |
@@ -347,7 +347,7 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | tests/functional/controller/test_realtime.py | 128 | 1.7K | test |
 | tests/functional/controller/test_registration.py | 116 | 1.3K | test |
 | tests/functional/controller/test_runtime.py | 27 | 267 | test |
-| tests/functional/controller/test_scheduling.py | 873 | 15.5K | test |
+| tests/functional/controller/test_scheduling.py | 900 | 15.9K | test |
 | tests/functional/controller/test_videos.py | 342 | 4.5K | test |
 | tests/functional/domain/test_session_flow.py | 33 | 380 | test |
 | tests/functional/frontend/chat.spec.ts | 75 | 1.6K | test |
@@ -476,9 +476,9 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 308 files, ~418.3K tokens
+- source: 308 files, ~418.7K tokens
 - config: 13 files, ~3.6K tokens
-- test: 113 files, ~151.3K tokens
+- test: 113 files, ~151.9K tokens
 - docs: 11 files, ~20.6K tokens
 - style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens
@@ -486,13 +486,13 @@ Generated: 2026-11-18 | 470 files | ~660.5K tokens if all read
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
 2. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
-3. tests/functional/controller/test_scheduling.py — 873 lines (~15.5K tokens)
+3. tests/functional/controller/test_scheduling.py — 900 lines (~15.9K tokens)
 4. tests/integration/frontend/panel.spec.ts — 822 lines (~14.6K tokens)
 5. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
 6. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
 7. src/frontend/styles/atendimentos.css — 636 lines (~16.0K tokens)
-8. src/backend/service/scheduling.py — 628 lines (~9.8K tokens)
+8. src/backend/service/scheduling.py — 630 lines (~9.9K tokens)
 9. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
 10. mcp_server.py — 589 lines (~4.9K tokens)
-11. src/backend/repository/db/control/scheduling.py — 539 lines (~7.5K tokens)
+11. src/backend/repository/db/control/scheduling.py — 547 lines (~7.6K tokens)
 12. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)

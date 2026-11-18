@@ -220,7 +220,15 @@ async function executeBooking(ctx, resource, operation, index, state) {
 		const text = clean(value);
 		if (text === undefined) return undefined;
 		const team = rows(await call({ method: 'GET', url: base('/members') }));
-		const hit = team.find((member) => member.user_id === text) || team.find((member) => [member.name, member.email].some((field) => field && String(field).trim().toLowerCase() === text.toLowerCase()));
+		const plain = (value) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+		const wanted = plain(text);
+		// By ID, then by the full name or e-mail; then by the first name or the start of the name when only one person fits.
+		let hit = team.find((member) => member.user_id === text) || team.find((member) => [member.name, member.email].some((field) => field && plain(field) === wanted));
+		if (!hit) {
+			const close = team.filter((member) => member.name && (plain(member.name).startsWith(wanted) || plain(member.name).split(/\s+/).includes(wanted)));
+			if (close.length > 1) throw new Error(`Mais de uma pessoa com esse nome neste negócio: ${close.map((member) => `${member.name} (${member.user_id})`).join('; ')}. Informe o ID.`);
+			hit = close[0];
+		}
 		if (!hit) throw new Error(`Funcionário não encontrado neste negócio: ${text}. Equipe: ${team.map((member) => `${member.name || member.email} (${member.user_id})`).join('; ') || 'ninguém ainda'}.`);
 		return hit.user_id;
 	};

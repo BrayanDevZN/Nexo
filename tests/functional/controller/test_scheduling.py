@@ -268,6 +268,33 @@ def test_the_same_professional_cannot_double_book_but_two_different_ones_can(cli
     assert client.patch(appointments + "/" + other.json()["id"], headers=owner, json={"staff_user_id": None}).status_code == 422
 
 
+def test_the_team_list_shows_a_new_member_and_a_new_name_right_away(client):
+    register(client, ANA)
+    register(client, BIA)
+    owner = login(client, ANA)
+    business = create_business(client, owner)
+    path = "/atendimentos/businesses/" + business["id"]
+    assert [row["name"] for row in client.get(path + "/members").json()] == ["Ana"]   # fills the cache
+    invite = client.post(path + "/invitations", headers=owner, json={"role": "staff"}).json()
+    token = parse_qs(urlsplit(invite["url"]).query)["invite"][0]
+    bia = login(client, BIA)
+    assert client.post("/atendimentos/invitations/" + token + "/accept", headers=bia).status_code == 200
+    owner = login(client, ANA)
+    assert [row["name"] for row in client.get(path + "/members").json()] == ["Ana", "Bia"]
+    # The agenda shows who attends; its cached list must follow a rename too.
+    bia_id = next(row["user_id"] for row in client.get(path + "/members").json() if row["name"] == "Bia")
+    booked = client.post(path + "/appointments", headers=owner, json={"customer_name": "João", "staff_user_id": bia_id,
+                                                                      "starts_at": "2026-12-01T13:00:00Z"})
+    assert booked.status_code == 201
+    assert client.get(path + "/appointments").json()[0]["staff_name"] == "Bia"
+    # Renaming an account is not a change to the membership: the list must still show the new name at once.
+    bia = login(client, BIA)
+    assert client.put("/atendimentos/auth/profile", headers=bia, json={"name": "Brayan Souza", "phone": None}).status_code == 200
+    owner = login(client, ANA)
+    assert [row["name"] for row in client.get(path + "/members").json()] == ["Ana", "Brayan Souza"]
+    assert client.get(path + "/appointments").json()[0]["staff_name"] == "Brayan Souza"
+
+
 def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(client):
     from datetime import timedelta
     from backend.repository.db.models.base import utc_now

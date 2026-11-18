@@ -167,13 +167,15 @@ class SchedulingService:
         with self.repositories.read_transaction() as repos:
             self._member(repos, actor, business_id)
 
+            # Only the membership rows are cached. Names, e-mails and photos belong to the accounts and change on their own
+            # (someone renames themselves, adds a photo), so they are read fresh every time and never go stale here.
             def load():
-                rows = [snapshot("business_members", row) for row in repos.businesses.members(business_id)]
-                people = repos.booking_users.summaries_by_ids(row["user_id"] for row in rows)
-                return [{**row, "name": people.get(row["user_id"], {}).get("name", "Conta removida"),
-                         "email": people.get(row["user_id"], {}).get("email"),
-                         "has_photo": people.get(row["user_id"], {}).get("has_photo", False)} for row in rows]
+                return [snapshot("business_members", row) for row in repos.businesses.members(business_id)]
             rows = self.cache.read(self._scoped("business_members", business_id), {"operation": "list"}, load)
+            people = repos.booking_users.summaries_by_ids(row["user_id"] for row in rows)
+            rows = [{**row, "name": people.get(row["user_id"], {}).get("name", "Conta removida"),
+                     "email": people.get(row["user_id"], {}).get("email"),
+                     "has_photo": people.get(row["user_id"], {}).get("has_photo", False)} for row in rows]
             # Availability depends on the clock, so it is worked out on every read and never cached.
             busy = repos.appointments.busy_now(business_id, utc_now())
             return [self._with_availability(row, busy.get(row["user_id"]) if row.get("auto_availability", True) else None)

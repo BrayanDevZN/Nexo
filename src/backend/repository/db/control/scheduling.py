@@ -159,11 +159,18 @@ class BookingUserRepository(Repository[BookingUser]):
                 in self.session.execute(select(BookingUser.id, BookingUser.name, BookingUser.email, BookingUser.profile_photo)
                                         .where(BookingUser.id.in_(values))).all()}
 
+    def _refresh_teams(self, user_id: str) -> None:
+        """Teams and agendas show this person's name and photo, so their cached lists must be read again too."""
+        for business_id in self.session.scalars(select(BusinessMember.business_id).where(BusinessMember.user_id == user_id)).all():
+            _mark_dirty(self.session, "business_members", business_id)
+            _mark_dirty(self.session, "appointments", business_id)
+
     def set_photo(self, user: BookingUser, data: bytes | None) -> None:
         """The photo lives in the row (max 512 px JPEG); the marker says whether there is one."""
         user.profile_photo = uuid4().hex + ".jpg" if data is not None else None
         user.profile_photo_data = data
         self.session.flush()
+        self._refresh_teams(user.id)
 
     def delete_account(self, user: BookingUser) -> None:
         """Memberships and the invitations the person made go with the account (cascade), and so do the businesses
@@ -204,6 +211,7 @@ class BookingUserRepository(Repository[BookingUser]):
             BookingUser.id == user.id, BookingUser.session_version == user.session_version,
         ).values(name=name.strip(), phone=phone), execution_options={"synchronize_session": False})
         _mark_dirty(self.session, "booking_users")
+        self._refresh_teams(user.id)
         self.session.refresh(user)
         return result.rowcount == 1
 

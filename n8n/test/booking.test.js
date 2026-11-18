@@ -109,6 +109,12 @@ test('creating and updating pick the employee by ID, name or e-mail, and updatin
 	assert.deepEqual(byMail.requests.find((request) => request.method === 'PATCH').body, { staff_user_id: 'u2' });
 	const removed = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: '__none__' }, withTeam).catch((error) => error);
 	assert.match(removed.message, /Funcionário não encontrado/);
+	// The first name, without accents or capitals, is enough when only one person has it.
+	const byFirst = await run({ ...CREATE, bookingStaff: 'BIA' }, withTeam);
+	assert.equal(byFirst.requests.find((request) => request.method === 'POST').body.staff_user_id, 'u2');
+	const twins = (options) => (options.url.endsWith('/members') ? [...TEAM, { user_id: 'u3', name: 'Bia Lima', email: 'bl@x.com', role: 'staff' }] : answer(options));
+	const ambiguous = await run({ ...CREATE, bookingStaff: 'bia' }, twins).catch((error) => error);
+	assert.match(ambiguous.message, /Mais de uma pessoa.*Bia Costa \(u2\).*Bia Lima \(u3\)/);
 	const unknown = await run({ ...CREATE, bookingStaff: 'Zé' }, withTeam).catch((error) => error);
 	assert.match(unknown.message, /Funcionário não encontrado.*Ana Silva \(u1\)/);
 });
