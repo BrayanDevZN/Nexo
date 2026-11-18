@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from backend.domain.google import GoogleIdentity
 from backend.domain.photos import normalize_photo
 from backend.repository.redis.oauth import OAuthStateError
-from backend.service.access import AccessDenied, ResourceNotFound
+from backend.service.access import AccessDenied, ResourceConflict, ResourceNotFound
 from backend.service.auth import RegistrationConflict
 from backend.repository.db.models.base import utc_now
 from backend.service.security import AuthenticationError
@@ -107,6 +107,14 @@ class BookingAuthService:
     def delete_photo(self, actor):
         with self.repositories.transaction() as repos:
             repos.booking_users.set_photo(authorize_booking(repos, actor, active=False), None)
+
+    def delete_account(self, actor):
+        """The person deletes their own account. Someone who still owns a business must hand it over or delete it first."""
+        with self.repositories.transaction() as repos:
+            user = authorize_booking(repos, actor, active=False)
+            if any(role == "owner" for _, role in repos.businesses.list_for_user(user.id)):
+                raise ResourceConflict("You still own a business: delete it before deleting your account")
+            repos.booking_users.delete_account(user)
 
     def read_photo(self, actor, user_id=None):
         """Own photo, or a teammate's: both must share at least one business."""

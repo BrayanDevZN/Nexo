@@ -99,6 +99,21 @@ def test_account_lifecycle_and_session_isolation_from_the_panel(client):
     assert client.get("/atendimentos/businesses").status_code == 401
 
 
+def test_an_account_can_be_deleted_unless_it_still_owns_a_business(client):
+    ana = {**ANA}
+    assert register(client, ana).status_code == 201
+    headers = login(client, ana)
+    create_business(client, headers)
+    assert client.delete("/atendimentos/auth/account", headers=ORIGIN).status_code == 403
+    assert client.delete("/atendimentos/auth/account", headers=headers).status_code == 409
+    business = client.get("/atendimentos/businesses").json()[0]
+    assert client.delete("/atendimentos/businesses/" + business["id"], headers=headers).status_code == 204
+    assert client.delete("/atendimentos/auth/account", headers=headers).status_code == 204
+    assert client.get("/atendimentos/auth/me").status_code == 401
+    with client.app.state.services.repositories.read_transaction() as repos:
+        assert repos.booking_users.by_email(ana["email"]) is None
+
+
 def test_businesses_cannot_be_duplicated_by_name_or_cnpj_and_cnpj_is_optional(client):
     register(client, ANA)
     register(client, BIA)

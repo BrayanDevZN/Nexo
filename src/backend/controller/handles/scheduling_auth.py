@@ -167,6 +167,17 @@ def delete_photo(request: Request, actor=Depends(booking_user)):
     return Response(status_code=204)
 
 
+@router.delete("/account", status_code=204)
+def delete_account(request: Request, actor=Depends(booking_user)):
+    try:
+        request.app.state.services.booking_auth.delete_account(actor)
+    except ResourceConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
+    return clear_booking_cookie(request)
+
+
 @router.post("/password/change", status_code=204)
 def change_password(data: PasswordChangeInput, request: Request, actor=Depends(booking_user)):
     try:

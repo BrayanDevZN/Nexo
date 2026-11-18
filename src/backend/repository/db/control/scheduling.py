@@ -165,6 +165,13 @@ class BookingUserRepository(Repository[BookingUser]):
         user.profile_photo_data = data
         self.session.flush()
 
+    def delete_account(self, user: BookingUser) -> None:
+        """Memberships and the invitations the person made go with the account (cascade); the cache must learn it."""
+        for table in ("booking_users", *BUSINESS_SCOPED_TABLES):
+            _mark_dirty(self.session, table)
+        self.session.delete(user)
+        self.session.flush()
+
     def revoke_sessions(self, user: BookingUser) -> None:
         self.session.flush()
         self.session.execute(update(BookingUser).where(BookingUser.id == user.id).values(

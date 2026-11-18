@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Busy, Feedback, FieldGroup, TextField, message, passwordValid } from "@/admin/shared";
 import type { BookingApi, BookingUser } from "./api";
 import { PhotoField } from "./Photo";
@@ -9,6 +11,7 @@ export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [confirming, setConfirming] = useState(false);
   async function act(run: () => Promise<void>, text: string) {
     if (busy) return;
     setBusy(true); setError(""); setSuccess("");
@@ -44,6 +47,14 @@ export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi;
         <TextField label="Nova senha" name="new_password" type="password" autoComplete="new-password" minLength={12} required help="Pelo menos 12 caracteres." />
         <TextField label="Repita a nova senha" name="confirm" type="password" autoComplete="new-password" minLength={12} required />
       </FieldGroup><Button type="submit" variant="outline" disabled={busy}>Atualizar senha</Button></form></CardContent></Card>
+    <Card><CardHeader><CardTitle>Excluir conta</CardTitle><CardDescription>A exclusão é definitiva. Você perde o acesso ao Atendimento e sai de todos os negócios em que participa.</CardDescription></CardHeader>
+      <CardContent><Button variant="destructive" disabled={busy} onClick={() => { setError(""); setConfirming(true); }}><Trash2 data-icon="inline-start" /> Excluir minha conta</Button></CardContent></Card>
+    <Dialog open={confirming} onOpenChange={open => { if (!busy) setConfirming(open); }}><DialogContent showCloseButton={!busy}>
+      <DialogHeader><DialogTitle>Tem certeza que quer excluir sua conta?</DialogTitle><DialogDescription>Isso não pode ser desfeito. Seus dados e seu acesso ao Atendimento serão apagados na hora.</DialogDescription></DialogHeader>
+      <Feedback error={error} />
+      <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setConfirming(false)}>Não, manter minha conta</Button>
+        <Button variant="destructive" disabled={busy} onClick={() => void act(async () => { await api.mutate("/auth/account", "DELETE"); setConfirming(false); onLoggedOut(); }, "")}>{busy ? <Busy /> : "Sim, excluir minha conta"}</Button></DialogFooter>
+    </DialogContent></Dialog>
     <Button variant="outline" disabled={busy} onClick={() => void act(async () => { await api.mutate("/auth/logout", "POST"); onLoggedOut(); }, "")}>Sair</Button>
   </section>;
 }
