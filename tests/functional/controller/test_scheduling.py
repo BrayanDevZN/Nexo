@@ -759,13 +759,25 @@ def test_appointments_arrive_in_real_time_and_new_bookings_are_pushed_with_the_b
         assert args.args[0] == [bia_id] and args.args[1] == "Barbearia do Zé" and "Ana marcou Zé" in args.args[2] and "01/12 às 10:00" in args.args[2]
         assert args.args[3] == "/atendimentos" and args.kwargs["tag"] == "appointment-" + created["id"]
 
-        # Changes and removals are announced too, but only new bookings are pushed.
+        # Changes and removals are announced and pushed too, so they reach people with the site closed.
+        def pushed():
+            for _ in range(50):
+                if push.notify_users.called:
+                    break
+                time.sleep(0.02)
+            return push.notify_users.call_args
+
         push.notify_users.reset_mock()
         client.patch(path + "/appointments/" + created["id"], headers=ana, json={"status": "confirmed"})
         assert socket.receive_json()["action"] == "updated"
+        args = pushed()
+        assert args.args[0] == [bia_id] and args.args[1] == "Barbearia do Zé" and "Ana alterou o horário de Zé" in args.args[2]
+        assert args.kwargs["tag"] == "appointment-" + created["id"]
+        push.notify_users.reset_mock()
         client.delete(path + "/appointments/" + created["id"], headers=ana)
         assert socket.receive_json()["action"] == "deleted"
-        assert not push.notify_users.called
+        args = pushed()
+        assert args.args[0] == [bia_id] and args.args[2] == "Ana apagou o horário de Zé"
 
     # Not a member of this business: no ticket.
     register(client, {**ANA, "name": "Caio", "email": "caio@example.com"})

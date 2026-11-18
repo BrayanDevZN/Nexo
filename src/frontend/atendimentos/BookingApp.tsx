@@ -161,7 +161,8 @@ function BookingScreens({ play }: { play: Play }) {
     const text = event.action === "created" ? `${who} marcou ${event.customer_name} · ${when}`
       : event.action === "deleted" ? `${who} apagou o horário de ${event.customer_name}` : `${who} alterou o horário de ${event.customer_name} · ${when}`;
     setFlash({ id: Date.now(), title: event.business_name, text });
-    if (event.action === "created" && document.hidden) void showBookingNotification(event.business_name, text, "appointment-" + event.appointment_id);
+    // Outside the page too: with the tab in the background, or another window in front, the system shows it.
+    if (document.hidden || !document.hasFocus()) void showBookingNotification(event.business_name, text, "appointment-" + event.appointment_id);
   }, []);
   const allowed = user?.access_status === "approved";
   const online = useBusinessEvents(api, !!user, allowed && business ? business.id : undefined, onLive,

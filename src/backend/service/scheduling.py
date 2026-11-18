@@ -385,7 +385,7 @@ class SchedulingService:
             return user
 
     def _announce(self, action, business_id, appointment, info):
-        """Tell everyone looking at the business that an appointment changed, and push new bookings to the others."""
+        """Tell everyone looking at the business that an appointment changed, and push it to the others (site open or not)."""
         try:
             if self.events is not None:
                 self.events.publish({"type": "appointment.changed", "action": action, "business_id": business_id,
@@ -397,8 +397,9 @@ class SchedulingService:
                                     user_ids=[self.channel_of(business_id)])
         except Exception:
             logger.warning("Realtime event unavailable; appointment change committed")
-        if action != "created" or self.push is None or not getattr(self.push, "enabled", False):
+        if self.push is None or not getattr(self.push, "enabled", False):
             return
+        # Everyone else in the business is told, with the site closed too: new bookings, changes and removals.
         recipients = [user_id for user_id in info["members"] if user_id != info["actor_id"]]
         if not recipients:
             return
@@ -411,7 +412,13 @@ class SchedulingService:
         except Exception:
             when = ""
         who = info["actor_name"] or "Alguém"
-        body = f"{who} marcou {appointment['customer_name']}" + (f" · {when}" if when else "")
+        customer = appointment["customer_name"]
+        if action == "created":
+            body = f"{who} marcou {customer}" + (f" · {when}" if when else "")
+        elif action == "deleted":
+            body = f"{who} apagou o horário de {customer}"
+        else:
+            body = f"{who} alterou o horário de {customer}" + (f" · {when}" if when else "")
         # The title is the business, never the platform: it is what the person sees on the lock screen.
         threading.Thread(target=self.push.notify_users, daemon=True,
                          args=(recipients, info["name"], body, "/atendimentos"),
