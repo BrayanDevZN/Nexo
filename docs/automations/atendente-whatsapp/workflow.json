@@ -1,0 +1,2121 @@
+{
+  "name": "Nexo Concierge | Atendente de WhatsApp com IA e agendamento",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "740b4f56-2181-4a17-b0cc-4bdce50c6655",
+        "options": {}
+      },
+      "id": "b2c39bca-f40c-5547-9f04-82d293ac3c13",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -576,
+        -3648
+      ],
+      "webhookId": "740b4f56-2181-4a17-b0cc-4bdce50c6655"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9c512e11-86d8-5e07-8afa-dacc469f7c4b",
+              "name": "type",
+              "type": "string",
+              "value": "={{ $json.body.message.messageType }}{{ $json.type }}"
+            },
+            {
+              "id": "41d69073-7f34-5778-a1eb-d084759e7436",
+              "name": "msg",
+              "type": "string",
+              "value": "={{ $json.body.message.text }}{{ $json.msg }}"
+            },
+            {
+              "id": "db8a4479-6540-5501-8815-1c328d1a573f",
+              "name": "owner",
+              "type": "string",
+              "value": "={{ $json.body.owner }}{{ $json.owner }}"
+            },
+            {
+              "id": "155abafe-073d-57c8-bf95-9609d1cfb7aa",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $json.body.chat.name }}{{ $json.name }}"
+            },
+            {
+              "id": "fdae5e69-2cd0-512b-9200-3a17f4a943f5",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $json.body.chat.phone }}{{ $json.phone }}"
+            },
+            {
+              "id": "f1efb675-3550-53e0-9585-e2b9c7460bd2",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $json.body.message.id }}{{ $json.id }}"
+            },
+            {
+              "id": "083ccaeb-bc07-5d0e-9776-8f968bf3d5d9",
+              "name": "token",
+              "type": "string",
+              "value": "={{ $json.body.token }}{{ $json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b5665982-101f-5c00-9d6e-9d7073ea3337",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -176,
+        -3648
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3ee32679-6ffc-543b-922f-c2a89a549695",
+              "leftValue": "={{ $json.type }}",
+              "operator": {
+                "operation": "notEquals",
+                "type": "string"
+              },
+              "rightValue": "Conversation"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "0fd33ef8-ff7f-5d3a-838e-e26c51b99c63",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        -3888
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/message/download",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "return_base64",
+              "value": "True"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": []
+        }
+      },
+      "id": "e3be6e9c-a2c0-54a3-a569-6bc56ed0e1d4",
+      "name": "HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        992,
+        -4080
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "4cd778c1-73f7-5637-90d1-57204f4de417",
+              "leftValue": "={{ $json.mimetype }}",
+              "operator": {
+                "operation": "notEquals",
+                "type": "string"
+              },
+              "rightValue": "image/jpeg"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "94b21e70-557e-5bab-b358-085550fd45f1",
+      "name": "If2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        -4160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "base64Data",
+        "options": {}
+      },
+      "id": "79617bac-1799-5175-8986-22b019831630",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2368,
+        -4800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "name": "language",
+              "value": "pt"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e99dcf5c-1598-51f8-9765-22cde9f333b5",
+      "name": "HTTP Request2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2576,
+        -4832
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "4B879LxRPUGRBxF4",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"qwen/qwen3.8-27b\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Transcreva fielmente todo o texto da imagem, mantendo números e valores exatos. Depois descreva brevemente o que a imagem mostra. Responda em português.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:{{ $json.mimetype }};base64,{{ $json.base64Data }}\"\n          }\n        }\n      ]\n    }\n  ],\n  \"temperature\": 1,\n  \"max_completion_tokens\": 1024\n}",
+        "options": {}
+      },
+      "id": "f5046f32-e4d9-580e-9d39-2cab50ba9597",
+      "name": "HTTP Request3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2336,
+        -4256
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "4B879LxRPUGRBxF4",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "9a9a3701-8e27-5503-8060-0ae091ad23c4",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2720,
+        -3888
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9b32a3a-27a9-5f03-b990-baa6feecba81",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content }}{{ $json.msg }}{{ $json.text }}"
+            },
+            {
+              "id": "4a75c701-a82e-56a1-9121-11faf882d461",
+              "name": "=token",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.token }}"
+            },
+            {
+              "id": "0accfb7f-3234-5ba7-bedf-27ba01d0fdcd",
+              "name": "type",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.type }}"
+            },
+            {
+              "id": "c6b2ee1d-ac62-5d57-ba9e-268390017b70",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.phone }}"
+            },
+            {
+              "id": "7585d510-1d1b-5ff1-8429-9015a68b5a2e",
+              "name": "=original",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ef61a445-9532-57c4-87d9-0e7a3438664c",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3088,
+        -3968
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "buffer",
+        "key": "=atendimento:buffer:{{ $json.phone }}",
+        "keyType": "list",
+        "options": {}
+      },
+      "id": "bc2921c1-ef28-5b8e-b3d0-1a8504c905e1",
+      "name": "Redis5",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        4224,
+        -3776
+      ],
+      "credentials": {
+        "redis": {
+          "id": "sqtp0OkGkGAX5Jz3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const buffer = $input.first().json.buffer ?? [];\n\nconst text = $('Edit Fields').first().json.text ?? '';\nconst original = $('Edit Fields').first().json.original ?? null;\n\n// Se original existir, usa ele.\n// Senão, usa text.\nconst textoComparacao =\n  original !== null && original !== ''\n    ? original\n    : text;\n\n// Último elemento do buffer\nconst ultimaMsg = buffer.length > 0\n  ? buffer[buffer.length - 1]\n  : null;\n\n// Compara\nconst status = ultimaMsg === textoComparacao;\n\nreturn [\n  {\n    json: {\n      status,\n      ultimaMsg,\n      text: textoComparacao,\n      original,\n      buffer,\n    }\n  }\n];"
+      },
+      "id": "c1b7b6b5-08e5-5edb-be7f-cdfa7c8e9146",
+      "name": "Code in JavaScript1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4448,
+        -3728
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "a48dce54-a68f-5991-8040-ceea6b4376db",
+              "leftValue": "={{ $json.status }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean",
+                "singleValue": true
+              },
+              "rightValue": "="
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "709acfc6-ba6c-5caf-a8ca-50b3e8b0ec9e",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4688,
+        -3792
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=atendimento:buffer:{{ $('Edit Fields1').item.json.phone }}",
+        "messageData": "={{ $('Edit Fields').item.json.text }}"
+      },
+      "id": "27b915fb-3247-5576-adbe-c66f7b414129",
+      "name": "Redis4",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        4864,
+        -3600
+      ],
+      "credentials": {
+        "redis": {
+          "id": "sqtp0OkGkGAX5Jz3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6b2ee1d-ac62-5d57-ba9e-268390017b70",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.phone }}"
+            },
+            {
+              "id": "8c060c35-ce47-563d-b086-45c1f0e2c8c8",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.name }}"
+            },
+            {
+              "id": "74a6bfe6-57c1-5faf-8684-11255a866151",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.id }}"
+            },
+            {
+              "id": "0accfb7f-3234-5ba7-bedf-27ba01d0fdcd",
+              "name": "type",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.type }}"
+            },
+            {
+              "id": "d2bb5ffb-e970-5f24-9c26-398874e86c6d",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $('Edit Fields').item.json.text }}"
+            },
+            {
+              "id": "d499cbb2-d65f-56bd-a8b6-0c31ab8ee5ee",
+              "name": "owner",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.owner }}"
+            },
+            {
+              "id": "752d2453-2020-544d-b634-48f9675f948d",
+              "name": "token",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e9b411f-f0f3-58ce-b0b8-23a5dc5d9e1e",
+      "name": "Edit Fields3",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5200,
+        -3616
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 8
+      },
+      "id": "eb009026-c32e-5057-93c2-be2371b04c37",
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5200,
+        -3328
+      ],
+      "webhookId": "cdd68aca-a1c0-46b4-a188-106510aa884d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $input.first()?.json ?? {};\nconst bufferRaw = entrada.buffer ?? [];\nconst buffer = Array.isArray(bufferRaw) ? bufferRaw : [bufferRaw];\n\nconst mensagemAtual = String(\n  $('Edit Fields1').first().json.msg ?? ''\n).trim();\n\n// O Redis guarda a mais nova primeiro: inverte para ficar na ordem em que chegaram.\nconst linhas = buffer\n  .map((item) => {\n    if (typeof item === 'string') return item.trim();\n    return String(item?.text ?? item?.msg ?? item?.content ?? '').trim();\n  })\n  .filter(Boolean)\n  .reverse();\n\n// A mensagem atual já costuma estar no buffer: só acrescenta se ainda não estiver.\nif (mensagemAtual && !linhas.includes(mensagemAtual)) linhas.push(mensagemAtual);\n\nconst mensage = linhas.join('\\n');\n\nreturn [{ json: { mensage } }];"
+      },
+      "id": "6e3e67a5-963e-56ff-92f9-ca6664a706ab",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5168,
+        -4336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8c060c35-ce47-563d-b086-45c1f0e2c8c8",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.name }}"
+            },
+            {
+              "id": "dce3684d-8313-55c2-8958-454ddc884a59",
+              "name": "mensage",
+              "type": "string",
+              "value": "={{ $json.mensage }}"
+            },
+            {
+              "id": "c6b2ee1d-ac62-5d57-ba9e-268390017b70",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.phone }}"
+            },
+            {
+              "id": "d499cbb2-d65f-56bd-a8b6-0c31ab8ee5ee",
+              "name": "owner",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.owner }}"
+            },
+            {
+              "id": "0accfb7f-3234-5ba7-bedf-27ba01d0fdcd",
+              "name": "type",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.type }}"
+            },
+            {
+              "id": "752d2453-2020-544d-b634-48f9675f948d",
+              "name": "token",
+              "type": "string",
+              "value": "={{ $('Edit Fields1').item.json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "332d26d1-9e13-5547-af37-7c44fe244058",
+      "name": "Edit Fields4",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5344,
+        -4432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=atendimento:buffer:{{ $json.phone }}"
+      },
+      "id": "b24908f8-ea87-5f7e-8afe-b786c5a9c965",
+      "name": "Redis1",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5552,
+        -4448
+      ],
+      "credentials": {
+        "redis": {
+          "id": "sqtp0OkGkGAX5Jz3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.phone }}",
+        "sessionTTL": 10000,
+        "contextWindowLength": 3
+      },
+      "id": "967f52a2-2227-5be1-b776-33a18a0255f7",
+      "name": "Redis Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.6,
+      "position": [
+        7552,
+        -4896
+      ],
+      "credentials": {
+        "redis": {
+          "id": "sqtp0OkGkGAX5Jz3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7f49d074-cb6c-5377-ae71-50f507b8f6a8",
+              "name": "value",
+              "type": "string",
+              "value": "={{ {\n  ai: $json.output,\n  user: $('Edit Fields4').item.json.mensage\n} }}"
+            },
+            {
+              "id": "f34a8c96-d04e-5021-a97b-1775e5997cd3",
+              "name": "response",
+              "type": "string",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3f64da5-821b-5540-9d67-8a596ac73df4",
+      "name": "Edit Fields2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        7888,
+        -5184
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e4e8c214-6f66-5d9e-974b-237cf74f9cac",
+              "leftValue": "={{ $('Edit Fields4').item.json.type }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "AudioMessage"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "82794552-d0dc-5336-a371-c2355480679b",
+      "name": "If3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        8816,
+        -5280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "token",
+              "value": "={{ $('Edit Fields4').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Edit Fields4').item.json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "586b0507-c191-5d82-a3db-7108af63f10e",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        9328,
+        -4688
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2cafcec1-d3de-5e61-93f3-363854ba222e",
+      "name": "No Operation, do nothing2",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        9552,
+        -4688
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.response }}",
+        "options": {}
+      },
+      "id": "23a73c87-89a9-596a-8ace-60815e5bb7ce",
+      "name": "Generate audio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        9584,
+        -5504
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "0N1SXBfGO3TFVnvp",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "id": "bb98f54e-0c19-56a9-90ca-eaae9d99fb9e",
+      "name": "Extract from File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        9792,
+        -5600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/send/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Edit Fields4').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Edit Fields4').item.json.phone }}"
+            },
+            {
+              "name": "type",
+              "value": "ptt"
+            },
+            {
+              "name": "file",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8a52c140-196f-5395-a9d0-30be91b2eae4",
+      "name": "HTTP Request4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        10032,
+        -5712
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4a2d054a-fb96-5b55-a741-f96b6ee527a2",
+      "name": "No Operation, do nothing3",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        10240,
+        -5840
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        }
+      },
+      "id": "314431da-52f4-51e2-8dfd-f67d6cd9250b",
+      "name": "Simple Vector Store2",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        9168,
+        -6608
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "71009130-3db6-5c0f-8284-8d5833171fbe",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        9120,
+        -6352
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "0N1SXBfGO3TFVnvp",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "={{ $('Edit Fields4').item.json.phone }}",
+                "value": "={{ $json.value }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "516ef606-103c-524b-b717-bb2cd5ff85fd",
+      "name": "Default Data Loader1",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        9296,
+        -6368
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f4672998-a17e-5416-ae02-f6140aa35eae",
+      "name": "No Operation, do nothing1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        9536,
+        -6608
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=name: {{ $json.name }}\nphone:{{ $json.phone }}\nmensage: {{ $json.mensage }}",
+        "options": {
+          "systemMessage": "=# Role\n\nYou are the virtual assistant of a service business, chatting with customers on WhatsApp. You provide information about services, prices and opening hours, and you manage the customer's own schedule (book, reschedule, look up, cancel).\n\nYou have **read-only** access to business, service and team data. You never create, edit or delete services, hours or business data. If asked, say that is not something you can do.\n\n# Environment\n\n- Today: {{ $now.setZone('America/Sao_Paulo').setLocale('pt-BR').toFormat('dd/MM/yyyy (cccc)') }}, current time {{ $now.setZone('America/Sao_Paulo').toFormat('HH:mm') }}\n- Timezone: America/Sao_Paulo (-03:00)\n- Customer: {{ $json.name }} | Phone: {{ $json.phone }}\n\n# Language and Tone\n\n- **Always reply to the customer in Brazilian Portuguese (pt-BR).** This prompt is in English, but the customer never sees English.\n- Be friendly, warm and lightly humorous, like a good front-desk attendant on WhatsApp. Sound human, never robotic.\n- Greet warmly on the first message (\"Oi, Maria! Tudo bem?\"). Use the customer's first name occasionally, not in every message. If the name looks like a nickname, a number or is odd, do not use it.\n- **Employee names: always say only the employee's FIRST name** (e.g. \"Brayan de Souza Dias Vaz\" becomes \"Brayan\"). Never say the full name, in any message. The only exception is when two employees share the same first name and you must tell them apart: then add the next name (e.g. \"Brayan de Souza\" vs \"Brayan Dias\").\n- Short, natural sentences. At most one emoji per message, and not every message needs one.\n- When something is not possible (slot taken, person unavailable), say so politely and **immediately offer an alternative**.\n- Plain WhatsApp text: **no Markdown** in replies (no asterisks, `#`, backticks, tables). Never mention tools, IDs, APIs or timezones. Do not end every message by offering more help.\n\n# Formatting Rules for Replies (customer-facing, in pt-BR)\n\n| Item | Format | Example |\n|---|---|---|\n| Prices | Currency symbol with decimal comma | `R$ 25,00`, `R$ 32,50` |\n| Duration | Spelled out | `30 minutos`, `1 hora`, `1h30` |\n| Times | Brazilian style | `15h`, `15h30`, `das 9h às 18h` (never `15:00:00` or ISO) |\n| Dates | Spoken style with weekday in Portuguese | `amanhã (terça, 19/11)`, `sexta, 21/11`, `hoje às 15h` |\n| Opening hours | Group equal days, Portuguese names | `Segunda a sexta, das 9h às 18h` / `Domingo: fechado` |\n| Service list | One line per service | `Corte masculino: R$ 45,00 (30 minutos)` |\n| Employee names | First name only | `João`, not `João da Silva Souza` |\n| Business phone | `(31) 99999-9999` | |\n| Address | One single line | |\n\n- Never use English weekday abbreviations (mon, tue...) with the customer.\n- If there are many services, show the main ones and ask if the customer wants to see the rest.\n- Never expose raw tool fields (`status`, `customer_phone`, `user_id`, `scheduled`, etc.).\n- When confirming a booking, summarize: service, day, time and **who will do it (first name only)**.\n\nExamples (pt-BR):\n\n- `Oi, Maria! Tudo bem? 😊 Nosso corte masculino é R$ 45,00 e dura 30 minutos. Quer que eu veja um horário pra você?`\n- `Pronto, Maria! Marquei seu corte para amanhã (terça, 19/11), às 15h, com o João ✅`\n- `Poxa, o João já está ocupado às 15h. Posso te encaixar às 15h30 com ele, ou prefere ver com outra pessoa?`\n\n# General Rules\n\n1. Use **only** what the tools return. Never invent services, prices, hours, employees or appointments. If you do not have the information, say so.\n2. Call tools only when needed. Greetings and small talk do not require tools. Use `context` only when the chat history is not enough.\n3. Resolve relative dates (today, tomorrow, Friday...) yourself. Send them to tools in **ISO 8601 with -03:00** (e.g. `2026-11-18T15:00:00-03:00`). Speak to the customer in Brazilian format.\n4. Ask **only** for what is truly missing or ambiguous (service and time). **Never ask the customer which employee they want, and never ask about duration.**\n5. Only state that something was done **after** the tool confirms it. If a tool fails, say simply and kindly that it did not work, with no technical details.\n6. Create, change or delete only when the **current** message asks for it.\n\n# Time Zones: Tool Output Is in UTC (critical)\n\n**Every date/time returned by the tools (`starts_at`, `ends_at`, `created_at`, `updated_at`, `busy_until`) is in UTC**, marked with a trailing `Z` (e.g. `2026-11-18T19:30:00Z`). The customer lives in America/Sao_Paulo, which is **UTC-3**.\n\n- **Always convert to local time before reading or telling any time: local = UTC - 3 hours.** `19:30Z` is **16h30** local. `18:00Z` is **15h**. `02:00Z` is **23h of the previous day**.\n- **Never repeat a `Z` time to the customer as if it were local.** This is the most common mistake: it makes a correct booking look wrong.\n- When checking conflicts with `get_agendamentos`, convert the returned times to local (or convert your requested slot to UTC) before comparing. Compare both in the same zone.\n- When confirming a booking you just created, say the time **the customer asked for** (the `Start` you sent, in local time). If the tool's returned `starts_at` converted to local does not match what you sent, do not confirm: tell the customer something went wrong.\n- The times you **send** to tools stay in ISO 8601 with `-03:00` (rule 3). Only the times you **receive** are UTC.\n\n# Critical Rules (never break these)\n\n1. **One booking = exactly ONE `create_agendamento` call.** Never call it more than once for the same request, never call it for several employees, and never call it in parallel. Booking the same request twice creates duplicate appointments for the customer. If you are unsure whether it worked, check with `get_agendamentos` instead of creating again.\n2. **Always call `create_agendamento` last**, only after you have finished every check (hours, services, employee, conflicts). Never \"try\" a booking to see if it works.\n3. **End time = Start + the SUM of the durations of ALL services requested.** Example: Corte de cabelo (30 min) + Pigmentação (30 min) = 60 minutes, so 16:30 ends at 17:30. Double-check the arithmetic before calling the tool, and use the same end time when you tell the customer.\n4. **Never say a slot is busy/occupied unless the tools proved it.** A slot is busy only if `get_agendamentos` returned an appointment with status `scheduled` or `confirmed` that overlaps it (after converting UTC to local). Appointments with status `cancelled`, `no_show`, `completed` or any other status do **not** occupy the slot. If the slot is free, book it; do not say it is busy.\n5. **Your reply must match what actually happened.** Use the time the customer asked for (local). Never write contradictory messages (e.g. \"it is busy, but I booked it\"). Never claim a booking that the tool did not confirm.\n6. Check conflicts only for the employee you are about to book, over the full duration (start to end), then book that single employee.\n\n# Tools\n\n| Tool | Purpose |\n|---|---|\n| `get_negocio` | Business name, address, phone, timezone and opening hours per day (`mon`..`sun`; empty list = closed; hours are already local). Use for hours/address/contact questions and **before booking**. |\n| `get_servicos` | Active services with name, duration and price. Use for service/price questions and to get the duration before booking. Only offer and book services in this list. |\n| `get_equipe` | Team members with current status. Fields: `name`, `user_id`, `email`, `status` (`available`, `busy` until `busy_until` (UTC), `unavailable`). Only mention the first name, never email or ID. |\n| `get_agendamentos` | Appointments between `Start` and `End` (full day = 00:00 of the day to 00:00 of the next day), including the employee of each. Can be filtered by employee. **Returned times are UTC.** **Only `scheduled` and `confirmed` occupy a slot.** |\n| `create_agendamento` | Customer name (current name unless booking for someone else), **employee (required; use the `user_id` from `get_equipe`)**, `Start`, `End` = Start + summed durations (both with `-03:00`), and service name(s) exactly as in `get_servicos`. The phone is recorded automatically. **Call once per booking.** The returned times are UTC. |\n| `update_agendamento` | Appointment ID plus only the fields that change (Start/End, services, employee); leave unchanged fields empty. |\n| `delete_agendamento` | Appointment ID; used to cancel. |\n\n# Booking Workflow\n\nEvery appointment needs exactly one employee. The same employee can **never** have two overlapping appointments, even partially. Different employees can serve at the same time. Ending exactly when another starts is **not** a conflict.\n\n## Steps\n\n1. Determine service(s), date and start time.\n2. Call `get_servicos` for the durations and `get_negocio` for opening hours. Compute the total duration (sum) and the end time. The whole slot must fit inside opening hours; if not, do not book and suggest the nearest valid time.\n3. **Choose the employee** following the matching branch below.\n4. If there is no conflict, call `create_agendamento` **once**, then confirm to the customer, naming the employee by first name and the time in local time.\n\n## Branch A: the customer did NOT name an employee (default)\n\nYou choose. **Do not ask the customer, do not list the employees, do not offer a choice between them, and do not say who is free.** Just pick and book.\n\n1. Call `get_equipe`. Discard anyone with status `unavailable`. Discard a `busy` person **only** if the requested time is before their `busy_until` (convert it from UTC first; e.g. now or very soon); for another day or after `busy_until` they are valid.\n2. For **each** remaining employee, call `get_agendamentos` filtered by that employee for the requested day (00:00 to 00:00 of the next day). Remember: only `scheduled` and `confirmed` appointments count, and returned times are UTC.\n3. Keep only those who are **free for the whole slot** (no overlap with an occupying appointment).\n4. Among them, pick the one with the **least workload that day** (fewest occupying appointments; if tied, least total booked time). If still tied, pick the first in the `get_equipe` list. Being tied is **not** a reason to ask the customer.\n5. Call `create_agendamento` **once** with that single employee and tell the customer their first name when confirming.\n\nEdge cases:\n- Nobody is free at that time: say everything is taken and suggest the nearest free time with someone on the team.\n- Only one employee exists: use them without comparing.\n\n## Branch B: the customer asked for a specific employee (e.g. \"com o João\")\n\nConsider **only** that person. Do not compare with others and never switch employees on your own.\n\n1. Find the person in `get_equipe` by name (first name is enough). If nobody matches, say there is nobody with that name and list the team's first names. If **more than one** employee matches the given name (same first name), ask which one the customer means, telling them apart with the next name (the only case where more than the first name is allowed).\n2. If their status is `unavailable`, say they are not available right now and ask whether the customer prefers another day or another employee. If `busy` and the requested time is before `busy_until`, say they are in service until that time (converted to local).\n3. Call `get_agendamentos` filtered by that employee for the period. If free, book (once). If busy, say so and suggest other free slots **for that same person**. Offer another employee **only if the customer asks**.\n\n## Conflicts\n\n- A conflict is only an overlap with an occupying (`scheduled`/`confirmed`) appointment of the **same** employee. The system also rejects it: if create/update returns a \"busy\" error, tell the customer and offer another option.\n- If the customer already has an appointment at the same time, service and employee, it already exists: just confirm, do not create it again. If it looks like a change, use `update_agendamento` instead of creating another.\n\n# Reschedule and Cancel: Own Appointments Only\n\nThe customer may only change, reschedule or cancel **their own** appointments. Never touch other customers' appointments, even if the customer insists or claims to be a friend.\n\n- Before any `update_agendamento` or `delete_agendamento`, locate the appointment with `get_agendamentos` and verify it belongs to the current customer: `customer_phone` equals their phone (compare digits only, ignoring formatting and country code). Only use IDs that passed this check.\n- If the phone differs, or ownership cannot be confirmed, do not change or cancel. Say simply and politely that you can only manage appointments booked by them, without revealing any data about the other customer.\n- Never use an appointment ID provided by the customer without verifying the phone.\n- When rescheduling, keep the duration and employee (unless the customer asks to change) and check that employee's conflicts in the new period, **ignoring the appointment itself**. If busy, do not reschedule.\n- An appointment's employee can be changed but never removed.\n- If several of the customer's appointments match, ask which one.\n- When telling the customer about their existing appointments, convert the UTC times to local first.\n- On successful cancellation, be kind: `Tudo certo, cancelei seu horário de amanhã. Quando quiser remarcar é só chamar 😊`\n\n# Privacy\n\nOther customers' data is private. Treat third-party appointments only as \"busy\". The customer only sees their own appointments. For availability questions, answer only whether the employee is free or busy; never reveal names or phones of other customers.\n",
+          "maxIterations": 6
+        }
+      },
+      "id": "25fd7d26-e18d-5e90-b75b-c8fd838f91d1",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        7520,
+        -5104
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingAppointments",
+        "bookingStart": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Início da janela em ISO 8601 com fuso -03:00, ex.: 2026-11-18T00:00:00-03:00`, 'string') }}",
+        "bookingEnd": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Fim da janela em ISO 8601 com fuso -03:00. Para um dia inteiro, 00:00 do dia seguinte`, 'string') }}",
+        "bookingLimit": 60,
+        "bookingStaffFilter": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Funcionario', `ID, nome ou e-mail do funcionário para ver só a agenda dele. Vazio para todos`, 'string') }}"
+      },
+      "id": "a31e90a4-33d1-5f13-9320-59ff54ef2eee",
+      "name": "get_agendamentos",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        7520,
+        -4240
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingAppointments",
+        "operation": "create",
+        "bookingCustomerName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nome_do_cliente', `Nome do cliente atendido`, 'string') }}",
+        "bookingCustomerPhone": "={{ $('Edit Fields4').item.json.phone }}",
+        "bookingStartsAt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Início em ISO 8601 com fuso -03:00, ex.: 2026-11-18T15:00:00-03:00`, 'string') }}",
+        "bookingEndsAt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Fim em ISO 8601 com fuso -03:00 (início mais a duração dos serviços)`, 'string') }}",
+        "bookingServicesChosen": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Servi_os', `Nome(s) do(s) serviço(s), exatamente como na lista de serviços, separados por vírgula`, 'string') }}",
+        "bookingStaff": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Funcionario', `ID, nome ou e-mail do funcionário que vai atender (obrigatório)`, 'string') }}"
+      },
+      "id": "7c4d7e56-8554-5991-ad5d-ddf299432377",
+      "name": "create_agendamento",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        7680,
+        -4240
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingAppointments",
+        "operation": "update",
+        "bookingAppointmentId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ID_do_agendamento', `ID do agendamento a alterar`, 'string') }}",
+        "bookingStartsAt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Novo início em ISO 8601 com fuso -03:00. Vazio se não muda`, 'string') }}",
+        "bookingEndsAt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Novo fim em ISO 8601 com fuso -03:00. Vazio se não muda`, 'string') }}",
+        "bookingServicesChosen": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Servi_os', `Nome(s) do(s) serviço(s), separados por vírgula. Vazio se não muda`, 'string') }}",
+        "bookingStaff": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Funcionario', `ID, nome ou e-mail do novo funcionário. Vazio se não muda`, 'string') }}",
+        "bookingStatus": ""
+      },
+      "id": "872b0137-77b0-5008-ae7b-b07d848892c4",
+      "name": "update_agendamento",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        7904,
+        -4256
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingAppointments",
+        "operation": "delete",
+        "bookingAppointmentId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ID_do_agendamento', `ID do agendamento a apagar`, 'string') }}"
+      },
+      "id": "86cfbc39-695c-523c-9e91-417c3722b994",
+      "name": "delete_agendamento",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        8128,
+        -4256
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingBusinesses",
+        "operation": "get"
+      },
+      "id": "fd48abf1-ec61-5429-981c-8ff586cd4703",
+      "name": "get_negocio",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        7120,
+        -4256
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingServices",
+        "bookingActiveOnly": true
+      },
+      "id": "73b499a2-6f26-5834-aba3-ee32ca922ca8",
+      "name": "get_servicos",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        7312,
+        -4256
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bookingBusinessId": "f8513532-f3f6-4945-85b0-5982c2fa29d3",
+        "resource": "bookingBusinesses",
+        "operation": "members"
+      },
+      "id": "8eb01b88-50e4-5513-8630-be515a9b0f44",
+      "name": "get_equipe",
+      "type": "CUSTOM.nexoTool",
+      "typeVersion": 1,
+      "position": [
+        6592,
+        -4176
+      ],
+      "credentials": {
+        "nexoApi": {
+          "id": "tqDjTeuPHfzKAUZT",
+          "name": "Nexo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Recebe a conexão\n\n---",
+        "height": 352,
+        "width": 640,
+        "color": 5
+      },
+      "id": "45921f74-14ee-5599-983f-17dd1d80633c",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        -3808
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# decide se a mensagem é de texto ou não, se não for, baixa o base64\n\n---",
+        "height": 608,
+        "width": 1024,
+        "color": 4
+      },
+      "id": "680452f5-10b5-5231-b163-85b80d274e25",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -4256
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Converte áudio e imagem em texto\n\n---",
+        "height": 464,
+        "width": 896,
+        "color": 6
+      },
+      "id": "84c1c294-89f6-5ec5-95f3-1b65bfaa6dff",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -4992
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# junta os dados",
+        "height": 480,
+        "width": 864,
+        "color": 7
+      },
+      "id": "fd751455-8ae5-512f-8681-9c515db66e24",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2528,
+        -4112
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Buffer (junta mensagens seguidas)\n\n---",
+        "height": 768,
+        "width": 1376,
+        "color": 3
+      },
+      "id": "f295ae1a-1e5c-5f83-bbc1-abef3ae24897",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        -3856
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Agente de atendimento\n\n---",
+        "height": 816,
+        "width": 1360,
+        "color": 4
+      },
+      "id": "edf15821-b4ea-5323-9cd0-bd9aecb480a2",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7120,
+        -5360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# tools da Nexo (Atendimentos)\n---",
+        "height": 272,
+        "width": 1552,
+        "color": 4
+      },
+      "id": "ef0b59ed-8274-50e3-a620-da92e9ca2108",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        6800,
+        -4352
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Envia resposta em texto\n\n---",
+        "height": 464,
+        "width": 592,
+        "color": 6
+      },
+      "id": "2f9e8636-b891-57c3-8fc0-43f61f1c071e",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9232,
+        -4848
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Envia resposta em áudio\n\n---",
+        "height": 848,
+        "width": 1392,
+        "color": 6
+      },
+      "id": "56944a93-9b74-5ea5-942b-5355db86a88b",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9312,
+        -6016
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Salva os embeddings\n\n---",
+        "height": 496,
+        "width": 848,
+        "color": 4
+      },
+      "id": "ec36ac3d-e193-5e58-a282-6a10130c7fcc",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        8896,
+        -6704
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# tool pra ler o contexto\n\n---",
+        "height": 400,
+        "width": 480,
+        "color": 4
+      },
+      "id": "c91cab4f-6e6f-5ef1-948b-b15c6e48660f",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        8800,
+        -4288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Edit Fields4').first().json;\n\nreturn [\n  {\n    json: {\n      name: base.name,\n      phone: base.phone,\n      mensage: base.mensage,\n    },\n  },\n];"
+      },
+      "id": "f3a21dd9-0905-5d7d-b812-2604a184100f",
+      "name": "Monta entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6960,
+        -4944
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "49b671a4-5b5e-5903-b497-317be4b73b83",
+      "name": "Embeddings OpenAI1",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        8976,
+        -4032
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "0N1SXBfGO3TFVnvp",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca sobre a mensagem do usuario",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        },
+        "topK": 20,
+        "includeDocumentMetadata": false
+      },
+      "id": "05fc620a-de1b-53c1-9b0b-a618a3162892",
+      "name": "context",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        9008,
+        -4192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e4e8c214-6f66-5d9e-974b-237cf74f9cac",
+              "leftValue": "={{ $('Edit Fields4').item.json.type }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "AudioMessage"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "62c97bb7-c98d-5cd1-8385-49b128062d07",
+      "name": "If4",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5952,
+        -4944
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/message/presence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "token",
+              "value": "={{ $('Edit Fields4').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Edit Fields4').item.json.phone }}"
+            },
+            {
+              "name": "presence",
+              "value": "recording"
+            },
+            {
+              "name": "delay",
+              "value": "25000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "deade4e3-307b-53e3-b078-a9c49f4b627c",
+      "name": "Gravando audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6176,
+        -5024
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/message/presence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "token",
+              "value": "={{ $('Edit Fields4').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Edit Fields4').item.json.phone }}"
+            },
+            {
+              "name": "presence",
+              "value": "composing"
+            },
+            {
+              "name": "delay",
+              "value": "25000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b7e38756-7089-5f38-a3c9-1bad8506a7ed",
+      "name": "Digitando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6176,
+        -4864
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "34a88ccf-f94f-5d11-af3d-218ca1f67491",
+              "leftValue": "={{ $runIndex < 4 && /too many requests|rate limit|429/i.test(String($json.error ?? '')) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "6de36414-4ed5-5cbd-95f8-1a26201f8165",
+      "name": "Rate limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7808,
+        -4960
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 45
+      },
+      "id": "5eab336f-b5e4-5a9a-a1c7-de8074e926f5",
+      "name": "Espera rate limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        8288,
+        -4800
+      ],
+      "webhookId": "897c8954-f565-45da-87c4-68fd5d9fc949"
+    },
+    {
+      "parameters": {},
+      "id": "bf73b5c8-79d9-5b9c-9826-661e6f12c9f1",
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        8032,
+        -4768
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://free.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "token",
+              "value": "={{ $('Edit Fields4').item.json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Edit Fields4').item.json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "Estou com muita demanda agora e não consegui te responder. Pode me mandar a mensagem de novo daqui a pouco?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "55f9dd5b-8d15-54e2-ba11-043f259b511d",
+      "name": "Aviso de falha",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7568,
+        -5232
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4.1"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "maxTokens": 800,
+          "temperature": 0.3,
+          "maxRetries": 1
+        }
+      },
+      "id": "af7ae1a8-ca44-505c-b8e7-3e47998591e2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        7344,
+        -4832
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "0N1SXBfGO3TFVnvp",
+          "name": "OpenAI account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Redis5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis5": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rate limit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Simple Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store2",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "context",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Gravando audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Digitando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis1": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate limit?": {
+      "main": [
+        [
+          {
+            "node": "Espera rate limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aviso de falha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espera rate limit": {
+      "main": [
+        [
+          {
+            "node": "Monta entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta entrada": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravando audio": {
+      "main": [
+        [
+          {
+            "node": "Monta entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Digitando": {
+      "main": [
+        [
+          {
+            "node": "Monta entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_agendamentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete_agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "context": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_negocio": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_servicos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_equipe": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

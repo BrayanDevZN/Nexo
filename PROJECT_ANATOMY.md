@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
+Generated: 2026-11-18 | 475 files | ~687.9K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -10,6 +10,7 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | n8n/nodes/Nexo/booking.js | 356 | 7.4K | source |
 | n8n/nodes/Nexo/Nexo.node.js | 358 | 11.6K | source |
 | n8n/nodes/Nexo/NexoTrigger.node.js | 116 | 1.2K | source |
+| scripts/publish_automation.py | 46 | 542 | source |
 | src/backend/controller/application.py | 113 | 1.5K | source |
 | src/backend/controller/cookies.py | 23 | 281 | source |
 | src/backend/controller/dependencies.py | 107 | 978 | source |
@@ -320,6 +321,7 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | .github/workflows/integration.yml | 43 | 350 | config |
 | .github/workflows/unit.yml | 33 | 278 | config |
 | docker-compose.yml | 99 | 544 | config |
+| docs/automations/atendente-whatsapp/workflow.json | 2121 | 16.8K | config |
 | n8n/package.json | 20 | 102 | config |
 | pyproject.toml | 42 | 279 | config |
 | src/frontend/components.json | 26 | 131 | config |
@@ -440,6 +442,7 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | tests/unit/service/test_rate_limits.py | 47 | 571 | test |
 | tests/unit/service/test_registration.py | 71 | 745 | test |
 | tests/unit/service/test_webhook_events.py | 182 | 1.6K | test |
+| docs/automations/atendente-whatsapp/descricao.md | 11 | 238 | docs |
 | docs/prompts/first-contact-whatsapp.md | 237 | 3.6K | docs |
 | maps-server/README.md | 35 | 351 | docs |
 | n8n/README.md | 206 | 3.5K | docs |
@@ -478,23 +481,24 @@ Generated: 2026-11-18 | 472 files | ~670.3K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 310 files, ~425.4K tokens
-- config: 13 files, ~3.6K tokens
+- source: 311 files, ~426.0K tokens
+- config: 14 files, ~20.5K tokens
 - test: 113 files, ~154.0K tokens
-- docs: 11 files, ~20.6K tokens
+- docs: 12 files, ~20.9K tokens
 - style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens
 
 ## Heaviest files (read with offset/limit, not whole)
 1. src/frontend/styles/globals.css — 2689 lines (~15.6K tokens)
-2. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
-3. tests/functional/controller/test_scheduling.py — 912 lines (~16.1K tokens)
-4. tests/integration/frontend/panel.spec.ts — 822 lines (~14.6K tokens)
-5. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
-6. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
-7. src/backend/service/scheduling.py — 637 lines (~10.0K tokens)
-8. src/frontend/styles/atendimentos.css — 636 lines (~16.0K tokens)
-9. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
-10. mcp_server.py — 589 lines (~4.9K tokens)
-11. src/backend/repository/db/control/scheduling.py — 547 lines (~7.6K tokens)
-12. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
+2. docs/automations/atendente-whatsapp/workflow.json — 2121 lines (~16.8K tokens)
+3. src/frontend/components/rp/world.ts — 1332 lines (~13.8K tokens)
+4. tests/functional/controller/test_scheduling.py — 912 lines (~16.1K tokens)
+5. tests/integration/frontend/panel.spec.ts — 822 lines (~14.6K tokens)
+6. src/frontend/admin/ApiDocumentation.tsx — 819 lines (~8.2K tokens)
+7. src/frontend/components/ui/sidebar.tsx — 700 lines (~5.3K tokens)
+8. src/backend/service/scheduling.py — 637 lines (~10.0K tokens)
+9. src/frontend/styles/atendimentos.css — 636 lines (~16.0K tokens)
+10. src/frontend/admin/Maps.tsx — 620 lines (~10.8K tokens)
+11. mcp_server.py — 589 lines (~4.9K tokens)
+12. src/backend/repository/db/control/scheduling.py — 547 lines (~7.6K tokens)
+13. n8n/test/nodes.test.js — 532 lines (~8.1K tokens)
