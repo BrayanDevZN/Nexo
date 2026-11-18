@@ -43,3 +43,41 @@ def test_scheduling_writes_invalidate_per_business_and_the_business_list(setting
             assert [member.user_id for member in repos.businesses.members(second.id)] == [bia.id, ana.id]
     finally:
         database.close()
+
+
+def test_updates_and_deletes_written_as_statements_also_drop_the_cache_of_what_depends_on_them(settings):
+    """An UPDATE/DELETE that does not load the row (and the rows the database deletes or nulls by itself) must not leave stale answers."""
+    from sqlalchemy import delete, update
+
+    from backend.repository.db.models import BookingUser, BusinessMember
+
+    database = DatabaseConnection(settings)
+    create_tables(database.engine)
+    cache = Mock()
+    manager = RepositoryManager(database, cache=cache)
+    try:
+        with manager.transaction() as repos:
+            ana = repos.booking_users.create(name="Ana", email="ana@example.com", password_hash="hash")
+            business = repos.businesses.create(owner_id=ana.id, name="A", slug="a", opening_hours={})
+            bia = repos.booking_users.create(name="Bia", email="bia@example.com", password_hash="hash")
+            repos.businesses.add_member(business.id, bia.id, "staff")
+        cache.reset_mock()
+        # A renamed account changes the names shown in every team and agenda that lists it.
+        with manager.transaction() as repos:
+            repos.booking_users.session.execute(update(BookingUser).where(BookingUser.id == bia.id).values(name="Brayan"))
+        dropped = cache.invalidate.call_args.args[0]
+        assert {"booking_users", "business_members:*", "appointments:*", "businesses"} <= dropped
+        cache.reset_mock()
+        # A membership removed by a statement drops that table for every business.
+        with manager.transaction() as repos:
+            repos.booking_users.session.execute(delete(BusinessMember).where(BusinessMember.user_id == bia.id))
+        assert "business_members:*" in cache.invalidate.call_args.args[0] and "businesses" in cache.invalidate.call_args.args[0]
+        cache.reset_mock()
+        # Deleting a business by row also reaches what the database deletes with it, only for that business.
+        with manager.transaction() as repos:
+            repos.businesses.session.delete(repos.businesses.get(business.id))
+        dropped = cache.invalidate.call_args.args[0]
+        assert {"businesses", "appointments:" + business.id, "business_services:" + business.id, "business_members:" + business.id} <= dropped
+        assert "appointments:*" not in dropped
+    finally:
+        database.close()

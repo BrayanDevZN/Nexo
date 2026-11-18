@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from redis.exceptions import ConnectionError
@@ -50,3 +50,14 @@ def test_cache_key_is_canonical_and_does_not_expose_filter_values():
     b = cache.query_key("users", "0", {"offset": 0, "email": "private@example.com"})
     assert a == b
     assert "private@example.com" not in a
+
+
+def test_a_wildcard_invalidation_bumps_the_generation_of_every_business():
+    redis = MagicMock()
+    redis.scan_iter.return_value = [b"unit:appointments:b1:generation", b"unit:appointments:b2:generation"]
+    pipeline = redis.pipeline.return_value.__enter__.return_value
+    cache = CacheAside(redis, ttl=30, prefix="unit")
+    assert cache.invalidate({"appointments:*", "businesses"}) is True
+    redis.scan_iter.assert_called_once_with(match="unit:appointments:*:generation")
+    bumped = {call.args[0] for call in pipeline.incr.call_args_list}
+    assert bumped == {b"unit:appointments:b1:generation", b"unit:appointments:b2:generation", "unit:businesses:generation"}

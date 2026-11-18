@@ -87,9 +87,16 @@ class CacheAside:
         if not tables:
             return True
         try:
+            keys = set()
+            for table in tables:
+                if table.endswith(":*"):
+                    # Every business of a scoped table ("appointments:*"): a change that does not say which business.
+                    keys.update(self.redis.scan_iter(match=f"{self.prefix}:{table[:-2]}:*:generation"))
+                else:
+                    keys.add(self.generation_key(table))
             with self.redis.pipeline(transaction=True) as pipeline:
-                for table in sorted(tables):
-                    pipeline.incr(self.generation_key(table))
+                for key in sorted(keys, key=lambda item: item if isinstance(item, str) else item.decode()):
+                    pipeline.incr(key)
                 pipeline.execute()
             return True
         except RedisError:

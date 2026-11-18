@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
+Generated: 2026-11-18 | 470 files | ~664.2K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -95,7 +95,7 @@ Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
 | src/backend/infra/connections/video_server.py | 93 | 929 | source |
 | src/backend/infra/connections/videos.py | 140 | 1.5K | source |
 | src/backend/main.py | 40 | 380 | source |
-| src/backend/repository/cache/aside.py | 99 | 989 | source |
+| src/backend/repository/cache/aside.py | 106 | 1.1K | source |
 | src/backend/repository/cache/manager.py | 19 | 164 | source |
 | src/backend/repository/cache/queries.py | 72 | 911 | source |
 | src/backend/repository/db/control/api_keys.py | 64 | 776 | source |
@@ -105,7 +105,7 @@ Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
 | src/backend/repository/db/control/chat.py | 70 | 816 | source |
 | src/backend/repository/db/control/clients.py | 148 | 2.0K | source |
 | src/backend/repository/db/control/documents.py | 44 | 538 | source |
-| src/backend/repository/db/control/manager.py | 94 | 1.2K | source |
+| src/backend/repository/db/control/manager.py | 140 | 1.8K | source |
 | src/backend/repository/db/control/maps_credentials.py | 31 | 400 | source |
 | src/backend/repository/db/control/maps_jobs.py | 40 | 524 | source |
 | src/backend/repository/db/control/notifications.py | 193 | 2.7K | source |
@@ -376,7 +376,7 @@ Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
 | tests/integration/repository/test_rate_limits.py | 53 | 487 | test |
 | tests/integration/repository/test_repositories.py | 123 | 1.6K | test |
 | tests/integration/repository/test_role_migration.py | 39 | 559 | test |
-| tests/integration/repository/test_scheduling_cache.py | 46 | 690 | test |
+| tests/integration/repository/test_scheduling_cache.py | 84 | 1.3K | test |
 | tests/integration/service/test_account_deletion.py | 103 | 1.2K | test |
 | tests/integration/service/test_announcement_audiences.py | 77 | 943 | test |
 | tests/integration/service/test_approvals.py | 129 | 1.4K | test |
@@ -424,7 +424,7 @@ Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
 | tests/unit/infra/test_qdrant_connection.py | 45 | 448 | test |
 | tests/unit/infra/test_redis_connection.py | 16 | 153 | test |
 | tests/unit/infra/test_settings.py | 115 | 1.1K | test |
-| tests/unit/repository/test_cache_aside.py | 53 | 475 | test |
+| tests/unit/repository/test_cache_aside.py | 64 | 647 | test |
 | tests/unit/repository/test_controls.py | 38 | 328 | test |
 | tests/unit/repository/test_owner_role_migration.py | 62 | 775 | test |
 | tests/unit/repository/test_rate_limits.py | 23 | 197 | test |
@@ -476,9 +476,9 @@ Generated: 2026-11-18 | 470 files | ~662.7K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 308 files, ~419.1K tokens
+- source: 308 files, ~419.8K tokens
 - config: 13 files, ~3.6K tokens
-- test: 113 files, ~152.8K tokens
+- test: 113 files, ~153.6K tokens
 - docs: 11 files, ~20.6K tokens
 - style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens
