@@ -32,8 +32,8 @@ const bookingToolDescriptions = {
 	bookingAppointments: {
 		getMany: 'Buscar agendamentos de um negócio entre um Start e um End, como no Google Calendar (para um dia inteiro: Start = 00:00 do dia, End = 00:00 do dia seguinte). Sem Start e End, traz todos. Filtra por situação (scheduled, confirmed, done, cancelled, no_show) e, se quiser, por funcionário.',
 		get: 'Consultar um agendamento pelo ID.',
-		create: 'Marcar um atendimento: só o nome do cliente é obrigatório. Start e End são opcionais (sem Start, agora; sem End, a soma da duração dos serviços). Se quiser, um ou mais serviços do negócio e o funcionário que vai atender (opcional).',
-		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, trocar o funcionário (opcional) ou mudar a situação (confirmar, concluir, cancelar, faltou).',
+		create: 'Marcar um atendimento: o nome do cliente e o funcionário que vai atender são obrigatórios. Start e End são opcionais (sem Start, agora; sem End, a soma da duração dos serviços). Se quiser, um ou mais serviços do negócio. O mesmo funcionário não pode ter dois agendamentos no mesmo horário; funcionários diferentes podem.',
+		update: 'Alterar um agendamento: remarcar (Start/End), trocar o nome do cliente ou os serviços, trocar o funcionário ou mudar a situação (confirmar, concluir, cancelar, faltou). O funcionário não pode ser removido.',
 		delete: 'Apagar um agendamento. Se informar o funcionário, só apaga se o agendamento for dele.',
 	},
 };
@@ -78,8 +78,9 @@ add('Start', 'bookingStartsAt', 'dateTime', '', 'bookingAppointments', ['update'
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['create'], { description: `Quando o atendimento termina (opcional, depois do Start). Vazio: o Start mais a soma da duração dos serviços escolhidos (30 minutos sem serviços). ${WINDOW}` });
 add('End', 'bookingEndsAt', 'dateTime', '', 'bookingAppointments', ['update'], { description: `Vazio: não altera. ${WINDOW}` });
 add('Serviços', 'bookingServicesChosen', 'multiOptions', [], 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingServices', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Um ou mais serviços do negócio escolhido. Com mais de um, o agendamento recebe todos os nomes, a soma das durações (a partir do Start) e a soma dos preços. Ao atualizar, vazio não altera. Com a IA (✨), informe os IDs dos serviços separados por vírgula (veja em Atendimentos: serviços > Get Many).' });
-// The employee is always optional: leave it empty and nothing about the employee is sent or checked.
-add('Funcionário', 'bookingStaff', 'options', '', 'bookingAppointments', ['create', 'update'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId', 'bookingStartsAt', 'bookingEndsAt'] }, description: 'Opcional. Quem vai atender. Abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. Vazio: sem funcionário (ao atualizar, não altera; escolha "Remover funcionário" para tirar). Com a IA (✨), informe o ID, o nome ou o e-mail da pessoa (veja em Negócios > Listar equipe).' });
+// The employee is required to book: the same one cannot have two appointments at the same time, a different one can.
+add('Funcionário', 'bookingStaff', 'options', '', 'bookingAppointments', ['create'], { required: true, typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId', 'bookingStartsAt', 'bookingEndsAt'] }, description: 'Obrigatório. Quem vai atender. Abre a lista da equipe do negócio e, com Start e End preenchidos, mostra quem está ocupado nesse horário. O mesmo funcionário não pode ter dois agendamentos no mesmo horário; funcionários diferentes podem. Com a IA (✨), informe o ID, o nome ou o e-mail da pessoa (veja em Negócios > Listar equipe).' });
+add('Funcionário', 'bookingStaff', 'options', '', 'bookingAppointments', ['update'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId', 'bookingStartsAt', 'bookingEndsAt'] }, description: 'Vazio: não altera. Para trocar quem atende, escolha outra pessoa (o funcionário não pode ser removido). Com a IA (✨), informe o ID, o nome ou o e-mail da pessoa (veja em Negócios > Listar equipe).' });
 add('Funcionário', 'bookingStaffFilter', 'options', '', 'bookingAppointments', ['getMany'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Opcional. Só os agendamentos deste funcionário. Vazio: de todos.' });
 add('Só se for do funcionário', 'bookingStaffGuard', 'options', '', 'bookingAppointments', ['delete'], { typeOptions: { loadOptionsMethod: 'getBookingStaff', loadOptionsDependsOn: ['bookingBusinessId'] }, description: 'Opcional. Só exclui se o agendamento for deste funcionário; se for de outra pessoa, nada é apagado. Vazio: exclui sem conferir.' });
 add('Situação', 'bookingStatus', 'options', '', 'bookingAppointments', ['update'], { options: [{ name: 'Não alterar', value: '' }, ...STATUS_OPTIONS], description: 'Nova situação: scheduled, confirmed, done, cancelled ou no_show. Vazio: não altera.' });
@@ -157,7 +158,7 @@ const loadOptions = {
 	/** The team of the chosen business, for "Funcionário". With a Start and an End filled in, who is busy then is said in the name. */
 	async getBookingStaff() {
 		const business = clean(this.getCurrentNodeParameter('bookingBusinessId', { extractValue: true }));
-		const none = [{ name: 'Nenhum (opcional)', value: '' }];
+		const none = [{ name: 'Escolha quem atende', value: '' }];
 		if (!business) return none;
 		const credentials = await this.getCredentials(CREDENTIAL);
 		const baseUrl = String(credentials.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -181,9 +182,7 @@ const loadOptions = {
 		const roles = { owner: 'Dono', manager: 'Gerente', staff: 'Atendente', viewer: 'Só leitura' };
 		const people = (Array.isArray(members) ? members : []).map((row) => ({ name: `${row.name || row.email || 'Conta removida'}${busy.has(row.user_id) ? ' (ocupado neste horário)' : ''}`, value: row.user_id, description: `${roles[row.role] || row.role}${row.email ? ` · ${row.email}` : ''}`, busy: busy.has(row.user_id) }))
 			.sort((a, b) => Number(a.busy) - Number(b.busy)).map(({ busy: _busy, ...option }) => option);
-		let operation = '';
-		try { operation = this.getCurrentNodeParameter('operation'); } catch { /* not asked in this context */ }
-		return [...none, ...(operation === 'update' ? [{ name: 'Remover funcionário', value: '__none__' }] : []), ...people];
+		return [...none, ...people];
 	},
 	async getBookingBusinesses() {
 		const credentials = await this.getCredentials(CREDENTIAL);
@@ -217,7 +216,6 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	const staff = async (value) => {
 		const text = clean(value);
 		if (text === undefined) return undefined;
-		if (text === '__none__') return null;
 		const team = rows(await call({ method: 'GET', url: base('/members') }));
 		const hit = team.find((member) => member.user_id === text) || team.find((member) => [member.name, member.email].some((field) => field && String(field).trim().toLowerCase() === text.toLowerCase()));
 		if (!hit) throw new Error(`Funcionário não encontrado neste negócio: ${text}. Equipe: ${team.map((member) => `${member.name || member.email} (${member.user_id})`).join('; ') || 'ninguém ainda'}.`);
@@ -298,6 +296,8 @@ async function executeBooking(ctx, resource, operation, index, state) {
 	if (ends) body.ends_at = await when(ends, 'o End');
 	if (body.starts_at && body.ends_at && body.ends_at <= body.starts_at) throw new Error('O End precisa ser depois do Start.');
 	const person = await staff(param('bookingStaff'));
+	// Booking needs a professional; an existing appointment can change it but never lose it.
+	if (person === undefined && !update) throw new Error('Informe o funcionário que vai atender: é obrigatório para agendar.');
 	if (person !== undefined) body.staff_user_id = person;
 	// Services of this business: one keeps its link (and its price); several become one appointment named after all of
 	// them, priced with their sum. Nothing chosen: a plain "Atendimento".

@@ -76,7 +76,7 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
     const ids = JSON.parse(values.service_ids || "[]") as string[];
     const body: Record<string, unknown> = {
       customer_name: values.customer_name, customer_phone: values.customer_phone || null, customer_email: values.customer_email || null,
-      service_ids: ids, staff_user_id: values.staff_user_id || null, notes: values.notes || null,
+      service_ids: ids, staff_user_id: values.staff_user_id, notes: values.notes || null,
     };
     // Only the customer's name is required. No start means now; the end and the price are the sum of the services unless overwritten.
     if (values.starts_at) body.starts_at = localToIso(values.starts_at); else if (editing.appointment) { setError("Informe o início."); return; }
@@ -173,8 +173,8 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
           <TextField label="E-mail do cliente (opcional)" name="customer_email" type="email" defaultValue={current?.customer_email || ""} />
           <AppointmentFields current={current} defaultStart={defaultStart} services={services} />
           <Field><FieldLabel htmlFor="bk-staff">Quem atende</FieldLabel>
-            <NativeSelect id="bk-staff" name="staff_user_id" defaultValue={current?.staff_user_id || ""}>
-              <NativeSelectOption value="">Qualquer pessoa</NativeSelectOption>
+            <NativeSelect id="bk-staff" name="staff_user_id" required defaultValue={current?.staff_user_id || (members.length === 1 ? members[0].user_id : "")}>
+              <NativeSelectOption value="">Escolha quem atende</NativeSelectOption>
               {members.map(member => <NativeSelectOption key={member.user_id} value={member.user_id}>{member.name}</NativeSelectOption>)}
             </NativeSelect></Field>
           {current && <Field><FieldLabel htmlFor="bk-status">Situação</FieldLabel>

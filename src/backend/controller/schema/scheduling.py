@@ -314,8 +314,9 @@ class AppointmentFields(BaseModel):
 
 
 class AppointmentCreate(AppointmentFields):
-    """Only the customer's name is required. No start means now; no services means a plain "Atendimento" of 30 minutes."""
+    """The customer's name and the professional are required. No start means now; no services means a plain "Atendimento" of 30 minutes."""
     starts_at: datetime | None = None
+    staff_user_id: str = Field(min_length=1, max_length=36, description="Who attends: always required when booking")
 
     @model_validator(mode="after")
     def valid_period(self):
@@ -333,7 +334,7 @@ class AppointmentPatch(AppointmentFields):
     def valid_patch(self):
         if not self.model_fields_set:
             raise ValueError("At least one field is required")
-        for field in ("customer_name", "starts_at", "status"):
+        for field in ("customer_name", "starts_at", "status", "staff_user_id"):
             if field in self.model_fields_set and getattr(self, field) is None:
                 raise ValueError(field + " cannot be null")
         return self

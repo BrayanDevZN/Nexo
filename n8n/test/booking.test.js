@@ -83,31 +83,31 @@ test('the business picker lists the account businesses with the regular Nexo API
 const TEAM = [{ user_id: 'u1', name: 'Ana Silva', email: 'ana@x.com', role: 'owner' }, { user_id: 'u2', name: 'Bia Costa', email: 'bia@x.com', role: 'staff' }];
 const withTeam = (options) => (options.url.endsWith('/members') ? TEAM : answer(options));
 
-test('the employee is an optional choice: nothing is sent or checked when it is empty', async () => {
+test('the employee is required to book, optional to filter and guard', async () => {
 	const props = new Nexo().description.properties;
 	for (const name of ['bookingStaff', 'bookingStaffFilter', 'bookingStaffGuard']) {
 		const field = props.find((item) => item.name === name);
 		assert.equal(field.typeOptions.loadOptionsMethod, 'getBookingStaff');
-		assert.notEqual(field.required, true);
 	}
-	assert.deepEqual(props.find((item) => item.name === 'bookingStaff').displayOptions.show.operation, ['create', 'update']);
+	assert.equal(props.find((item) => item.name === 'bookingStaff' && item.displayOptions.show.operation.includes('create')).required, true);
+	assert.notEqual(props.find((item) => item.name === 'bookingStaff' && item.displayOptions.show.operation.includes('update')).required, true);
+	assert.notEqual(props.find((item) => item.name === 'bookingStaffFilter').required, true);
 	assert.deepEqual(props.find((item) => item.name === 'bookingStaffGuard').displayOptions.show.operation, ['delete']);
-	const created = await run(CREATE, answer);
-	assert.ok(!('staff_user_id' in created.requests.find((request) => request.method === 'POST').body));
-	assert.ok(!created.requests.some((request) => request.url.endsWith('/members')));
+	const missing = await run({ ...CREATE, bookingStaff: '' }, withTeam).catch((error) => error);
+	assert.match(missing.message, /Informe o funcionário.*obrigatório para agendar/);
 	const listed = await run({ ...BASE, operation: 'getMany' }, () => []);
 	assert.ok(!('staff_user_id' in listed.requests[0].qs));
 });
 
-test('creating and updating can pick the employee by ID, name or e-mail, and updating can remove it', async () => {
+test('creating and updating pick the employee by ID, name or e-mail, and updating cannot remove it', async () => {
 	const byId = await run({ ...CREATE, bookingStaff: 'u2' }, withTeam);
 	assert.equal(byId.requests.find((request) => request.method === 'POST').body.staff_user_id, 'u2');
 	const byName = await run({ ...CREATE, bookingStaff: 'ana silva' }, withTeam);
 	assert.equal(byName.requests.find((request) => request.method === 'POST').body.staff_user_id, 'u1');
 	const byMail = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: 'bia@x.com' }, withTeam);
 	assert.deepEqual(byMail.requests.find((request) => request.method === 'PATCH').body, { staff_user_id: 'u2' });
-	const removed = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: '__none__' }, withTeam);
-	assert.deepEqual(removed.requests.find((request) => request.method === 'PATCH').body, { staff_user_id: null });
+	const removed = await run({ ...BASE, operation: 'update', bookingAppointmentId: 'a1', bookingStaff: '__none__' }, withTeam).catch((error) => error);
+	assert.match(removed.message, /Funcionário não encontrado/);
 	const unknown = await run({ ...CREATE, bookingStaff: 'Zé' }, withTeam).catch((error) => error);
 	assert.match(unknown.message, /Funcionário não encontrado.*Ana Silva \(u1\)/);
 });
@@ -137,8 +137,8 @@ test('the employee list shows the team, free people first, and who is busy at th
 		} },
 	};
 	const options = await new Nexo().methods.loadOptions.getBookingStaff.call(context);
-	assert.deepEqual(options.map((option) => option.value), ['', '__none__', 'u2', 'u1']);
-	assert.equal(options[3].name, 'Ana Silva (ocupado neste horário)');
+	assert.deepEqual(options.map((option) => option.value), ['', 'u2', 'u1']);
+	assert.equal(options[2].name, 'Ana Silva (ocupado neste horário)');
 	const window = requests.find((request) => request.url.endsWith('/appointments')).qs;
 	assert.equal(window.ends_after, '2026-11-16T12:00:00.000Z');
 	// Without a time the whole team is listed and no schedule is read.
@@ -238,8 +238,8 @@ test('the node is tool-ready: every Atendimentos field has a description for the
 });
 
 const SERVICES = [{ id: 's1', name: 'Corte', price: 45, duration_minutes: 30 }, { id: 's2', name: 'Barba', price: 30.5, duration_minutes: 20 }, { id: 's3', name: 'Sobrancelha', price: null, duration_minutes: 10 }];
-const answer = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SERVICES : { id: 'a1' });
-const CREATE = { ...BASE, operation: 'create', bookingCustomerName: ' João ', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00' };
+const answer = (options) => (options.url.endsWith('/members') ? TEAM : options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SERVICES : { id: 'a1' });
+const CREATE = { ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: ' João ', bookingStartsAt: '2026-11-16T09:00:00', bookingEndsAt: '2026-11-16T10:00:00' };
 
 test('creating asks for nothing but the customer name: Start, End, phone and services are optional, and there is no e-mail, ID, price or client picker', () => {
 	const fields = new Nexo().description.properties.filter((field) => field.name.startsWith('booking') && field.displayOptions.show.resource[0] === 'bookingAppointments' && field.displayOptions.show.operation?.includes('create')).map((field) => field.name);
@@ -258,22 +258,22 @@ test('create converts the local time of the business and sends one service by it
 	const { requests, output } = await run({ ...CREATE, bookingServicesChosen: ['s1'] }, answer);
 	const post = requests.find((request) => request.method === 'POST');
 	assert.equal(post.url, 'atendimentos/businesses/b1/appointments');
-	assert.deepEqual(post.body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_ids: ['s1'] });
+	assert.deepEqual(post.body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_ids: ['s1'], staff_user_id: 'u1' });
 	assert.equal(output[0][0].json.id, 'a1');
 });
 
 test('several services are sent as a list: the server sums their time and price, and nothing else is required', async () => {
 	const { requests } = await run({ ...CREATE, bookingServicesChosen: ['s1', 's2'] }, answer);
-	assert.deepEqual(requests.find((request) => request.method === 'POST').body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_ids: ['s1', 's2'] });
-	const none = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João' }, answer);
-	assert.deepEqual(none.requests.find((request) => request.method === 'POST').body, { customer_name: 'João' });
+	assert.deepEqual(requests.find((request) => request.method === 'POST').body, { customer_name: 'João', starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-16T13:00:00.000Z', service_ids: ['s1', 's2'], staff_user_id: 'u1' });
+	const none = await run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: 'João' }, answer);
+	assert.deepEqual(none.requests.find((request) => request.method === 'POST').body, { customer_name: 'João', staff_user_id: 'u1' });
 	const foreign = await run({ ...CREATE, bookingServicesChosen: ['s1', 'other-business'] }, answer).catch((error) => error);
 	assert.match(foreign.message, /Serviço não encontrado neste negócio: other-business\. Serviços deste negócio: Corte \(s1\); Barba \(s2\); Sobrancelha \(s3\)/);
 });
 test('Start and End are optional, but an End before the Start is refused', async () => {
-	const onlyEnd = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingEndsAt: '2026-11-16T10:00:00Z' }, answer);
-	assert.deepEqual(onlyEnd.requests.find((request) => request.method === 'POST').body, { customer_name: 'João', ends_at: '2026-11-16T10:00:00.000Z' });
-	const backwards = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T08:00:00Z' }, answer).catch((error) => error);
+	const onlyEnd = await run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: 'João', bookingEndsAt: '2026-11-16T10:00:00Z' }, answer);
+	assert.deepEqual(onlyEnd.requests.find((request) => request.method === 'POST').body, { customer_name: 'João', ends_at: '2026-11-16T10:00:00.000Z', staff_user_id: 'u1' });
+	const backwards = await run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T08:00:00Z' }, answer).catch((error) => error);
 	assert.match(backwards.message, /depois do Start/);
 });
 
@@ -301,9 +301,9 @@ test('update changes only what was filled in, including the services, and delete
 
 test('the services can come from the AI as one text with commas, or from the list as an array', async () => {
 	const SVC = [{ id: 's1', name: 'Corte', price: 45 }, { id: 's2', name: 'Barba', price: 30 }];
-	const reply = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
+	const reply = (options) => (options.url.endsWith('/members') ? TEAM : options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
 	for (const chosen of ['s1, s2', ['s1', 's2'], ['s1,s2']]) {
-		const { requests } = await run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
+		const { requests } = await run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
 		const body = requests.find((request) => request.method === 'POST').body;
 		assert.deepEqual(body.service_ids, ['s1', 's2']);
 	}
@@ -332,8 +332,8 @@ test('a service is created with a name and a duration; price, description and ac
 
 test('services can be given by name too, and an unknown one answers with the real list of the business', async () => {
 	const SVC = [{ id: 's1', name: 'Corte', price: 45, active: true }, { id: 's2', name: 'Barba, completa', price: 30, active: true }, { id: 's3', name: 'Antigo', price: 10, active: false }];
-	const reply = (options) => (options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
-	const make = (chosen) => run({ ...BASE, operation: 'create', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
+	const reply = (options) => (options.url.endsWith('/members') ? TEAM : options.url.endsWith('/b1') ? business : options.url.endsWith('/services') ? SVC : { id: 'a1' });
+	const make = (chosen) => run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingCustomerName: 'João', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', bookingServicesChosen: chosen }, reply);
 	const byName = await make('corte');
 	assert.deepEqual(byName.requests.find((request) => request.method === 'POST').body.service_ids, ['s1']);
 	const mixed = await make('Corte, Barba, completa');   // a name with a comma stays whole
@@ -347,7 +347,7 @@ test('services can be given by name too, and an unknown one answers with the rea
 });
 
 test('the customer name and phone are optional: the phone stands in for a missing name, then just "Cliente"', async () => {
-	const create = async (parameters) => (await run({ ...BASE, operation: 'create', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', ...parameters }, () => ({ id: 'a1' }))).requests.find((request) => request.method === 'POST').body;
+	const create = async (parameters) => (await run({ ...BASE, operation: 'create', bookingStaff: 'u1', bookingStartsAt: '2026-11-16T09:00:00Z', bookingEndsAt: '2026-11-16T10:00:00Z', ...parameters }, (options) => (options.url.endsWith('/members') ? TEAM : { id: 'a1' }))).requests.find((request) => request.method === 'POST').body;
 	const both = await create({ bookingCustomerName: ' João ', bookingCustomerPhone: '11999999999' });
 	assert.equal(both.customer_name, 'João'); assert.equal(both.customer_phone, '11999999999');
 	const phoneOnly = await create({ bookingCustomerPhone: '11999999999' });

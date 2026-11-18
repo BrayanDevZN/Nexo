@@ -30,6 +30,19 @@ def client(settings, local_redis_url, monkeypatch, google_signer):
         sign, keys = google_signer
         app.state.services.google.provider.exchange = AsyncMock(
             side_effect=lambda code, verifier, nonce: {"id_token": sign(nonce=nonce), "keys": keys})
+        # Booking needs a professional. Scenarios that are not about that book with the signed-in person unless they
+        # name one (or pass None, which is what the tests of the rule do).
+        original_post = client.post
+
+        def post(url, *args, **kwargs):
+            body = kwargs.get("json")
+            if str(url).endswith("/appointments") and isinstance(body, dict) and "staff_user_id" not in body \
+                    and not kwargs.get("headers", {}).get("Authorization"):
+                me = client.get("/atendimentos/auth/me")
+                if me.status_code == 200:
+                    kwargs["json"] = {**body, "staff_user_id": me.json()["id"]}
+            return original_post(url, *args, **kwargs)
+        client.post = post
         yield client
 
 
@@ -188,21 +201,24 @@ def test_business_services_and_appointments_with_cache_invalidation(client):
     conflict = client.post(appointments, headers=headers, json={
         "customer_name": "Pedro", "service_id": corte["id"], "staff_user_id": me["id"], "starts_at": "2026-12-01T16:15:00Z"})
     assert conflict.status_code == 409
-    free = client.post(appointments, headers=headers, json={
-        "customer_name": "Pedro", "service_name": "Pacote", "starts_at": "2026-12-01T16:15:00Z",
-        "ends_at": "2026-12-01T17:00:00Z"})
-    assert free.status_code == 201 and free.json()["staff_user_id"] is None and free.json()["price"] is None
+    pacote = {"customer_name": "Pedro", "service_name": "Pacote", "starts_at": "2026-12-01T16:15:00Z", "ends_at": "2026-12-01T17:00:00Z"}
+    # The same professional cannot have two active appointments at once, even for a plain "Atendimento" with no service.
+    assert client.post(appointments, headers=headers, json={**pacote, "staff_user_id": me["id"]}).status_code == 409
+    # Back to back is fine, and the professional is required.
+    assert client.post(appointments, headers=headers, json={**pacote, "staff_user_id": None}).status_code == 422
+    one = appointments + "/" + first["id"]
+    assert client.get(appointments, params={"status": "done"}).json() == []
+    assert client.patch(one, headers=headers, json={"status": "done"}).json()["status"] == "done"
+    assert [row["id"] for row in client.get(appointments, params={"status": "done"}).json()] == [first["id"]]
+    # Once João is done, Pedro can take the professional's slot; bringing João back onto an active one is refused.
+    free = client.post(appointments, headers=headers, json={**pacote, "staff_user_id": me["id"]})
+    assert free.status_code == 201 and free.json()["staff_name"] == "Ana" and free.json()["price"] is None
     listed = client.get(appointments, params={"starts_from": "2026-12-01T00:00:00Z", "starts_until": "2026-12-02T00:00:00Z"}).json()
     assert [row["customer_name"] for row in listed] == ["João", "Pedro"]
     assert client.get(appointments, params={"staff_user_id": me["id"]}).json()[0]["id"] == first["id"]
     assert client.get(appointments, params={"customer": "ped"}).json()[0]["id"] == free.json()["id"]
-    assert client.get(appointments, params={"status": "done"}).json() == []
-    one = appointments + "/" + first["id"]
-    assert client.patch(one, headers=headers, json={"status": "done"}).json()["status"] == "done"
-    assert [row["id"] for row in client.get(appointments, params={"status": "done"}).json()] == [first["id"]]
-    # Once João is done, Pedro can take the professional's slot; moving him back onto an active one is refused.
-    moved = client.patch(appointments + "/" + free.json()["id"], headers=headers, json={"staff_user_id": me["id"]})
-    assert moved.status_code == 200 and moved.json()["staff_name"] == "Ana"
+    # An appointment cannot lose its professional either.
+    assert client.patch(appointments + "/" + free.json()["id"], headers=headers, json={"staff_user_id": None}).status_code == 422
     assert client.patch(one, headers=headers, json={"status": "confirmed"}).status_code == 409
     assert client.patch(one, headers=headers, json={"starts_at": "2026-12-01T18:00:00Z"}).status_code == 200
     reopened = client.patch(one, headers=headers, json={"status": "confirmed"})
@@ -218,6 +234,38 @@ def test_business_services_and_appointments_with_cache_invalidation(client):
     assert client.delete(path, headers=headers).status_code == 204
     assert client.get(path).status_code == 404
     assert [row["id"] for row in client.get("/atendimentos/businesses").json()] == [other["id"]]
+
+
+def test_the_same_professional_cannot_double_book_but_two_different_ones_can(client):
+    register(client, ANA)
+    register(client, BIA)
+    owner = login(client, ANA)
+    business = create_business(client, owner)
+    path = "/atendimentos/businesses/" + business["id"]
+    appointments = path + "/appointments"
+    ana_id = client.get("/atendimentos/auth/me").json()["id"]
+    invite = client.post(path + "/invitations", headers=owner, json={"role": "staff"}).json()
+    token = parse_qs(urlsplit(invite["url"]).query)["invite"][0]
+    bia = login(client, BIA)
+    assert client.post("/atendimentos/invitations/" + token + "/accept", headers=bia).status_code == 200
+    bia_id = client.get("/atendimentos/auth/me").json()["id"]
+    owner = login(client, ANA)
+    slot = {"customer_name": "João", "starts_at": "2026-12-01T13:00:00Z", "ends_at": "2026-12-01T14:00:00Z"}
+    # The professional is required to book.
+    assert client.post(appointments, headers=owner, json={**slot, "staff_user_id": None}).status_code == 422
+    assert client.post(appointments, headers=owner, json={**slot, "staff_user_id": ana_id}).status_code == 201
+    # The same professional at the same time (even partly) is refused; back to back is fine.
+    overlap = client.post(appointments, headers=owner, json={**slot, "customer_name": "Pedro", "starts_at": "2026-12-01T13:30:00Z",
+                                                              "ends_at": "2026-12-01T14:30:00Z", "staff_user_id": ana_id})
+    assert overlap.status_code == 409
+    assert client.post(appointments, headers=owner, json={**slot, "customer_name": "Pedro", "starts_at": "2026-12-01T14:00:00Z",
+                                                          "ends_at": "2026-12-01T15:00:00Z", "staff_user_id": ana_id}).status_code == 201
+    # Another professional can take the very same time.
+    other = client.post(appointments, headers=owner, json={**slot, "customer_name": "Caio", "staff_user_id": bia_id})
+    assert other.status_code == 201 and other.json()["staff_name"] == "Bia"
+    # Moving it onto the busy professional is refused, and an appointment never loses its professional.
+    assert client.patch(appointments + "/" + other.json()["id"], headers=owner, json={"staff_user_id": ana_id}).status_code == 409
+    assert client.patch(appointments + "/" + other.json()["id"], headers=owner, json={"staff_user_id": None}).status_code == 422
 
 
 def test_invitations_roles_and_permissions(client):
@@ -466,7 +514,8 @@ def test_the_nexo_team_api_key_manages_every_business_without_any_atendimentos_a
         assert client.get(path + "/members", headers=bearer).status_code == 200
         assert client.get(path + "/overview", headers=bearer).status_code == 200
         service = client.post(path + "/services", headers=bearer, json={"name": "Corte", "duration_minutes": 30}).json()
-        booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "starts_at": "2026-11-16T12:00:00Z"})
+        team = client.get(path + "/members", headers=bearer).json()
+        booked = client.post(path + "/appointments", headers=bearer, json={"customer_name": "João", "service_id": service["id"], "staff_user_id": team[0]["user_id"], "starts_at": "2026-11-16T12:00:00Z"})
         assert booked.status_code == 201, booked.text
         assert booked.json()["created_by_id"] is None
         assert client.patch(path + "/appointments/" + booked.json()["id"], headers=bearer, json={"status": "confirmed"}).json()["status"] == "confirmed"
@@ -526,11 +575,15 @@ def test_appointments_show_who_booked_and_the_performance_of_each_person_with_ev
     corte = client.post(path + "/services", headers=headers, json={"name": "Corte", "duration_minutes": 30, "price": "50.00"}).json()
     me = client.get("/atendimentos/auth/me").json()
     appointments = path + "/appointments"
-    # The professional is optional: with and without one, the appointment is accepted and says who booked it.
+    # The professional is required, so everything is attended; who booked it is still reported.
     attended = client.post(appointments, headers=headers, json={"customer_name": "João", "service_id": corte["id"],
                                                                  "staff_user_id": me["id"], "starts_at": "2026-12-01T13:00:00Z"}).json()
     loose = client.post(appointments, headers=headers, json={"customer_name": "Pedro", "service_id": corte["id"],
                                                               "starts_at": "2026-12-01T15:00:00Z"}).json()
+    # Appointments made before the professional became required have none: they are still reported, as "Sem responsável".
+    with client.app.state.services.repositories.transaction() as repos:
+        repos.appointments.update(repos.appointments.get(loose["id"]), staff_user_id=None)
+    loose = client.get(appointments + "/" + loose["id"]).json()
     assert attended["created_by_id"] == me["id"] and attended["created_by_name"] == "Ana" and attended["created_by_has_photo"] is False
     assert attended["staff_name"] == "Ana" and loose["staff_user_id"] is None and loose["staff_name"] is None
     assert loose["created_by_name"] == "Ana"
