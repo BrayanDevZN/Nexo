@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarCheck, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -19,25 +19,46 @@ export function GoogleLogo() {
   </svg>;
 }
 
-/** A fragment of the product beside the form: one day of an agenda, drawn with the same marks the real calendar uses. */
-function AuthPeek() {
-  const rows = [
-    { at: "09:00", who: "Lucas Almeida", what: "Corte masculino · 40 min", who2: "Rafael", ev: "#1f8a52", done: true },
-    { at: "10:00", who: "Bruno Tavares", what: "Barba completa · 30 min", who2: "Camila", ev: "#1f8a52", done: true },
-    { at: "11:00", who: "Diego Ramos", what: "Corte + barba · 70 min", who2: "Rafael", ev: "#6d28d9" },
-    { at: "13:30", who: "Felipe Costa", what: "Pigmentação · 45 min", who2: "Eduardo", ev: "#6d28d9" },
-    { at: "15:00", who: "Thiago Nunes", what: "Sobrancelha · 15 min", who2: "Camila", ev: "#6d28d9" },
-  ];
+type ArtEvent = { col: number; from: number; to: number; who: string; hue: "violet" | "green" | "amber"; at?: string; hero?: boolean };
+const ART_EVENTS: ArtEvent[] = [
+  { col: 0, from: 0.02, to: 0.3, who: "Lucas A.", hue: "green" }, { col: 0, from: 0.46, to: 0.82, who: "Bruno T.", hue: "violet" },
+  { col: 1, from: 0.16, to: 0.5, who: "Marcos V.", hue: "violet" }, { col: 1, from: 0.62, to: 0.86, who: "André L.", hue: "green" },
+  { col: 2, from: 0.04, to: 0.28, who: "Felipe C.", hue: "green" }, { col: 2, from: 0.36, to: 0.66, who: "Diego Ramos", hue: "violet", at: "11:00", hero: true }, { col: 2, from: 0.74, to: 0.96, who: "Caio M.", hue: "violet" },
+  { col: 3, from: 0.2, to: 0.46, who: "Pedro R.", hue: "violet" }, { col: 3, from: 0.56, to: 0.78, who: "João F.", hue: "amber" },
+  { col: 4, from: 0.1, to: 0.42, who: "Thiago N.", hue: "violet" },
+];
+const ART_DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex"];
+const ART_TEAM = [["RM", "violet"], ["CD", "green"], ["EP", "amber"]] as const;
+
+/** The illustration beside the form: the product's own pieces (a week of the agenda, today's list, a booking arriving, the team) layered and gently floating. */
+function AuthArt() {
   return <aside className="bk-auth-aside" aria-hidden="true">
     <p>Quem atende com hora marcada não deveria perder tempo com a agenda.</p>
-    <div className="bk-peek">
-      <header><strong>Quarta, 18 de novembro</strong><span>Exemplo da agenda</span></header>
-      <ul>{rows.map(row => <li key={row.at} data-done={row.done || undefined} style={{ "--ev": row.ev } as React.CSSProperties}>
-        <time>{row.at}</time><i /><div><strong>{row.who}</strong><span>{row.what}</span></div><em>{row.who2}</em>
-      </li>)}</ul>
-      <footer><span><strong>5</strong> atendimentos</span><span><strong>2</strong> concluídos</span><span><strong>R$ 270,00</strong> previstos</span></footer>
+    <div className="bk-art">
+      <span className="bk-art-orb" />
+      <div className="bk-art-cal">
+        <header><strong>15 – 21 nov</strong><span>Semana</span><i>Hoje</i></header>
+        <div className="bk-art-days">{ART_DAYS.map((day, index) => <span key={day} data-today={index === 2 || undefined}>{day}<b>{16 + index}</b></span>)}</div>
+        <div className="bk-art-grid">
+          {ART_DAYS.map((day, col) => <div key={day} className="bk-art-col" data-today={col === 2 || undefined}>
+            {ART_EVENTS.filter(event => event.col === col).map(event => <span key={event.who} className="bk-art-ev" data-hue={event.hue} data-hero={event.hero || undefined} style={{ top: event.from * 100 + "%", height: (event.to - event.from) * 100 + "%" }}>
+              <b>{event.who}</b>{event.at && <small>{event.at}</small>}
+            </span>)}
+          </div>)}
+        </div>
+      </div>
+      <div className="bk-art-today">
+        <header><strong>Hoje</strong><span>5 atendimentos</span></header>
+        {[["09:00", "Lucas Almeida", "RM", "violet", true], ["11:00", "Diego Ramos", "CD", "green", false], ["13:30", "Felipe Costa", "EP", "amber", false]].map(([time, who, ini, hue, done]) => <div key={String(time)} className="bk-art-row" data-done={done || undefined}>
+          <time>{time}</time><span className="bk-art-av" data-hue={hue}>{ini}</span><strong>{who}</strong>{done ? <Check /> : <i />}
+        </div>)}
+        <footer><span>Receita prevista</span><strong>R$ 270,00</strong></footer>
+      </div>
+      <div className="bk-art-toast"><span className="bk-art-ok"><CalendarCheck /></span><p><strong>Novo agendamento</strong><span>Diego Ramos · hoje, 11:00</span></p></div>
+      <div className="bk-art-team"><span className="bk-art-stack">{ART_TEAM.map(([ini, hue]) => <span key={ini} className="bk-art-av" data-hue={hue}>{ini}</span>)}</span><p><strong>3 na equipe</strong><span>2 livres às 11:00</span></p></div>
+      <div className="bk-art-stat"><span>Concluídos no mês</span><strong>31</strong><i><b /></i><small>60% do total</small></div>
     </div>
-    <small>Dados fictícios, só para mostrar como a agenda fica.</small>
+    <small>Ilustração com dados fictícios, só para mostrar como o app fica.</small>
   </aside>;
 }
 
@@ -146,6 +167,6 @@ export function Auth({ api, complete, invite, onLogin }: Props) {
     </div>
     <p className="bk-auth-foot">Feito pela Nexo para quem atende com hora marcada.</p>
     </div>
-    <AuthPeek />
+    <AuthArt />
   </main>;
 }
