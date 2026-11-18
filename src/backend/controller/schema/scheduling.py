@@ -201,12 +201,20 @@ class MemberOutput(BaseModel):
     unavailable: bool = False
     busy_until: datetime | None = None
     available: bool = True
+    automatic: bool = True
     created_at: datetime
 
 
 class AvailabilityInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    unavailable: bool
+    unavailable: bool | None = None
+    automatic: bool | None = Field(default=None, description="Be unavailable by itself while in an appointment")
+
+    @model_validator(mode="after")
+    def something_to_change(self):
+        if self.unavailable is None and self.automatic is None:
+            raise ValueError("unavailable or automatic is required")
+        return self
 
 
 class MemberRoleInput(BaseModel):

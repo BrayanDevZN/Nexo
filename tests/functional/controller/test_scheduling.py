@@ -290,6 +290,17 @@ def test_a_member_is_unavailable_while_in_an_appointment_and_when_they_say_so(cl
     future = client.post(path + "/appointments", headers=owner, json={
         "customer_name": "Pedro", "staff_user_id": me["id"], "starts_at": (now + timedelta(hours=2)).isoformat() + "Z"})
     assert future.status_code == 201 and mine()["available"] is True
+    # Automatic off: being in an appointment no longer changes anything; only what the person sets counts.
+    live = client.post(path + "/appointments", headers=owner, json={
+        "customer_name": "Caio", "staff_user_id": me["id"], "starts_at": (now - timedelta(minutes=5)).isoformat() + "Z",
+        "ends_at": (now + timedelta(minutes=30)).isoformat() + "Z"})
+    assert live.status_code == 201 and mine()["available"] is False and mine()["automatic"] is True
+    manual_mode = client.put(path + "/members/me/availability", headers=owner, json={"automatic": False})
+    assert manual_mode.status_code == 200 and manual_mode.json()["automatic"] is False
+    assert mine()["available"] is True and mine()["busy_until"] is None
+    assert client.put(path + "/members/me/availability", headers=owner, json={"automatic": True}).json()["available"] is False
+    assert client.put(path + "/members/me/availability", headers=owner, json={}).status_code == 422
+    assert client.patch(path + "/appointments/" + live.json()["id"], headers=owner, json={"status": "done"}).status_code == 200
     # By hand: stays until the person turns it off.
     off = client.put(path + "/members/me/availability", headers=owner, json={"unavailable": True})
     assert off.status_code == 200 and off.json()["unavailable"] is True and off.json()["available"] is False

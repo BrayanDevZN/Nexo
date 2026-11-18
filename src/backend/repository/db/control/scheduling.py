@@ -37,7 +37,7 @@ FIELDS = {
     "booking_users": ("id", "name", "email", "phone", "created_at", "updated_at"),
     "businesses": ("id", "owner_id", "name", "slug", "cnpj", "description", "phone", "email", "address", "city", "state",
                    "timezone", "opening_hours", "created_at", "updated_at"),
-    "business_members": ("id", "business_id", "user_id", "role", "unavailable", "created_at", "updated_at"),
+    "business_members": ("id", "business_id", "user_id", "role", "unavailable", "auto_availability", "created_at", "updated_at"),
     "business_invitations": ("id", "business_id", "email", "role", "created_by_id", "expires_at", "accepted_at",
                              "accepted_by_id", "created_at", "updated_at"),
     "business_services": ("id", "business_id", "name", "description", "duration_minutes", "price", "active",
@@ -301,8 +301,12 @@ class BusinessRepository(Repository[Business]):
             raise ValueError("Invalid role")
         return self.add(BusinessMember(business_id=business_id, user_id=user_id, role=role))
 
-    def set_unavailable(self, member: BusinessMember, unavailable: bool) -> BusinessMember:
-        member.unavailable = bool(unavailable)
+    def set_availability(self, member: BusinessMember, *, unavailable: bool | None = None,
+                         automatic: bool | None = None) -> BusinessMember:
+        if unavailable is not None:
+            member.unavailable = bool(unavailable)
+        if automatic is not None:
+            member.auto_availability = bool(automatic)
         self.session.flush()
         _mark_dirty(self.session, "business_members", member.business_id)
         return member

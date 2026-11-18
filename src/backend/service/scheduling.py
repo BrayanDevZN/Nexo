@@ -176,20 +176,22 @@ class SchedulingService:
             rows = self.cache.read(self._scoped("business_members", business_id), {"operation": "list"}, load)
             # Availability depends on the clock, so it is worked out on every read and never cached.
             busy = repos.appointments.busy_now(business_id, utc_now())
-            return [self._with_availability(row, busy.get(row["user_id"])) for row in rows]
+            return [self._with_availability(row, busy.get(row["user_id"]) if row.get("auto_availability", True) else None)
+                    for row in rows]
 
     @staticmethod
     def _with_availability(row, busy_until):
-        """unavailable: the person said so; busy_until: in an appointment now (it frees up by itself); available: neither."""
-        return {**row, "busy_until": busy_until.isoformat() + "Z" if busy_until else None,
+        """unavailable: the person said so; busy_until: in an appointment now (only when automatic is on, it frees up by
+        itself); available: neither."""
+        return {**row, "automatic": bool(row.get("auto_availability", True)), "busy_until": busy_until.isoformat() + "Z" if busy_until else None,
                 "available": not row.get("unavailable") and busy_until is None}
 
-    def set_my_availability(self, actor, business_id, unavailable):
-        """Only the person changes their own availability, and it stays until they change it back."""
+    def set_my_availability(self, actor, business_id, *, unavailable=None, automatic=None):
+        """Only the person changes their own availability: by hand (until they change it back) and whether it is automatic."""
         with self.repositories.transaction() as repos:
             user, membership = self._member(repos, actor, business_id)
             self._needs_account(user)
-            repos.businesses.set_unavailable(membership, unavailable)
+            repos.businesses.set_availability(membership, unavailable=unavailable, automatic=automatic)
         return next(row for row in self.list_members(actor, business_id) if row["user_id"] == user.id)
 
     def set_member_role(self, actor, business_id, user_id, role):

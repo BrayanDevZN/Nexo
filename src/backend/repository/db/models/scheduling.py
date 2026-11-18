@@ -102,6 +102,8 @@ class BusinessMember(IdentityTimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     # Set by the person themselves: unavailable until they say otherwise. Being in an appointment is worked out on its own.
     unavailable: Mapped[bool] = mapped_column(default=False, server_default="0", nullable=False)
+    # Automatic: unavailable by itself while in an appointment and free again when it ends. Off: only what the person sets.
+    auto_availability: Mapped[bool] = mapped_column(default=True, server_default="1", nullable=False)
 
 
 class BusinessInvitation(IdentityTimestampMixin, Base):

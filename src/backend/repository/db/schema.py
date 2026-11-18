@@ -225,6 +225,9 @@ def create_tables(engine: Engine, principal_email: str | None = None) -> None:
     if "unavailable" not in {column["name"] for column in inspect(engine).get_columns("business_members")}:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE business_members ADD COLUMN unavailable BOOLEAN NOT NULL DEFAULT 0"))
+    if "auto_availability" not in {column["name"] for column in inspect(engine).get_columns("business_members")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE business_members ADD COLUMN auto_availability BOOLEAN NOT NULL DEFAULT 1"))
     if "service_ids" not in {column["name"] for column in inspect(engine).get_columns("appointments")}:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE appointments ADD COLUMN service_ids TEXT"))

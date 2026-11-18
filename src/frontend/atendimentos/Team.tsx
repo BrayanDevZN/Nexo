@@ -76,9 +76,15 @@ export function Team({ api, business, me, onLeft }: { api: BookingApi; business:
         <div className="bk-item-body"><strong>{member.name || "Conta removida"}{mine ? " (você)" : ""}</strong><span>{member.email}</span>
           <span className="flex flex-wrap items-center gap-2"><Badge variant={member.available ? "secondary" : "destructive"}>{member.available ? "Disponível" : "Indisponível"}</Badge>
             <span className="text-sm text-muted-foreground">{availabilityNote(member)}</span></span>
-          {mine && <Button size="sm" variant="outline" className="self-start" disabled={busy} onClick={() => void act(async () => {
-            await api.mutate(base + "/members/me/availability", "PUT", { unavailable: !member.unavailable }); await load();
-          }, member.unavailable ? "Você voltou a ficar disponível." : "Você ficou indisponível até avisar que voltou.")}>{member.unavailable ? "Voltar a ficar disponível" : "Ficar indisponível"}</Button>}
+          {mine && <span className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => {
+              await api.mutate(base + "/members/me/availability", "PUT", { unavailable: !member.unavailable }); await load();
+            }, member.unavailable ? "Você voltou a ficar disponível." : "Você ficou indisponível até avisar que voltou.")}>{member.unavailable ? "Voltar a ficar disponível" : "Ficar indisponível"}</Button>
+            <Button size="sm" variant="outline" disabled={busy} aria-pressed={member.automatic} onClick={() => void act(async () => {
+              await api.mutate(base + "/members/me/availability", "PUT", { automatic: !member.automatic }); await load();
+            }, member.automatic ? "Automático desligado: só vale o que você marcar." : "Automático ligado: você fica indisponível sozinho durante os atendimentos.")}>{member.automatic ? "Automático: ligado" : "Automático: desligado"}</Button>
+          </span>}
+          {mine && <span className="text-sm text-muted-foreground">{member.automatic ? "No automático você fica indisponível durante os atendimentos e volta sozinho quando terminam." : "Sem o automático, só vale o que você marcar aqui."}</span>}
         </div>
         {editable ? <div className="bk-member-actions">
           <NativeSelect aria-label={"Papel de " + member.name} value={member.role} disabled={busy} onChange={e => void act(async () => {

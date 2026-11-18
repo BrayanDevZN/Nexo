@@ -144,7 +144,7 @@ def list_members(business_id: str, request: Request, actor=Depends(booking_user)
 @router.put("/businesses/{business_id}/members/me/availability", response_model=MemberOutput)
 def set_my_availability(business_id: str, data: AvailabilityInput, request: Request, actor=Depends(booking_user)):
     try:
-        return service(request).set_my_availability(actor, business_id, data.unavailable)
+        return service(request).set_my_availability(actor, business_id, unavailable=data.unavailable, automatic=data.automatic)
     except ERRORS as exc:
         raise fail(exc) from None
 
