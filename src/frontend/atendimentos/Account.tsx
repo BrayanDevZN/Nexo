@@ -50,7 +50,7 @@ export function Account({ api, user, onUpdate, onLoggedOut }: { api: BookingApi;
     <Card><CardHeader><CardTitle>Excluir conta</CardTitle><CardDescription>A exclusão é definitiva. Você perde o acesso ao Atendimento e sai de todos os negócios em que participa.</CardDescription></CardHeader>
       <CardContent><Button variant="destructive" disabled={busy} onClick={() => { setError(""); setConfirming(true); }}><Trash2 data-icon="inline-start" /> Excluir minha conta</Button></CardContent></Card>
     <Dialog open={confirming} onOpenChange={open => { if (!busy) setConfirming(open); }}><DialogContent showCloseButton={!busy}>
-      <DialogHeader><DialogTitle>Tem certeza que quer excluir sua conta?</DialogTitle><DialogDescription>Isso não pode ser desfeito. Seus dados e seu acesso ao Atendimento serão apagados na hora.</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>Tem certeza que quer excluir sua conta?</DialogTitle><DialogDescription>Isso não pode ser desfeito. Seus dados e seu acesso ao Atendimento serão apagados na hora. Se você for dono de algum negócio, ele e todos os agendamentos dele também serão apagados.</DialogDescription></DialogHeader>
       <Feedback error={error} />
       <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setConfirming(false)}>Não, manter minha conta</Button>
         <Button variant="destructive" disabled={busy} onClick={() => void act(async () => { await api.mutate("/auth/account", "DELETE"); setConfirming(false); onLoggedOut(); }, "")}>{busy ? <Busy /> : "Sim, excluir minha conta"}</Button></DialogFooter>

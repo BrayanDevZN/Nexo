@@ -137,6 +137,15 @@ class BookingAccessService:
             row = repos.booking_users.get(user_id)
             return self._row(row, repos.booking_users.business_roles([user_id]), now)
 
+    def delete_user(self, admin, user_id):
+        """The Nexo owner removes an account for good; the businesses it owns go with it."""
+        with self.repositories.transaction() as repos:
+            user = repos.booking_users.get(user_id)
+            if user is None:
+                raise ResourceNotFound("Account not found")
+            repos.booking_users.delete_account(user)
+        self._admin_changed()
+
     def _mail(self, user, until):
         try:
             self.messages.booking_access_granted(user, until)

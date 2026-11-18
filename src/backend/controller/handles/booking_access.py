@@ -40,6 +40,15 @@ def decide(user_id: str, data: AccessDecisionInput, request: Request, actor=Depe
         raise HTTPException(status_code=404, detail=str(exc)) from None
 
 
+@admin.delete("/users/{user_id}", status_code=204)
+def delete_user(user_id: str, request: Request, actor=Depends(owner_user)):
+    try:
+        service(request).delete_user(actor, user_id)
+    except ResourceNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return Response(status_code=204)
+
+
 @admin.get("/users/{user_id}/photo", responses={200: {"content": {"image/jpeg": {}}}})
 def photo(user_id: str, request: Request, actor=Depends(owner_user)):
     try:

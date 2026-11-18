@@ -166,8 +166,14 @@ class BookingUserRepository(Repository[BookingUser]):
         self.session.flush()
 
     def delete_account(self, user: BookingUser) -> None:
-        """Memberships and the invitations the person made go with the account (cascade); the cache must learn it."""
-        for table in ("booking_users", *BUSINESS_SCOPED_TABLES):
+        """Memberships and the invitations the person made go with the account (cascade), and so do the businesses
+        the person owns (the owner column restricts deleting them apart); the cache must learn all of it."""
+        for business in self.session.scalars(select(Business).where(Business.owner_id == user.id)).all():
+            for table in BUSINESS_SCOPED_TABLES:
+                _mark_dirty(self.session, table, business.id)
+            self.session.delete(business)
+        self.session.flush()
+        for table in ("booking_users", "businesses", *BUSINESS_SCOPED_TABLES):
             _mark_dirty(self.session, table)
         self.session.delete(user)
         self.session.flush()

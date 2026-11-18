@@ -99,19 +99,17 @@ def test_account_lifecycle_and_session_isolation_from_the_panel(client):
     assert client.get("/atendimentos/businesses").status_code == 401
 
 
-def test_an_account_can_be_deleted_unless_it_still_owns_a_business(client):
+def test_an_account_can_be_deleted_and_takes_its_own_businesses_along(client):
     ana = {**ANA}
     assert register(client, ana).status_code == 201
     headers = login(client, ana)
-    create_business(client, headers)
+    created = create_business(client, headers)
     assert client.delete("/atendimentos/auth/account", headers=ORIGIN).status_code == 403
-    assert client.delete("/atendimentos/auth/account", headers=headers).status_code == 409
-    business = client.get("/atendimentos/businesses").json()[0]
-    assert client.delete("/atendimentos/businesses/" + business["id"], headers=headers).status_code == 204
     assert client.delete("/atendimentos/auth/account", headers=headers).status_code == 204
     assert client.get("/atendimentos/auth/me").status_code == 401
     with client.app.state.services.repositories.read_transaction() as repos:
         assert repos.booking_users.by_email(ana["email"]) is None
+        assert repos.businesses.get(created["id"]) is None
 
 
 def test_businesses_cannot_be_duplicated_by_name_or_cnpj_and_cnpj_is_optional(client):
@@ -767,3 +765,10 @@ def test_only_people_the_team_allows_can_use_the_atendimentos_with_links_approva
     owner = {**ORIGIN, "X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]}
     first = client.get("/admin/atendimentos/links").json()[0]
     assert client.delete("/admin/atendimentos/links/" + first["id"], headers=owner).status_code == 204
+    # The Nexo owner can delete an Atendimentos account; the businesses it owns go with it.
+    anaid = next(row["id"] for row in client.get("/admin/atendimentos/users").json()["users"] if row["email"] == ANA["email"])
+    assert client.delete("/admin/atendimentos/users/" + anaid, headers=ORIGIN).status_code in (401, 403)
+    assert client.delete("/admin/atendimentos/users/" + anaid, headers=owner).status_code == 204
+    assert client.delete("/admin/atendimentos/users/" + anaid, headers=owner).status_code == 404
+    with client.app.state.services.repositories.read_transaction() as repos:
+        assert repos.booking_users.get(anaid) is None and repos.businesses.get(business["id"]) is None

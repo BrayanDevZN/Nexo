@@ -171,8 +171,6 @@ def delete_photo(request: Request, actor=Depends(booking_user)):
 def delete_account(request: Request, actor=Depends(booking_user)):
     try:
         request.app.state.services.booking_auth.delete_account(actor)
-    except ResourceConflict as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from None
     except AccessDenied as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     return clear_booking_cookie(request)
