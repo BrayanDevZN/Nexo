@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 470 files | ~661.8K tokens if all read
+Generated: 2026-11-18 | 470 files | ~662.5K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -219,7 +219,7 @@ Generated: 2026-11-18 | 470 files | ~661.8K tokens if all read
 | src/frontend/App.tsx | 44 | 349 | source |
 | src/frontend/atendimentos/AccessGate.tsx | 26 | 549 | source |
 | src/frontend/atendimentos/Account.tsx | 61 | 1.3K | source |
-| src/frontend/atendimentos/Agenda.tsx | 220 | 4.3K | source |
+| src/frontend/atendimentos/Agenda.tsx | 224 | 4.4K | source |
 | src/frontend/atendimentos/api.ts | 82 | 1.6K | source |
 | src/frontend/atendimentos/AppointmentFields.tsx | 80 | 1.8K | source |
 | src/frontend/atendimentos/Auth.tsx | 175 | 3.5K | source |
@@ -358,7 +358,7 @@ Generated: 2026-11-18 | 470 files | ~661.8K tokens if all read
 | tests/functional/system/test_account_lifecycle.py | 127 | 1.7K | test |
 | tests/integration/domain/test_sessions.py | 65 | 666 | test |
 | tests/integration/frontend/atendimentos-admin.spec.ts | 109 | 1.9K | test |
-| tests/integration/frontend/atendimentos.spec.ts | 317 | 5.8K | test |
+| tests/integration/frontend/atendimentos.spec.ts | 339 | 6.4K | test |
 | tests/integration/frontend/panel.spec.ts | 822 | 14.6K | test |
 | tests/integration/frontend/performance.spec.ts | 94 | 1.4K | test |
 | tests/integration/infra/test_configuration_sources.py | 65 | 748 | test |
@@ -476,9 +476,9 @@ Generated: 2026-11-18 | 470 files | ~661.8K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 308 files, ~418.9K tokens
+- source: 308 files, ~419.0K tokens
 - config: 13 files, ~3.6K tokens
-- test: 113 files, ~152.0K tokens
+- test: 113 files, ~152.7K tokens
 - docs: 11 files, ~20.6K tokens
 - style: 7 files, ~60.7K tokens
 - other: 18 files, ~5.9K tokens

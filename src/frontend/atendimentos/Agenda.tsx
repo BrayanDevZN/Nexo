@@ -19,6 +19,9 @@ import {
 } from "./calendarPrefs";
 
 const STATUSES: AppointmentStatus[] = ["scheduled", "confirmed", "done", "cancelled", "no_show"];
+/** What the agenda shows: by default what is still on (cancelled and no-show leave the calendar), or everything, or one situation. */
+type StatusView = "open" | "all" | AppointmentStatus;
+const GONE: AppointmentStatus[] = ["cancelled", "no_show"];
 const VIEWS: { id: View; label: string }[] = [{ id: "day", label: "Dia" }, { id: "week", label: "Semana" }, { id: "month", label: "Mês" }, { id: "list", label: "Lista" }];
 const PAGE = 100;
 
@@ -27,7 +30,7 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
   const [prefs, setPrefs] = useState<CalendarPrefs>(() => loadPrefs(business.id));
   const [view, setView] = useState<View>(prefs.view);
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
-  const [statusFilter, setStatusFilter] = useState<"" | AppointmentStatus>("");
+  const [statusFilter, setStatusFilter] = useState<StatusView>("open");
   const [customer, setCustomer] = useState("");
   const [rows, setRows] = useState<Appointment[]>();
   const [overview, setOverview] = useState<Overview>();
@@ -52,7 +55,7 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
       for (let offset = 0; offset < 600; offset += PAGE) {
         const query = new URLSearchParams({ limit: String(PAGE), offset: String(offset), starts_from: range.from.toISOString() });
         if (range.until) query.set("starts_until", range.until.toISOString());
-        if (statusFilter) query.set("status", statusFilter);
+        if (statusFilter !== "open" && statusFilter !== "all") query.set("status", statusFilter);
         if (customer.trim()) query.set("customer", customer.trim());
         const page = await api.request<Appointment[]>(base + "/appointments?" + query);
         all.push(...page);
@@ -60,7 +63,7 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
       }
       const summary = await api.request<Overview>(base + "/overview");
       if (id !== loading.current) return;
-      setRows(all); setOverview(summary); setError("");
+      setRows(statusFilter === "open" ? all.filter(row => !GONE.includes(row.status)) : all); setOverview(summary); setError("");
     } catch (e) { if (id === loading.current) setError(message(e)); }
   }
   // The range is a pair of Dates; depend on its instants so the effect runs once per real change.
@@ -164,15 +167,16 @@ export function Agenda({ api, business, liveTick = 0 }: { api: BookingApi; busin
       </div>
       <form className="bk-cal-filters" onSubmit={event => { event.preventDefault(); setCustomer((new FormData(event.currentTarget).get("customer") as string) || ""); }}>
         <div className="bk-day"><input type="search" name="customer" aria-label="Buscar cliente" placeholder="Buscar cliente" defaultValue={customer} maxLength={160} /><Button type="submit" variant="outline" size="icon-lg" aria-label="Buscar"><Search /></Button></div>
-        <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as "" | AppointmentStatus)}>
-          <NativeSelectOption value="">Todas as situações</NativeSelectOption>
+        <NativeSelect aria-label="Situação" value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusView)}>
+          <NativeSelectOption value="open">Sem cancelados</NativeSelectOption>
+          <NativeSelectOption value="all">Todas as situações</NativeSelectOption>
           {STATUSES.map(status => <NativeSelectOption key={status} value={status}>{STATUS_LABELS[status]}</NativeSelectOption>)}
         </NativeSelect>
       </form>
       {!rows ? <div className="bk-cal-loading"><Busy /></div>
         : <>
           <CalendarView api={api} view={view} days={days} anchor={anchor} rows={rows} prefs={prefs} handlers={handlers} />
-          {view === "list" && rows.length === 0 && <p className="bk-muted bk-cal-empty">{customer || statusFilter ? "Nenhum atendimento futuro com esses filtros." : "Nenhum atendimento futuro."}</p>}
+          {view === "list" && rows.length === 0 && <p className="bk-muted bk-cal-empty">{customer || statusFilter !== "open" ? "Nenhum atendimento futuro com esses filtros." : "Nenhum atendimento futuro."}</p>}
         </>}
       {rows && <Legend rows={rows} prefs={prefs} />}
     </div>

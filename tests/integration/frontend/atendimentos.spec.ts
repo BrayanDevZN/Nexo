@@ -314,3 +314,25 @@ test("an access link is read before signing up and is sent with the account that
   await page.goto("/atendimentos");
   await expect(page.getByText("Você recebeu um acesso de 30 dias ao Atendimentos.")).toBeVisible();
 });
+
+test("cancelled and no-show appointments leave the calendar by default and come back with the filter", async ({ page }) => {
+  await mock(page, { signedIn: true });
+  await page.addInitScript(() => sessionStorage.setItem("nexo:atendimentos:business", "b1"));
+  const business = { id: "b1", owner_id: "u1", name: "Barbearia", slug: "b", cnpj: null, description: null, phone: null, email: null, address: null, city: null, state: null, timezone: "America/Sao_Paulo", opening_hours: hours, has_photo: false, my_role: "owner", created_at: "2026-11-16", updated_at: "2026-11-16" };
+  await page.route("**/api/atendimentos/businesses", route => route.request().method() === "GET" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([business]) }) : route.fallback());
+  await page.route("**/api/atendimentos/businesses/b1", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(business) }));
+  const at = (hour: number) => { const date = new Date(); date.setHours(hour, 0, 0, 0); return date; };
+  const row = (id: string, name: string, status: string, hour: number) => ({ id, business_id: "b1", service_id: null, service_name: "Corte", staff_user_id: "u1", staff_name: "Ana Silva", customer_name: name, customer_phone: null, customer_email: null, starts_at: at(hour).toISOString(), ends_at: at(hour + 1).toISOString(), status, price: null, notes: null, created_by_id: "u1", created_at: "2026-11-16", updated_at: "2026-11-16" });
+  const all = [row("a1", "Marcado", "scheduled", 10), row("a2", "Cancelado", "cancelled", 12), row("a3", "Faltou", "no_show", 14)];
+  await page.route("**/api/atendimentos/businesses/b1/appointments?**", route => {
+    const wanted = new URL(route.request().url()).searchParams.get("status");
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(wanted ? all.filter(item => item.status === wanted) : all) });
+  });
+  await page.goto("/atendimentos");
+  await expect(page.getByRole("button", { name: /Marcado/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Cancelado/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Faltou/ })).toHaveCount(0);
+  await page.locator(".bk-cal-filters select").selectOption({ label: "Todas as situações" });
+  await expect(page.getByRole("button", { name: /Cancelado/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Faltou/ })).toBeVisible();
+});
