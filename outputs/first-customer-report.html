@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Primeiros clientes para a Nexo</title>
+<style>
+:root{--bg:#f6f5f2;--sheet:#fff;--ink:#18181a;--ink2:#54545b;--ink3:#86868d;--line:#ecebe7;--tint:#f4f3ef;--accent:#2f5d50;--link-line:#cfcfca;
+  --shadow:0 1px 2px rgba(20,20,20,.04),0 12px 40px -12px rgba(20,20,20,.08);
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#121211;--sheet:#1a1a19;--ink:#ecebe7;--ink2:#a8a7a1;--ink3:#8a8983;--line:rgba(255,255,255,.07);--tint:#222220;--accent:#93b5a6;--link-line:#4a4a46;--shadow:0 1px 2px rgba(0,0,0,.3)}}
+*{box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans)}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--link-line);text-underline-offset:3px}
+a:hover{text-decoration-color:currentColor}
+.num{font-variant-numeric:tabular-nums}
+.sheet{max-width:880px;margin:40px auto 64px;background:var(--sheet);border-radius:28px;box-shadow:var(--shadow);padding:72px 80px 56px}
+.meta{color:var(--ink3);font-size:13px;margin:0}
+h1{font-weight:300;font-size:clamp(32px,5vw,46px);line-height:1.08;letter-spacing:-.035em;margin:18px 0 22px;max-width:15em}
+.verdict{font-size:18px;line-height:1.6;color:var(--ink2);max-width:36em;margin:0}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:48px 0 0;padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.facts dt,.kv dt,.steps dt,.dims dt,.label,.eyebrow{color:var(--ink3);font-size:13px;font-weight:400}
+.facts dd{margin:4px 0 0;font-weight:500}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;margin:56px 0 0}
+.top h2{font-weight:400;font-size:28px;line-height:1.2;letter-spacing:-.025em;margin:6px 0 8px}
+.top p{margin:0;color:var(--ink2);max-width:32em}
+.top .big{font-weight:300;font-size:64px;line-height:1;letter-spacing:-.05em;color:var(--accent)}
+section.block{margin-top:80px}
+.eyebrow{margin:0}
+h2.section{font-weight:400;font-size:26px;line-height:1.2;letter-spacing:-.025em;margin:8px 0 6px}
+.note{color:var(--ink3);font-size:14px;margin:0 0 12px;max-width:40em}
+.prospect{padding:36px 0;border-bottom:1px solid var(--line);break-inside:avoid;page-break-inside:avoid}
+.prospect:last-child{border-bottom:0}
+.p-head{display:flex;justify-content:space-between;gap:24px;align-items:baseline}
+.p-head h3{font-weight:500;font-size:20px;line-height:1.3;letter-spacing:-.02em;margin:0}
+.sub{color:var(--ink3);font-size:13px;margin:4px 0 0}
+.score{text-align:right;white-space:nowrap}
+.score b{font-weight:400;font-size:30px;line-height:1;letter-spacing:-.03em}
+.score span{display:block;color:var(--ink3);font-size:12px;margin-top:6px}
+.signal{font-size:17px;line-height:1.55;margin:18px 0 22px;max-width:38em}
+.kv:empty{display:none}.p-head+.kv{margin-top:18px}.kv{display:grid;grid-template-columns:120px 1fr;gap:10px 24px;margin:0}
+.kv dd{margin:0;color:var(--ink2);font-size:14px}
+.kv dt{font-size:14px}
+.opener{background:var(--tint);border-radius:16px;padding:18px 22px;margin:22px 0 0}
+.opener p{margin:6px 0 0}.opener .label{margin:0}
+details{margin-top:16px}
+summary{cursor:pointer;color:var(--ink2);font-size:14px;list-style:none;display:inline-block}
+summary::-webkit-details-marker{display:none}
+summary::after{content:" +";color:var(--ink3)}
+details[open] summary::after{content:" \2212"}
+details p,.print-only p{color:var(--ink2);font-size:14px;margin:10px 0 0;max-width:42em}
+.source{color:var(--ink3)}
+.dims{display:flex;flex-wrap:wrap;gap:6px 28px;margin:12px 0 0}
+.dims div{display:flex;gap:8px}.dims dd{margin:0;font-size:13px;color:var(--ink)}.dims dt{font-size:13px}
+.patterns{margin-top:12px}
+.pattern{display:grid;grid-template-columns:56px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line);break-inside:avoid}
+.pattern b{font-weight:300;font-size:28px;line-height:1}
+.pattern h4{margin:0;font-size:15px;font-weight:500}
+.pattern p{margin:2px 0 0;color:var(--ink2);font-size:14px}
+.angle{font-weight:400;font-size:22px;line-height:1.4;letter-spacing:-.02em;margin:10px 0 22px;max-width:30em}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;border-top:1px solid var(--line);padding-top:20px;margin:0}
+.steps dd{margin:4px 0 0;font-size:14px;color:var(--ink2)}
+.limits{margin:10px 0 0;padding:0;list-style:none}
+.limits li{padding:10px 0;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}
+.print-only{display:none}
+.empty{color:var(--ink3);font-size:14px;padding:18px 0;margin:0}
+footer{margin-top:56px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--ink3);font-size:12px}
+@media screen and (max-width:760px){.sheet{margin:0;border-radius:0;box-shadow:none;padding:40px 22px}.facts,.steps{grid-template-columns:1fr 1fr;gap:16px}.kv{grid-template-columns:1fr;gap:2px}.kv dd{margin-bottom:10px}.top .big{font-size:48px}}
+@page{margin:14mm}
+@media print{
+  :root{--bg:#fff;--sheet:#fff;--ink:#111;--ink2:#444;--ink3:#777;--line:#e2e2de;--tint:#f4f3ef;--accent:#2f5d50;--link-line:#bbb;--shadow:none}
+  body{background:#fff;font-size:12.5px}
+  .sheet{margin:0;max-width:none;padding:0;border-radius:0;box-shadow:none;zoom:.92}
+  section.block{margin-top:40px}
+  .top,.opener,.pattern,.steps{break-inside:avoid}
+  .eyebrow,h2.section,.note{break-after:avoid}
+  .screen-only{display:none}.print-only{display:block;margin-top:10px}
+  .prospect{padding:20px 0}
+  .signal{font-size:14px;margin:10px 0 12px}
+  .kv{gap:4px 20px}.kv dt,.kv dd{font-size:12px}
+  .opener{padding:10px 14px;margin-top:12px;border-radius:10px}
+  details{margin-top:10px}details p,.print-only p{font-size:12px;margin-top:6px}
+  .score b{font-size:24px}
+  .opener{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <p class="meta">First Customer Finder <span aria-hidden="true">&middot;</span> 2026-11-19 <span aria-hidden="true">&middot;</span> Standard mode</p>
+    <h1>Primeiros clientes para a Nexo</h1>
+    <p class="verdict">A fonte mais produtiva foi o 99Freelas, onde empresas descrevem em detalhe o que querem automatizar. A MP Growth (agência de marketing) lidera por ter pedido recente, escopo claro e nome público, seguida de perto por uma clínica médica que quer exatamente o atendente de WhatsApp com agendamento que a Nexo vende. Só quatro prospects sobreviveram à verificação; é melhor entregar quatro reais do que dez genéricos.</p>
+  </header>
+
+  <dl class="facts">
+    <div><dt>Product</dt><dd><a href="https://nexoaicompany.com" target="_blank" rel="noreferrer">Nexo</a></dd></div>
+    <div><dt>Target customer</dt><dd>PMEs brasileiras com atendimento no WhatsApp e rotinas manuais (clínicas, serviços, agências pequenas)</dd></div>
+    <div><dt>Qualified prospects</dt><dd class="num">4 <span class="sub">(2 high intent)</span></dd></div>
+    <div><dt>Average fit score</dt><dd class="num">73 of 100</dd></div>
+  </dl>
+
+  <section class="top">
+    <div>
+      <p class="eyebrow">Highest confidence prospect</p>
+      <h2>MP Growth</h2>
+      <p>Publicado em 16/11/2026, três dias antes desta pesquisa.</p>
+    </div>
+    <div class="big num">84</div>
+  </section>
+  <section class="block">
+    <p class="eyebrow">Shortlist</p>
+    <h2 class="section">Who to talk to first</h2>
+    <p class="note">Sources: Fontes públicas em português, últimos ~30 dias para os sinais qualificados. Reddit, Workana e Reclame Aqui bloquearam acesso automatizado e ficaram de fora..</p>
+    
+    <article class="prospect">
+      <header class="p-head">
+        <div>
+          <h3>MP Growth</h3>
+          <p class="sub">Empresa (agência de marketing) <span aria-hidden="true">&middot;</span> High intent</p>
+        </div>
+        <div class="score"><b class="num">84</b><span>Strong candidate</span></div>
+      </header>
+      <p class="signal">Publicou um projeto para automatizar o funil de vendas: hoje a qualificação no WhatsApp e o follow-up são manuais, sem visão de etapa por contato.</p>
+      <dl class="kv"><dt>Why it fits</dt><dd>Cobre dois pilares da Nexo: integração CRM/WhatsApp e automação de rotina repetitiva.</dd><dt>Why now</dt><dd>Publicado em 16/11/2026, três dias antes desta pesquisa.</dd><dt>Channel</dt><dd>Proposta pelo próprio projeto no 99Freelas, ou contato público da empresa</dd><dt>Caution</dt><dd>É uma contratação de freelancer, com orçamento mínimo baixo (R$ 60) e mais de 100 propostas; o preço de referência pode ser baixo. Confirmar que o projeto ainda está aberto.</dd></dl>
+      <div class="opener">
+        <p class="label">Suggested opener, draft only and never sent automatically</p>
+        <p>Olá! Vi o projeto de automação do funil da MP Growth: leads de Meta Ads e WhatsApp caindo no CRM sem digitação e com qualificação automática. A Nexo monta exatamente isso (agente de WhatsApp + integração com CRM), com plano, prazo e valor combinados antes de começar. Posso mandar um mapa de funil de uma página com o que automatizaria primeiro?</p>
+      </div>
+      <details class="screen-only">
+        <summary>Evidence and score breakdown</summary>
+        <p>O texto afirma que &#x27;grande parte do processo é manual&#x27; e pede captura de leads (Meta Ads, WhatsApp) em CRM, qualificação automática por WhatsApp e cadência de follow-up.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-16
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/automacao-do-funil-de-vendas-798915" target="_blank" rel="noreferrer">Automação do funil de vendas (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>4 of 5</dd></div><div><dt>Product fit</dt><dd>4 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>3 of 5</dd></div><div><dt>Evidence quality</dt><dd>5 of 5</dd></div></dl>
+      </details>
+      <div class="print-only">
+        <p class="label">Evidence and score breakdown</p>
+        <p>O texto afirma que &#x27;grande parte do processo é manual&#x27; e pede captura de leads (Meta Ads, WhatsApp) em CRM, qualificação automática por WhatsApp e cadência de follow-up.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-16
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/automacao-do-funil-de-vendas-798915" target="_blank" rel="noreferrer">Automação do funil de vendas (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>4 of 5</dd></div><div><dt>Product fit</dt><dd>4 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>3 of 5</dd></div><div><dt>Evidence quality</dt><dd>5 of 5</dd></div></dl>
+      </div>
+    </article>
+    <article class="prospect">
+      <header class="p-head">
+        <div>
+          <h3>Clínica médica (anônima, via 99Freelas)</h3>
+          <p class="sub">Empresa (clínica) <span aria-hidden="true">&middot;</span> High intent</p>
+        </div>
+        <div class="score"><b class="num">83</b><span>Strong candidate</span></div>
+      </header>
+      <p class="signal">Pede um chatbot de WhatsApp que tire dúvidas, qualifique o paciente e agende sozinho na agenda do Google, sem a recepção no meio.</p>
+      <dl class="kv"><dt>Why it fits</dt><dd>É o atendente 24h com agendamento que a Nexo vende, quase literalmente.</dd><dt>Why now</dt><dd>Publicado em 12/11/2026, uma semana atrás.</dd><dt>Channel</dt><dd>Proposta pelo projeto no 99Freelas</dd><dt>Caution</dt><dd>Poster anônimo, orçamento mínimo de R$ 50 e cerca de 210 propostas. Uma proposta direta e específica pode se destacar, mas o preço pode ficar abaixo do que a Nexo pratica.</dd></dl>
+      <div class="opener">
+        <p class="label">Suggested opener, draft only and never sent automatically</p>
+        <p>Olá! Li o seu pedido de chatbot para a clínica: responder dúvidas, qualificar e marcar consulta na agenda sem a recepção. A Nexo faz atendentes de WhatsApp com agendamento e passagem para uma pessoa quando necessário, e entregamos plano, prazo e valor antes de começar. Quantas conversas por dia a clínica recebe hoje?</p>
+      </div>
+      <details class="screen-only">
+        <summary>Evidence and score breakdown</summary>
+        <p>Escopo detalhado: API oficial do WhatsApp, agenda Google, passagem para humano, registro de conversas.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-12
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/chatbot-de-whatsapp-para-clinica-medica-798292" target="_blank" rel="noreferrer">Chatbot de WhatsApp para clínica médica (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>4 of 5</dd></div><div><dt>Product fit</dt><dd>5 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>2 of 5</dd></div><div><dt>Evidence quality</dt><dd>4 of 5</dd></div></dl>
+      </details>
+      <div class="print-only">
+        <p class="label">Evidence and score breakdown</p>
+        <p>Escopo detalhado: API oficial do WhatsApp, agenda Google, passagem para humano, registro de conversas.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-12
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/chatbot-de-whatsapp-para-clinica-medica-798292" target="_blank" rel="noreferrer">Chatbot de WhatsApp para clínica médica (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>4 of 5</dd></div><div><dt>Product fit</dt><dd>5 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>2 of 5</dd></div><div><dt>Evidence quality</dt><dd>4 of 5</dd></div></dl>
+      </div>
+    </article>
+    <article class="prospect">
+      <header class="p-head">
+        <div>
+          <h3>Agência de marketing digital (cliente da área da saúde)</h3>
+          <p class="sub">Empresa (agência) <span aria-hidden="true">&middot;</span> Trigger present</p>
+        </div>
+        <div class="score"><b class="num">68</b><span>Promising</span></div>
+      </header>
+      <p class="signal">Tem um agente de IA no WhatsApp em produção para um cliente de saúde e procura quem assuma a manutenção, com possibilidade de novos projetos.</p>
+      <dl class="kv"><dt>Why it fits</dt><dd>Possível canal de parceria recorrente, não um cliente final típico.</dd><dt>Why now</dt><dd>Publicado em 13/11/2026.</dd><dt>Channel</dt><dd>Proposta pelo projeto no 99Freelas</dd><dt>Caution</dt><dd>Comprador é uma agência, e o pedido é de manutenção de algo já construído, não de um projeto novo. Cerca de 129 propostas.</dd></dl>
+      <div class="opener">
+        <p class="label">Suggested opener, draft only and never sent automatically</p>
+        <p>Olá! Vi que vocês têm um agente de WhatsApp no ar para um cliente de saúde e buscam quem assuma a evolução (follow-ups, fora do horário). A Nexo trabalha com agentes de WhatsApp e automações em n8n e pode assumir esse primeiro pacote. Vocês preferem começar pelos follow-ups ou pela revisão do prompt?</p>
+      </div>
+      <details class="screen-only">
+        <summary>Evidence and score breakdown</summary>
+        <p>Descreve a stack (uChat, n8n, Evolution API) e um primeiro pacote fechado de entregas; diz que &#x27;se a parceria funcionar&#x27; haverá novos projetos.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-13
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/automacao-de-whatsapp-com-ia-uchat-n8n-798358" target="_blank" rel="noreferrer">Automação de WhatsApp com IA (uChat + n8n) (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>3 of 5</dd></div><div><dt>Product fit</dt><dd>3 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>2 of 5</dd></div><div><dt>Evidence quality</dt><dd>4 of 5</dd></div></dl>
+      </details>
+      <div class="print-only">
+        <p class="label">Evidence and score breakdown</p>
+        <p>Descreve a stack (uChat, n8n, Evolution API) e um primeiro pacote fechado de entregas; diz que &#x27;se a parceria funcionar&#x27; haverá novos projetos.</p>
+        <p class="source">
+          Projeto público em marketplace de freelancers, 2026-11-13
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.99freelas.com.br/project/automacao-de-whatsapp-com-ia-uchat-n8n-798358" target="_blank" rel="noreferrer">Automação de WhatsApp com IA (uChat + n8n) (99Freelas)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>3 of 5</dd></div><div><dt>Product fit</dt><dd>3 of 5</dd></div><div><dt>Timing</dt><dd>5 of 5</dd></div><div><dt>Reachability</dt><dd>2 of 5</dd></div><div><dt>Evidence quality</dt><dd>4 of 5</dd></div></dl>
+      </div>
+    </article>
+    <article class="prospect">
+      <header class="p-head">
+        <div>
+          <h3>Leao Odontologia 2.0 LTDA</h3>
+          <p class="sub">Empresa (clínica odontológica, Curitiba/PR) <span aria-hidden="true">&middot;</span> Trigger present</p>
+        </div>
+        <div class="score"><b class="num">56</b><span>Needs validation</span></div>
+      </header>
+      <p class="signal">Contratando recepcionista cujas atribuições incluem atendimento por WhatsApp, agendamento e confirmação de consultas e organização de agenda.</p>
+      <dl class="kv"><dt>Why it fits</dt><dd>Parte do trabalho da vaga é o que um atendente de IA com agendamento faz.</dd><dt>Why now</dt><dd>Vaga aberta, mas a página não mostra data de publicação.</dd><dt>Channel</dt><dd>Contato público da clínica (site ou página de negócio), a localizar</dd><dt>Caution</dt><dd>Sinal indireto: uma vaga não prova dor com WhatsApp. Falta data e não há site da clínica; localizar o contato público antes de qualquer abordagem.</dd></dl>
+      <div class="opener">
+        <p class="label">Suggested opener, draft only and never sent automatically</p>
+        <p>Olá! Vi que a clínica está contratando recepção para atender no WhatsApp e confirmar consultas. Sem substituir a recepção, a Nexo cria um atendente que responde e confirma horários fora do expediente e chama a equipe quando precisa. Faz sentido conversarmos sobre como isso funcionaria no dia a dia de vocês?</p>
+      </div>
+      <details class="screen-only">
+        <summary>Evidence and score breakdown</summary>
+        <p>Vaga pública no BNE com essas atribuições e requisito de &#x27;conhecimento em informática (agendamentos, whatsapp, sistemas)&#x27;.</p>
+        <p class="source">
+          Vaga pública, data indisponível
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.bne.com.br/vaga-de-emprego-na-area-administrativo-em-curitiba-pr/recepcionista/5967832" target="_blank" rel="noreferrer">Vaga de Recepcionista para Consultório de Odontologia (BNE)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>3 of 5</dd></div><div><dt>Product fit</dt><dd>3 of 5</dd></div><div><dt>Timing</dt><dd>2 of 5</dd></div><div><dt>Reachability</dt><dd>3 of 5</dd></div><div><dt>Evidence quality</dt><dd>3 of 5</dd></div></dl>
+      </details>
+      <div class="print-only">
+        <p class="label">Evidence and score breakdown</p>
+        <p>Vaga pública no BNE com essas atribuições e requisito de &#x27;conhecimento em informática (agendamentos, whatsapp, sistemas)&#x27;.</p>
+        <p class="source">
+          Vaga pública, data indisponível
+          <span aria-hidden="true">&middot;</span>
+          <a href="https://www.bne.com.br/vaga-de-emprego-na-area-administrativo-em-curitiba-pr/recepcionista/5967832" target="_blank" rel="noreferrer">Vaga de Recepcionista para Consultório de Odontologia (BNE)</a>
+        </p>
+        <dl class="dims"><div><dt>Pain strength</dt><dd>3 of 5</dd></div><div><dt>Product fit</dt><dd>3 of 5</dd></div><div><dt>Timing</dt><dd>2 of 5</dd></div><div><dt>Reachability</dt><dd>3 of 5</dd></div><div><dt>Evidence quality</dt><dd>3 of 5</dd></div></dl>
+      </div>
+    </article>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">Patterns</p>
+    <h2 class="section">Signals that repeat</h2>
+    <p class="note">Problems that came up more than once. Lead with these.</p>
+    <div class="patterns"><div class="pattern"><b class="num">3</b><div><h4>WhatsApp + agenda/CRM sem digitação</h4><p>Três dos quatro prospects querem ligar o WhatsApp a agenda ou CRM sem digitação manual.</p></div></div><div class="pattern"><b class="num">3</b><div><h4>Compradores em marketplaces de freelancers</h4><p>As empresas mais claras apareceram no 99Freelas, com 100 a 210 propostas por projeto. Vale competir pelo diagnóstico e pelo plano claro, não pelo preço.</p></div></div><div class="pattern"><b class="num">3</b><div><h4>Setor de saúde</h4><p>Clínicas aparecem de forma repetida como segmento com dor de agendamento por WhatsApp; considerar um pacote específico para clínicas.</p></div></div></div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">Next seven days</p>
+    <h2 class="section">What to do this week</h2>
+    <p class="angle">Oferecer um diagnóstico curto e gratuito do fluxo de WhatsApp antes de qualquer proposta de software, aproveitando o argumento &#x27;plano, prazo e valor antes de começar&#x27;.</p>
+    <dl class="steps"><div><dt>First step</dt><dd>Revisar manualmente MP Growth e a clínica médica e enviar uma proposta específica a cada um, citando o escopo que eles publicaram.</dd></div><div><dt>Follow up</dt><dd>Se responderem, mandar um mapa de uma página do fluxo atual e do que seria automatizado primeiro.</dd></div><div><dt>Success signal</dt><dd>Duas conversas e um piloto pago ou design partner em sete dias.</dd></div></dl>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">Limits</p>
+    <h2 class="section">Read this before acting</h2>
+    <ul class="limits"><li>Potenciais clientes inferidos de sinais públicos, não compradores confirmados.</li><li>Reddit, Workana, Reclame Aqui e Solutudo bloquearam acesso automatizado; LinkedIn, X e Facebook não foram testados. A lista é estreita por isso.</li><li>As buscas de dor, gambiarras e troca de ferramenta não retornaram prospects qualificados.</li><li>Datas e propostas de cada projeto mudam; confirme que cada pedido ainda está aberto antes de contato. Todo contato é manual; nada foi enviado.</li></ul>
+  </section>
+
+  <footer>
+    <span>Built from public posts only. Nothing here gets sent for you.</span>
+  </footer>
+</main>
+</body>
+</html>
