@@ -1,5 +1,5 @@
 # Project Anatomy: Nexo
-Generated: 2026-11-18 | 473 files | ~670.7K tokens if all read
+Generated: 2026-11-19 | 473 files | ~670.8K tokens if all read
 
 ## Structure
 | Path | Lines | ~Tokens | Type |
@@ -463,7 +463,7 @@ Generated: 2026-11-18 | 473 files | ~670.7K tokens if all read
 | .env.example | 90 | 828 | other |
 | .gitignore | 35 | 70 | other |
 | Dockerfile | 89 | 1.1K | other |
-| Dockerfile.frontend | 79 | 619 | other |
+| Dockerfile.frontend | 83 | 659 | other |
 | Dockerfile.mcp | 19 | 85 | other |
 | Dockerfile.n8n | 24 | 231 | other |
 | LICENSE | 32 | 317 | other |
@@ -479,7 +479,7 @@ Generated: 2026-11-18 | 473 files | ~670.7K tokens if all read
 | video-server/Dockerfile | 59 | 695 | other |
 
 ## Summary
-- source: 310 files, ~425.2K tokens
+- source: 310 files, ~425.3K tokens
 - config: 13 files, ~3.6K tokens
 - test: 114 files, ~154.6K tokens
 - docs: 11 files, ~20.6K tokens
